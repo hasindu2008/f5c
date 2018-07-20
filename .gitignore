@@ -38,6 +38,7 @@ ehthumbs.db
 Thumbs.db
 
 #my
+main
 *.fast5
 *.fig
 *.fa
