@@ -34,7 +34,7 @@
     }\
     })
 
-event_table getevents(int nsample,float *rawptr);	
+event_table getevents(size_t nsample,float *rawptr);	
 	
 	
 //taken from minimap2/misc	

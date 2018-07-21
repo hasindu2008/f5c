@@ -14,8 +14,8 @@ typedef struct {
 	float length;
 	float mean;
 	float stdv;
-	int pos;
-	int state;
+	int32_t pos;
+	int32_t state;
 } event_t;
 
 //from scrappie
@@ -27,25 +27,26 @@ typedef struct {
 } event_table;
 
 
-struct data_batch_t{
+typedef struct{
 
 	//region string
 	char *region;
 
 	//bam records
 	bam1_t** bam_rec;
-	int capacity_bam_rec;
-	int n_bam_rec;
+	int32_t capacity_bam_rec; //will these overflow?
+	int32_t n_bam_rec;
 
 	//fasta cache //can optimise later by caching a common string for all records in th ebatch
 	char** fasta_cache;
 
 	//fast5 file
-	fast5** f5;
-};
-typedef struct data_batch_t data_batch;
+	fast5_t** f5;
+	
+} db_t;
 
-struct data_global_t{
+
+typedef struct{
 	
 	//bam file related
 	htsFile* m_bam_fh;
@@ -59,13 +60,17 @@ struct data_global_t{
     //readbb
     ReadDB *readbb;
 	
-};
-typedef struct data_global_t data_global;
+	//options
+	int8_t print;
+	int8_t print_events;
+	
+} core_t;
 
 
-data_batch* init_databatch();
-int load_databatch(data_batch* db,data_global* dg);
-data_global* init_files(const char *bamfilename, const char *fastafile,const char *fastqfile);
-void* process_databatch(data_batch* db,data_global* dg);
+
+db_t* init_db();
+int32_t load_db(core_t* dg,db_t* db);
+core_t* init_core(const char *bamfilename, const char *fastafile,const char *fastqfile);
+void* process_db(core_t* dg,db_t* db);
 
 #endif

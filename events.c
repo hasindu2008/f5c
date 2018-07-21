@@ -101,11 +101,11 @@ void quantilef(const float *x, size_t nx, float *p, size_t np) {
 	if (NULL == p) {
 		return;
 	}
-	for (int i = 0; i < np; i++) {
+	for (unsigned int i = 0; i < np; i++) {
 		assert(p[i] >= 0.0f && p[i] <= 1.0f);
 	}
 	if (NULL == x) {
-		for (int i = 0; i < np; i++) {
+		for (unsigned i = 0; i < np; i++) {
 			p[i] = NAN;
 		}
 		return;
@@ -113,7 +113,7 @@ void quantilef(const float *x, size_t nx, float *p, size_t np) {
 	// Sort array
 	float *space = (float *)malloc(nx * sizeof(float));
 	if (NULL == space) {
-		for (int i = 0; i < np; i++) {
+		for (unsigned int i = 0; i < np; i++) {
 			p[i] = NAN;
 		}
 		return;
@@ -122,7 +122,7 @@ void quantilef(const float *x, size_t nx, float *p, size_t np) {
 	qsort(space, nx, sizeof(float), floatcmp);
 
 	// Extract quantiles
-	for (int i = 0; i < np; i++) {
+	for (unsigned int i = 0; i < np; i++) {
 		const size_t idx = p[i] * (nx - 1);
 		const float remf = p[i] * (nx - 1) - idx;
 		if (idx < nx - 1) {
@@ -386,7 +386,7 @@ size_t *short_long_peak_detector(DetectorPtr short_detector,
 
 	size_t peak_count = 0;
 	for (size_t i = 0; i < short_detector->signal_length; i++) {
-		for (int k = 0; k < ndetector; k++) {
+		for (unsigned int k = 0; k < ndetector; k++) {
 			DetectorPtr detector = detectors[k];
 			//Carry on if we've been masked out
 			if (detector->masked_to >= i) {
@@ -574,7 +574,7 @@ event_table detect_events(raw_table const rt, detector_param const edparam) {
 
 
 //interface to scrappie functions
-event_table getevents(int nsample,float *rawptr){
+event_table getevents(size_t nsample,float *rawptr){
 
 	event_table et;
 	raw_table rt = (raw_table) {nsample, 0, nsample, rawptr };
