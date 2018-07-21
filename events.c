@@ -1,3 +1,5 @@
+
+
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -10,15 +12,22 @@
 #include <errno.h>
 #include <stdbool.h>
 #include <stdint.h>
+
 #include <htslib/sam.h>
 #include <htslib/hts.h>
 #include <htslib/faidx.h>
-#include "fast5lite.h"
-#include "common.h"
-#include "nanopolish_read_db.h"
-#include "main.h"
+#include <hdf5/serial/hdf5.h>
 
-//const detector_param* ed_params
+#include "nanopolish_read_db.h"
+#include "f5c.h"
+#include "fast5lite.h"
+#include "f5cmisc.h"
+
+
+/** 
+The following code taken from scrappie
+*/
+
 
 typedef struct {
 	size_t window_length1;
@@ -45,14 +54,7 @@ static detector_param const event_detection_rna = {
 	.peak_height = 1.0f
 };
 
-typedef struct {
-	uint64_t start;
-	float length;
-	float mean;
-	float stdv;
-	int pos;
-	int state;
-} event_t;
+
 
 // From scrappie
 typedef struct {
@@ -64,22 +66,12 @@ typedef struct {
 } fast5_raw_scaling;
 
 
-
-
-typedef struct {
-	size_t n;
-	size_t start;
-	size_t end;
-	event_t *event;
-} event_table;
-
 typedef struct {
 	size_t n;
 	size_t start;
 	size_t end;
 	float *raw;
 } raw_table;
-
 
 
 int floatcmp(const void *x, const void *y) {
@@ -581,52 +573,25 @@ event_table detect_events(raw_table const rt, detector_param const edparam) {
 }
 
 
-void* process_databatch(data_batch* db,data_global* dg){
+//interface to scrappie functions
+event_table getevents(int nsample,float *rawptr){
 
-	event_table* et=(event_table*)malloc(sizeof(event_table)*db->n_bam_rec);
+	event_table et;
+	raw_table rt = (raw_table) {nsample, 0, nsample, rawptr };
+	
+	// trim using scrappie's internal method
+	// parameters taken directly from scrappie defaults
+	int trim_start = 200;
+	int trim_end = 10;
+	int varseg_chunk = 100;
+	float varseg_thresh = 0.0;
+	trim_and_segment_raw(rt, trim_start, trim_end, varseg_chunk, varseg_thresh);
 
-	int i;
-	for(i=0 ; i<db->n_bam_rec ; i++){
+	const detector_param* ed_params = &event_detection_defaults; //for dna only
+	et = detect_events(rt, *ed_params);
 
-		float *rawptr=db->f5[i]->rawptr;
-
-
-		float range=db->f5[i]->range;
-		float digitisation=db->f5[i]->digitisation;
-		float offset = db->f5[i]->offset;
-		int nsample=db->f5[i]->nsample;
-
-		float raw_unit = range / digitisation;
-		for (int j = 0; j < nsample; j++) {
-			rawptr[j] = (rawptr[j] + offset) * raw_unit;
-		}
-
-		// convert to pA
-		raw_table rt = (raw_table) { db->f5[i]->nsample, 0, db->f5[i]->nsample, rawptr };
-
-
-
-		// trim using scrappie's internal method
-		// parameters taken directly from scrappie defaults
-		int trim_start = 200;
-		int trim_end = 10;
-		int varseg_chunk = 100;
-		float varseg_thresh = 0.0;
-		trim_and_segment_raw(rt, trim_start, trim_end, varseg_chunk, varseg_thresh);
-
-		const detector_param* ed_params = &event_detection_defaults; //for dna only
-		et[i] = detect_events(rt, *ed_params);
-
-
-	}
-
-	return (void*)et;
+	return et;
+	
 }
-
-
-
-
-
-
 
 

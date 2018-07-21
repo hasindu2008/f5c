@@ -10,9 +10,9 @@
 #define NANOPOLISH_READ_DB
 
 #include <map>
-#include <htslib/faidx.h>
 #include <string>
-
+#include <htslib/faidx.h>
+  
 struct ReadDBData
 {
     // path to the signal-level data for this read

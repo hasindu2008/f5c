@@ -1,29 +1,25 @@
 CC     = g++
 CFLAGS   = -g -Wall -O2 -std=c++11
-LDFLAGS = -lhts -lhdf5_serial -lz -lm -lbz2 -llzma -lpthread 
+CPPGLAGS =
 INC = 
+LDFLAGS = -lhts -lhdf5_serial -lz -lm -lbz2 -llzma -lpthread 
 
-DEPS = common.h fast5lite.h nanopolish_read_db.h main.h
-OBJ = main.o common.o nanopolish_read_db.o process.o
-BINARY = main
+#SRC = $(wildcard *.c)
+SRC = main.c f5c.c events.c nanopolish_read_db.c
+OBJ = $(SRC:.c=.o)
+BINARY = f5c
+DEPS = f5c.h fast5lite.h nanopolish_read_db.h f5cmisc.h
+
+.PHONY: clean  
 
 $(BINARY) : $(OBJ) 
 	$(CC) $(CFLAGS) $(OBJ) $(LDFLAGS) -o $@
 
 
-main.o: main.c nanopolish_read_db.o  $(DEPS) 
-	$(CC) $(CFLAGS) $< $(LDFLAGS) -c 
+%.o : %.c $(DEPS)
+	$(CC) $(CFLAGS) $< -c 
+	
 
-common.o : common.c $(DEPS) 
-	$(CC) $(CFLAGS) $< $(LDFLAGS) -c 
-
-nanopolish_read_db.o : nanopolish_read_db.cpp $(DEPS) 
-	$(CC) $(CFLAGS) $< $(LDFLAGS) -c
-
-process.o : process.c $(DEPS)
-	$(CC) $(CFLAGS) $< $(LDFLAGS) -c
-
-.PHONY: clean  
 clean: 
-	-rm main
-	-rm *.o
+	rm -rf f5c *.o
+
