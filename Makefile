@@ -19,7 +19,7 @@ $(BINARY) : $(OBJ)
 %.o : %.c $(DEPS)
 	$(CC) $(CFLAGS) $< -c 
 	
-
+	
 clean: 
 	rm -rf f5c *.o
 

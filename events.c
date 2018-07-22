@@ -213,7 +213,7 @@ raw_table trim_raw_by_mad(raw_table rt, int chunk_size, float perc) {
 	rt.end = nchunk * chunk_size;
 
 	float *madarr = (float *)malloc(nchunk * sizeof(float));
-	errorCheckNULL(madarr);
+	NULL_CHK(madarr);
 	for (size_t i = 0; i < nchunk; i++) {
 		madarr[i] = madf(rt.raw + rt.start + i * chunk_size, chunk_size, NULL);
 	}
@@ -240,10 +240,10 @@ raw_table trim_raw_by_mad(raw_table rt, int chunk_size, float perc) {
 }
 
 raw_table trim_and_segment_raw(raw_table rt, int trim_start, int trim_end, int varseg_chunk, float varseg_thresh) {
-	errorCheckNULL(rt.raw);
+	NULL_CHK(rt.raw);
 
 	rt = trim_raw_by_mad(rt, varseg_chunk, varseg_thresh);
-	errorCheckNULL(rt.raw);
+	NULL_CHK(rt.raw);
 
 	rt.start += trim_start;
 	rt.end -= trim_end;

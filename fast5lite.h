@@ -8,6 +8,17 @@
 #include <errno.h>
 #include <stdint.h>
 
+#define WARNING(arg, ...) fprintf(stderr,"[%s::WARNING]\033[1;33m " arg "\033[0m\n",__func__, __VA_ARGS__) 
+
+#define MALLOC_CHK(ret) ({\
+    if (ret==NULL){ \
+        fprintf(stderr,"[%s::ERROR]\033[1;31m Failed to allocate memory : %s.\033[0m\
+						\n[%s::DEBUG]\033[1;35m Error occured at %s:%d.\033[0m\n\n" \
+						,__func__,strerror(errno),__func__,__FILE__, __LINE__);\
+        exit(EXIT_FAILURE);\
+    }\
+    }) 
+
 typedef struct{
 	
 	float* rawptr;				//raw signal (float is not the best datatype type though)
@@ -45,13 +56,13 @@ static inline float fast5_read_float_attribute(hid_t group, const char *attribut
 
 	hid_t attr = H5Aopen(group, attribute, H5P_DEFAULT);
 	if (attr < 0) {
-		fprintf(stderr, "[WARNING]\033[1;33m Failed to open attribute '%s'.\033[0m\n", attribute);
+		WARNING("Failed to open attribute '%s'.", attribute);
 		return NAN;
 	}
 
 	herr_t ret=H5Aread(attr, H5T_NATIVE_FLOAT, &val);
 	if(ret < 0){
-		fprintf(stderr, "[WARNING]\033[1;33m Failed to read attribute.\033[0m\n");
+		WARNING("Failed to read attribute '%s'.", attribute);
 		return NAN;
 	}
 	
@@ -72,7 +83,7 @@ static inline int32_t fast5_read(hid_t hdf5_file, fast5_t* f5)
 	ssize_t size =H5Lget_name_by_idx(hdf5_file, RAW_ROOT, H5_INDEX_NAME, H5_ITER_INC, 0, NULL,0, H5P_DEFAULT);
 
 	if (size < 0) {
-		fprintf(stderr,"[WARNING]\033[1;33m Failed to retrieve the size of the read name.\033[0m\n");
+		WARNING("Failed to retrieve the size of the read name.%s","");
 		return -1;
 	}
 
@@ -80,16 +91,12 @@ static inline int32_t fast5_read(hid_t hdf5_file, fast5_t* f5)
 	char* read_name = (char*)calloc(1 + size, sizeof(char));
 	ssize_t ret=H5Lget_name_by_idx(hdf5_file, RAW_ROOT, H5_INDEX_NAME, H5_ITER_INC, 0, read_name, 1 + size, H5P_DEFAULT);
 	if(ret<0){
-		fprintf(stderr,"[WARNING]\033[1;33m Failed to retrieve the read name.\033[0m\n");
+		WARNING("Failed to retrieve the read name.%s","");
 		return -1;
 	}
 
 	//not the most efficient and safest, but being a bit lazy for the moment
-	char *signal_path=(char *)malloc((size+1+strlen(RAW_ROOT)+strlen("/Signal"))*sizeof(char));
-	if(signal_path==NULL){
-		fprintf(stderr,"[ERROR]\033[1;31m  Memory allocation failed.\033[0m\n\tFile %s line number %d : %s\n",__FILE__, __LINE__,strerror(errno));
-		exit(EXIT_FAILURE);
-	}
+	char *signal_path=(char *)malloc((size+1+strlen(RAW_ROOT)+strlen("/Signal"))*sizeof(char)); MALLOC_CHK(signal_path);
 	
 	sprintf(signal_path,"%s%s%s",RAW_ROOT,read_name,"/Signal");
 
@@ -100,7 +107,7 @@ static inline int32_t fast5_read(hid_t hdf5_file, fast5_t* f5)
 
 	hid_t dset = H5Dopen(hdf5_file, signal_path, H5P_DEFAULT);
 	if (dset < 0) {
-		fprintf(stderr, "[WARNING]\033[1;33m Failed to open dataset '%s' to read raw signal.\033[0m\n", signal_path);
+		WARNING("Failed to open dataset '%s' to read raw signal.", signal_path);
 		free(signal_path);
 		return -1;
 		//goto cleanup2;
@@ -108,7 +115,7 @@ static inline int32_t fast5_read(hid_t hdf5_file, fast5_t* f5)
 
 	space = H5Dget_space(dset);
 	if (space < 0) {
-		fprintf(stderr, "[WARNING]\033[1;33m Failed to create copy of dataspace for raw signal %s.\033[0m\n", signal_path);
+		WARNING("Failed to create copy of dataspace for raw signal %s.", signal_path);
 		H5Dclose(dset);
 		free(signal_path);
 		return -1;
@@ -117,7 +124,7 @@ static inline int32_t fast5_read(hid_t hdf5_file, fast5_t* f5)
 
 	int32_t ret1=H5Sget_simple_extent_dims(space, &nsample, NULL);
 	if(ret1<0){
-		fprintf(stderr, "[WARNING]\033[1;33m Failed to get the dataspace dimension for raw signal %s.\033[0m\n",signal_path);
+		WARNING("Failed to get the dataspace dimension for raw signal %s.",signal_path);
 		H5Sclose(space);
 		H5Dclose(dset);
 		free(signal_path);
@@ -130,7 +137,7 @@ static inline int32_t fast5_read(hid_t hdf5_file, fast5_t* f5)
 
 	if (status < 0) {
 		free(f5->rawptr);
-		fprintf(stderr, "[WARNING]\033[1;33m Failed to read raw data from dataset %s.\033[0m\n", signal_path);
+		WARNING("Failed to read raw data from dataset %s.", signal_path);
 		H5Sclose(space);
 		H5Dclose(dset);
 		free(signal_path);
@@ -145,7 +152,7 @@ static inline int32_t fast5_read(hid_t hdf5_file, fast5_t* f5)
 
 	hid_t scaling_group = H5Gopen(hdf5_file, scaling_path, H5P_DEFAULT);
 	if (scaling_group < 0) {
-		fprintf(stderr, "[WARNING]\033[1;33m Failed to open group %s.\033[0m\n", scaling_path);
+		WARNING("Failed to open group %s.", scaling_path);
 		free(signal_path);
 		return -1;
 	}
@@ -156,7 +163,7 @@ static inline int32_t fast5_read(hid_t hdf5_file, fast5_t* f5)
 	f5->sample_rate = fast5_read_float_attribute(scaling_group, "sampling_rate");
 
 	if(f5->digitisation==NAN || f5->offset==NAN || f5->range==NAN || f5->sample_rate==NAN){
-		fprintf(stderr, "[WARNING]\033[1;33m Read a NAN value for scaling parameters for '%s'.\033[0m\n", signal_path);
+		WARNING("Read a NAN value for scaling parameters for '%s'.", signal_path);
 		H5Gclose(scaling_group);
 		free(signal_path);
 		return -1;

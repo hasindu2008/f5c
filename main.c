@@ -24,7 +24,6 @@ int main(int argc, char *argv[]){
 	const char *optstring = "r:b:g:h:v:";
 	int longindex=0;
 	int c=-1;
-
 	
 	char *bamfilename=NULL;
 	char *fastafile=NULL;

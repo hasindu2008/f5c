@@ -15,18 +15,18 @@ core_t* init_core(const char *bamfilename, const char *fastafile,const char *fas
 	core_t* core=(core_t *)malloc(sizeof(core_t)); MALLOC_CHK(core);
 
 	// load bam file
-	core->m_bam_fh = sam_open(bamfilename, "r"); errorCheckNULL(core->m_bam_fh);
+	core->m_bam_fh = sam_open(bamfilename, "r"); NULL_CHK(core->m_bam_fh);
 
 	// load bam index file
-	core->m_bam_idx = sam_index_load(core->m_bam_fh, bamfilename); errorCheckNULL(core->m_bam_idx);
+	core->m_bam_idx = sam_index_load(core->m_bam_fh, bamfilename); NULL_CHK(core->m_bam_idx);
 
 	// read the bam header
-	core->m_hdr = sam_hdr_read(core->m_bam_fh); errorCheckNULL(core->m_hdr); 
+	core->m_hdr = sam_hdr_read(core->m_bam_fh); NULL_CHK(core->m_hdr); 
 
-	core->itr = sam_itr_queryi(core->m_bam_idx, HTS_IDX_START, 0, 0); errorCheckNULL(core->itr);
+	core->itr = sam_itr_queryi(core->m_bam_idx, HTS_IDX_START, 0, 0); NULL_CHK(core->itr);
 
 	//reference file
-	core->fai = fai_load(fastafile); errorCheckNULL(core->fai);
+	core->fai = fai_load(fastafile); NULL_CHK(core->fai);
 
 	//readbb
 	core->readbb=new ReadDB;
@@ -45,7 +45,7 @@ void free_core(core_t* core){
 
 db_t* init_db(){
 
-	db_t* db=(db_t *)(malloc(sizeof(db_t))); errorCheckNULL(db);
+	db_t* db=(db_t *)(malloc(sizeof(db_t))); MALLOC_CHK(db);
 
 	db->capacity_bam_rec=512;
 	db->n_bam_rec=0;
@@ -54,8 +54,7 @@ db_t* init_db(){
 
 	int32_t	 i=0;
 	for(i = 0; i < db->capacity_bam_rec; ++i) {
-		db->bam_rec[i] = bam_init1(); // does bam_init1 already perform an error check
-		errorCheckNULL(db->bam_rec[i]);
+		db->bam_rec[i] = bam_init1(); NULL_CHK(db->bam_rec[i]);
 	}
 
 	db->fasta_cache=(char**)(malloc(sizeof(char*) * db->capacity_bam_rec)); MALLOC_CHK(db->fasta_cache);
@@ -112,12 +111,12 @@ int32_t load_db(core_t* core,db_t* db){
 
 		hid_t hdf5_file = fast5_open(fast5_path);
 		if(hdf5_file>=0){
-			db->f5[i]=(fast5_t*)calloc(1,sizeof(fast5_t)); //todo : errorcheck
+			db->f5[i]=(fast5_t*)calloc(1,sizeof(fast5_t)); MALLOC_CHK(db->f5[i]);
 			fast5_read(hdf5_file, db->f5[i]); //todo : errorhandle
 			fast5_close(hdf5_file);
 		}
 		else{
-			 fprintf(stderr, "[warning] fast5 file is unreadable and will be skipped: %s\n", fast5_path);
+			 WARNING("Fast5 file is unreadable and will be skipped: %s", fast5_path);
 		}
 
 		if(core->print){
