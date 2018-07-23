@@ -10,7 +10,7 @@
 #define m_min_mapping_quality 30
 
 
-core_t* init_core(const char *bamfilename, const char *fastafile,const char *fastqfile){
+core_t* init_core(const char *bamfilename, const char *fastafile,const char *fastqfile,opt_t opt){
 
 	core_t* core=(core_t *)malloc(sizeof(core_t)); MALLOC_CHK(core);
 
@@ -32,7 +32,7 @@ core_t* init_core(const char *bamfilename, const char *fastafile,const char *fas
 	core->readbb=new ReadDB;
 	core->readbb->load(fastqfile);
 
-	core->print=1;
+	core->opt=opt;
 	
 	return core;
 }
@@ -119,7 +119,7 @@ int32_t load_db(core_t* core,db_t* db){
 			 WARNING("Fast5 file is unreadable and will be skipped: %s", fast5_path);
 		}
 
-		if(core->print){
+		if(core->opt.print_raw){
 			printf("@%s\t%s\t%llu\n",qname.c_str(),fast5_path,db->f5[i]->nsample);
 			uint32_t j=0;
 			for(j=0;j<db->f5[i]->nsample;j++){
@@ -171,6 +171,14 @@ void free_db(db_t* db){
 	
 }
 
+void init_opt(opt_t *opt) {
+	memset(opt,0,sizeof(opt_t));
+	
+	opt->print_raw=0;
+	opt->min_mapq=30;
+	opt->con_sec=0;
+	
+}
 
 
 

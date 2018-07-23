@@ -8,6 +8,12 @@
 #include "fast5lite.h"
 #include "nanopolish_read_db.h"
  
+typedef struct {
+	int print_raw; //space save for bool
+	int min_mapq;
+	int con_sec;
+} opt_t;
+ 
 //from scrappie
 typedef struct {
 	uint64_t start;
@@ -61,16 +67,18 @@ typedef struct{
     ReadDB *readbb;
 	
 	//options
-	int8_t print;
-	int8_t print_events;
+	opt_t opt;
 	
 } core_t;
 
 
 
+
 db_t* init_db();
 int32_t load_db(core_t* dg,db_t* db);
-core_t* init_core(const char *bamfilename, const char *fastafile,const char *fastqfile);
+core_t* init_core(const char *bamfilename, const char *fastafile,const char *fastqfile,opt_t opt);
 void* process_db(core_t* dg,db_t* db);
+
+void init_opt(opt_t *opt);
 
 #endif
