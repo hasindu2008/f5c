@@ -479,8 +479,7 @@ event_t create_event(size_t start, size_t end, double const *sums,
 	event.mean = (float)(sums[end] - sums[start]) / event.length;
 	const float deltasqr = (sumsqs[end] - sumsqs[start]);
 	const float var = deltasqr / event.length - event.mean * event.mean;
-	event.stdv = sqrtf(fmaxf(var, 0.0f));
-
+	event.stdv = sqrtf(fmaxf(var, 0.0f)); 
 	return event;
 }
 

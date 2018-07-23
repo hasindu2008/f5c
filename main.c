@@ -3,7 +3,9 @@
 #include <stdint.h>
 #include <assert.h>
 #include <getopt.h>
-
+#include <unistd.h>
+#include <execinfo.h>
+#include <signal.h>
 #include "f5c.h"
 #include "f5cmisc.h"
 
@@ -22,9 +24,20 @@ static struct option long_options[] = {
 	{ 0, 0, 0, 0}
 };
 
-
+void sig_handler(int sig) {
+  void *array[100];
+  size_t size;
+  size = backtrace(array, 100);
+  ERROR("I regret to inform that a segmentation fault occurred. But at least it is better than a wrong answer%s",".");
+  fprintf(stderr,"[%s::DEBUG]\033[1;35m Here is the backtrace in case it is of any use:\n",__func__);
+  backtrace_symbols_fd(&array[2], size-1, STDERR_FILENO);
+  fprintf(stderr,"\033[0m\n");
+  exit(EXIT_FAILURE);
+}
 
 int main(int argc, char *argv[]){
+
+	signal(SIGSEGV, sig_handler); 
 
 	const char *optstring = "r:b:g:hvp";
 	int longindex=0;
@@ -70,7 +83,6 @@ int main(int argc, char *argv[]){
 			exit(EXIT_FAILURE);
 		}
 		
-		
 		// const char *bamfilename="/mnt/f/share/778Nanopore/fastq/740475-67.bam";
 		// const char *fastafile="/mnt/f/share/reference/hg38noAlt.fa";
 		// const char *fastqfile="/mnt/f/share/778Nanopore/fastq/740475-67.fastq";
@@ -78,25 +90,33 @@ int main(int argc, char *argv[]){
 		core_t* core =init_core(bamfilename,fastafile,fastqfile,opt);
 		db_t* db=init_db();
 
-		int32_t status;
-		while(1){
+		int32_t status=db->capacity_bam_rec;
+		while(status>= db->capacity_bam_rec){
 			status=load_db(core,db);
-			if(status<0){
-				break;
-			}
+
 			fprintf(stderr,"[%s::%.3f*%.2f] %d Entries loaded\n",__func__,realtime()-realtime0,cputime()/(realtime()-realtime0),status);	
 			process_db(core,db);
 			fprintf(stderr,"[%s::%.3f*%.2f] %d Entries processed\n",__func__,realtime()-realtime0,cputime()/(realtime()-realtime0),status);	
 		}
+		
 
+		
+
+		fprintf(stderr, "[%s] CMD:", __func__);
+		for (int i = 0; i < argc; ++i){
+			fprintf(stderr, " %s", argv[i]);
+		}
 		fprintf(stderr, "\n[%s] Real time: %.3f sec; CPU time: %.3f sec\n", __func__, realtime() - realtime0, cputime());
-
+	
+		
 	// }
 	
 	// else {
 		// fprintf(stderr,"Usage: %s [OPTIONS] -r reads.fa -b alignments.bam -g genome.fa\n",argv[0]);
 		// exit(EXIT_FAILURE);		
 	// }
+	
+	
 		
 	return 0;
 }

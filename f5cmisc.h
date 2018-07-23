@@ -5,7 +5,6 @@
 #include <sys/time.h>
 #include <sys/resource.h>
  
- 
 #define WARN "[%s::WARNING]\033[1;33m "
 #define ERR "[%s::ERROR]\033[1;31m "
 #define CEND	"\033[0m\n"
@@ -65,5 +64,6 @@ static inline double cputime(void)
 	getrusage(RUSAGE_SELF, &r);
 	return r.ru_utime.tv_sec + r.ru_stime.tv_sec + 1e-6 * (r.ru_utime.tv_usec + r.ru_stime.tv_usec);
 }
+
 
 #endif

@@ -4,8 +4,7 @@
 
 ## Dependencies
 
-HFD5
-HTSlib
+HFD5 and HTSlib
 
 On Ubuntu install the above two with:
 ```

@@ -131,9 +131,7 @@ int32_t load_db(core_t* core,db_t* db){
 	//fprintf(stderr,"%s:: %d fast5 read\n",__func__,db->n_bam_rec);
 
 
-	if(result<0){
-		return result;
-	}
+
 	return db->n_bam_rec;
 }
 
