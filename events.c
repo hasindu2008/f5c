@@ -13,9 +13,9 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include <sam.h>
-#include <hts.h>
-#include <faidx.h>
+#include <htslib/sam.h>
+#include <htslib/hts.h>
+#include <htslib/faidx.h>
 #include <hdf5.h>
 
 #include "nanopolish_read_db.h"

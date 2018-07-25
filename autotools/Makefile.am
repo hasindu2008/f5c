@@ -1,11 +1,16 @@
+AUTOMAKE_OPTIONS = foreign
+
 CC     = g++
 CFLAGS   = -g -rdynamic -Wall -O2 -std=c++11 
 CPPGLAGS =
 
-include include.mk
 
-INC = $(HDF5_INC) 
-#$(HTS_INC)
+HTS_INC =
+HDF5_INC = /usr/include/hdf5/serial/ 
+HTS_LDFLAGS = -lhts
+HDF5_LDFLAGS = -lhdf5_serial
+
+INC = $(HDF5_INC) $(HTS_INC)
 LDFLAGS = $(HTS_LDFLAGS) $(HDF5_LDFLAGS) -lz -lm -lbz2 -llzma -lpthread 
 
 #SRC = $(wildcard *.c)

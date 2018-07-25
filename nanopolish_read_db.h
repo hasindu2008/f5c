@@ -11,7 +11,7 @@
 
 #include <map>
 #include <string>
-#include <faidx.h>
+#include <htslib/faidx.h>
   
 struct ReadDBData
 {

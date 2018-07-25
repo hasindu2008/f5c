@@ -1,9 +1,9 @@
 #ifndef F5C_H
 #define F5C_H
 
-#include <sam.h>
-#include <hts.h>
-#include <faidx.h>
+#include <htslib/sam.h>
+#include <htslib/hts.h>
+#include <htslib/faidx.h>
 
 #include "fast5lite.h"
 #include "nanopolish_read_db.h"

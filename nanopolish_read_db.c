@@ -14,11 +14,11 @@
 #include <vector>
 #include <assert.h>
 //#include "nanopolish_common.h"
-#include <kseq.h>
-#include <bgzf.h>
+#include <htslib/kseq.h>
+#include <htslib/bgzf.h>
 #include "nanopolish_read_db.h"
 #include <map>
-#include <faidx.h>
+#include <htslib/faidx.h>
 
 #define READ_DB_SUFFIX ".readdb"
 #define GZIPPED_READS_SUFFIX ".index"

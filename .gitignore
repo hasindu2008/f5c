@@ -38,17 +38,17 @@ ehthumbs.db
 Thumbs.db
 
 # autotools #
-stamp-h1
-Makefile.in
-Makefile.tmp
-missing
-install-sh
-config.status
+aclocal.m4
 config.h.in
 config.h.in~
-depcomp
+Makefile.in
+config.status
+
+stamp-h1
+missing
+install-sh
 compile
-aclocal.m4
+depcomp
 .deps
 autom4te.cache
 
