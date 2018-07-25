@@ -9,7 +9,7 @@ HFD5 and HTSlib
 On Ubuntu install the above two with:
 ```
 sudo apt install libhdf5-dev
-sudo apt install libhts1
+sudo apt install libhts-dev
 ```
 
 ## Building

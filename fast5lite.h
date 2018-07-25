@@ -1,7 +1,7 @@
 #ifndef FAST5LITE_H
 #define FAST5LITE_H
 
-#include <hdf5/serial/hdf5.h>
+#include <hdf5.h>
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>

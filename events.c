@@ -13,10 +13,10 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include <htslib/sam.h>
-#include <htslib/hts.h>
-#include <htslib/faidx.h>
-#include <hdf5/serial/hdf5.h>
+#include <sam.h>
+#include <hts.h>
+#include <faidx.h>
+#include <hdf5.h>
 
 #include "nanopolish_read_db.h"
 #include "f5c.h"
