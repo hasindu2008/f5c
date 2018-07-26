@@ -3,7 +3,7 @@
 
 AC_PREREQ([2.69])
 AC_INIT([f5c], [1.0], [hasindu@unsw.edu.au])
-AM_INIT_AUTOMAKE([foreign])
+#AM_INIT_AUTOMAKE([foreign])
 AC_CONFIG_SRCDIR([f5c.c])
 AC_CONFIG_HEADERS([config.h])
 
