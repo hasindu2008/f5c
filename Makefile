@@ -2,11 +2,13 @@ CC     = g++
 CFLAGS   = -g -rdynamic -Wall -O2 -std=c++11 
 CPPGLAGS =
 
-include include.mk
+include config.mk
 
-INC = $(HDF5_INC) 
+#LIB_LDFLAGS = -lghts
+
+# INC = $(HDF5_INC) 
 #$(HTS_INC)
-LDFLAGS = $(HTS_LDFLAGS) $(HDF5_LDFLAGS) -lz -lm -lbz2 -llzma -lpthread 
+LDFLAGS = $(LIBS) -lz -lm -lbz2 -llzma -lpthread 
 
 #SRC = $(wildcard *.c)
 SRC = main.c f5c.c events.c nanopolish_read_db.c
@@ -21,7 +23,7 @@ $(BINARY) : $(OBJ)
 
 
 %.o : %.c $(DEPS)
-	$(CC) $(CFLAGS) -I $(INC) $< -c 
+	$(CC) $(CFLAGS) $< -c 
 	
 	
 clean: 
