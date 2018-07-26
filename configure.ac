@@ -57,6 +57,7 @@ if test $libhts != yes; then
   MSG_ERROR([HTS library development files not found! 
   On Debian based systems such as Ubuntu you may use sudo apt-get install libhts-dev.
   If that fails download and install the latest release of htslib from http://www.htslib.org/download/."
+  If you are too lazy for that, try the script ./installhts.sh for an attemp for local hts install.
   ])
 fi
 
