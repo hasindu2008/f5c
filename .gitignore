@@ -39,7 +39,6 @@ Thumbs.db
 
 # autotools #
 aclocal.m4
-config.h.in
 config.h.in~
 Makefile.in
 config.status

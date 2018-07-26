@@ -56,7 +56,7 @@ AC_CHECK_LIB([hts], [faidx_fetch_seq], [], [libhts=no])
 if test $libhts != yes; then
   MSG_ERROR([HTS library development files not found! 
   On Debian based systems such as Ubuntu you may use sudo apt-get install libhts-dev.
-  Or you download and install the latest release of htslib from http://www.htslib.org/download/."
+  If that fails download and install the latest release of htslib from http://www.htslib.org/download/."
   ])
 fi
 
