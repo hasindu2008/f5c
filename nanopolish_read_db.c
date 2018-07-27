@@ -240,7 +240,6 @@ std::string ReadDB::get_read_sequence(const std::string& read_id) const
     char* seq;
 
     // this call is not threadsafe
-    #pragma omp critical
     seq = fai_fetch(m_fai, read_id.c_str(), &length);
 
     if(seq == NULL) {

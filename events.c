@@ -13,10 +13,13 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include <htslib/sam.h>
-#include <htslib/hts.h>
-#include <htslib/faidx.h>
-#include <hdf5/serial/hdf5.h>
+
+
+
+	#include <htslib/sam.h>
+	#include <htslib/hts.h>
+	#include <htslib/faidx.h>
+
 
 #include "nanopolish_read_db.h"
 #include "f5c.h"
@@ -101,11 +104,11 @@ void quantilef(const float *x, size_t nx, float *p, size_t np) {
 	if (NULL == p) {
 		return;
 	}
-	for (int i = 0; i < np; i++) {
+	for (unsigned int i = 0; i < np; i++) {
 		assert(p[i] >= 0.0f && p[i] <= 1.0f);
 	}
 	if (NULL == x) {
-		for (int i = 0; i < np; i++) {
+		for (unsigned i = 0; i < np; i++) {
 			p[i] = NAN;
 		}
 		return;
@@ -113,7 +116,7 @@ void quantilef(const float *x, size_t nx, float *p, size_t np) {
 	// Sort array
 	float *space = (float *)malloc(nx * sizeof(float));
 	if (NULL == space) {
-		for (int i = 0; i < np; i++) {
+		for (unsigned int i = 0; i < np; i++) {
 			p[i] = NAN;
 		}
 		return;
@@ -122,7 +125,7 @@ void quantilef(const float *x, size_t nx, float *p, size_t np) {
 	qsort(space, nx, sizeof(float), floatcmp);
 
 	// Extract quantiles
-	for (int i = 0; i < np; i++) {
+	for (unsigned int i = 0; i < np; i++) {
 		const size_t idx = p[i] * (nx - 1);
 		const float remf = p[i] * (nx - 1) - idx;
 		if (idx < nx - 1) {
@@ -213,7 +216,7 @@ raw_table trim_raw_by_mad(raw_table rt, int chunk_size, float perc) {
 	rt.end = nchunk * chunk_size;
 
 	float *madarr = (float *)malloc(nchunk * sizeof(float));
-	errorCheckNULL(madarr);
+	NULL_CHK(madarr);
 	for (size_t i = 0; i < nchunk; i++) {
 		madarr[i] = madf(rt.raw + rt.start + i * chunk_size, chunk_size, NULL);
 	}
@@ -240,10 +243,10 @@ raw_table trim_raw_by_mad(raw_table rt, int chunk_size, float perc) {
 }
 
 raw_table trim_and_segment_raw(raw_table rt, int trim_start, int trim_end, int varseg_chunk, float varseg_thresh) {
-	errorCheckNULL(rt.raw);
+	NULL_CHK(rt.raw);
 
 	rt = trim_raw_by_mad(rt, varseg_chunk, varseg_thresh);
-	errorCheckNULL(rt.raw);
+	NULL_CHK(rt.raw);
 
 	rt.start += trim_start;
 	rt.end -= trim_end;
@@ -386,7 +389,7 @@ size_t *short_long_peak_detector(DetectorPtr short_detector,
 
 	size_t peak_count = 0;
 	for (size_t i = 0; i < short_detector->signal_length; i++) {
-		for (int k = 0; k < ndetector; k++) {
+		for (unsigned int k = 0; k < ndetector; k++) {
 			DetectorPtr detector = detectors[k];
 			//Carry on if we've been masked out
 			if (detector->masked_to >= i) {
@@ -479,8 +482,7 @@ event_t create_event(size_t start, size_t end, double const *sums,
 	event.mean = (float)(sums[end] - sums[start]) / event.length;
 	const float deltasqr = (sumsqs[end] - sumsqs[start]);
 	const float var = deltasqr / event.length - event.mean * event.mean;
-	event.stdv = sqrtf(fmaxf(var, 0.0f));
-
+	event.stdv = sqrtf(fmaxf(var, 0.0f)); 
 	return event;
 }
 
@@ -574,7 +576,7 @@ event_table detect_events(raw_table const rt, detector_param const edparam) {
 
 
 //interface to scrappie functions
-event_table getevents(int nsample,float *rawptr){
+event_table getevents(size_t nsample,float *rawptr){
 
 	event_table et;
 	raw_table rt = (raw_table) {nsample, 0, nsample, rawptr };

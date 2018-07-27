@@ -37,6 +37,19 @@
 ehthumbs.db
 Thumbs.db
 
+# autotools #
+aclocal.m4
+config.h.in~
+Makefile.in
+config.status
+stamp-h1
+missing
+install-sh
+compile
+depcomp
+.deps
+autom4te.cache
+
 #my
 main
 f5c
@@ -45,5 +58,7 @@ f5c
 *.fa
 *.fasta
 .png
-
+*.tsv
 tmp/
+htslib
+hdf5
