@@ -1,21 +1,50 @@
-if [ $# -eq 0 ]
-then
-	cd /mnt/f/share/778Nanopore/fastq/ && /mnt/f/hasindug.git/f5c/f5c -b /mnt/f/share/778Nanopore/fastq/740475-67.bam -g /mnt/f/share/reference/hg38noAlt.fa -r /mnt/f/share/778Nanopore/fastq/740475-67.fastq -p
+#!/usr/bin/env bash
+# Run f5c on the given input test file
+
+exepath="f5c"
+
+die() {
+    local msg="${1}"
+    echo "run.sh: ${msg}" >&2
+    exit 1
+}
+
+usage() {
+    echo "Usage: ${0} <test dir>" >&2
+    exit 1
+}
+
+if [[ "${#}" -eq 0 ]]; then
+    usage
+elif [[ ! -f "${exepath}" ]]; then
+    #die "f5c must be compiled first"
+    echo nothing > /dev/null
 fi
 
-if [ $# -eq 1 ]
-then
-	if [ $1 == "valgrind" ]
-	then
-		cd /mnt/f/share/778Nanopore/fastq/ && valgrind /mnt/f/hasindug.git/f5c/f5c -b /mnt/f/share/778Nanopore/fastq/740475-67.bam -g /mnt/f/share/reference/hg38noAlt.fa -r /mnt/f/share/778Nanopore/fastq/740475-67.fastq
-	elif [ $1 == "gdb" ]
-	then
-		cd /mnt/f/share/778Nanopore/fastq/ && gdb --args /mnt/f/hasindug.git/f5c/f5c -b /mnt/f/share/778Nanopore/fastq/740475-67.bam -g /mnt/f/share/reference/hg38noAlt.fa -r /mnt/f/share/778Nanopore/fastq/740475-67.fastq
-	else
-		echo "Wrong usage"
-	fi	
+tstdir="${1}"
+[[ -d "${tstdir}" ]] || die "${tstdir}: Directory does not exist"
+
+bamdir="${tstdir}/reads.sorted.bam"
+fadir="${tstdir}/humangenome.fa"
+fastqdir="${tstdir}/reads.fastq"
+for file in "${bamdir}" "${fadir}" "${fastqdir}"; do
+    [[ -f "${file}" ]] || die "${file}: File does not exist"
+done
+
+cd "${tstdir}"
+if [[ "${#}" -eq 1 ]]; then
+    "${exepath}" -b "${bamdir}" -g "${fadir}" -r "${fastqdir}" -p
+
+elif [[ "${#}" -eq 2 ]]; then
+    if [[ "${2}" == "valgrind" ]]; then
+        valgrind "${exepath}" -b "${bamdir}" -g "${fadir}" -r "${fastqdir}"
+    elif [[ "${2}" == "gdb" ]]; then
+        gdb --args "${exepath}" -b "${bamdir}" -g "${fadir}" -r "${fastqdir}"
+    else
+        usage
+    fi
+else
+    usage
 fi
 
-
-
-
+exit 0
