@@ -72,6 +72,7 @@ int32_t load_db(core_t* dg, db_t* db);
 core_t* init_core(const char* bamfilename, const char* fastafile,
                   const char* fastqfile, opt_t opt);
 void* process_db(core_t* dg, db_t* db);
+void free_core(core_t* core);
 
 void init_opt(opt_t* opt);
 

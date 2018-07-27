@@ -107,6 +107,7 @@ int main(int argc, char* argv[]) {
                 status);
     }
 
+    free_core(core);
     fprintf(stderr, "[%s] CMD:", __func__);
     for (int i = 0; i < argc; ++i) {
         fprintf(stderr, " %s", argv[i]);
