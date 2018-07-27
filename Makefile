@@ -31,4 +31,4 @@ clean:
 
 # Delete all gitignored files (but not directories)
 distclean: clean
-	git clean -f -X
+	git clean -f -X; rm -rf ./autom4te.cache
