@@ -50,6 +50,8 @@ depcomp
 .deps
 autom4te.cache
 /configure
+/config.h
+/config.mk
 
 #my
 main
@@ -60,6 +62,7 @@ f5c
 *.fasta
 .png
 *.tsv
+*.swp
 tmp/
 /htslib
 /hdf5
