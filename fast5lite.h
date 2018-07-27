@@ -28,21 +28,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define WARNING(arg, ...)                                                      \
-    fprintf(stderr, "[%s::WARNING]\033[1;33m " arg "\033[0m\n", __func__,      \
-            __VA_ARGS__)
-
-#define MALLOC_CHK(ret)                                                                                      \
-    ({                                                                                                       \
-        if (ret == NULL) {                                                                                   \
-            fprintf(                                                                                         \
-                stderr,                                                                                      \
-                "[%s::ERROR]\033[1;31m Failed to allocate memory : %s.\033[0m\
-						\n[%s::DEBUG]\033[1;35m Error occured at %s:%d.\033[0m\n\n", \
-                __func__, strerror(errno), __func__, __FILE__, __LINE__);                                    \
-            exit(EXIT_FAILURE);                                                                              \
-        }                                                                                                    \
-    })
+#include "error.h"
 
 typedef struct {
     float* rawptr;   // raw signal (float is not the best datatype type though)

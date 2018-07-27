@@ -5,63 +5,7 @@
 #include <sys/resource.h>
 #include <sys/time.h>
 
-#define WARN "[%s::WARNING]\033[1;33m "
-#define ERR "[%s::ERROR]\033[1;31m "
-#define CEND "\033[0m\n"
-
-#define WARNING(arg, ...)                                                      \
-    fprintf(stderr, "[%s::WARNING]\033[1;33m " arg "\033[0m\n", __func__,      \
-            __VA_ARGS__)
-#define ERROR(arg, ...)                                                        \
-    fprintf(stderr, "[%s::ERROR]\033[1;31m " arg "\033[0m\n", __func__,        \
-            __VA_ARGS__)
-#define INFO(arg, ...)                                                         \
-    fprintf(stderr, "[%s::INFO]\033[1;34m " arg "\033[0m\n", __func__,         \
-            __VA_ARGS__)
-#define SUCCESS(arg, ...)                                                      \
-    fprintf(stderr, "[%s::SUCCESS]\033[1;32m " arg "\033[0m\n", __func__,      \
-            __VA_ARGS__)
-#define DEBUG(arg, ...)                                                        \
-    fprintf(stderr,                                                            \
-            "[%s::DEBUG]\033[1;35m Error occured at %s:%d. " arg "\033[0m\n",  \
-            __func__, __FILE__, __LINE__ - 2, __VA_ARGS__)
-
-#define MALLOC_CHK(ret)                                                                                      \
-    ({                                                                                                       \
-        if (ret == NULL) {                                                                                   \
-            fprintf(                                                                                         \
-                stderr,                                                                                      \
-                "[%s::ERROR]\033[1;31m Failed to allocate memory : %s.\033[0m\
-						\n[%s::DEBUG]\033[1;35m Error occured at %s:%d.\033[0m\n\n", \
-                __func__, strerror(errno), __func__, __FILE__, __LINE__);                                    \
-            exit(EXIT_FAILURE);                                                                              \
-        }                                                                                                    \
-    })
-
-/*********************** Some error checks *********************/
-/*Die on error. Print the error and exit if the return value of the previous
- * function NULL*/
-#define NULL_CHK(ret)                                                                                        \
-    ({                                                                                                       \
-        if (ret == NULL) {                                                                                   \
-            fprintf(stderr, "[%s::ERROR]\033[1;31m %s.\033[0m\
-						\n[%s::DEBUG]\033[1;35m Error occured at %s:%d.\033[0m\n\n", \
-                    __func__, strerror(errno), __func__, __FILE__, __LINE__);                                \
-            exit(EXIT_FAILURE);                                                                              \
-        }                                                                                                    \
-    })
-
-/*Die on error. Print the error and exit if the return value of the previous
- * function is -1*/
-#define NEG_CHECK(ret)                                                                                       \
-    ({                                                                                                       \
-        if (ret < 0) {                                                                                       \
-            fprintf(stderr, "[%s::ERROR]\033[1;31m %s.\033[0m\
-						\n[%s::DEBUG]\033[1;35m Error occured at %s:%d.\033[0m\n\n", \
-                    __func__, strerror(errno), __func__, __FILE__, __LINE__);                                \
-            exit(EXIT_FAILURE);                                                                              \
-        }                                                                                                    \
-    })
+#include "error.h"
 
 event_table getevents(size_t nsample, float* rawptr);
 

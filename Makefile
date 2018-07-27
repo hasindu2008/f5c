@@ -11,10 +11,10 @@ include config.mk
 LDFLAGS += $(LIBS) -lpthread 
 
 #SRC = $(wildcard *.c)
-SRC = main.c f5c.c events.c nanopolish_read_db.c
+SRC = main.c f5c.c events.c nanopolish_read_db.c error.c
 OBJ = $(SRC:.c=.o)
 BINARY = f5c
-DEPS = f5c.h fast5lite.h nanopolish_read_db.h f5cmisc.h
+DEPS = f5c.h fast5lite.h nanopolish_read_db.h f5cmisc.h error.h
 
 .PHONY: clean  
 
@@ -32,3 +32,7 @@ clean:
 # Delete all gitignored files (but not directories)
 distclean: clean
 	git clean -f -X; rm -rf ./autom4te.cache
+
+# Autoformat code with clang format
+format:
+	./scripts/autoformat.sh
