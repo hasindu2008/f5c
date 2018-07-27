@@ -38,11 +38,15 @@ core_t* init_core(const char* bamfilename, const char* fastafile,
     core->readbb->load(fastqfile);
 
     core->opt = opt;
-
     return core;
 }
 
-void free_core(core_t* core) {}
+void free_core(core_t* core) {
+    delete core->readbb;
+    fai_destroy(core->fai);
+    sam_close(core->m_bam_fh);
+    free(core);
+}
 
 db_t* init_db() {
     db_t* db = (db_t*)(malloc(sizeof(db_t)));
