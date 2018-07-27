@@ -1,10 +1,10 @@
 
 
-LIBS = -lhdf5_serial -lhts -lz 
+LIBS = -lhdf5_serial -lz 
 LDFLAGS = 
 CPPFLAGS = 
 
-ifeq "locallibhts-no" "locallibhts-yes"
+ifeq "locallibhts-yes" "locallibhts-yes"
 
 CPPFLAGS += -I./htslib
 LDFLAGS += htslib/libhts.a

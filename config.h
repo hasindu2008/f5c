@@ -20,13 +20,13 @@
 #define HAVE_HDF5_SERIAL_HDF5_H 1
 
 /* Define to 1 if you have the <htslib/hts.h> header file. */
-#define HAVE_HTSLIB_HTS_H 1
+/* #undef HAVE_HTSLIB_HTS_H */
 
 /* Define to 1 if you have the <inttypes.h> header file. */
 #define HAVE_INTTYPES_H 1
 
 /* Define to 1 if you have the `hts' library (-lhts). */
-#define HAVE_LIBHTS 1
+/* #undef HAVE_LIBHTS */
 
 /* Define to 1 if you have the `z' library (-lz). */
 #define HAVE_LIBZ 1

@@ -6,7 +6,7 @@ rm htslib-1.9.tar.bz2
 mv htslib-1.9 htslib || exit
 cd htslib || exit 1
 chmod +x ./configure || exit 1
-./configure --disable-bz2 --disable-lzma || exit
+./configure --enable-bz2=no --enable-lzma=no --with-libdeflate=no --enable-libcurl=no  --enable-gcs=no --enable-s3=no || exit
 make -j8 || exit
 echo "Successfully installed htslib to ./htslib."
 echo 'Now run ./configure again!'
