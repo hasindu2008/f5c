@@ -173,9 +173,7 @@ void* process_db(core_t* core, db_t* db) {
     return (void*)et;
 }
 
-void free_db(db_t* db) {
-
-}
+void free_db(db_t* db) {}
 
 void init_opt(opt_t* opt) {
     memset(opt, 0, sizeof(opt_t));
