@@ -1,29 +1,27 @@
-#include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
-#include <unistd.h>
-#include <math.h>
-#include <float.h>
-#include <inttypes.h>
-#include <stdbool.h>
 #include <assert.h>
 #include <errno.h>
+#include <float.h>
+#include <inttypes.h>
+#include <math.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
-#include <htslib/sam.h>
-#include <htslib/hts.h>
 #include <htslib/faidx.h>
+#include <htslib/hts.h>
+#include <htslib/sam.h>
 
-#include "nanopolish_read_db.h"
 #include "f5c.h"
-#include "fast5lite.h"
 #include "f5cmisc.h"
+#include "fast5lite.h"
+#include "nanopolish_read_db.h"
 
 /** 
   The following code taken from scrappie
   */
-
 
 typedef struct {
     size_t window_length1;
@@ -33,22 +31,17 @@ typedef struct {
     float peak_height;
 } detector_param;
 
+static detector_param const event_detection_defaults = {.window_length1 = 3,
+                                                        .window_length2 = 6,
+                                                        .threshold1 = 1.4f,
+                                                        .threshold2 = 9.0f,
+                                                        .peak_height = 0.2f};
 
-static detector_param const event_detection_defaults = {
-    .window_length1 = 3,
-    .window_length2 = 6,
-    .threshold1 = 1.4f,
-    .threshold2 = 9.0f,
-    .peak_height = 0.2f
-};
-
-static detector_param const event_detection_rna = {
-    .window_length1 = 7,
-    .window_length2 = 14,
-    .threshold1 = 2.5f,
-    .threshold2 = 9.0f,
-    .peak_height = 1.0f
-};
+static detector_param const event_detection_rna = {.window_length1 = 7,
+                                                   .window_length2 = 14,
+                                                   .threshold1 = 2.5f,
+                                                   .threshold2 = 9.0f,
+                                                   .peak_height = 1.0f};
 
 // From scrappie
 typedef struct {
@@ -63,11 +56,11 @@ typedef struct {
     size_t n;
     size_t start;
     size_t end;
-    float *raw;
+    float* raw;
 } raw_table;
 
-int floatcmp(const void *x, const void *y) {
-    float d = *(float *)x - *(float *)y;
+int floatcmp(const void* x, const void* y) {
+    float d = *(float*)x - *(float*)y;
     if (d > 0) {
         return 1;
     }
@@ -89,7 +82,7 @@ int floatcmp(const void *x, const void *y) {
  *
  *	@return void
  **/
-void quantilef(const float *x, size_t nx, float *p, size_t np) {
+void quantilef(const float* x, size_t nx, float* p, size_t np) {
     if (NULL == p) {
         return;
     }
@@ -103,7 +96,7 @@ void quantilef(const float *x, size_t nx, float *p, size_t np) {
         return;
     }
     // Sort array
-    float *space = (float *)malloc(nx * sizeof(float));
+    float* space = (float*)malloc(nx * sizeof(float));
     if (NULL == space) {
         for (unsigned int i = 0; i < np; i++) {
             p[i] = NAN;
@@ -139,7 +132,7 @@ void quantilef(const float *x, size_t nx, float *p, size_t np) {
  *
  *	@return Median of array on success, NAN otherwise.
  **/
-float medianf(const float *x, size_t n) {
+float medianf(const float* x, size_t n) {
     float p = 0.5;
     quantilef(x, n, &p, 1);
     return p;
@@ -153,7 +146,7 @@ float medianf(const float *x, size_t n) {
  *
  *	@return MAD of array on success, NAN otherwise.
  **/
-float madf(const float *x, size_t n, const float *med) {
+float madf(const float* x, size_t n, const float* med) {
     const float mad_scaling_factor = 1.4826;
     if (NULL == x) {
         return NAN;
@@ -162,7 +155,7 @@ float madf(const float *x, size_t n, const float *med) {
         return 0.0f;
     }
 
-    float *absdiff = (float *)malloc(n * sizeof(float));
+    float* absdiff = (float*)malloc(n * sizeof(float));
     if (NULL == absdiff) {
         return NAN;
     }
@@ -204,7 +197,7 @@ raw_table trim_raw_by_mad(raw_table rt, int chunk_size, float perc) {
     // Truncation of end to be consistent with Sloika
     rt.end = nchunk * chunk_size;
 
-    float *madarr = (float *)malloc(nchunk * sizeof(float));
+    float* madarr = (float*)malloc(nchunk * sizeof(float));
     NULL_CHK(madarr);
     for (size_t i = 0; i < nchunk; i++) {
         madarr[i] = madf(rt.raw + rt.start + i * chunk_size, chunk_size, NULL);
@@ -231,7 +224,8 @@ raw_table trim_raw_by_mad(raw_table rt, int chunk_size, float perc) {
     return rt;
 }
 
-raw_table trim_and_segment_raw(raw_table rt, int trim_start, int trim_end, int varseg_chunk, float varseg_thresh) {
+raw_table trim_and_segment_raw(raw_table rt, int trim_start, int trim_end,
+                               int varseg_chunk, float varseg_thresh) {
     NULL_CHK(rt.raw);
 
     rt = trim_raw_by_mad(rt, varseg_chunk, varseg_thresh);
@@ -250,11 +244,10 @@ raw_table trim_and_segment_raw(raw_table rt, int trim_start, int trim_end, int v
 
 ////////////////////////////////////////////////////////////////////////
 
-
 typedef struct {
     int DEF_PEAK_POS;
     float DEF_PEAK_VAL;
-    float *signal;
+    float* signal;
     size_t signal_length;
     float threshold;
     size_t window_length;
@@ -263,7 +256,7 @@ typedef struct {
     float peak_value;
     bool valid_peak;
 } Detector;
-typedef Detector *DetectorPtr;
+typedef Detector* DetectorPtr;
 
 /**
  *	 Compute cumulative sum and sum of squares for a vector of data
@@ -276,8 +269,8 @@ typedef Detector *DetectorPtr;
  *	 @param sumsq	  double[d_length + 1]	 Vector to store sum of squares (out)
  *	 @param d_length					 Length of data vector
  **/
-void compute_sum_sumsq(const float *data, double *sum,
-        double *sumsq, size_t d_length) {
+void compute_sum_sumsq(const float* data, double* sum, double* sumsq,
+                       size_t d_length) {
     //RETURN_NULL_IF(NULL == data, );
     //RETURN_NULL_IF(NULL == sum, );
     //RETURN_NULL_IF(NULL == sumsq, );
@@ -301,14 +294,14 @@ void compute_sum_sumsq(const float *data, double *sum,
  *
  *	 @returns float array containing tstats.  Returns NULL on error
  **/
-float *compute_tstat(const double *sum, const double *sumsq,
-        size_t d_length, size_t w_length) {
+float* compute_tstat(const double* sum, const double* sumsq, size_t d_length,
+                     size_t w_length) {
     assert(d_length > 0);
     assert(w_length > 0);
     //RETURN_NULL_IF(NULL == sum, NULL);
     //RETURN_NULL_IF(NULL == sumsq, NULL);
 
-    float *tstat = (float *)calloc(d_length, sizeof(float));
+    float* tstat = (float*)calloc(d_length, sizeof(float));
     //RETURN_NULL_IF(NULL == tstat, NULL);
 
     const float eta = FLT_MIN;
@@ -341,8 +334,8 @@ float *compute_tstat(const double *sum, const double *sumsq,
         float sumsq2 = (float)(sumsq[i + w_length] - sumsq[i]);
         float mean1 = sum1 / w_lengthf;
         float mean2 = sum2 / w_lengthf;
-        float combined_var = sumsq1 / w_lengthf - mean1 * mean1
-            + sumsq2 / w_lengthf - mean2 * mean2;
+        float combined_var = sumsq1 / w_lengthf - mean1 * mean1 +
+                             sumsq2 / w_lengthf - mean2 * mean2;
 
         // Prevent problem due to very small variances
         combined_var = fmaxf(combined_var, eta);
@@ -363,17 +356,18 @@ float *compute_tstat(const double *sum, const double *sumsq,
  *	 @returns array of length nsample whose elements contain peak positions
  *	 Remaining elements are padded by zeros.
  **/
-size_t *short_long_peak_detector(DetectorPtr short_detector,
-        DetectorPtr long_detector,
-        const float peak_height) {
+size_t* short_long_peak_detector(DetectorPtr short_detector,
+                                 DetectorPtr long_detector,
+                                 const float peak_height) {
     assert(short_detector->signal_length == long_detector->signal_length);
     //RETURN_NULL_IF(NULL == short_detector->signal, NULL);
     //RETURN_NULL_IF(NULL == long_detector->signal, NULL);
 
     const size_t ndetector = 2;
-    DetectorPtr detectors[] = { short_detector, long_detector };
+    DetectorPtr detectors[] = {short_detector, long_detector};
 
-    size_t *peaks = (size_t *)calloc(short_detector->signal_length, sizeof(size_t));
+    size_t* peaks =
+        (size_t*)calloc(short_detector->signal_length, sizeof(size_t));
     //RETURN_NULL_IF(NULL == peaks, NULL);
 
     size_t peak_count = 0;
@@ -392,8 +386,7 @@ size_t *short_long_peak_detector(DetectorPtr short_detector,
                 if (current_value < detector->peak_value) {
                     //Either record a deeper minimum...
                     detector->peak_value = current_value;
-                } else if (current_value - detector->peak_value >
-                        peak_height) {
+                } else if (current_value - detector->peak_value > peak_height) {
                     // ...or we've seen a qualifying maximum
                     detector->peak_value = current_value;
                     detector->peak_pos = i;
@@ -411,22 +404,19 @@ size_t *short_long_peak_detector(DetectorPtr short_detector,
                     if (detector->peak_value > detector->threshold) {
                         long_detector->masked_to =
                             detector->peak_pos + detector->window_length;
-                        long_detector->peak_pos =
-                            long_detector->DEF_PEAK_POS;
-                        long_detector->peak_value =
-                            long_detector->DEF_PEAK_VAL;
+                        long_detector->peak_pos = long_detector->DEF_PEAK_POS;
+                        long_detector->peak_value = long_detector->DEF_PEAK_VAL;
                         long_detector->valid_peak = false;
                     }
                 }
                 //Have we convinced ourselves we've seen a peak
-                if (detector->peak_value - current_value > peak_height
-                        && detector->peak_value > detector->threshold) {
+                if (detector->peak_value - current_value > peak_height &&
+                    detector->peak_value > detector->threshold) {
                     detector->valid_peak = true;
                 }
                 //Finally, check the distance if this is a good peak
-                if (detector->valid_peak
-                        && (i - detector->peak_pos) >
-                        detector->window_length / 2) {
+                if (detector->valid_peak &&
+                    (i - detector->peak_pos) > detector->window_length / 2) {
                     //Emit the boundary and reset
                     peaks[peak_count] = detector->peak_pos;
                     peak_count++;
@@ -441,7 +431,6 @@ size_t *short_long_peak_detector(DetectorPtr short_detector,
     return peaks;
 }
 
-
 /**	 Create an event given boundaries
  *
  *	 Note: Bounds are CADLAG (i.e. lower bound is contained in the interval but
@@ -455,12 +444,12 @@ size_t *short_long_peak_detector(DetectorPtr short_detector,
  *
  *	@returns An initialised event.	A 'null' event is returned on error.
  **/
-event_t create_event(size_t start, size_t end, double const *sums,
-        double const *sumsqs, size_t nsample) {
+event_t create_event(size_t start, size_t end, double const* sums,
+                     double const* sumsqs, size_t nsample) {
     assert(start < nsample);
     assert(end <= nsample);
 
-    event_t event = { 0 };
+    event_t event = {0};
     event.pos = -1;
     event.state = -1;
     //RETURN_NULL_IF(NULL == sums, event);
@@ -471,13 +460,13 @@ event_t create_event(size_t start, size_t end, double const *sums,
     event.mean = (float)(sums[end] - sums[start]) / event.length;
     const float deltasqr = (sumsqs[end] - sumsqs[start]);
     const float var = deltasqr / event.length - event.mean * event.mean;
-    event.stdv = sqrtf(fmaxf(var, 0.0f)); 
+    event.stdv = sqrtf(fmaxf(var, 0.0f));
     return event;
 }
 
-event_table create_events(size_t const *peaks, double const *sums,
-        double const *sumsqs, size_t nsample) {
-    event_table et = { 0 };
+event_table create_events(size_t const* peaks, double const* sums,
+                          double const* sumsqs, size_t nsample) {
+    event_table et = {0};
     //RETURN_NULL_IF(NULL == sums, et);
     //RETURN_NULL_IF(NULL == sumsqs, et);
     //RETURN_NULL_IF(NULL == peaks, et);
@@ -496,61 +485,55 @@ event_table create_events(size_t const *peaks, double const *sums,
     et.n = n;
     et.end = et.n;
 
-
     // First event -- starts at zero
     et.event[0] = create_event(0, peaks[0], sums, sumsqs, nsample);
     // Other events -- peak[i-1] -> peak[i]
-    for(size_t ev=1 ; ev < n - 1 ; ev++){
-        et.event[ev] = create_event(peaks[ev - 1], peaks[ev], sums, sumsqs, nsample);
+    for (size_t ev = 1; ev < n - 1; ev++) {
+        et.event[ev] =
+            create_event(peaks[ev - 1], peaks[ev], sums, sumsqs, nsample);
     }
     // Last event -- ends at nsample
-    et.event[n - 1] = create_event(peaks[n - 2], nsample, sums, sumsqs, nsample);
+    et.event[n - 1] =
+        create_event(peaks[n - 2], nsample, sums, sumsqs, nsample);
 
     return et;
 }
 
-
 event_table detect_events(raw_table const rt, detector_param const edparam) {
-
-    event_table et = { 0 };
+    event_table et = {0};
     //RETURN_NULL_IF(NULL == rt.raw, et);
 
-    double *sums = (double *)calloc(rt.n + 1, sizeof(double));
-    double *sumsqs = (double *)calloc(rt.n + 1, sizeof(double));
+    double* sums = (double*)calloc(rt.n + 1, sizeof(double));
+    double* sumsqs = (double*)calloc(rt.n + 1, sizeof(double));
 
     compute_sum_sumsq(rt.raw, sums, sumsqs, rt.n);
-    float *tstat1 = compute_tstat(sums, sumsqs, rt.n, edparam.window_length1);
-    float *tstat2 = compute_tstat(sums, sumsqs, rt.n, edparam.window_length2);
+    float* tstat1 = compute_tstat(sums, sumsqs, rt.n, edparam.window_length1);
+    float* tstat2 = compute_tstat(sums, sumsqs, rt.n, edparam.window_length2);
 
-    Detector short_detector = {
-        .DEF_PEAK_POS = -1,
-        .DEF_PEAK_VAL = FLT_MAX,
-        .signal = tstat1,
-        .signal_length = rt.n,
-        .threshold = edparam.threshold1,
-        .window_length = edparam.window_length1,
-        .masked_to = 0,
-        .peak_pos = -1,
-        .peak_value = FLT_MAX,
-        .valid_peak = false
-    };
+    Detector short_detector = {.DEF_PEAK_POS = -1,
+                               .DEF_PEAK_VAL = FLT_MAX,
+                               .signal = tstat1,
+                               .signal_length = rt.n,
+                               .threshold = edparam.threshold1,
+                               .window_length = edparam.window_length1,
+                               .masked_to = 0,
+                               .peak_pos = -1,
+                               .peak_value = FLT_MAX,
+                               .valid_peak = false};
 
-    Detector long_detector = {
-        .DEF_PEAK_POS = -1,
-        .DEF_PEAK_VAL = FLT_MAX,
-        .signal = tstat2,
-        .signal_length = rt.n,
-        .threshold = edparam.threshold2,
-        .window_length = edparam.window_length2,
-        .masked_to = 0,
-        .peak_pos = -1,
-        .peak_value = FLT_MAX,
-        .valid_peak = false
-    };
+    Detector long_detector = {.DEF_PEAK_POS = -1,
+                              .DEF_PEAK_VAL = FLT_MAX,
+                              .signal = tstat2,
+                              .signal_length = rt.n,
+                              .threshold = edparam.threshold2,
+                              .window_length = edparam.window_length2,
+                              .masked_to = 0,
+                              .peak_pos = -1,
+                              .peak_value = FLT_MAX,
+                              .valid_peak = false};
 
-    size_t *peaks =
-        short_long_peak_detector(&short_detector, &long_detector,
-                edparam.peak_height);
+    size_t* peaks = short_long_peak_detector(&short_detector, &long_detector,
+                                             edparam.peak_height);
 
     et = create_events(peaks, sums, sumsqs, rt.n);
 
@@ -563,12 +546,10 @@ event_table detect_events(raw_table const rt, detector_param const edparam) {
     return et;
 }
 
-
 //interface to scrappie functions
-event_table getevents(size_t nsample,float *rawptr){
-
+event_table getevents(size_t nsample, float* rawptr) {
     event_table et;
-    raw_table rt = (raw_table) {nsample, 0, nsample, rawptr };
+    raw_table rt = (raw_table){nsample, 0, nsample, rawptr};
 
     // trim using scrappie's internal method
     // parameters taken directly from scrappie defaults
@@ -582,5 +563,4 @@ event_table getevents(size_t nsample,float *rawptr){
     et = detect_events(rt, *ed_params);
 
     return et;
-
 }

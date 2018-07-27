@@ -1,9 +1,9 @@
 #ifndef F5C_H
 #define F5C_H
 
-#include <htslib/sam.h>
-#include <htslib/hts.h>
 #include <htslib/faidx.h>
+#include <htslib/hts.h>
+#include <htslib/sam.h>
 
 #include "fast5lite.h"
 #include "nanopolish_read_db.h"
@@ -29,14 +29,12 @@ typedef struct {
     size_t n;
     size_t start;
     size_t end;
-    event_t *event;
+    event_t* event;
 } event_table;
 
-
-typedef struct{
-
+typedef struct {
     //region string
-    char *region;
+    char* region;
 
     //bam records
     bam1_t** bam_rec;
@@ -51,9 +49,7 @@ typedef struct{
 
 } db_t;
 
-
-typedef struct{
-
+typedef struct {
     //bam file related
     htsFile* m_bam_fh;
     hts_idx_t* m_bam_idx;
@@ -61,24 +57,22 @@ typedef struct{
     hts_itr_t* itr;
 
     //fa related
-    faidx_t *fai;
+    faidx_t* fai;
 
     //readbb
-    ReadDB *readbb;
+    ReadDB* readbb;
 
     //options
     opt_t opt;
 
 } core_t;
 
-
-
-
 db_t* init_db();
-int32_t load_db(core_t* dg,db_t* db);
-core_t* init_core(const char *bamfilename, const char *fastafile,const char *fastqfile,opt_t opt);
-void* process_db(core_t* dg,db_t* db);
+int32_t load_db(core_t* dg, db_t* db);
+core_t* init_core(const char* bamfilename, const char* fastafile,
+                  const char* fastqfile, opt_t opt);
+void* process_db(core_t* dg, db_t* db);
 
-void init_opt(opt_t *opt);
+void init_opt(opt_t* opt);
 
 #endif
