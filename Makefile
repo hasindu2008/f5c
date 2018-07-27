@@ -32,3 +32,7 @@ clean:
 # Delete all gitignored files (but not directories)
 distclean: clean
 	git clean -f -X; rm -rf ./autom4te.cache
+
+# Autoformat code with clang format
+format:
+	./scripts/autoformat.sh
