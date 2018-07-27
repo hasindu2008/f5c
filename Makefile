@@ -28,3 +28,7 @@ $(BINARY) : $(OBJ)
 	
 clean: 
 	rm -rf f5c *.o *.out
+
+# Delete all gitignored files (but not directories)
+distclean: clean
+	git clean -f -X
