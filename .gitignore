@@ -38,15 +38,15 @@ ehthumbs.db
 Thumbs.db
 
 # autotools #
-aclocal.m4
-config.h.in~
-Makefile.in
-config.status
-stamp-h1
-missing
-install-sh
-compile
-depcomp
+/aclocal.m4
+/config.h.in~
+/Makefile.in
+/config.status
+/stamp-h1
+/missing
+/install-sh
+/compile
+/depcomp
 .deps
 autom4te.cache
 /configure
@@ -55,15 +55,15 @@ autom4te.cache
 /config.mk
 
 #my
-main
-f5c
-*.fast5
+/main
+/f5c
+/*.fast5
 *.fig
-*.fa
-*.fasta
+/*.fa
+/*.fasta
 .png
-*.tsv
+/*.tsv
 *.swp
-tmp/
+/tmp/
 /htslib
 /hdf5
