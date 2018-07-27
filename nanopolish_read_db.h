@@ -12,14 +12,9 @@
 #include <map>
 #include <string>
 
-#ifndef HAVE_CONFIG_H
-	#define HAVE_CONFIG_H
-	#include "config.h"
-#endif
 
-#ifdef HAVE_HTSLIB_HTS_H
-	#include <htslib/faidx.h>
-#endif
+#include <htslib/faidx.h>
+
   
 struct ReadDBData
 {

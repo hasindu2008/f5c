@@ -3,3 +3,18 @@
 LIBS = @LIBS@
 LDFLAGS = @LDFLAGS@
 CPPFLAGS = @CPPFLAGS@
+
+ifeq "locallibhts-@locallibhts@" "locallibhts-yes"
+
+CPPFLAGS += -I./htslib
+LDFLAGS += htslib/libhts.a
+
+endif
+
+
+ifeq "locallibhdf5-@locallibhdf5@" "locallibhdf5-yes"
+
+CPPFLAGS += -I./hdf5/include/
+LDFLAGS += hdf5/lib/libhdf5.a -ldl
+
+endif

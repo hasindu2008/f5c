@@ -6,7 +6,7 @@ rm htslib-1.9.tar.bz2
 mv htslib-1.9 htslib || exit
 cd htslib || exit 1
 chmod +x ./configure || exit 1
-./configure || exit
-make || exit
+./configure --disable-bz2 --disable-lzma || exit
+make -j8 || exit
 echo "Successfully installed htslib to ./htslib."
-echo "Now run ./configure LDFLAGS=-L./htslib CPPFLAGS=-I./htslib"
+echo 'Now run ./configure again!'

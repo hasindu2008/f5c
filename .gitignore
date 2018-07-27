@@ -42,7 +42,6 @@ aclocal.m4
 config.h.in~
 Makefile.in
 config.status
-
 stamp-h1
 missing
 install-sh
@@ -61,3 +60,5 @@ f5c
 .png
 *.tsv
 tmp/
+htslib
+hdf5

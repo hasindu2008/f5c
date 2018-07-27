@@ -623,6 +623,8 @@ ac_includes_default="\
 #endif"
 
 ac_subst_vars='LTLIBOBJS
+locallibhdf5
+locallibhts
 LIBOBJS
 EGREP
 GREP
@@ -679,6 +681,8 @@ SHELL'
 ac_subst_files=''
 ac_user_opts='
 enable_option_checking
+enable_systemhts
+enable_localhdf5
 enable_largefile
 '
       ac_precious_vars='build_alias
@@ -1313,6 +1317,9 @@ Optional Features:
   --disable-option-checking  ignore unrecognized --enable/--with options
   --disable-FEATURE       do not include FEATURE (same as --enable-FEATURE=no)
   --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
+  --enable-systemhts=yes|no
+                          Use system wide HTS. Default is disabled.
+  --enable-localhdf5      Use local HDF5. Default is disabled.
   --disable-largefile     omit support for large files
 
 Some influential environment variables:
@@ -2340,7 +2347,21 @@ ac_config_headers="$ac_config_headers config.h"
 
 
 
-#hts_ldflag=""
+# Check whether --enable-systemhts was given.
+if test "${enable_systemhts+set}" = set; then :
+  enableval=$enable_systemhts; enable_systemhts=$enableval
+else
+  enable_systemhts=no
+fi
+
+
+# Check whether --enable-localhdf5 was given.
+if test "${enable_localhdf5+set}" = set; then :
+  enableval=$enable_localhdf5; enable_localhdf5=$enableval
+else
+  enable_localhdf5=no
+fi
+
 
 
 # Checks for programs.
@@ -4171,9 +4192,84 @@ done
 
 
 
+
 # Checks for libraries.
-libhts=yes
-for ac_header in htslib/hts.h
+
+zlib_devel=ok
+ac_fn_c_check_header_compile "$LINENO" "zlib.h" "ac_cv_header_zlib_h" ";
+"
+if test "x$ac_cv_header_zlib_h" = xyes; then :
+
+else
+  zlib_devel=missing
+fi
+
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for inflate in -lz" >&5
+$as_echo_n "checking for inflate in -lz... " >&6; }
+if ${ac_cv_lib_z_inflate+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lz  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char inflate ();
+int
+main ()
+{
+return inflate ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_z_inflate=yes
+else
+  ac_cv_lib_z_inflate=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_z_inflate" >&5
+$as_echo "$ac_cv_lib_z_inflate" >&6; }
+if test "x$ac_cv_lib_z_inflate" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBZ 1
+_ACEOF
+
+  LIBS="-lz $LIBS"
+
+else
+  zlib_devel=missing
+fi
+
+
+if test $zlib_devel != ok; then
+  cat > config.mk <<'EOF'
+ifneq ($(MAKECMDGOALS),distclean)
+$(error Resolve configure error first)
+endif
+EOF
+   as_fn_error $? "zlib development files not found
+	you may need to ensure a package such as zlib1g-dev (on Debian or
+Ubuntu Linux) or zlib-devel (on RPM-based Linux distributions or Cygwin)
+is installed.
+" "$LINENO" 5
+fi
+
+locallibhts=no
+if test "$enable_systemhts" = yes; then
+	libhts=yes
+	for ac_header in htslib/hts.h
 do :
   ac_fn_c_check_header_mongrel "$LINENO" "htslib/hts.h" "ac_cv_header_htslib_hts_h" "$ac_includes_default"
 if test "x$ac_cv_header_htslib_hts_h" = xyes; then :
@@ -4187,7 +4283,7 @@ fi
 
 done
 
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for faidx_fetch_seq in -lhts" >&5
+	{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for faidx_fetch_seq in -lhts" >&5
 $as_echo_n "checking for faidx_fetch_seq in -lhts... " >&6; }
 if ${ac_cv_lib_hts_faidx_fetch_seq+:} false; then :
   $as_echo_n "(cached) " >&6
@@ -4234,23 +4330,139 @@ else
   libhts=no
 fi
 
-
-if test $libhts != yes; then
-  cat > config.mk <<'EOF'
+	if test $libhts != yes; then
+		cat > config.mk <<'EOF'
 ifneq ($(MAKECMDGOALS),distclean)
 $(error Resolve configure error first)
 endif
 EOF
-   as_fn_error $? "HTS library development files not found!
-  On Debian based systems such as Ubuntu you may use sudo apt-get install libhts-dev.
-  If that fails download and install the latest release of htslib from http://www.htslib.org/download/.\"
-  If you are too lazy for that, try the script ./installhts.sh for an attemp for local hts install.
-  " "$LINENO" 5
+   as_fn_error $? "System wide HTS library development files not found!
+		  On Debian based systems such as Ubuntu you may use sudo apt-get install libhts-dev.
+		  You can also download and install the latest release of htslib from http://www.htslib.org/download/.\"
+		  " "$LINENO" 5
+	fi
+
+else
+	libhts=yes
+	{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for ./htslib/htslib/hts.h" >&5
+$as_echo_n "checking for ./htslib/htslib/hts.h... " >&6; }
+if ${ac_cv_file___htslib_htslib_hts_h+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  test "$cross_compiling" = yes &&
+  as_fn_error $? "cannot check for file existence when cross compiling" "$LINENO" 5
+if test -r "./htslib/htslib/hts.h"; then
+  ac_cv_file___htslib_htslib_hts_h=yes
+else
+  ac_cv_file___htslib_htslib_hts_h=no
+fi
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_file___htslib_htslib_hts_h" >&5
+$as_echo "$ac_cv_file___htslib_htslib_hts_h" >&6; }
+if test "x$ac_cv_file___htslib_htslib_hts_h" = xyes; then :
+
+else
+  libhts=no
+fi
+
+	{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for ./htslib/libhts.a" >&5
+$as_echo_n "checking for ./htslib/libhts.a... " >&6; }
+if ${ac_cv_file___htslib_libhts_a+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  test "$cross_compiling" = yes &&
+  as_fn_error $? "cannot check for file existence when cross compiling" "$LINENO" 5
+if test -r "./htslib/libhts.a"; then
+  ac_cv_file___htslib_libhts_a=yes
+else
+  ac_cv_file___htslib_libhts_a=no
+fi
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_file___htslib_libhts_a" >&5
+$as_echo "$ac_cv_file___htslib_libhts_a" >&6; }
+if test "x$ac_cv_file___htslib_libhts_a" = xyes; then :
+
+else
+  libhts=no
+fi
+
+	if test $libhts != yes; then
+		cat > config.mk <<'EOF'
+ifneq ($(MAKECMDGOALS),distclean)
+$(error Resolve configure error first)
+endif
+EOF
+   as_fn_error $? "Could not find a working local hts installation in ./htslib.!
+		Make sure you run ./install-hts.sh
+		" "$LINENO" 5
+	fi
+	locallibhts=yes
 fi
 
 
-libhdf=yes
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for library containing H5Fopen" >&5
+locallibhdf5=no
+if test "$enable_localhdf5" = yes; then
+	libhdf=yes
+	{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for ./hdf5/include/hdf5.h" >&5
+$as_echo_n "checking for ./hdf5/include/hdf5.h... " >&6; }
+if ${ac_cv_file___hdf5_include_hdf5_h+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  test "$cross_compiling" = yes &&
+  as_fn_error $? "cannot check for file existence when cross compiling" "$LINENO" 5
+if test -r "./hdf5/include/hdf5.h"; then
+  ac_cv_file___hdf5_include_hdf5_h=yes
+else
+  ac_cv_file___hdf5_include_hdf5_h=no
+fi
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_file___hdf5_include_hdf5_h" >&5
+$as_echo "$ac_cv_file___hdf5_include_hdf5_h" >&6; }
+if test "x$ac_cv_file___hdf5_include_hdf5_h" = xyes; then :
+
+cat >>confdefs.h <<_ACEOF
+#define HAVE___HDF5_INCLUDE_HDF5_H 1
+_ACEOF
+
+else
+  libhdf=no
+fi
+
+	{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for ./hdf5/lib/libhdf5.a" >&5
+$as_echo_n "checking for ./hdf5/lib/libhdf5.a... " >&6; }
+if ${ac_cv_file___hdf5_lib_libhdf5_a+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  test "$cross_compiling" = yes &&
+  as_fn_error $? "cannot check for file existence when cross compiling" "$LINENO" 5
+if test -r "./hdf5/lib/libhdf5.a"; then
+  ac_cv_file___hdf5_lib_libhdf5_a=yes
+else
+  ac_cv_file___hdf5_lib_libhdf5_a=no
+fi
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_file___hdf5_lib_libhdf5_a" >&5
+$as_echo "$ac_cv_file___hdf5_lib_libhdf5_a" >&6; }
+if test "x$ac_cv_file___hdf5_lib_libhdf5_a" = xyes; then :
+
+else
+  libhdf=no
+fi
+
+	if test $libhdf != yes; then
+	  cat > config.mk <<'EOF'
+ifneq ($(MAKECMDGOALS),distclean)
+$(error Resolve configure error first)
+endif
+EOF
+   as_fn_error $? "local HDF5 library development files not found!
+		Make sure you run ./install-hdf5.sh
+	  " "$LINENO" 5
+	fi
+	locallibhdf5=yes
+else
+	libhdf=yes
+	{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for library containing H5Fopen" >&5
 $as_echo_n "checking for library containing H5Fopen... " >&6; }
 if ${ac_cv_search_H5Fopen+:} false; then :
   $as_echo_n "(cached) " >&6
@@ -4308,19 +4520,20 @@ else
   libhdf=no
 fi
 
-if test $libhdf != yes; then
-  cat > config.mk <<'EOF'
+	if test $libhdf != yes; then
+	  cat > config.mk <<'EOF'
 ifneq ($(MAKECMDGOALS),distclean)
 $(error Resolve configure error first)
 endif
 EOF
    as_fn_error $? "HDF5 library development files not found!
-  On Debian based systems such as Ubuntu you may use sudo apt-get install libhdf5-dev.
-  " "$LINENO" 5
-fi
+	  On Debian based systems such as Ubuntu you may use sudo apt-get install libhdf5-dev.
+	  On RPM based systems such as Fedora you may use sudo yum install hdf5-devel.
+	  " "$LINENO" 5
+	fi
 
-libhdfheader=no
-for ac_header in hdf5.h hdf5/hdf5.h hdf5/serial/hdf5.h
+	libhdfheader=no
+	for ac_header in hdf5.h hdf5/hdf5.h hdf5/serial/hdf5.h
 do :
   as_ac_Header=`$as_echo "ac_cv_header_$ac_header" | $as_tr_sh`
 ac_fn_c_check_header_mongrel "$LINENO" "$ac_header" "$as_ac_Header" "$ac_includes_default"
@@ -4333,26 +4546,25 @@ fi
 
 done
 
-if test $libhdfheader != yes; then
-  cat > config.mk <<'EOF'
+	if test $libhdfheader != yes; then
+	  cat > config.mk <<'EOF'
 ifneq ($(MAKECMDGOALS),distclean)
 $(error Resolve configure error first)
 endif
 EOF
    as_fn_error $? "HDF5 header files not found!
-  On Debian based systems such as Ubuntu you may use sudo apt-get install libhdf5-dev.
-  " "$LINENO" 5
+	  On Debian based systems such as Ubuntu you may use sudo apt-get install libhdf5-dev.
+	  On RPM based systems such as Fedora you may use sudo symt install hdf5-devel.
+	  " "$LINENO" 5
+	fi
+
+
+
 fi
 
 
-#AC_CHECK_HEADER([hdf5.h], [libhdf=yes], [], [;])
-
-#AC_CHECK_LIB([hdf5_serial], [H5Fopen], [], [libhdf=no])
 
 
-
-
-#AC_SUBST([hts_ldflag])
 
 
 

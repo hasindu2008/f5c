@@ -13,16 +13,13 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#ifndef HAVE_CONFIG_H
-	#define HAVE_CONFIG_H
-	#include "config.h"
-#endif
 
-#ifdef HAVE_HTSLIB_HTS_H
+
+
 	#include <htslib/sam.h>
 	#include <htslib/hts.h>
 	#include <htslib/faidx.h>
-#endif
+
 
 #include "nanopolish_read_db.h"
 #include "f5c.h"

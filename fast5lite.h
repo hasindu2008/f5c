@@ -18,6 +18,10 @@
 	#include <hdf5/hdf5.h>
 #endif
 
+#ifdef HAVE___HDF5_INCLUDE_HDF5_H
+	#include <hdf5.h>
+#endif
+
 
 #include <stdlib.h>
 #include <string.h>

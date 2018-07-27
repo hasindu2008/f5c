@@ -28,6 +28,9 @@
 /* Define to 1 if you have the `hts' library (-lhts). */
 #define HAVE_LIBHTS 1
 
+/* Define to 1 if you have the `z' library (-lz). */
+#define HAVE_LIBZ 1
+
 /* Define to 1 if your system has a GNU libc compatible `malloc' function, and
    to 0 otherwise. */
 #define HAVE_MALLOC 1
@@ -70,6 +73,9 @@
 
 /* Define to 1 if the system has the type `_Bool'. */
 /* #undef HAVE__BOOL */
+
+/* Define to 1 if you have the file `./hdf5/include/hdf5.h'. */
+/* #undef HAVE___HDF5_INCLUDE_HDF5_H */
 
 /* Define to the address where bug reports for this package should be sent. */
 #define PACKAGE_BUGREPORT "hasindu@unsw.edu.au"
