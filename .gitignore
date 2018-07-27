@@ -49,10 +49,6 @@ compile
 depcomp
 .deps
 autom4te.cache
-/configure
-/config.h
-/config.mk
-/Makefile
 
 #my
 main
@@ -64,5 +60,5 @@ f5c
 .png
 *.tsv
 tmp/
-/htslib
-/hdf5
+htslib
+hdf5
