@@ -8,7 +8,7 @@ include config.mk
 
 # INC = $(HDF5_INC) 
 #$(HTS_INC)
-LDFLAGS += $(LIBS) -lpthread
+LDFLAGS += $(LIBS) -lpthread 
 
 #SRC = $(wildcard *.c)
 SRC = main.c f5c.c events.c nanopolish_read_db.c
@@ -19,7 +19,7 @@ DEPS = f5c.h fast5lite.h nanopolish_read_db.h f5cmisc.h
 .PHONY: clean  
 
 $(BINARY) : $(OBJ) 
-	$(CC) $(CFLAGS) $(OBJ) $(LDFLAGS)-o $@
+	$(CC) $(CFLAGS) $(OBJ) $(LDFLAGS) -o $@
 
 
 %.o : %.c $(DEPS)
