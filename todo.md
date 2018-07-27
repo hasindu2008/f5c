@@ -7,3 +7,5 @@ Move source files into src directory
 Vectorise the alignment function
 Set up autotesting system
 Fix all the memory leaks
+Add stricter options to Makefile (e.g. -Wextra)
+Add link time optimisation flags
