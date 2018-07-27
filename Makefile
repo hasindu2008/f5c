@@ -8,7 +8,7 @@ include config.mk
 
 # INC = $(HDF5_INC) 
 #$(HTS_INC)
-LDFLAGS += $(LIBS) -lpthread -lcurl -lbz2 -llzma 
+LDFLAGS += $(LIBS) -lpthread
 
 #SRC = $(wildcard *.c)
 SRC = main.c f5c.c events.c nanopolish_read_db.c
