@@ -1,6 +1,6 @@
-CC     = g++
+CC       = g++
 CFLAGS   = -g -rdynamic -Wall -O2 -std=c++11 
-CPPGLAGS =
+CPPFLAGS =
 
 include config.mk
 
