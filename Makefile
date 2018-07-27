@@ -1,6 +1,6 @@
-CC     = g++
+CC       = g++
 CFLAGS   = -g -rdynamic -Wall -O2 -std=c++11 
-CPPGLAGS =
+CPPFLAGS =
 
 include config.mk
 
@@ -28,3 +28,7 @@ $(BINARY) : $(OBJ)
 	
 clean: 
 	rm -rf f5c *.o *.out
+
+# Delete all gitignored files (but not directories)
+distclean: clean
+	git clean -f -X; rm -rf ./autom4te.cache
