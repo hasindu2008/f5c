@@ -63,8 +63,8 @@ class ReadDB {
     // return the number of reads with a fast5 file
     size_t get_num_reads_with_path() const;
 
-    // returns true if all reads in the database have paths to their signal-level
-    // data
+    // returns true if all reads in the database have paths to their
+    // signal-level data
     bool check_signal_paths() const;
 
     // print some summary stats about the database

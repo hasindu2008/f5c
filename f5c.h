@@ -41,8 +41,8 @@ typedef struct {
     int32_t capacity_bam_rec; // will these overflow?
     int32_t n_bam_rec;
 
-    // fasta cache //can optimise later by caching a common string for all records
-    // in th ebatch
+    // fasta cache //can optimise later by caching a common string for all
+    // records in th ebatch
     char** fasta_cache;
 
     // fast5 file

@@ -67,7 +67,7 @@ int floatcmp(const void* x, const void* y) {
     return -1;
 }
 
-/**	 Quantiles from n array
+/** Quantiles from n array
  *
  *	Using a relatively inefficent qsort resulting in O(n log n)
  *	performance but better performance is possible for small np.
@@ -75,9 +75,9 @@ int floatcmp(const void* x, const void* y) {
  *	calculation on input and the quantiles on output; on error, p
  *	is filled with the value NAN.
  *
- *	@param x An array to calculate quantiles from
+ *	@param x  An array to calculate quantiles from
  *	@param nx Length of array x
- *	@param p An array containing quantiles to calculate [in/out]
+ *	@param p  An array containing quantiles to calculate [in/out]
  *	@param np Length of array p
  *
  *	@return void
@@ -140,8 +140,8 @@ float medianf(const float* x, size_t n) {
 
 /** Median Absolute Deviation of an array
  *
- *	@param x An array to calculate the MAD of
- *	@param n Length of array
+ *	@param x   An array to calculate the MAD of
+ *	@param n   Length of array
  *	@param med Median of the array.	 If NAN then median is calculated.
  *
  *	@return MAD of array on success, NAN otherwise.
@@ -171,25 +171,20 @@ float madf(const float* x, size_t n, const float* med) {
     return mad * mad_scaling_factor;
 }
 
-/**	 Simple segmentation of a raw read by thresholding the MAD
+/** Simple segmentation of a raw read by thresholding the MAD
  *
- *	The MAD of the raw signal is calculated for non-overlapping chunks and
- *then
- *	thresholded to find regions at the beginning and end of the signal that
- *have
- *	unusually low variation (generally a stall or open pore).  The
- *threshhold is
+ *	The MAD of the raw signal is calculated for non-overlapping chunks and then
+ *	thresholded to find regions at the beginning and end of the signal that have
+ *	unusually low variation (generally a stall or open pore).  The threshhold is
  *	derived from the distribution of the calaculated MADs.
  *
- *	The threshold is chosen to be high since a single chunk above it will
- *trigger
- *	the end of the trimming: the threshhold is chosen so it is unlikely to
- *be
+ *	The threshold is chosen to be high since a single chunk above it will trigger
+ *	the end of the trimming: the threshhold is chosen so it is unlikely to be
  *	exceeded in the leader but commonly exceeded in the main read.
  *
- *	@param rt Structure containing raw signal
+ *	@param rt         Structure containing raw signal
  *	@param chunk_size Size of non-overlapping chunks
- *	@param perc	 The quantile to be calculated to use for threshholding
+ *	@param perc	  The quantile to be calculated to use for threshholding
  *
  *	@return A range structure containing new start and end for read
  **/
@@ -264,18 +259,14 @@ typedef struct {
 typedef Detector* DetectorPtr;
 
 /**
- *	 Compute cumulative sum and sum of squares for a vector of data
+ * Compute cumulative sum and sum of squares for a vector of data
  *
- *	 Element i	sum (sumsq) is the sum (sum of squares) up to but
- *	 excluding element i of the inputy data.
+ *	 Element i sum (sumsq) is the sum (sum of squares) up to but excluding element i of the inputy data.
  *
- *	 @param data	  double[d_length]	 Data to be summed over (in)
- *	 @param sum		  double[d_length + 1]	 Vector to store sum
- *(out)
- *	 @param sumsq	  double[d_length + 1]	 Vector to store sum of
- *squares (out)
- *	 @param d_length					 Length of data
- *vector
+ *	 @param data     double[d_length]     Data to be summed over (in)
+ *	 @param sum      double[d_length + 1] Vector to store sum (out)
+ *	 @param sumsq    double[d_length + 1] Vector to store sum of squares (out)
+ *       @param d_length Length of data vector
  **/
 void compute_sum_sumsq(const float* data, double* sum, double* sumsq,
                        size_t d_length) {
@@ -293,17 +284,12 @@ void compute_sum_sumsq(const float* data, double* sum, double* sumsq,
 }
 
 /**
- *	 Compute windowed t-statistic from summary information
+ *  Compute windowed t-statistic from summary information
  *
- *	 @param sum		  double[d_length]	Cumulative sums of data
- *(in)
- *	 @param sumsq	  double[d_length]	Cumulative sum of squares of
- *data (in)
- *	 @param d_length					Length of data
- *vector
- *	 @param w_length					Window length to
- *calculate
- *t-statistic over
+ *       @param sum      double[d_length] Cumulative sums of data (in)
+ *	 @param sumsq    double[d_length] Cumulative sum of squares of data (in)
+ *	 @param d_length Length of data vector
+ *	 @param w_length Window length to calculate t-statistic over
  *
  *	 @returns float array containing tstats.  Returns NULL on error
  **/
@@ -403,7 +389,8 @@ size_t* short_long_peak_detector(DetectorPtr short_detector,
                     // ...or we've seen a qualifying maximum
                     detector->peak_value = current_value;
                     detector->peak_pos = i;
-                    // otherwise, wait to rise high enough to be considered a peak
+                    // otherwise, wait to rise high enough to be considered a
+                    // peak
                 }
             } else {
                 // CASE 2: In an existing peak, waiting to see if it is good
@@ -412,7 +399,8 @@ size_t* short_long_peak_detector(DetectorPtr short_detector,
                     detector->peak_value = current_value;
                     detector->peak_pos = i;
                 }
-                // Dominate other tstat signals if we're going to fire at some point
+                // Dominate other tstat signals if we're going to fire at some
+                // point
                 if (detector == short_detector) {
                     if (detector->peak_value > detector->threshold) {
                         long_detector->masked_to =
@@ -444,19 +432,17 @@ size_t* short_long_peak_detector(DetectorPtr short_detector,
     return peaks;
 }
 
-/**	 Create an event given boundaries
+/** Create an event given boundaries
  *
- *	 Note: Bounds are CADLAG (i.e. lower bound is contained in the interval
- *but
- *	 the upper bound is not).
+ *	Note: Bounds are CADLAG (i.e. lower bound is contained in the interval but the upper bound is not).
  *
- *	@param start Index of lower bound
- *	@param end Index of upper bound
+ *	@param start   Index of lower bound
+ *	@param end     Index of upper bound
  *	@param sums
  *	@param sumsqs
- *	@param nsample	Total number of samples in read
+ *	@param nsample Total number of samples in read
  *
- *	@returns An initialised event.	A 'null' event is returned on error.
+ *	@returns An initialised event. A 'null' event is returned on error.
  **/
 event_t create_event(size_t start, size_t end, double const* sums,
                      double const* sumsqs, size_t nsample) {

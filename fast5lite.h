@@ -34,8 +34,7 @@ typedef struct {
     float* rawptr;   // raw signal (float is not the best datatype type though)
     hsize_t nsample; // number of samples
 
-    //	Information for scaling raw data from ADC values to pA (are these
-    // duplicates?)
+    //	Information for scaling raw data from ADC values to pA (are these duplicates?)
     float digitisation;
     float offset;
     float range;
@@ -43,9 +42,7 @@ typedef struct {
 
 } fast5_t;
 
-/**
-The following was adapted from Nanopolish : nanopolish_fast5_io.cpp
-**/
+// The following was adapted from Nanopolish : nanopolish_fast5_io.cpp
 
 #define RAW_ROOT "/Raw/Reads/"
 

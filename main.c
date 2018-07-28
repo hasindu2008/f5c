@@ -57,7 +57,7 @@ int main(int argc, char* argv[]) {
             case 'r':
                 fastqfile = optarg;
                 break;
-                //if(fastqfile==NULL)
+                // if(fastqfile==NULL)
                 //    fprintf(stderr,ERR "Fastq cannot be null" CEND);
             case 'b':
                 bamfilename = optarg;
