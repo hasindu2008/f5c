@@ -1,0 +1,4 @@
+    - language: cpp
+      compiler: g++
+      before_install: sudo apt-get install libhdf5-dev zlib1g-dev -y
+      script: autoreconf && src/install-hts.sh && ./configure && make
