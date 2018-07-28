@@ -16,7 +16,7 @@ OBJ = $(SRC:.c=.o)
 BINARY = f5c
 DEPS = f5c.h fast5lite.h nanopolish_read_db.h f5cmisc.h error.h
 
-.PHONY: clean  
+.PHONY: clean distclean format test
 
 $(BINARY) : $(OBJ) 
 	$(CC) $(CFLAGS) $(OBJ) $(LDFLAGS) -o $@
@@ -36,3 +36,6 @@ distclean: clean
 # Autoformat code with clang format
 format:
 	./scripts/autoformat.sh
+
+test:
+	./scripts/test.sh

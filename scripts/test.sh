@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
-# Run f5c on the given input test file
+
+die() {
+    local msg="${1}"
+    echo "run.sh: ${msg}" >&2
+    exit 1
+}
 
 exepath="../../f5c"
 tstdir="test/ecoli_2kb_region/"
@@ -13,7 +18,7 @@ for file in "${bamdir}" "${fadir}" "${fastqdir}"; do
 done
 
 if [[ "${#}" -eq 0 ]]; then
-    "${exepath}" -b "${bamdir}" -g "${fadir}" -r "${fastqdir}" -p
+    "${exepath}" -b "${bamdir}" -g "${fadir}" -r "${fastqdir}" -p > result.txt
 
 elif [[ "${#}" -eq 1 ]]; then
     if [[ "${1}" == "valgrind" ]]; then
@@ -22,9 +27,11 @@ elif [[ "${#}" -eq 1 ]]; then
         gdb --args "${exepath}" -b "${bamdir}" -g "${fadir}" -r "${fastqdir}"
     else
         echo "wrong option"
+		exit 1
     fi
 else
-    echo ""
+    echo "wrong option"
+	exit 1
 fi
 
 exit 0
