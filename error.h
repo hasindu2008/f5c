@@ -24,7 +24,7 @@
 
 #define MALLOC_CHK(ret) malloc_chk((void*)ret, __func__, __FILE__, __LINE__)
 #define NULL_CHK(ret) null_chk((void*)ret, __func__, __FILE__, __LINE__)
-#define NEG_CHK(ret) neg_chk((void*)ret, __func__, __FILE__, __LINE__)
+#define NEG_CHK(ret) neg_chk(ret, __func__, __FILE__, __LINE__)
 
 void malloc_chk(void* ret, const char* func, const char* file, int line);
 
@@ -32,6 +32,6 @@ void malloc_chk(void* ret, const char* func, const char* file, int line);
 void null_chk(void* ret, const char* func, const char* file, int line);
 
 // Die on error. Print the error and exit if the return value of the previous function is -1
-void neg_chk(void* ret, const char* func, const char* file, int line);
+void neg_chk(int ret, const char* func, const char* file, int line);
 
 #endif
