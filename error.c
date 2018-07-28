@@ -26,7 +26,7 @@ void null_chk(void* ret, const char* func, const char* file, int line) {
     exit(EXIT_FAILURE);
 }
 
-void neg_chk(void* ret, const char* func, const char* file, int line) {
+void neg_chk(int ret, const char* func, const char* file, int line) {
     if (ret >= 0)
         return;
     fprintf(stderr,
