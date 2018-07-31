@@ -102,14 +102,16 @@ int main(int argc, char* argv[]) {
         fprintf(stderr, "[%s::%.3f*%.2f] %d Entries loaded\n", __func__,
                 realtime() - realtime0, cputime() / (realtime() - realtime0),
                 status);
-        event_table* et = (event_table*)process_db(core, db);
+
+#ifdef HAVE_CUDA
+        //this is very unoptimal just for testing
+#else
+        process_db(core, db);
+#endif
         fprintf(stderr, "[%s::%.3f*%.2f] %d Entries processed\n", __func__,
                 realtime() - realtime0, cputime() / (realtime() - realtime0),
                 status);
-        for (int32_t i = 0; i < db->n_bam_rec; i++) {
-            free(et[i].event);
-        }
-        free(et);
+
         free_db_tmp(db);
     }
     free_db(db);

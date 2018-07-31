@@ -9,9 +9,10 @@
 #include "nanopolish_read_db.h"
 
 typedef struct {
-    int print_raw; // space save for bool
-    int min_mapq;
-    int con_sec;
+    int print_raw;    // space save for bool
+    int min_mapq;     //minimum mapq
+    int con_sec;      //consider secondary reads
+    char* model_file; //name of the model file
 } opt_t;
 
 // from scrappie
@@ -32,6 +33,18 @@ typedef struct {
     event_t* event;
 } event_table;
 
+#define KMER_SIZE 6 //hard coded for now; todo : change to dynamic
+
+//model
+typedef struct {
+    char kmer[KMER_SIZE + 1]; //KMER_SIZE+null character
+    float level_mean;
+    float level_stdv;
+    float sd_mean;
+    float sd_stdv;
+    float weight;
+} model_t;
+
 typedef struct {
     // region string
     char* region;
@@ -42,11 +55,14 @@ typedef struct {
     int32_t n_bam_rec;
 
     // fasta cache //can optimise later by caching a common string for all
-    // records in th ebatch
+    // records in the batch
     char** fasta_cache;
 
-    // fast5 file
+    // fast5 file //should flatten this to reduce mallocs
     fast5_t** f5;
+
+    //event table
+    event_table* et;
 
 } db_t;
 
@@ -63,6 +79,9 @@ typedef struct {
     // readbb
     ReadDB* readbb;
 
+    // models
+    model_t* model;
+
     // options
     opt_t opt;
 
@@ -72,7 +91,7 @@ db_t* init_db();
 int32_t load_db(core_t* dg, db_t* db);
 core_t* init_core(const char* bamfilename, const char* fastafile,
                   const char* fastqfile, opt_t opt);
-void* process_db(core_t* dg, db_t* db);
+void process_db(core_t* dg, db_t* db);
 void free_core(core_t* core);
 void free_db_tmp(db_t* db);
 void free_db(db_t* db);
