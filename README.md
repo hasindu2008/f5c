@@ -2,9 +2,9 @@
 
 **An attempt to re-implement Nanopolish call-methylation in C**
 
-- ![#f03c15](https://placehold.it/15/f03c15/000000?text=+) `This project is under active development and is not complete.`
+![#f03c15](https://placehold.it/15/f03c15/000000?text=+) `This project is under active development and is not complete.`
 
-[![Build Status](https://travis-ci.com/hasindug/f5c.svg?token=pN7xnsxgLrRxbAn8WLVQ&branch=master)(https://travis-ci.com/hasindug/f5c)
+[![Build Status](https://travis-ci.com/hasindug/f5c.svg?token=pN7xnsxgLrRxbAn8WLVQ&branch=master)](https://travis-ci.com/hasindug/f5c)
 
 Install the HDF5 (and zlib development libraries)
 ``` 
