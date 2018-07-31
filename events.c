@@ -20,8 +20,10 @@
 #include "nanopolish_read_db.h"
 
 /**
-  The following code taken from scrappie
-  */
+  The following code taken from scrappie at https://github.com/nanoporetech/scrappie (c) 2016 Oxford Nanopore Technologies Ltd.
+  scrappie is licensed under the Mozilla Public License 2.0
+  https://github.com/nanoporetech/scrappie/blob/master/LICENSE.md
+*/
 
 typedef struct {
     size_t window_length1;

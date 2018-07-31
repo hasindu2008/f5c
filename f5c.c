@@ -37,11 +37,18 @@ core_t* init_core(const char* bamfilename, const char* fastafile,
     core->readbb = new ReadDB;
     core->readbb->load(fastqfile);
 
+    //model
+    core->model = (model_t*)malloc(sizeof(model_t) *
+                                   4096); //4096 is 4^6 which os hardcoded now
+    MALLOC_CHK(core->model);
+    //load the model from files
+
     core->opt = opt;
     return core;
 }
 
 void free_core(core_t* core) {
+    free(core->model);
     delete core->readbb;
     fai_destroy(core->fai);
     sam_itr_destroy(core->itr);
@@ -71,6 +78,9 @@ db_t* init_db() {
     MALLOC_CHK(db->fasta_cache);
     db->f5 = (fast5_t**)malloc(sizeof(fast5_t*) * db->capacity_bam_rec);
     MALLOC_CHK(db->f5);
+
+    db->et = (event_table*)malloc(sizeof(event_table) * db->capacity_bam_rec);
+    MALLOC_CHK(db->et);
 
     return db;
 }
@@ -153,13 +163,7 @@ int32_t load_db(core_t* core, db_t* db) {
     return db->n_bam_rec;
 }
 
-// todo :
-// destroy_databatch();
-
-void* process_db(core_t* core, db_t* db) {
-    event_table* et = (event_table*)malloc(sizeof(event_table) * db->n_bam_rec);
-    MALLOC_CHK(et);
-
+void process_db(core_t* core, db_t* db) {
     int32_t i;
     for (i = 0; i < db->n_bam_rec; i++) {
         float* rawptr = db->f5[i]->rawptr;
@@ -173,10 +177,14 @@ void* process_db(core_t* core, db_t* db) {
         for (int32_t j = 0; j < nsample; j++) {
             rawptr[j] = (rawptr[j] + offset) * raw_unit;
         }
-        et[i] = getevents(db->f5[i]->nsample, rawptr);
+        db->et[i] = getevents(db->f5[i]->nsample, rawptr);
+
+        //have to test if the computed events are correct
+
+        //then we should be ready to directly call adaptive_banded_simple_event_align
     }
 
-    return (void*)et;
+    return;
 }
 
 void free_db_tmp(db_t* db) {
@@ -187,6 +195,7 @@ void free_db_tmp(db_t* db) {
         free(db->fasta_cache[i]);
         free(db->f5[i]->rawptr);
         free(db->f5[i]);
+        free(db->et[i].event);
     }
 }
 
@@ -197,6 +206,7 @@ void free_db(db_t* db) {
     }
     free(db->bam_rec);
     free(db->fasta_cache);
+    free(db->et);
     free(db->f5);
     free(db);
 }
