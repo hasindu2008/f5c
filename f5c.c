@@ -100,7 +100,7 @@ int32_t load_db(core_t* core, db_t* db) {
         } else {
             if ((record->core.flag & BAM_FUNMAP) == 0 &&
                 record->core.qual >=
-                    m_min_mapping_quality) { // remove secondraies?
+                    m_min_mapping_quality) { // remove secondraies? //need to use the user parameter
                 // printf("%s\t%d\n",bam_get_qname(db->bam_rec[db->n_bam_rec]),result);
                 db->n_bam_rec++;
             }
