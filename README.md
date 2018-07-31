@@ -25,7 +25,7 @@ make
 ## Running
 
 ```
-
+Usage: ./f5c [OPTIONS] -r reads.fa -b alignments.bam -g genome.fa
 ```
 
 ## Credits
