@@ -11,16 +11,20 @@
 
 double realtime0 = realtime();
 
-static struct option long_options[] = {{"reads", required_argument, 0, 'r'},
-                                       {"bam", required_argument, 0, 'b'},
-                                       {"genome", required_argument, 0, 'g'},
-                                       {"threads", required_argument, 0, 'g'},
-                                       {"batchsize", required_argument, 0, 'K'},
-                                       {"print", no_argument, 0, 'p'},
-                                       {"aaaaaa", no_argument, 0, 0},
-                                       {"help", no_argument, 0, 'h'},
-                                       {"version", no_argument, 0, 'V'},
-                                       {0, 0, 0, 0}};
+static struct option long_options[] = {
+    {"reads", required_argument, 0, 'r'},     //0
+    {"bam", required_argument, 0, 'b'},       //1
+    {"genome", required_argument, 0, 'g'},    //2
+    {"threads", required_argument, 0, 'g'},   //3
+    {"batchsize", required_argument, 0, 'K'}, //4
+    {"print", no_argument, 0, 'p'},           //5
+    {"aaaaaa", no_argument, 0, 0},            //6
+    {"help", no_argument, 0, 'h'},            //7
+    {"version", no_argument, 0, 'V'},         //8
+    {"min-mapq", required_argument, 0, 0},    //9
+    {"secondary", required_argument, 0, 0},   //10
+    {"kmer-model", required_argument, 0, 0},  //11
+    {0, 0, 0, 0}};
 
 void sig_handler(int sig) {
     void* array[100];
@@ -53,32 +57,18 @@ int main(int argc, char* argv[]) {
 
     while ((c = getopt_long(argc, argv, optstring, long_options, &longindex)) >=
            0) {
-        switch (c) {
-            case 'r':
-                fastqfile = optarg;
-                break;
-                // if(fastqfile==NULL)
-                //    fprintf(stderr,ERR "Fastq cannot be null" CEND);
-            case 'b':
-                bamfilename = optarg;
-                break;
-            case 'g':
-                fastafile = optarg;
-                break;
-            case 'p':
-                opt.print_raw = 1;
-                break;
-                /*default:
-      //puts("dsfgsdgsd");
-      //fprintf(stderr,ERR "usage : " CEND);
-      //exit(EXIT_FAILURE);
-  */
+        if (c == 'r') {
+            fastqfile = optarg;
+        } else if (c == 'b') {
+            bamfilename = optarg;
+        } else if (c == 'g') {
+            fastafile = optarg;
+        } else if (c == 'p') {
+            opt.print_raw = 1;
+        } else if (c == 0 && longindex == 11) {
+            opt.model_file = optarg;
         }
     }
-
-    // if (strcpy(argv[optind],"view")==0){
-    // }
-    // else if ((strcpy(argv[optind],"call-methylation")==0)){
 
     if (fastqfile == NULL || bamfilename == NULL || fastafile == NULL) {
         fprintf(
@@ -87,10 +77,6 @@ int main(int argc, char* argv[]) {
             argv[0]);
         exit(EXIT_FAILURE);
     }
-
-    // const char *bamfilename="/mnt/f/share/778Nanopore/fastq/740475-67.bam";
-    // const char *fastafile="/mnt/f/share/reference/hg38noAlt.fa";
-    // const char *fastqfile="/mnt/f/share/778Nanopore/fastq/740475-67.fastq";
 
     core_t* core = init_core(bamfilename, fastafile, fastqfile, opt);
     db_t* db = init_db();

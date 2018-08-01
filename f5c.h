@@ -8,11 +8,15 @@
 #include "fast5lite.h"
 #include "nanopolish_read_db.h"
 
+#define m_min_mapping_quality 30
+#define KMER_SIZE 6 //hard coded for now; todo : change to dynamic
+#define NUM_KMER 4096
+
 typedef struct {
-    int print_raw;    // space save for bool
-    int min_mapq;     //minimum mapq
-    int con_sec;      //consider secondary reads
-    char* model_file; //name of the model file
+    int print_raw;          // space save for bool
+    int min_mapq;           //minimum mapq
+    int con_sec;            //consider secondary reads
+    const char* model_file; //name of the model file
 } opt_t;
 
 // from scrappie
@@ -33,16 +37,14 @@ typedef struct {
     event_t* event;
 } event_table;
 
-#define KMER_SIZE 6 //hard coded for now; todo : change to dynamic
-
 //model
 typedef struct {
-    char kmer[KMER_SIZE + 1]; //KMER_SIZE+null character
+    //char kmer[KMER_SIZE + 1]; //KMER_SIZE+null character //can get rid of this
     float level_mean;
     float level_stdv;
     float sd_mean;
     float sd_stdv;
-    float weight;
+    //float weight;
 } model_t;
 
 typedef struct {

@@ -7,8 +7,6 @@
 #include "f5c.h"
 #include "f5cmisc.h"
 
-#define m_min_mapping_quality 30
-
 core_t* init_core(const char* bamfilename, const char* fastafile,
                   const char* fastqfile, opt_t opt) {
     core_t* core = (core_t*)malloc(sizeof(core_t));
@@ -38,10 +36,16 @@ core_t* init_core(const char* bamfilename, const char* fastafile,
     core->readbb->load(fastqfile);
 
     //model
-    core->model = (model_t*)malloc(sizeof(model_t) *
-                                   4096); //4096 is 4^6 which os hardcoded now
+    core->model = (model_t*)malloc(
+        sizeof(model_t) * NUM_KMER); //4096 is 4^6 which os hardcoded now
     MALLOC_CHK(core->model);
+
     //load the model from files
+    if (opt.model_file) {
+        read_model(core->model, opt.model_file);
+    } else {
+        set_model(core->model);
+    }
 
     core->opt = opt;
     return core;
