@@ -12,11 +12,17 @@
 #define KMER_SIZE 6 //hard coded for now; todo : change to dynamic
 #define NUM_KMER 4096
 
+
+//flags
+#define F5C_PRINT_RAW   0x001           //print the raw signal to stdio
+#define F5C_SECONDARY_YES   0x002       //consider secondary reads
+#define F5C_SKIP_UNREADABLE   0x004     //Skip unreadable fast5 and continue rather than exiting
+
 typedef struct {
-    int print_raw;          // space save for bool
-    int min_mapq;           //minimum mapq
-    int con_sec;            //consider secondary reads
+    int32_t min_mapq;           //minimum mapq          
     const char* model_file; //name of the model file
+    uint32_t flag;
+    int32_t batch_size;
 } opt_t;
 
 // from scrappie
@@ -89,7 +95,7 @@ typedef struct {
 
 } core_t;
 
-db_t* init_db();
+db_t* init_db(core_t* core);
 int32_t load_db(core_t* dg, db_t* db);
 core_t* init_core(const char* bamfilename, const char* fastafile,
                   const char* fastqfile, opt_t opt);

@@ -37,5 +37,5 @@ distclean: clean
 format:
 	./scripts/autoformat.sh
 
-test:
+test: $(BINARY)
 	./scripts/test.sh

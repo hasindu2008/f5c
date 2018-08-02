@@ -77,7 +77,7 @@ void read_model(model_t* model, const char* file) {
 
 //this function can be made more efficient by setting the address to the global variable
 void set_model(model_t* model) {
-    int i = 0;
+    uint32_t i = 0;
     for (i = 0; i < NUM_KMER; i++) {
         model[i].level_mean =
             r9_4_450bps_nucleotide_6mer_template_model_builtin_data[i * 4 + 0];
