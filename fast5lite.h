@@ -106,7 +106,7 @@ static inline int32_t fast5_read(hid_t hdf5_file, fast5_t* f5) {
 
     sprintf(signal_path, "%s%s%s", RAW_ROOT, read_name, "/Signal");
 
-#ifdef DEBUG
+#ifdef DEBUG_SIGNAL_PATH
     printf("Signal path : %s\n", signal_path);
 #endif
     free(read_name);
