@@ -66,7 +66,7 @@ db_t* init_db(core_t* core) {
     db_t* db = (db_t*)(malloc(sizeof(db_t)));
     MALLOC_CHK(db);
 
-    db->capacity_bam_rec = core->opt.batch_size ;
+    db->capacity_bam_rec = core->opt.batch_size;
     db->n_bam_rec = 0;
 
     db->bam_rec = (bam1_t**)(malloc(sizeof(bam1_t*) * db->capacity_bam_rec));
@@ -104,7 +104,8 @@ int32_t load_db(core_t* core, db_t* db) {
         } else {
             if ((record->core.flag & BAM_FUNMAP) == 0 &&
                 record->core.qual >=
-                    core->opt.min_mapq) { // remove secondraies? //need to use the user parameter
+                    core->opt
+                        .min_mapq) { // remove secondraies? //need to use the user parameter
                 // printf("%s\t%d\n",bam_get_qname(db->bam_rec[db->n_bam_rec]),result);
                 db->n_bam_rec++;
             }
@@ -146,13 +147,11 @@ int32_t load_db(core_t* core, db_t* db) {
             fast5_read(hdf5_file, db->f5[i]); // todo : errorhandle
             fast5_close(hdf5_file);
         } else {
-            if (core->opt.flag & F5C_SKIP_UNREADABLE){
+            if (core->opt.flag & F5C_SKIP_UNREADABLE) {
                 WARNING("Fast5 file is unreadable and will be skipped: %s",
-                    fast5_path);
-            }
-            else{
-                ERROR("Fast5 file could not be opened: %s",
-                    fast5_path);
+                        fast5_path);
+            } else {
+                ERROR("Fast5 file could not be opened: %s", fast5_path);
                 exit(EXIT_FAILURE);
             }
         }
@@ -226,5 +225,4 @@ void init_opt(opt_t* opt) {
     memset(opt, 0, sizeof(opt_t));
     opt->min_mapq = 30;
     opt->batch_size = 500;
-
 }

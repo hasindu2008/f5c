@@ -12,14 +12,14 @@
 #define KMER_SIZE 6 //hard coded for now; todo : change to dynamic
 #define NUM_KMER 4096
 
-
 //flags
-#define F5C_PRINT_RAW   0x001           //print the raw signal to stdio
-#define F5C_SECONDARY_YES   0x002       //consider secondary reads
-#define F5C_SKIP_UNREADABLE   0x004     //Skip unreadable fast5 and continue rather than exiting
+#define F5C_PRINT_RAW 0x001     //print the raw signal to stdio
+#define F5C_SECONDARY_YES 0x002 //consider secondary reads
+#define F5C_SKIP_UNREADABLE                                                    \
+    0x004 //Skip unreadable fast5 and continue rather than exiting
 
 typedef struct {
-    int32_t min_mapq;           //minimum mapq          
+    int32_t min_mapq;       //minimum mapq
     const char* model_file; //name of the model file
     uint32_t flag;
     int32_t batch_size;
