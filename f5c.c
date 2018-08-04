@@ -157,7 +157,7 @@ int32_t load_db(core_t* core, db_t* db) {
         }
 
         if (core->opt.flag & F5C_PRINT_RAW) {
-            printf("@%s\t%s\t%llu\n", qname.c_str(), fast5_path,
+            printf(">%s\tPATH:%s\tLN:%llu\n", qname.c_str(), fast5_path,
                    db->f5[i]->nsample);
             uint32_t j = 0;
             for (j = 0; j < db->f5[i]->nsample; j++) {
@@ -195,6 +195,25 @@ void process_db(core_t* core, db_t* db) {
     }
 
     return;
+}
+
+void output_db(core_t* core, db_t* db) {
+    if (core->opt.flag & F5C_PRINT_EVENTS) {
+        int32_t i = 0;
+        for (i = 0; i < db->n_bam_rec; i++) {
+            printf(">%s\tLN:%d\tSTART:%d\tEND:%d\n",
+                   bam_get_qname(db->bam_rec[i]), (int)db->et[i].n,
+                   (int)db->et[i].start, (int)db->et[i].end);
+            uint32_t j = 0;
+            for (j = 0; j < db->et[i].n; j++) {
+                printf("{%d,%f,%f,%f,%d,%d}\t", (int)db->et[i].event[j].start,
+                       db->et[i].event[j].length, db->et[i].event[j].mean,
+                       db->et[i].event[j].stdv, (int)db->et[i].event[j].pos,
+                       (int)db->et[i].event[j].state);
+            }
+            printf("\n");
+        }
+    }
 }
 
 void free_db_tmp(db_t* db) {

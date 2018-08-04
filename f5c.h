@@ -17,6 +17,7 @@
 #define F5C_SECONDARY_YES 0x002 //consider secondary reads
 #define F5C_SKIP_UNREADABLE                                                    \
     0x004 //Skip unreadable fast5 and continue rather than exiting
+#define F5C_PRINT_EVENTS 0x008
 
 typedef struct {
     int32_t min_mapq;       //minimum mapq
@@ -28,18 +29,18 @@ typedef struct {
 // from scrappie
 typedef struct {
     uint64_t start;
-    float length;
+    float length; //cant be made int
     float mean;
     float stdv;
-    int32_t pos;
-    int32_t state;
+    int32_t pos;   //always -1 can be removed
+    int32_t state; //always -1 can be removed
 } event_t;
 
 // from scrappie
 typedef struct {
     size_t n;
-    size_t start;
-    size_t end;
+    size_t start; //always 0
+    size_t end;   //always eqial to n
     event_t* event;
 } event_table;
 
@@ -100,6 +101,7 @@ int32_t load_db(core_t* dg, db_t* db);
 core_t* init_core(const char* bamfilename, const char* fastafile,
                   const char* fastqfile, opt_t opt);
 void process_db(core_t* dg, db_t* db);
+void output_db(core_t* core, db_t* db);
 void free_core(core_t* core);
 void free_db_tmp(db_t* db);
 void free_db(db_t* db);

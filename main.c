@@ -25,6 +25,7 @@ static struct option long_options[] = {
     {"secondary", required_argument, 0, 0},       //10
     {"kmer-model", required_argument, 0, 0},      //11
     {"skip-unreadable", required_argument, 0, 0}, //12
+    {"print-events", required_argument, 0, 0},    //13
     {0, 0, 0, 0}};
 
 void sig_handler(int sig) {
@@ -121,6 +122,8 @@ int main(int argc, char* argv[]) {
             opt.model_file = optarg;
         } else if (c == 0 && longindex == 12) {
             yes_or_no(&opt, F5C_SKIP_UNREADABLE, longindex, optarg, 1);
+        } else if (c == 0 && longindex == 13) {
+            yes_or_no(&opt, F5C_PRINT_EVENTS, longindex, optarg, 1);
         }
     }
 
@@ -151,7 +154,7 @@ int main(int argc, char* argv[]) {
         fprintf(stderr, "[%s::%.3f*%.2f] %d Entries processed\n", __func__,
                 realtime() - realtime0, cputime() / (realtime() - realtime0),
                 status);
-
+        output_db(core, db);
         free_db_tmp(db);
     }
     free_db(db);
