@@ -10,6 +10,8 @@
 event_table getevents(size_t nsample, float* rawptr);
 void read_model(model_t* model, const char* file);
 void set_model(model_t* model);
+scalings_t estimate_scalings_using_mom(char* sequence, model_t* pore_model,
+                                       event_table et);
 
 // taken from minimap2/misc
 static inline double realtime(void) {

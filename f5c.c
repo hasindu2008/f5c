@@ -80,6 +80,8 @@ db_t* init_db(core_t* core) {
 
     db->fasta_cache = (char**)(malloc(sizeof(char*) * db->capacity_bam_rec));
     MALLOC_CHK(db->fasta_cache);
+    db->read = (char**)(malloc(sizeof(char*) * db->capacity_bam_rec));
+
     db->f5 = (fast5_t**)malloc(sizeof(fast5_t*) * db->capacity_bam_rec);
     MALLOC_CHK(db->f5);
 
@@ -167,6 +169,12 @@ int32_t load_db(core_t* core, db_t* db) {
         }
 
         free(fast5_path);
+
+        //get the read in ascci
+        db->read[i] =
+            (char*)malloc(core->readbb->get_read_sequence(qname).size() +
+                          1); // is +1 needed? do errorcheck
+        strcpy(db->read[i], core->readbb->get_read_sequence(qname).c_str());
     }
     // fprintf(stderr,"%s:: %d fast5 read\n",__func__,db->n_bam_rec);
 
@@ -190,6 +198,9 @@ void process_db(core_t* core, db_t* db) {
         db->et[i] = getevents(db->f5[i]->nsample, rawptr);
 
         //have to test if the computed events are correct
+        //get the scalings
+        scalings_t scalings =
+            estimate_scalings_using_mom(db->read[i], core->model, db->et[i]);
 
         //then we should be ready to directly call adaptive_banded_simple_event_align
     }
@@ -222,6 +233,7 @@ void free_db_tmp(db_t* db) {
         bam_destroy1(db->bam_rec[i]);
         db->bam_rec[i] = bam_init1();
         free(db->fasta_cache[i]);
+        free(db->read[i]);
         free(db->f5[i]->rawptr);
         free(db->f5[i]);
         free(db->et[i].event);
@@ -235,6 +247,7 @@ void free_db(db_t* db) {
     }
     free(db->bam_rec);
     free(db->fasta_cache);
+    free(db->read);
     free(db->et);
     free(db->f5);
     free(db);

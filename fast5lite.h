@@ -40,6 +40,19 @@ typedef struct {
     float range;
     float sample_rate;
 
+    // computed scaling paramtersd
+    float scale;
+    float shift;
+    float drift;
+    float var;
+    float scale_sd;
+    float var_sd;
+
+    // derived parameters that are cached for efficiency. do we need these?
+    float log_var;
+    float scaled_var;
+    float log_scaled_var;
+
 } fast5_t;
 
 // The following was adapted from Nanopolish : nanopolish_fast5_io.cpp

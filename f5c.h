@@ -54,9 +54,26 @@ typedef struct {
     //float weight;
 } model_t;
 
+//taken from nanopolish
+typedef struct {
+    // direct parameters that must be set
+    float scale;
+    float shift;
+    //float drift; = 0 always?
+    //float var; = 1 always?
+    //float scale_sd;
+    //float var_sd;
+
+    // derived parameters that are cached for efficiency
+    float log_var;
+    float scaled_var;
+    float log_scaled_var;
+
+} scalings_t;
+
 typedef struct {
     // region string
-    char* region;
+    //char* region;
 
     // bam records
     bam1_t** bam_rec;
@@ -66,6 +83,9 @@ typedef struct {
     // fasta cache //can optimise later by caching a common string for all
     // records in the batch
     char** fasta_cache;
+
+    //read sequence //todo : optimise by grabbing it from bam seq. is it possible due to clipping?
+    char** read;
 
     // fast5 file //should flatten this to reduce mallocs
     fast5_t** f5;
