@@ -437,8 +437,10 @@ float log_probability_match_r9(scalings_t* scaling,
     strand=0;
 
     //float level = read.get_drift_scaled_level(event_idx, strand);
-    //We will first work with unscaled level and sequence
-    float level=events->event[event_idx].mean;
+
+    float time=events[event_idx].start - events[0].start;
+    float unscaledLevel=events->event[event_idx].mean;
+    float scaledLevel=unscaledLevel - time* scaling->shift;
 
     //GaussianParameters gp = read.get_scaled_gaussian_from_pore_model_state(pore_model, strand, kmer_rank);
     float gp_mean = scalings.scale * models[kmer_rank].level_mean + scalings.shift;
@@ -446,7 +448,7 @@ float log_probability_match_r9(scalings_t* scaling,
     float gp_log_stdv = model[kmer_rank].level_log_stdv + scalings.log_var;
 
 
-    float lp = log_normal_pdf(level, gp_mean,gp_stdv,gp_log_stdv);
+    float lp = log_normal_pdf(scaledLevel, gp_mean,gp_stdv,gp_log_stdv);
     return lp;
 }
 
