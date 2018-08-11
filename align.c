@@ -101,7 +101,7 @@ std:: vetcor<AlignedPair> align(char* sequence,event_table* events,model_t* mode
      */
 
     size_t strand_idx=0;//<<<<<<<<<<<<<<<<<<<<<<We have to complete this!
-    size_t k = strlen(models[0]);// <<<<<<<<<<<<<<<<WHAT?
+    size_t k = 6;// <<<<<<<<<<<<<<<<WHAT?
 
   size_t n_events = events[strand_idx].n;
   size_t n_kmers=strlen(sequence)-k+1;
