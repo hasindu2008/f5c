@@ -22,11 +22,15 @@
             "[%s::DEBUG]\033[1;35m Error occured at %s:%d. " arg "\033[0m\n",  \
             __func__, __FILE__, __LINE__ - 2, __VA_ARGS__)
 
-#define MALLOC_CHK(ret) malloc_chk((void*)ret, __func__, __FILE__, __LINE__)
-#define NULL_CHK(ret) null_chk((void*)ret, __func__, __FILE__, __LINE__)
-#define NEG_CHK(ret) neg_chk(ret, __func__, __FILE__, __LINE__)
+#define MALLOC_CHK(ret) malloc_chk((void*)ret, __func__, __FILE__, __LINE__ - 1)
+#define F_CHK(ret, filename)                                                   \
+    f_chk((void*)ret, __func__, __FILE__, __LINE__ - 1, filename);
+#define NULL_CHK(ret) null_chk((void*)ret, __func__, __FILE__, __LINE__ - 1)
+#define NEG_CHK(ret) neg_chk(ret, __func__, __FILE__, __LINE__ - 1)
 
 void malloc_chk(void* ret, const char* func, const char* file, int line);
+void f_chk(void* ret, const char* func, const char* file, int line,
+           const char* fopen_f);
 
 // Die on error. Print the error and exit if the return value of the previous function NULL
 void null_chk(void* ret, const char* func, const char* file, int line);

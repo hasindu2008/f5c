@@ -11,7 +11,7 @@ include config.mk
 LDFLAGS += $(LIBS) -lpthread 
 
 #SRC = $(wildcard *.c)
-SRC = main.c f5c.c events.c nanopolish_read_db.c error.c
+SRC = main.c f5c.c events.c nanopolish_read_db.c error.c model.c align.c
 OBJ = $(SRC:.c=.o)
 BINARY = f5c
 DEPS = f5c.h fast5lite.h nanopolish_read_db.h f5cmisc.h error.h
@@ -37,5 +37,5 @@ distclean: clean
 format:
 	./scripts/autoformat.sh
 
-test:
+test: $(BINARY)
 	./scripts/test.sh

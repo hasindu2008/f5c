@@ -1,13 +1,17 @@
 #ifndef F5CMISC_H
 #define F5CMISC_H
 
+#include "error.h"
+#include "f5c.h"
 #include <errno.h>
 #include <sys/resource.h>
 #include <sys/time.h>
 
-#include "error.h"
-
 event_table getevents(size_t nsample, float* rawptr);
+void read_model(model_t* model, const char* file);
+void set_model(model_t* model);
+scalings_t estimate_scalings_using_mom(char* sequence, model_t* pore_model,
+                                       event_table et);
 
 // taken from minimap2/misc
 static inline double realtime(void) {

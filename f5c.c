@@ -7,8 +7,6 @@
 #include "f5c.h"
 #include "f5cmisc.h"
 
-#define m_min_mapping_quality 30
-
 core_t* init_core(const char* bamfilename, const char* fastafile,
                   const char* fastqfile, opt_t opt) {
     core_t* core = (core_t*)malloc(sizeof(core_t));
@@ -38,10 +36,16 @@ core_t* init_core(const char* bamfilename, const char* fastafile,
     core->readbb->load(fastqfile);
 
     //model
-    core->model = (model_t*)malloc(sizeof(model_t) *
-                                   4096); //4096 is 4^6 which os hardcoded now
+    core->model = (model_t*)malloc(
+        sizeof(model_t) * NUM_KMER); //4096 is 4^6 which os hardcoded now
     MALLOC_CHK(core->model);
+
     //load the model from files
+    if (opt.model_file) {
+        read_model(core->model, opt.model_file);
+    } else {
+        set_model(core->model);
+    }
 
     core->opt = opt;
     return core;
@@ -58,11 +62,11 @@ void free_core(core_t* core) {
     free(core);
 }
 
-db_t* init_db() {
+db_t* init_db(core_t* core) {
     db_t* db = (db_t*)(malloc(sizeof(db_t)));
     MALLOC_CHK(db);
 
-    db->capacity_bam_rec = 512;
+    db->capacity_bam_rec = core->opt.batch_size;
     db->n_bam_rec = 0;
 
     db->bam_rec = (bam1_t**)(malloc(sizeof(bam1_t*) * db->capacity_bam_rec));
@@ -76,6 +80,8 @@ db_t* init_db() {
 
     db->fasta_cache = (char**)(malloc(sizeof(char*) * db->capacity_bam_rec));
     MALLOC_CHK(db->fasta_cache);
+    db->read = (char**)(malloc(sizeof(char*) * db->capacity_bam_rec));
+
     db->f5 = (fast5_t**)malloc(sizeof(fast5_t*) * db->capacity_bam_rec);
     MALLOC_CHK(db->f5);
 
@@ -100,7 +106,8 @@ int32_t load_db(core_t* core, db_t* db) {
         } else {
             if ((record->core.flag & BAM_FUNMAP) == 0 &&
                 record->core.qual >=
-                    m_min_mapping_quality) { // remove secondraies? //need to use the user parameter
+                    core->opt
+                        .min_mapq) { // remove secondraies? //need to use the user parameter
                 // printf("%s\t%d\n",bam_get_qname(db->bam_rec[db->n_bam_rec]),result);
                 db->n_bam_rec++;
             }
@@ -142,12 +149,17 @@ int32_t load_db(core_t* core, db_t* db) {
             fast5_read(hdf5_file, db->f5[i]); // todo : errorhandle
             fast5_close(hdf5_file);
         } else {
-            WARNING("Fast5 file is unreadable and will be skipped: %s",
-                    fast5_path);
+            if (core->opt.flag & F5C_SKIP_UNREADABLE) {
+                WARNING("Fast5 file is unreadable and will be skipped: %s",
+                        fast5_path);
+            } else {
+                ERROR("Fast5 file could not be opened: %s", fast5_path);
+                exit(EXIT_FAILURE);
+            }
         }
 
-        if (core->opt.print_raw) {
-            printf("@%s\t%s\t%llu\n", qname.c_str(), fast5_path,
+        if (core->opt.flag & F5C_PRINT_RAW) {
+            printf(">%s\tPATH:%s\tLN:%llu\n", qname.c_str(), fast5_path,
                    db->f5[i]->nsample);
             uint32_t j = 0;
             for (j = 0; j < db->f5[i]->nsample; j++) {
@@ -157,6 +169,12 @@ int32_t load_db(core_t* core, db_t* db) {
         }
 
         free(fast5_path);
+
+        //get the read in ascci
+        db->read[i] =
+            (char*)malloc(core->readbb->get_read_sequence(qname).size() +
+                          1); // is +1 needed? do errorcheck
+        strcpy(db->read[i], core->readbb->get_read_sequence(qname).c_str());
     }
     // fprintf(stderr,"%s:: %d fast5 read\n",__func__,db->n_bam_rec);
 
@@ -180,11 +198,34 @@ void process_db(core_t* core, db_t* db) {
         db->et[i] = getevents(db->f5[i]->nsample, rawptr);
 
         //have to test if the computed events are correct
+        //get the scalings
+        scalings_t scalings =
+            estimate_scalings_using_mom(db->read[i], core->model, db->et[i]);
 
+        std::vector<AlignedPair> ans = align(db->read[i],db->et[i],core->model,scalings);
         //then we should be ready to directly call adaptive_banded_simple_event_align
     }
 
     return;
+}
+
+void output_db(core_t* core, db_t* db) {
+    if (core->opt.flag & F5C_PRINT_EVENTS) {
+        int32_t i = 0;
+        for (i = 0; i < db->n_bam_rec; i++) {
+            printf(">%s\tLN:%d\tSTART:%d\tEND:%d\n",
+                   bam_get_qname(db->bam_rec[i]), (int)db->et[i].n,
+                   (int)db->et[i].start, (int)db->et[i].end);
+            uint32_t j = 0;
+            for (j = 0; j < db->et[i].n; j++) {
+                printf("{%d,%f,%f,%f,%d,%d}\t", (int)db->et[i].event[j].start,
+                       db->et[i].event[j].length, db->et[i].event[j].mean,
+                       db->et[i].event[j].stdv, (int)db->et[i].event[j].pos,
+                       (int)db->et[i].event[j].state);
+            }
+            printf("\n");
+        }
+    }
 }
 
 void free_db_tmp(db_t* db) {
@@ -193,6 +234,7 @@ void free_db_tmp(db_t* db) {
         bam_destroy1(db->bam_rec[i]);
         db->bam_rec[i] = bam_init1();
         free(db->fasta_cache[i]);
+        free(db->read[i]);
         free(db->f5[i]->rawptr);
         free(db->f5[i]);
         free(db->et[i].event);
@@ -206,6 +248,7 @@ void free_db(db_t* db) {
     }
     free(db->bam_rec);
     free(db->fasta_cache);
+    free(db->read);
     free(db->et);
     free(db->f5);
     free(db);
@@ -213,8 +256,6 @@ void free_db(db_t* db) {
 
 void init_opt(opt_t* opt) {
     memset(opt, 0, sizeof(opt_t));
-
-    opt->print_raw = 0;
     opt->min_mapq = 30;
-    opt->con_sec = 0;
+    opt->batch_size = 500;
 }

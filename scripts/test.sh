@@ -6,19 +6,19 @@ die() {
     exit 1
 }
 
-exepath="../../f5c"
-tstdir="test/ecoli_2kb_region/"
-cd "${tstdir}"
+exepath="./f5c"
+testdir="test/ecoli_2kb_region/"
+#cd "${tstdir}"
 
-bamdir="reads.sorted.bam"
-fadir="draft.fa"
-fastqdir="reads.fasta"
+bamdir="${testdir}reads.sorted.bam"
+fadir="${testdir}draft.fa"
+fastqdir="${testdir}reads.fasta"
 for file in "${bamdir}" "${fadir}" "${fastqdir}"; do
     [[ -f "${file}" ]] || die "${file}: File does not exist"
 done
 
 if [[ "${#}" -eq 0 ]]; then
-    "${exepath}" -b "${bamdir}" -g "${fadir}" -r "${fastqdir}" -p > result.txt
+    "${exepath}" -b "${bamdir}" -g "${fadir}" -r "${fastqdir}" -p > ${testdir}/result.txt
 
 elif [[ "${#}" -eq 1 ]]; then
     if [[ "${1}" == "valgrind" ]]; then
