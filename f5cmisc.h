@@ -7,11 +7,16 @@
 #include <sys/resource.h>
 #include <sys/time.h>
 
+#include<vector>
+
 event_table getevents(size_t nsample, float* rawptr);
 void read_model(model_t* model, const char* file);
 void set_model(model_t* model);
 scalings_t estimate_scalings_using_mom(char* sequence, model_t* pore_model,
                                        event_table et);
+
+std::vector<AlignedPair> align(char* sequence,event_table events,model_t* models, scalings_t scaling);
+
 
 // taken from minimap2/misc
 static inline double realtime(void) {
