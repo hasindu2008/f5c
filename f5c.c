@@ -202,7 +202,7 @@ void process_db(core_t* core, db_t* db) {
         scalings_t scalings =
             estimate_scalings_using_mom(db->read[i], core->model, db->et[i]);
 
-        std::vector<AlignedPair> ans = align(db->read,db->et,core->model,scalings);
+        std::vector<AlignedPair> ans = align(db->read[i],db->et[i],core->model,scalings);
         //then we should be ready to directly call adaptive_banded_simple_event_align
     }
 

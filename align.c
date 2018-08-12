@@ -93,15 +93,13 @@ scalings_t estimate_scalings_using_mom(char* sequence, model_t* pore_model,
     return out;
 }
 
-std:: vetcor<AlignedPair> align(char* sequence,event_table* events,model_t* models, scalings_t* scaling){
+std:: vetcor<AlignedPair> align(char* sequence,event_table events,model_t* models, scalings_t* scaling){
     /*
-     * Function under development!!
-     *
-     *
+     * This function should be tested now :-)
      */
 
-    size_t strand_idx=0;//<<<<<<<<<<<<<<<<<<<<<<We have to complete this!
-    size_t k = 6;// <<<<<<<<<<<<<<<<WHAT?
+    size_t strand_idx=0;
+    size_t k = 6;
 
   size_t n_events = events[strand_idx].n;
   size_t n_kmers=strlen(sequence)-k+1;
@@ -275,7 +273,9 @@ std:: vetcor<AlignedPair> align(char* sequence,event_table* events,model_t* mode
             float left = is_offset_valid(offset_left) ? bands[band_idx - 1][offset_left] : -INFINITY;
             float diag = is_offset_valid(offset_diag) ? bands[band_idx - 2][offset_diag] : -INFINITY;
 
-            float lp_emission = log_probability_match_r9(read, pore_model, kmer_rank, event_idx, strand_idx);
+            float lp_emission = log_probability_match_r9(scaling, models, events, event_idx, kmer_rank,strand_idx);
+
+
             float score_d = diag + lp_step + lp_emission;
             float score_u = up + lp_stay + lp_emission;
             float score_l = left + lp_skip;
@@ -426,11 +426,11 @@ std:: vetcor<AlignedPair> align(char* sequence,event_table* events,model_t* mode
 }
 
 
-float log_probability_match_r9(scalings_t* scaling,
+float log_probability_match_r9(scalings_t scaling,
                                       model_t* models,
-                                      event_table* events,
+                                      event_table events,
+                                      int event_idx,
                                       uint32_t kmer_rank,
-                                      uint32_t event_idx,
                                       uint8_t strand)
 {
     // event level mean, scaled with the drift value
@@ -438,14 +438,14 @@ float log_probability_match_r9(scalings_t* scaling,
 
     //float level = read.get_drift_scaled_level(event_idx, strand);
 
-    float time=events[event_idx].start - events[0].start;
-    float unscaledLevel=events->event[event_idx].mean;
+    float time=events[event_idx].start- events[0].start;
+    float unscaledLevel=events[event_idx].mean;
     float scaledLevel=unscaledLevel - time* scaling->shift;
 
     //GaussianParameters gp = read.get_scaled_gaussian_from_pore_model_state(pore_model, strand, kmer_rank);
-    float gp_mean = scalings.scale * models[kmer_rank].level_mean + scalings.shift;
-    float gp_stdv = model[kmer_rank].level_stdv * scalings.var;
-    float gp_log_stdv = model[kmer_rank].level_log_stdv + scalings.log_var;
+    float gp_mean = scaling.scale * models[kmer_rank].level_mean + scaling.shift;
+    float gp_stdv = model[kmer_rank].level_stdv * scaling.var;
+    float gp_log_stdv = model[kmer_rank].level_log_stdv + scaling.log_var;
 
 
     float lp = log_normal_pdf(scaledLevel, gp_mean,gp_stdv,gp_log_stdv);
