@@ -1,6 +1,6 @@
 #include "f5c.h"
 
-#define DEBUG_PRINT_STATS
+//#define DEBUG_PRINT_STATS
 
 //todo : can make more efficient using bit encoding
 static inline uint32_t rank(char base) {
@@ -28,7 +28,7 @@ static inline uint32_t kmer_rank(const char* str, uint32_t k) {
     for (uint32_t i = 0; i < k; ++i) {
         //r += rank(str[k - i - 1]) * p;
         //p *= size();
-        r += rank(str[k - i - 1]) << 2;
+        r += rank(str[k - i - 1]) << (i<<1);
     }
     return r;
 }
@@ -53,6 +53,7 @@ scalings_t estimate_scalings_using_mom(char* sequence, model_t* pore_model,
     for (size_t i = 0; i < n_kmers; ++i) {
         size_t kr = kmer_rank(&sequence[i], KMER_SIZE);
         double l = pore_model[kr].level_mean;
+        //fprintf(stderr,"Kmer : %c%c%c%c%c%c, kmer_rank : %d , kmer_mean : %f \n",sequence[i],sequence[i+1],sequence[i+2],sequence[i+3],sequence[i+4],sequence[i+5],kr,l);
         kmer_level_sum += l;
         kmer_level_sq_sum += l * l;
     }
