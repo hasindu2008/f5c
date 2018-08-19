@@ -23,10 +23,10 @@
 float log_normal_pdf(float x, float gp_mean, float gp_stdv, float gp_log_stdv)
 {
     /*INCOMPLETE*/
-    float log_inv_sqrt_2pi=-0.39908993417f;// <<<<<<<<<<< Are we working on log base 10?
-    // float a = (x - mean) / stdv;
-    // return log_inv_sqrt_2pi - gp_log_stdv + (-0.5f * a * a);
-    return 1;
+    float log_inv_sqrt_2pi = -0.39908993417f;// <<<<<<<<<<< Are we working on log base 10?
+    float a = (x - gp_mean) / gp_stdv;
+    return log_inv_sqrt_2pi - gp_log_stdv + (-0.5f * a * a);
+    // return 1;
 }
 
 
@@ -48,10 +48,10 @@ float log_probability_match_r9(scalings_t scaling,
 
     //GaussianParameters gp = read.get_scaled_gaussian_from_pore_model_state(pore_model, strand, kmer_rank);
     float gp_mean = scaling.scale * models[kmer_rank].level_mean + scaling.shift;
-    //float gp_stdv = models[kmer_rank].level_stdv * scaling.var;
-    float gp_stdv = 0;
+    float gp_stdv = models[kmer_rank].level_stdv * 1; //scaling.var = 1;
+    // float gp_stdv = 0;
     // float gp_log_stdv = models[kmer_rank].level_log_stdv + scaling.log_var;
-    float gp_log_stdv = models[kmer_rank].level_stdv + scaling.log_var;
+    float gp_log_stdv = models[kmer_rank].level_stdv + 0; // scaling.log_var = log(1)=0;
 
     float lp = log_normal_pdf(scaledLevel, gp_mean,gp_stdv,gp_log_stdv);
     return lp;
@@ -352,7 +352,7 @@ AlignedPair* align(char* sequence,event_table events,model_t* models, scalings_t
 
     //>>>>>>>>>>>>>> New replacement begin
     // std::vector<AlignedPair> out;
-    int capacity = 1000000;
+    int capacity = 100000;
     AlignedPair* out_2=(AlignedPair*)malloc(sizeof(AlignedPair)*capacity);
     int outIndex=0;
     //<<<<<<<<<<<<<<<<New Replacement over
