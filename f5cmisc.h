@@ -14,8 +14,8 @@ void read_model(model_t* model, const char* file);
 void set_model(model_t* model);
 scalings_t estimate_scalings_using_mom(char* sequence, model_t* pore_model,
                                        event_table et);
-
-std::vector<AlignedPair> align(char* sequence,event_table events,model_t* models, scalings_t scaling);
+AlignedPair* align(char* sequence,event_table events,model_t* models, scalings_t scaling);
+//std::vector<AlignedPair> align(char* sequence,event_table events,model_t* models, scalings_t scaling);
 
 
 // taken from minimap2/misc
