@@ -4,6 +4,9 @@
 // #include <cassert>
 #include <assert.h>
 
+
+
+
 #define DEBUG_PRINT_STATS
 
 #define event_kmer_to_band(ei, ki) (ei + 1) + (ki + 1)
@@ -14,6 +17,8 @@
 #define kmer_at_offset(bi, offset) band_lower_left[(bi)].kmer_idx + (offset)
 #define move_down(curr_band) { curr_band.event_idx + 1, curr_band.kmer_idx }
 #define move_right(curr_band) { curr_band.event_idx, curr_band.kmer_idx + 1 }
+#define MAX(a,b) { ((a)>(b))?(a):(b) }
+#define MIN(a,b) { ((a)<(b))?(a):(b) }
 
 float log_normal_pdf(float x, float gp_mean, float gp_stdv, float gp_log_stdv)
 {
@@ -78,7 +83,7 @@ static inline uint32_t kmer_rank_function(const char* str, uint32_t k) {
     for (uint32_t i = 0; i < k; ++i) {
         //r += rank(str[k - i - 1]) * p;
         //p *= size();
-        r += rank(str[k - i - 1]) << 2;
+        r += rank(str[k - i - 1]) << (i<<1);
     }
     return r;
 }
@@ -284,11 +289,11 @@ AlignedPair* align(char* sequence,event_table events,model_t* models, scalings_t
         int event_min_offset = band_event_to_offset(band_idx, n_events - 1);
         int event_max_offset = band_event_to_offset(band_idx, -1);
 
-        int min_offset = std::max(kmer_min_offset, event_min_offset);
-        min_offset = std::max(min_offset, 0);
+        int min_offset = MAX(kmer_min_offset, event_min_offset);
+        min_offset = MAX(min_offset, 0);
 
-        int max_offset = std::min(kmer_max_offset, event_max_offset);
-        max_offset = std::min(max_offset, bandwidth);
+        int max_offset = MIN(kmer_max_offset, event_max_offset);
+        max_offset = MIN(max_offset, bandwidth);
 
         for(int offset = min_offset; offset < max_offset; ++offset) {
             int event_idx = event_at_offset(band_idx, offset);
@@ -416,7 +421,7 @@ AlignedPair* align(char* sequence,event_table events,model_t* models, scalings_t
         } else {
             curr_kmer_idx -= 1;
             curr_gap += 1;
-            max_gap = std::max(curr_gap, max_gap);
+            max_gap = MAX(curr_gap, max_gap);
         }
     }
 
