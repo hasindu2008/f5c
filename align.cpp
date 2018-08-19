@@ -131,8 +131,8 @@ scalings_t estimate_scalings_using_mom(char* sequence, model_t* pore_model,
 #endif
     return out;
 }
-
-std::vector<AlignedPair> align(char* sequence,event_table events,model_t* models, scalings_t scaling){
+AlignedPair* align(char* sequence,event_table events,model_t* models, scalings_t scaling){
+// std::vector<AlignedPair> align(char* sequence,event_table events,model_t* models, scalings_t scaling){
     /*
      * This function should be tested now :-)
      */
@@ -347,8 +347,9 @@ std::vector<AlignedPair> align(char* sequence,event_table events,model_t* models
 
     //>>>>>>>>>>>>>> New replacement begin
     std::vector<AlignedPair> out;
-    //AlignedPair* out=(AlignedPair*)malloc(sizeof(AlignedPair)*1000000);
-    //int outIndex=0;
+    int capacity = 1000000;
+    AlignedPair* out_2=(AlignedPair*)malloc(sizeof(AlignedPair)*capacity);
+    int outIndex=0;
     //<<<<<<<<<<<<<<<<New Replacement over
 
     float max_score = -INFINITY;
@@ -359,7 +360,7 @@ std::vector<AlignedPair> align(char* sequence,event_table events,model_t* models
     for(int event_idx = 0; event_idx < n_events; ++event_idx) {
         int band_idx = event_kmer_to_band(event_idx, curr_kmer_idx);
 
-        //>>>>>>>New  lacement begin
+        //>>>>>>>New  replacement begin
         /*assert(band_idx < bands.size());*/
         assert(band_idx < n_bands);
         //<<<<<<<<New Replacement over
@@ -383,8 +384,9 @@ std::vector<AlignedPair> align(char* sequence,event_table events,model_t* models
 
         // emit alignment
         //>>>>>>>New Repalcement begin
-        //out[outIndex]={curr_kmer_idx, curr_event_idx};
-        //outIndex++;
+        out_2[outIndex].ref_pos = curr_kmer_idx;
+        out_2[outIndex].read_pos = curr_event_idx;
+        outIndex++;
         out.push_back({curr_kmer_idx, curr_event_idx});
         //<<<<<<<<<New Replacement over
 
@@ -420,26 +422,41 @@ std::vector<AlignedPair> align(char* sequence,event_table events,model_t* models
 
     //>>>>>>>>New replacement begin
     std::reverse(out.begin(), out.end());
-    /*if(outIndex>1){
-      AlignedPair temp={out[0].ref_pos,out[0].read_pos};
-      int i;
-      for(i=0;i<outIndex-1;i++){
-        out[i]={out[outIndex-1-i].ref_pos,out[outIndex-1-i].read_pos};
-      }
-      out[outIndex-1]={temp.ref_pos,temp.read_pos};
-    }*/
+    int c;
+    int end = outIndex-1;
+    for (c = 0; c < outIndex/2; c++) {
+      int ref_pos_temp  = out_2[c].ref_pos;
+      int read_pos_temp = out[c].read_pos;
+      out_2[c].ref_pos  = out_2[end].ref_pos;
+      out_2[c].read_pos = out[end].read_pos;
+      out_2[end].ref_pos = ref_pos_temp;
+      out_2[end].read_pos = read_pos_temp; 
+      end--;
+    }  
+
+    // if(outIndex>1){
+    //   AlignedPair temp={out_2[0].ref_pos,out[0].read_pos};
+    //   int i;
+    //   for(i=0;i<outIndex-1;i++){
+    //     out_2[i]={out_2[outIndex-1-i].ref_pos,out[outIndex-1-i].read_pos};
+    //   }
+    //   out[outIndex-1]={temp.ref_pos,temp.read_pos};
+    // }
     //<<<<<<<<<New replacement over
 
     // QC results
     double avg_log_emission = sum_emission / n_aligned_events;
-    bool spanned = out.front().ref_pos == 0 && out.back().ref_pos == n_kmers - 1;
-
+    //>>>>>>>>>>>>>New replacement begin
+    bool spanned = out_2[0].ref_pos == 0 && out_2[outIndex-1].ref_pos == n_kmers - 1;
+    // bool spanned = out.front().ref_pos == 0 && out.back().ref_pos == n_kmers - 1;
+    //<<<<<<<<<<<<<New replacement over
     bool failed = false;
     if(avg_log_emission < min_average_log_emission || !spanned || max_gap > max_gap_threshold) {
         failed = true;
         //>>>>>>>>>>>>>New replacement begin
         //outIndex=0;
         out.clear();
+        free(out_2);
         //<<<<<<<<<<<<<New replacement over
     }
 
@@ -455,7 +472,7 @@ std::vector<AlignedPair> align(char* sequence,event_table events,model_t* models
     //fprintf(stderr, "ada\t%s\t%s\t%.2lf\t%zu\t%.2lf\t%d\t%d\t%d\n", read.read_name.substr(0, 6).c_str(), failed ? "FAILED" : "OK", events_per_kmer, sequence.size(), avg_log_emission, curr_event_idx, max_gap, fills);
     //outSize=outIndex;
     //if(outIndex>500000)fprintf(stderr, "Max outSize %d\n", outIndex);
-    return out;
+    return out_2;
 
 
 
