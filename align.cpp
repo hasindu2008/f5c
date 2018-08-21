@@ -19,8 +19,8 @@ float log_normal_pdf(float x, float gp_mean, float gp_stdv, float gp_log_stdv)
 {
     /*INCOMPLETE*/
     float log_inv_sqrt_2pi=-0.39908993417f;// <<<<<<<<<<< Are we working on log base 10?
-    // float a = (x - mean) / stdv;
-    // return log_inv_sqrt_2pi - g.log_stdv + (-0.5f * a * a);
+    float a = (x - mean) / stdv;
+    return log_inv_sqrt_2pi - gp_log_stdv + (-0.5f * a * a);
     return 1;
 }
 
@@ -430,9 +430,9 @@ AlignedPair* align(char* sequence,event_table events,model_t* models, scalings_t
       out_2[c].ref_pos  = out_2[end].ref_pos;
       out_2[c].read_pos = out[end].read_pos;
       out_2[end].ref_pos = ref_pos_temp;
-      out_2[end].read_pos = read_pos_temp; 
+      out_2[end].read_pos = read_pos_temp;
       end--;
-    }  
+    }
 
     // if(outIndex>1){
     //   AlignedPair temp={out_2[0].ref_pos,out[0].read_pos};
@@ -508,6 +508,3 @@ AlignedPair* align(char* sequence,event_table events,model_t* models, scalings_t
 //     float lp = log_normal_pdf(scaledLevel, gp_mean,gp_stdv,gp_log_stdv);
 //     return lp;
 // }
-
-
-
