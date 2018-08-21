@@ -199,21 +199,21 @@ void process_db(core_t* core, db_t* db) {
 
         //have to test if the computed events are correct
         //get the scalings
-        // scalings_t scalings =
-        //     estimate_scalings_using_mom(db->read[i], core->model, db->et[i]);
+        scalings_t scalings =
+            estimate_scalings_using_mom(db->read[i], core->model, db->et[i]);
 
         //temp work 
-        scalings_t scalings;
-        scalings.scale = 1.5;
-        scalings.shift = 0.5;   
+        // scalings_t scalings;
+        // scalings.scale = 1.5;
+        // scalings.shift = 0.5;   
 
-        fprintf(stderr, "started align()\n");    
+        // fprintf(stderr, "started align()\n");    
 
         // std::vector<AlignedPair> ans = align(db->read[i],db->et[i],core->model,scalings);
         AlignedPair* ans = align(db->read[i],db->et[i],core->model,scalings);    
         //then we should be ready to directly call adaptive_banded_simple_event_align
 
-        fprintf(stderr, "finished align()\n");
+        // fprintf(stderr, "finished align()\n");
     }
 
     return;
