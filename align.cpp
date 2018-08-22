@@ -347,7 +347,7 @@ AlignedPair* align(char* sequence,event_table events,model_t* models, scalings_t
 
     //>>>>>>>>>>>>>> New replacement begin
     std::vector<AlignedPair> out;
-    int capacity = 1000000;
+    int capacity = strlen(sequence)*2;
     AlignedPair* out_2=(AlignedPair*)malloc(sizeof(AlignedPair)*capacity);
     int outIndex=0;
     //<<<<<<<<<<<<<<<<New Replacement over
