@@ -23,7 +23,7 @@
 float log_normal_pdf(float x, float gp_mean, float gp_stdv, float gp_log_stdv)
 {
     /*INCOMPLETE*/
-    float log_inv_sqrt_2pi = -0.918938f;// <<<<<<<<<<< Are we working on log base 10?
+    float log_inv_sqrt_2pi = -0.918938f;// Natural logarithm
     float a = (x - gp_mean) / gp_stdv;
     return log_inv_sqrt_2pi - gp_log_stdv + (-0.5f * a * a);
     // return 1;
