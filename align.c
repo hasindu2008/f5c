@@ -7,7 +7,7 @@
 
 
 
-#define DEBUG_PRINT_STATS
+//#define DEBUG_PRINT_STATS
 
 #define event_kmer_to_band(ei, ki) (ei + 1) + (ki + 1)
 #define band_event_to_offset(bi, ei) band_lower_left[bi].event_idx - (ei)
@@ -108,6 +108,7 @@ scalings_t estimate_scalings_using_mom(char* sequence, model_t* pore_model,
     for (size_t i = 0; i < n_kmers; ++i) {
         size_t kr = kmer_rank_function(&sequence[i], KMER_SIZE);
         double l = pore_model[kr].level_mean;
+        //fprintf(stderr,"Kmer : %c%c%c%c%c%c, kmer_rank : %d , kmer_mean : %f \n",sequence[i],sequence[i+1],sequence[i+2],sequence[i+3],sequence[i+4],sequence[i+5],kr,l);
         kmer_level_sum += l;
         kmer_level_sq_sum += l * l;
     }
