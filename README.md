@@ -17,8 +17,7 @@ On Fedora/CentOS : sudo dnf/yum install hdf5-devel zlib-devel
 git clone https://github.com/hasindug/f5c
 cd f5c
 autoreconf
-src/install-htslib.sh
-./configure
+./scripts/install-hts.sh
 make
 ```
 
