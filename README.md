@@ -15,11 +15,13 @@ Currently 3 methods are supported.
 
 ### Method 1 (recommended if you have root access)
 
-Install the HDF5 (and zlib development libraries)
+Dependencies : Install the HDF5 (and zlib development libraries)
 ``` 
 On Debian/Ubuntu : sudo apt-get install libhdf5-dev zlib1g-dev 
 On Fedora/CentOS : sudo dnf/yum install hdf5-devel zlib-devel
 ```
+
+Now build f5c
 
 ```
 git clone https://github.com/hasindug/f5c
@@ -45,7 +47,7 @@ make
 
 ### Method 3 
 
-Install HDF5 and hts
+Dependencies : Install HDF5 and hts
 ``` 
 On Debian/Ubuntu : sudo apt-get install libhdf5-dev zlib1g-dev libhts1
 ```
