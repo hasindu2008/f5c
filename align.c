@@ -23,7 +23,7 @@
 float log_normal_pdf(float x, float gp_mean, float gp_stdv, float gp_log_stdv)
 {
     /*INCOMPLETE*/
-    float log_inv_sqrt_2pi = -0.39908993417f;// <<<<<<<<<<< Are we working on log base 10?
+    float log_inv_sqrt_2pi = -0.918938f;// <<<<<<<<<<< Are we working on log base 10?
     float a = (x - gp_mean) / gp_stdv;
     return log_inv_sqrt_2pi - gp_log_stdv + (-0.5f * a * a);
     // return 1;
@@ -138,6 +138,8 @@ scalings_t estimate_scalings_using_mom(char* sequence, model_t* pore_model,
     return out;
 }
 AlignedPair* align(char* sequence,event_table events,model_t* models, scalings_t scaling){
+
+  printf("Scaling %f %f",scaling.scale,scaling.shift);
 // std::vector<AlignedPair> align(char* sequence,event_table events,model_t* models, scalings_t scaling){
     /*
      * This function should be tested now :-)
@@ -436,9 +438,9 @@ AlignedPair* align(char* sequence,event_table events,model_t* models, scalings_t
       out_2[c].ref_pos  = out_2[end].ref_pos;
       out_2[c].read_pos = out_2[end].read_pos;
       out_2[end].ref_pos = ref_pos_temp;
-      out_2[end].read_pos = read_pos_temp; 
+      out_2[end].read_pos = read_pos_temp;
       end--;
-    }  
+    }
 
     // if(outIndex>1){
     //   AlignedPair temp={out_2[0].ref_pos,out[0].read_pos};
@@ -514,5 +516,3 @@ AlignedPair* align(char* sequence,event_table events,model_t* models, scalings_t
 //     float lp = log_normal_pdf(scaledLevel, gp_mean,gp_stdv,gp_log_stdv);
 //     return lp;
 // }
-
-
