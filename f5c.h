@@ -71,6 +71,39 @@ typedef struct {
 
 } scalings_t;
 
+
+//from nanopolish
+typedef struct {
+    int ref_pos;
+    int read_pos;
+} AlignedPair;
+
+//from nanopolish
+typedef struct {
+    int32_t start;
+    int32_t stop; // inclusive
+}index_pair_t;
+
+//from nanopolish
+typedef struct {
+    // ref data
+    //char* ref_name;
+    char ref_kmer[KMER_SIZE+1];
+    int32_t ref_position;
+
+    // event data
+    int32_t read_idx;
+    //int32_t strand_idx;
+    int32_t event_idx;
+    bool rc;
+
+    // hmm data
+    char model_kmer[KMER_SIZE+1];
+    char hmm_state;
+}event_alignment_t ;
+
+
+
 typedef struct {
     // region string
     //char* region;
