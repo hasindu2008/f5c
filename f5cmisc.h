@@ -7,8 +7,6 @@
 #include <sys/resource.h>
 #include <sys/time.h>
 
-// #include<vector>
-
 event_table getevents(size_t nsample, float* rawptr);
 void read_model(model_t* model, const char* file);
 void set_model(model_t* model);
