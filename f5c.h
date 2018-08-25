@@ -142,7 +142,9 @@ typedef struct {
     ReadDB* readbb;
 
     // models
-    model_t* model;
+    model_t* model; //dna model
+    model_t* cpgmodel;
+
 
     // options
     opt_t opt;

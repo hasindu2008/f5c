@@ -197,3 +197,104 @@ void postalign(char* sequence,AlignedPair* event_alignment, int32_t n_events){
     }
 
 }
+
+
+/*
+
+// recalculate shift, scale, drift, scale_sd from an alignment and the read
+// returns true if the recalibration was performed
+// in either case, sets residual to the L1 norm of the residual
+bool recalibrate_model(SquiggleRead &sr,
+                       const PoreModel& pore_model,
+                       const event_alignment_t *alignment_output, int32_t num_alignments,
+                       const bool scale_var,
+                       )
+{
+    std::vector<double> raw_events, times, level_means, level_stdvs;
+    uint32_t k = KMER_SIZE;
+    
+
+    //count the number of M states. Then can do on the fly without mallocs.
+
+    //std::cout << "Previous pore model parameters: " << sr.pore_model[strand_idx].shift << ", "
+    //                                                << sr.pore_model[strand_idx].scale << ", "
+    //                                                << sr.pore_model[strand_idx].drift << ", "
+    //                                                << sr.pore_model[strand_idx].var   << std::endl;
+
+    // extract necessary vectors from the read and the pore model; note do not want scaled values
+    for(int32_t ei = 0; ei < num_alignments; ++ei) {
+        event_alignment_t ea = alignment_output[ei];
+        if(ea.hmm_state == 'M') {
+            std::string model_kmer = ea.rc ? pore_model.pmalphabet->reverse_complement(ea.ref_kmer) : ea.ref_kmer;
+            uint32_t rank = pore_model.pmalphabet->kmer_rank(model_kmer.c_str(), k);
+
+            raw_events.push_back ( sr.get_unscaled_level(ea.event_idx, strand_idx) );
+            level_means.push_back( pore_model.states[rank].level_mean );
+            level_stdvs.push_back( pore_model.states[rank].level_stdv );
+
+            //
+            //fprintf(stdout, "recalibrate ei: %zu level: %.2lf kmer: %s model: %.2lf\n", 
+            //        ei, sr.get_uncorrected_level(ea.event_idx, strand_idx), model_kmer.c_str(), 
+            //        sr.pore_model[strand_idx].states[rank].level_mean);
+            //
+        }
+    }
+
+    const int32_t minNumEventsToRescale = 200;
+    bool recalibrated = false; 
+    if (raw_events.size() >= minNumEventsToRescale) {
+        // Assemble linear system corresponding to weighted least squares problem
+        // Can just directly call a weighted least squares solver, but there's enough
+        // structure in our problem it's a little faster just to build the normal eqn
+        // matrices ourselves
+        Eigen::MatrixXd A(num_equations, num_equations);
+        Eigen::VectorXd b(num_equations);
+
+        for (int i=0; i<num_equations; i++) {
+            b(i) = 0.;
+            for (int j=0; j<num_equations; j++)
+                A(i,j) = 0.;
+        }
+
+        for (size_t i=0; i<raw_events.size(); i++) {
+            double inv_var = 1./(level_stdvs[i]*level_stdvs[i]);
+            double mu = level_means[i];
+            double e  = raw_events[i];
+
+            A(0,0) += inv_var;  A(0,1) += mu*inv_var;
+                                A(1,1) += mu*mu*inv_var;
+
+            b(0) += e*inv_var;
+            b(1) += mu*e*inv_var;
+
+
+        }
+        A(1,0) = A(0,1);
+
+
+        // perform the linear solve
+        Eigen::VectorXd x = A.fullPivLu().solve(b);
+
+        double shift = x(0);
+        double scale = x(1);
+        double drift = 0.;
+        double var = 1.0;
+
+        if (scale_var) {
+            var = 0.;
+            for (size_t i=0; i<raw_events.size(); i++) {
+                double yi = (raw_events[i] - shift - scale*level_means[i]);
+                var+= yi*yi/(level_stdvs[i]*level_stdvs[i]);
+            }
+            var /= raw_events.size();
+            var = sqrt(var);
+        }
+
+        sr.scalings[strand_idx].set4(shift, scale, drift, var);
+        recalibrated = true;
+    }
+
+    return recalibrated;
+}
+
+*/

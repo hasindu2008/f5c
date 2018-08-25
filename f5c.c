@@ -39,6 +39,9 @@ core_t* init_core(const char* bamfilename, const char* fastafile,
     core->model = (model_t*)malloc(
         sizeof(model_t) * NUM_KMER); //4096 is 4^6 which os hardcoded now
     MALLOC_CHK(core->model);
+    core->cpgmodel = (model_t*)malloc(
+        sizeof(model_t) * NUM_KMER); //4096 is 4^6 which os hardcoded now
+    MALLOC_CHK(core->cpgmodel);    
 
     //load the model from files
     if (opt.model_file) {
@@ -47,12 +50,16 @@ core_t* init_core(const char* bamfilename, const char* fastafile,
         set_model(core->model);
     }
 
+    //todo : load the cpg model from file
+    set_cpgmodel(core->cpgmodel);
+
     core->opt = opt;
     return core;
 }
 
 void free_core(core_t* core) {
     free(core->model);
+    free(core->cpgmodel);
     delete core->readbb;
     fai_destroy(core->fai);
     sam_itr_destroy(core->itr);
