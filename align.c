@@ -353,7 +353,7 @@ float log_probability_match_r9(scalings_t scaling, model_t* models,
 
 AlignedPair* align(char* sequence, event_table events, model_t* models,
                    scalings_t scaling, float sample_rate) {
-    fprintf(stderr, "Scaling %f %f", scaling.scale, scaling.shift);
+    //fprintf(stderr, "Scaling %f %f", scaling.scale, scaling.shift);
     // std::vector<AlignedPair> align(char* sequence,event_table events,model_t* models, scalings_t scaling){
     /*
      * This function should be tested now :-)
@@ -539,7 +539,6 @@ AlignedPair* align(char* sequence, event_table events, model_t* models,
 
             float lp_emission = log_probability_match_r9(
                 scaling, models, events, event_idx, kmer_rank, strand_idx, sample_rate);
-            fprintf(stderr, "%f \n", lp_emission);
 
             float score_d = diag + lp_step + lp_emission;
             float score_u = up + lp_stay + lp_emission;
@@ -632,9 +631,12 @@ AlignedPair* align(char* sequence, event_table events, model_t* models,
         char* substring = &sequence[curr_kmer_idx];
         size_t kmer_rank = get_kmer_rank(sequence, k);
         //<<<<<<<<<<<<<New Replacement over
-        sum_emission += log_probability_match_r9(scaling, models, events,
+        float tempLogProb= log_probability_match_r9(scaling, models, events,
                                                  kmer_rank, curr_event_idx, 0, sample_rate);
-        n_aligned_events += 1;
+        sum_emission +=tempLogProb;
+	fprintf(stderr, "%f \n", tempLogProb);
+
+	n_aligned_events += 1;
 
         int band_idx = event_kmer_to_band(curr_event_idx, curr_kmer_idx);
         int offset = band_event_to_offset(band_idx, curr_event_idx);
