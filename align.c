@@ -313,13 +313,13 @@ float log_normal_pdf(float x, float gp_mean, float gp_stdv, float gp_log_stdv) {
 
 float log_probability_match_r9(scalings_t scaling, model_t* models,
                                event_table events, int event_idx,
-                               uint32_t kmer_rank, uint8_t strand) {
+                               uint32_t kmer_rank, uint8_t strand, float sample_rate) {
     // event level mean, scaled with the drift value
     strand = 0;
 
     //float level = read.get_drift_scaled_level(event_idx, strand);
 
-    float time = events.event[event_idx].start - events.event[0].start;
+    float time = (events.event[event_idx].start - events.event[0].start)/sample_rate;
     float unscaledLevel = events.event[event_idx].mean;
     float scaledLevel = unscaledLevel - time * scaling.shift;
 
@@ -352,7 +352,7 @@ float log_probability_match_r9(scalings_t scaling, model_t* models,
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
 
 AlignedPair* align(char* sequence, event_table events, model_t* models,
-                   scalings_t scaling) {
+                   scalings_t scaling, float sample_rate) {
     fprintf(stderr, "Scaling %f %f", scaling.scale, scaling.shift);
     // std::vector<AlignedPair> align(char* sequence,event_table events,model_t* models, scalings_t scaling){
     /*
@@ -538,7 +538,7 @@ AlignedPair* align(char* sequence, event_table events, model_t* models,
                              : -INFINITY;
 
             float lp_emission = log_probability_match_r9(
-                scaling, models, events, event_idx, kmer_rank, strand_idx);
+                scaling, models, events, event_idx, kmer_rank, strand_idx, sample_rate);
             fprintf(stderr, "%f \n", lp_emission);
 
             float score_d = diag + lp_step + lp_emission;
@@ -633,7 +633,7 @@ AlignedPair* align(char* sequence, event_table events, model_t* models,
         size_t kmer_rank = get_kmer_rank(sequence, k);
         //<<<<<<<<<<<<<New Replacement over
         sum_emission += log_probability_match_r9(scaling, models, events,
-                                                 kmer_rank, curr_event_idx, 0);
+                                                 kmer_rank, curr_event_idx, 0, sample_rate);
         n_aligned_events += 1;
 
         int band_idx = event_kmer_to_band(curr_event_idx, curr_kmer_idx);

@@ -210,7 +210,7 @@ void process_db(core_t* core, db_t* db) {
             estimate_scalings_using_mom(db->read[i], core->model, db->et[i]);
 
         AlignedPair* event_alignment =
-            align(db->read[i], db->et[i], core->model, scalings);
+            align(db->read[i], db->et[i], core->model, scalings,db->f5[i]->sample_rate);
         //int32_t n_events=100;
         //event_alignment_t* alignment_output= postalign(sequence,event_alignment, n_events);
         //free(ans);
