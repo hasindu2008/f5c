@@ -210,9 +210,12 @@ void process_db(core_t* core, db_t* db) {
             estimate_scalings_using_mom(db->read[i], core->model, db->et[i]);
 
         //then we should be ready to directly call adaptive_banded_simple_event_align
-        AlignedPair* ans = align(db->read[i],db->et[i],core->model,scalings);
-    
-        free(ans);
+        AlignedPair* event_alignment = align(db->read[i],db->et[i],core->model,scalings);
+        //int32_t n_events=100;
+        //event_alignment_t* alignment_output= postalign(sequence,event_alignment, n_events); 
+        //free(ans);
+
+        //recalibrate_model
     }
 
     return;

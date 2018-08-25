@@ -14,7 +14,7 @@ void set_cpgmodel(model_t* model);
 scalings_t estimate_scalings_using_mom(char* sequence, model_t* pore_model,
                                        event_table et);
 AlignedPair* align(char* sequence,event_table events,model_t* models, scalings_t scaling);
-void postalign(char* sequence,AlignedPair* event_alignment, int32_t n_events);
+event_alignment_t * postalign(char* sequence,AlignedPair* event_alignment, int32_t n_events);
 
 // taken from minimap2/misc
 static inline double realtime(void) {
