@@ -20,12 +20,6 @@
 #define F5C_PRINT_EVENTS 0x008
 
 typedef struct {
-    int ref_pos;
-    int read_pos;
-} AlignedPair;
-
-
-typedef struct {
     int32_t min_mapq;       //minimum mapq
     const char* model_file; //name of the model file
     uint32_t flag;
