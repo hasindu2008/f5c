@@ -1,6 +1,6 @@
 #include "f5c.h"
 #include <assert.h>
-//#define DEBUG_PRINT_STATS
+//#define DEBUG_PRINT_STATS 1
 
 //todo : can make more efficient using bit encoding
 static inline uint32_t get_rank(char base) {
@@ -98,7 +98,7 @@ AlignedPair* align(char* sequence,event_table events,model_t* models, scalings_t
 }
 
 
-void postalign(char* sequence,AlignedPair* event_alignment, int32_t n_events){
+event_alignment_t * postalign(char* sequence,AlignedPair* event_alignment, int32_t n_events){
    
     if(n_events>0){
         
@@ -193,7 +193,12 @@ void postalign(char* sequence,AlignedPair* event_alignment, int32_t n_events){
             }
         }       
 
+        free(base_to_event_map);
+        return alignment;
+    }
 
+    else{
+        return NULL;
     }
 
 }
