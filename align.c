@@ -92,10 +92,6 @@ scalings_t estimate_scalings_using_mom(char* sequence, model_t* pore_model,
     return out;
 }
 
-AlignedPair* align(char* sequence, event_table events, model_t* models,
-                   scalings_t scaling) {
-    return (NULL);
-}
 
 event_alignment_t* postalign(char* sequence, AlignedPair* event_alignment,
                              int32_t n_events) {
@@ -307,6 +303,7 @@ bool recalibrate_model(model_t* pore_model, event_table et,
 
     return recalibrated;
 }
+
 
 float log_normal_pdf(float x, float gp_mean, float gp_stdv, float gp_log_stdv)
 {
@@ -691,9 +688,5 @@ AlignedPair* align(char* sequence,event_table events,model_t* models, scalings_t
     return out_2;
 
 
-
-
-
-
-
 }
+

@@ -97,3 +97,27 @@ void set_model(model_t* model) {
     }
 #endif
 }
+
+//todo : this function can be made more efficient by setting the address to the global variable
+//todo : duplicate function can be removed
+void set_cpgmodel(model_t* model) {
+    uint32_t i = 0;
+    for (i = 0; i < NUM_KMER; i++) {
+        model[i].level_mean =
+            r9_4_450bps_cpg_6mer_template_model_builtin_data[i * 4 + 0];
+        model[i].level_stdv =
+            r9_4_450bps_cpg_6mer_template_model_builtin_data[i * 4 + 1];
+        model[i].sd_mean =
+            r9_4_450bps_cpg_6mer_template_model_builtin_data[i * 4 + 2];
+        model[i].sd_stdv =
+            r9_4_450bps_cpg_6mer_template_model_builtin_data[i * 4 + 3];
+    }
+#ifdef DEBUG_MODEL_PRINT
+    i = 0;
+    fprintf(stderr, "level_mean\tlevel_stdv\tsd_mean\tsd_stdv\n");
+    for (i = 0; i < NUM_KMER; i++) {
+        fprintf(stderr, "%f\t%f\t%f\t%f\n", model[i].level_mean,
+                model[i].level_stdv, model[i].sd_mean, model[i].sd_stdv);
+    }
+#endif
+}

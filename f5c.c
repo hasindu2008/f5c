@@ -39,6 +39,9 @@ core_t* init_core(const char* bamfilename, const char* fastafile,
     core->model = (model_t*)malloc(
         sizeof(model_t) * NUM_KMER); //4096 is 4^6 which os hardcoded now
     MALLOC_CHK(core->model);
+    core->cpgmodel = (model_t*)malloc(
+        sizeof(model_t) * NUM_KMER); //4096 is 4^6 which os hardcoded now
+    MALLOC_CHK(core->cpgmodel);
 
     //load the model from files
     if (opt.model_file) {
@@ -47,12 +50,16 @@ core_t* init_core(const char* bamfilename, const char* fastafile,
         set_model(core->model);
     }
 
+    //todo : load the cpg model from file
+    set_cpgmodel(core->cpgmodel);
+
     core->opt = opt;
     return core;
 }
 
 void free_core(core_t* core) {
     free(core->model);
+    free(core->cpgmodel);
     delete core->readbb;
     fai_destroy(core->fai);
     sam_itr_destroy(core->itr);
@@ -202,18 +209,13 @@ void process_db(core_t* core, db_t* db) {
         scalings_t scalings =
             estimate_scalings_using_mom(db->read[i], core->model, db->et[i]);
 
-        //temp work 
-        // scalings_t scalings;
-        // scalings.scale = 1.5;
-        // scalings.shift = 0.5;   
+        AlignedPair* event_alignment =
+            align(db->read[i], db->et[i], core->model, scalings);
+        //int32_t n_events=100;
+        //event_alignment_t* alignment_output= postalign(sequence,event_alignment, n_events);
+        //free(ans);
 
-        // fprintf(stderr, "started align()\n");    
-
-        // std::vector<AlignedPair> ans = align(db->read[i],db->et[i],core->model,scalings);
-        AlignedPair* ans = align(db->read[i],db->et[i],core->model,scalings);    
-        //then we should be ready to directly call adaptive_banded_simple_event_align
-
-        // fprintf(stderr, "finished align()\n");
+        //recalibrate_model
     }
 
     return;
