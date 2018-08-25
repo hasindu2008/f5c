@@ -41,7 +41,7 @@ core_t* init_core(const char* bamfilename, const char* fastafile,
     MALLOC_CHK(core->model);
     core->cpgmodel = (model_t*)malloc(
         sizeof(model_t) * NUM_KMER); //4096 is 4^6 which os hardcoded now
-    MALLOC_CHK(core->cpgmodel);    
+    MALLOC_CHK(core->cpgmodel);
 
     //load the model from files
     if (opt.model_file) {
@@ -210,9 +210,10 @@ void process_db(core_t* core, db_t* db) {
             estimate_scalings_using_mom(db->read[i], core->model, db->et[i]);
 
         //then we should be ready to directly call adaptive_banded_simple_event_align
-        AlignedPair* event_alignment = align(db->read[i],db->et[i],core->model,scalings);
+        AlignedPair* event_alignment =
+            align(db->read[i], db->et[i], core->model, scalings);
         //int32_t n_events=100;
-        //event_alignment_t* alignment_output= postalign(sequence,event_alignment, n_events); 
+        //event_alignment_t* alignment_output= postalign(sequence,event_alignment, n_events);
         //free(ans);
 
         //recalibrate_model

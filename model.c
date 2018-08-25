@@ -98,7 +98,6 @@ void set_model(model_t* model) {
 #endif
 }
 
-
 //todo : this function can be made more efficient by setting the address to the global variable
 //todo : duplicate function can be removed
 void set_cpgmodel(model_t* model) {

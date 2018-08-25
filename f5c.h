@@ -60,7 +60,7 @@ typedef struct {
     float scale;
     float shift;
     //float drift; = 0 always?
-    //float var; = 1 always?
+    float var;
     //float scale_sd;
     //float var_sd;
 
@@ -70,7 +70,6 @@ typedef struct {
     float log_scaled_var;
 
 } scalings_t;
-
 
 //from nanopolish
 typedef struct {
@@ -82,13 +81,13 @@ typedef struct {
 typedef struct {
     int32_t start;
     int32_t stop; // inclusive
-}index_pair_t;
+} index_pair_t;
 
 //from nanopolish
 typedef struct {
     // ref data
     //char* ref_name;
-    char ref_kmer[KMER_SIZE+1];
+    char ref_kmer[KMER_SIZE + 1];
     int32_t ref_position;
 
     // event data
@@ -98,11 +97,9 @@ typedef struct {
     bool rc;
 
     // hmm data
-    char model_kmer[KMER_SIZE+1];
+    char model_kmer[KMER_SIZE + 1];
     char hmm_state;
-}event_alignment_t ;
-
-
+} event_alignment_t;
 
 typedef struct {
     // region string
@@ -144,7 +141,6 @@ typedef struct {
     // models
     model_t* model; //dna model
     model_t* cpgmodel;
-
 
     // options
     opt_t opt;
