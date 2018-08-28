@@ -330,7 +330,7 @@ float log_probability_match_r9(scalings_t scaling, model_t* models,
     // float gp_stdv = 0;
     // float gp_log_stdv = models[kmer_rank].level_log_stdv + scaling.log_var;
     float gp_log_stdv =
-        models[kmer_rank].level_stdv + 0; // scaling.log_var = log(1)=0;
+        log(models[kmer_rank].level_stdv) + 0; // scaling.log_var = log(1)=0;
 
     float lp = log_normal_pdf(scaledLevel, gp_mean, gp_stdv, gp_log_stdv);
     return lp;
