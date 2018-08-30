@@ -313,13 +313,15 @@ float log_normal_pdf(float x, float gp_mean, float gp_stdv, float gp_log_stdv) {
 
 float log_probability_match_r9(scalings_t scaling, model_t* models,
                                event_table events, int event_idx,
-                               uint32_t kmer_rank, uint8_t strand, float sample_rate) {
+                               uint32_t kmer_rank, uint8_t strand,
+                               float sample_rate) {
     // event level mean, scaled with the drift value
     strand = 0;
 
     //float level = read.get_drift_scaled_level(event_idx, strand);
 
-    float time = (events.event[event_idx].start - events.event[0].start)/sample_rate;
+    float time =
+        (events.event[event_idx].start - events.event[0].start) / sample_rate;
     float unscaledLevel = events.event[event_idx].mean;
     float scaledLevel = unscaledLevel - time * scaling.shift;
 
@@ -329,11 +331,9 @@ float log_probability_match_r9(scalings_t scaling, model_t* models,
     float gp_stdv = models[kmer_rank].level_stdv * 1; //scaling.var = 1;
     // float gp_stdv = 0;
     // float gp_log_stdv = models[kmer_rank].level_log_stdv + scaling.log_var;
-    if(models[kmer_rank].level_stdv <0.01 ){
-    	fprintf(stderr,"very small std dev %f\n",models[kmer_rank].level_stdv);
-	char a;
-	scanf("%s",&a);
-    }
+    // if(models[kmer_rank].level_stdv <0.01 ){
+    // 	fprintf(stderr,"very small std dev %f\n",models[kmer_rank].level_stdv);
+    // }
     float gp_log_stdv =
         log(models[kmer_rank].level_stdv + 0); // scaling.log_var = log(1)=0;
 
@@ -543,8 +543,9 @@ AlignedPair* align(char* sequence, event_table events, model_t* models,
                              ? bands[band_idx - 2][offset_diag]
                              : -INFINITY;
 
-            float lp_emission = log_probability_match_r9(
-                scaling, models, events, event_idx, kmer_rank, strand_idx, sample_rate);
+            float lp_emission =
+                log_probability_match_r9(scaling, models, events, event_idx,
+                                         kmer_rank, strand_idx, sample_rate);
             //fprintf(stderr,"lp_emission %f\n",lp_emission);
             float score_d = diag + lp_step + lp_emission;
             float score_u = up + lp_stay + lp_emission;
@@ -637,12 +638,12 @@ AlignedPair* align(char* sequence, event_table events, model_t* models,
         char* substring = &sequence[curr_kmer_idx];
         size_t kmer_rank = get_kmer_rank(substring, k);
         //<<<<<<<<<<<<<New Replacement over
-        float tempLogProb= log_probability_match_r9(scaling, models, events,
-                                                 curr_event_idx,kmer_rank , 0, sample_rate);
-        sum_emission +=tempLogProb;
-	fprintf(stderr, "lp_emission %f \n", tempLogProb);
+        float tempLogProb = log_probability_match_r9(
+            scaling, models, events, curr_event_idx, kmer_rank, 0, sample_rate);
+        sum_emission += tempLogProb;
+        //fprintf(stderr, "lp_emission %f \n", tempLogProb);
 
-	n_aligned_events += 1;
+        n_aligned_events += 1;
 
         int band_idx = event_kmer_to_band(curr_event_idx, curr_kmer_idx);
         int offset = band_event_to_offset(band_idx, curr_event_idx);
