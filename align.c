@@ -638,7 +638,7 @@ AlignedPair* align(char* sequence, event_table events, model_t* models,
         size_t kmer_rank = get_kmer_rank(substring, k);
         //<<<<<<<<<<<<<New Replacement over
         float tempLogProb= log_probability_match_r9(scaling, models, events,
-                                                 kmer_rank, curr_event_idx, 0, sample_rate);
+                                                 curr_event_idx,kmer_rank , 0, sample_rate);
         sum_emission +=tempLogProb;
 	fprintf(stderr, "lp_emission %f \n", tempLogProb);
 
