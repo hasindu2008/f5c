@@ -88,6 +88,9 @@ db_t* init_db(core_t* core) {
     db->fasta_cache = (char**)(malloc(sizeof(char*) * db->capacity_bam_rec));
     MALLOC_CHK(db->fasta_cache);
     db->read = (char**)(malloc(sizeof(char*) * db->capacity_bam_rec));
+    MALLOC_CHK(db->read);
+    db->read_len = (int32_t*)(malloc(sizeof(int32_t) * db->capacity_bam_rec));
+    MALLOC_CHK(db->read_len);
 
     db->f5 = (fast5_t**)malloc(sizeof(fast5_t*) * db->capacity_bam_rec);
     MALLOC_CHK(db->f5);
@@ -182,6 +185,7 @@ int32_t load_db(core_t* core, db_t* db) {
             (char*)malloc(core->readbb->get_read_sequence(qname).size() +
                           1); // is +1 needed? do errorcheck
         strcpy(db->read[i], core->readbb->get_read_sequence(qname).c_str());
+        db->read_len[i]=strlen(db->read[i]);
     }
     // fprintf(stderr,"%s:: %d fast5 read\n",__func__,db->n_bam_rec);
 
@@ -204,24 +208,64 @@ void process_db(core_t* core, db_t* db) {
         }
         db->et[i] = getevents(db->f5[i]->nsample, rawptr);
 
-        //have to test if the computed events are correct
         //get the scalings
         scalings_t scalings =
-            estimate_scalings_using_mom(db->read[i], core->model, db->et[i]);
+            estimate_scalings_using_mom(db->read[i], db->read_len[i],core->model, db->et[i]);
 
-        int n_events = 0;
-        AlignedPair* event_alignment =
-            align(db->read[i], db->et[i], core->model, scalings,
-                  db->f5[i]->sample_rate, &n_events);
-        assert(n_events > 0);
-        //int32_t n_events=100;
-        if (event_alignment != NULL) {
+        int capacity = 100000;
+        AlignedPair* event_alignment = (AlignedPair*)malloc(sizeof(AlignedPair) * capacity);
+        MALLOC_CHK(event_alignment);
+
+        int32_t n_events = 
+            align(event_alignment,db->read[i], db->read_len[i],db->et[i], core->model, scalings,
+                  db->f5[i]->sample_rate);
+        fprintf(stderr,"readlen %d,n_events %d\n",db->read_len[i],n_events);    
+
+            
+        if (n_events>0) {
+
+            // prepare data structures for the final calibration
+            int32_t n_kmers = db->read_len[i] - KMER_SIZE + 1;
             event_alignment_t* alignment_output =
-                postalign(db->read[i], event_alignment, n_events);
-            recalibrate_model(core->model, db->et[i], &scalings,
+            (event_alignment_t*)malloc(sizeof(event_alignment_t) * n_kmers);
+            MALLOC_CHK(alignment_output);
+            
+            int32_t n_events2 =
+                postalign(alignment_output,db->read[i],n_kmers, event_alignment, n_events);
+                fprintf(stderr,"n_events2 %d\n",n_events2);
+            // run recalibration to get the best set of scaling parameters and the residual
+            // between the (scaled) event levels and the model.
+            // internally this function will set shift/scale/etc of the pore model               
+            bool calibrated = recalibrate_model(core->model, db->et[i], &scalings,
                               alignment_output, n_events, 1);
-            free(event_alignment);
+            
+            // QC calibration
+            // if(!calibrated || this->scalings[strand_idx].var > MIN_CALIBRATION_VAR) {
+            //     events[strand_idx].clear();
+            //     g_failed_calibration_reads += 1;
+            // } a
+
+            free(alignment_output);
+
         }
+        else{
+        // Could not align, fail this read
+        // this->events[strand_idx].clear();
+        // this->events_per_base[strand_idx] = 0.0f;
+        // g_failed_alignment_reads += 1;
+        }
+
+        free(event_alignment);
+
+        // Filter poor quality reads that have too many "stays"
+        // if(!this->events[strand_idx].empty() && this->events_per_base[strand_idx] > 5.0) {
+        //     g_qc_fail_reads += 1;
+        //     events[0].clear();
+        //     events[1].clear();
+        // }
+
+        //calculate_methylation_for_read(char* ref);
+
     }
 
     return;
@@ -267,6 +311,7 @@ void free_db(db_t* db) {
     free(db->bam_rec);
     free(db->fasta_cache);
     free(db->read);
+    free(db->read_len);
     free(db->et);
     free(db->f5);
     free(db);

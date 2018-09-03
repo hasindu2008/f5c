@@ -60,7 +60,7 @@ typedef struct {
     float scale;
     float shift;
     //float drift; = 0 always?
-    float var;
+    float var; // set later
     //float scale_sd;
     //float var_sd;
 
@@ -116,6 +116,7 @@ typedef struct {
 
     //read sequence //todo : optimise by grabbing it from bam seq. is it possible due to clipping?
     char** read;
+    int32_t* read_len;
 
     // fast5 file //should flatten this to reduce mallocs
     fast5_t** f5;

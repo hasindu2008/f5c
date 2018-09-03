@@ -11,12 +11,11 @@ event_table getevents(size_t nsample, float* rawptr);
 void read_model(model_t* model, const char* file);
 void set_model(model_t* model);
 void set_cpgmodel(model_t* model);
-scalings_t estimate_scalings_using_mom(char* sequence, model_t* pore_model,
+scalings_t estimate_scalings_using_mom(char* sequence, int32_t sequence_len, model_t* pore_model,
                                        event_table et);
-AlignedPair* align(char* sequence, event_table events, model_t* models,
-                   scalings_t scaling, float sample_rate,
-                   int* num_event_alignments_temp);
-event_alignment_t* postalign(char* sequence, AlignedPair* event_alignment,
+int32_t align(AlignedPair* out_2, char* sequence, int32_t sequence_len,event_table events, model_t* models,
+                   scalings_t scaling, float sample_rate);
+int32_t postalign(event_alignment_t* alignment, char* sequence, int32_t n_kmers,AlignedPair* event_alignment,
                              int32_t n_events);
 bool recalibrate_model(model_t* pore_model, event_table et,
                        scalings_t* scallings,

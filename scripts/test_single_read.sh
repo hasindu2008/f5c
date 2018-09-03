@@ -18,7 +18,7 @@ for file in "${bamdir}" "${fadir}" "${fastqdir}"; do
 done
 
 if [[ "${#}" -eq 0 ]]; then
-    "${exepath}" -b "${bamdir}" -g "${fadir}" -r "${fastqdir}" > ${testdir}/result.txt
+    "${exepath}" -b "${bamdir}" -g "${fadir}" -r "${fastqdir}" --secondary=yes --min-mapq=20  > ${testdir}/result.txt
 
 elif [[ "${#}" -eq 1 ]]; then
     if [[ "${1}" == "valgrind" ]]; then
