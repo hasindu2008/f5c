@@ -209,14 +209,19 @@ void process_db(core_t* core, db_t* db) {
         scalings_t scalings =
             estimate_scalings_using_mom(db->read[i], core->model, db->et[i]);
 
+        int n_events = 0;
         AlignedPair* event_alignment =
             align(db->read[i], db->et[i], core->model, scalings,
-                  db->f5[i]->sample_rate);
+                  db->f5[i]->sample_rate, &n_events);
+        assert(n_events > 0);
         //int32_t n_events=100;
-        //event_alignment_t* alignment_output= postalign(sequence,event_alignment, n_events);
-        //free(ans);
-
-        //recalibrate_model
+        if (event_alignment != NULL) {
+            event_alignment_t* alignment_output =
+                postalign(db->read[i], event_alignment, n_events);
+            recalibrate_model(core->model, db->et[i], &scalings,
+                              alignment_output, n_events, 1);
+            free(event_alignment);
+        }
     }
 
     return;

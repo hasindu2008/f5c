@@ -5,7 +5,7 @@
 // reverse-complement a string
 // when the string contains methylated bases, the methylation
 // symbol transfered to the output strand in the appropriate position
-virtual std::string reverse_complement(const std::string& str) const {
+std::string reverse_complement(const std::string& str) {
     std::string out(str.length(), 'A');
     size_t i = 0;             // input
     int j = str.length() - 1; // output
@@ -41,7 +41,7 @@ virtual std::string reverse_complement(const std::string& str) const {
     return out;
 }
 
-virtual std::string disambiguate(const std::string& str) const {
+std::string disambiguate(const std::string& str) {
     // create output and convert lower case to upper case
     std::string out(str);
     std::transform(out.begin(), out.end(), out.begin(), ::toupper);
@@ -76,11 +76,7 @@ virtual std::string disambiguate(const std::string& str) const {
 }
 
 // Test CpG sites in this read for methylation
-void calculate_methylation_for_read(char* ref, const OutputHandles& handles,
-                                    const ReadDB& read_db, const faidx_t* fai,
-                                    const bam_hdr_t* hdr, const bam1_t* record,
-                                    size_t read_idx, int region_start,
-                                    int region_end) {
+void calculate_methylation_for_read(char* ref) {
     // Load a squiggle read for the mapped read
     // std::string read_name = bam_get_qname(record);
     // SquiggleRead sr(read_name, read_db);

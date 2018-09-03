@@ -357,7 +357,8 @@ float log_probability_match_r9(scalings_t scaling, model_t* models,
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
 
 AlignedPair* align(char* sequence, event_table events, model_t* models,
-                   scalings_t scaling, float sample_rate) {
+                   scalings_t scaling, float sample_rate,
+                   int* num_event_alignments_temp) {
     //fprintf(stderr, "%s\n", sequence);
     //fprintf(stderr, "Scaling %f %f", scaling.scale, scaling.shift);
     // std::vector<AlignedPair> align(char* sequence,event_table events,model_t* models, scalings_t scaling){
@@ -703,6 +704,7 @@ AlignedPair* align(char* sequence, event_table events, model_t* models,
         //outIndex=0;
         // out.clear();
         free(out_2);
+        out_2 = NULL;
         //<<<<<<<<<<<<<New replacement over
     }
 
@@ -717,5 +719,6 @@ AlignedPair* align(char* sequence, event_table events, model_t* models,
     //fprintf(stderr, "ada\t%s\t%s\t%.2lf\t%zu\t%.2lf\t%d\t%d\t%d\n", read.read_name.substr(0, 6).c_str(), failed ? "FAILED" : "OK", events_per_kmer, sequence.size(), avg_log_emission, curr_event_idx, max_gap, fills);
     //outSize=outIndex;
     //if(outIndex>500000)fprintf(stderr, "Max outSize %d\n", outIndex);
+    *num_event_alignments_temp = outIndex;
     return out_2;
 }
