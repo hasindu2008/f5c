@@ -2,6 +2,90 @@
 #include <assert.h>
 #include <vector>
 
+#define METHYLATED_SYMBOL 'M'
+// IUPAC alphabet
+bool isUnambiguous(char c)
+{
+    switch(c)
+    {
+        case 'A':
+        case 'C':
+        case 'G':
+        case 'T':
+            return true;
+        default:
+            return false;
+    }
+}
+
+// Returns true if c is a valid ambiguity code
+bool isAmbiguous(char c)
+{
+    switch(c)
+    {
+        case 'M':
+        case 'R':
+        case 'W':
+        case 'S':
+        case 'Y':
+        case 'K':
+        case 'V':
+        case 'H':
+        case 'D':
+        case 'B':
+        case 'N':
+            return true;
+        default:
+            return false;
+    }
+}
+
+std::string getPossibleSymbols(char c)
+{
+    switch(c)
+    {
+        case 'A':
+            return "A";
+        case 'C':
+            return "C";
+        case 'G':
+            return "G";
+        case 'T':
+            return "T";
+        case 'M':
+            return "AC";
+        case 'R':
+            return "AG";
+        case 'W':
+            return "AT";
+        case 'S':
+            return "CG";
+        case 'Y':
+            return "CT";
+        case 'K':
+            return "GT";
+        case 'V':
+            return "ACG";
+        case 'H':
+            return "ACT";
+        case 'D':
+            return "AGT";
+        case 'B':
+            return "CGT";
+        case 'N':
+            return "ACGT";
+        default:
+            return "";
+    }
+}
+
+
+// Returns true if c is a valid symbol in this alphabet
+bool isValid(char c)
+{
+    return isUnambiguous(c) || isAmbiguous(c);
+}
+
 // reverse-complement a string
 // when the string contains methylated bases, the methylation
 // symbol transfered to the output strand in the appropriate position
@@ -10,33 +94,35 @@ std::string reverse_complement(const std::string& str) {
     size_t i = 0;             // input
     int j = str.length() - 1; // output
     while (i < str.length()) {
-        int recognition_index = -1;
-        RecognitionMatch match;
+        
 
-        // Does this location (partially) match a methylated recognition site?
-        for (size_t j = 0; j < num_recognition_sites(); ++j) {
-            match = match_to_site(str, i, get_recognition_site_methylated(j),
-                                  recognition_length());
-            if (match.length > 0 && match.covers_methylated_site) {
-                recognition_index = j;
-                break;
-            }
-        }
+        // int recognition_index = -1;
+        // RecognitionMatch match;
+
+        // // Does this location (partially) match a methylated recognition site?
+        // for (size_t j = 0; j < num_recognition_sites(); ++j) {
+        //     match = match_to_site(str, i, get_recognition_site_methylated(j),
+        //                           recognition_length());
+        //     if (match.length > 0 && match.covers_methylated_site) {
+        //         recognition_index = j;
+        //         break;
+        //     }
+        // }
 
         // If this subsequence matched a methylated recognition site,
         // copy the complement of the site to the output
-        if (recognition_index != -1) {
-            for (size_t k = match.offset; k < match.offset + match.length;
-                 ++k) {
-                out[j--] = get_recognition_site_methylated_complement(
-                    recognition_index)[k];
-                i += 1;
-            }
-        } else {
+        // if (recognition_index != -1) {
+        //     for (size_t k = match.offset; k < match.offset + match.length;
+        //          ++k) {
+        //         out[j--] = get_recognition_site_methylated_complement(
+        //             recognition_index)[k];
+        //         i += 1;
+        //     }
+        // } else {
             // complement a single base
             assert(str[i] != METHYLATED_SYMBOL);
             out[j--] = complement(str[i++]);
-        }
+        // }
     }
     return out;
 }
@@ -65,8 +151,9 @@ std::string disambiguate(const std::string& str) {
 
         // disambiguate if not a recognition site
         //if(!is_recognition_site) {
-        assert(IUPAC::isValid(out[i]));
-        out[i] = IUPAC::getPossibleSymbols(out[i])[0];
+
+        assert(isValid(out[i]));
+        out[i] = getPossibleSymbols(out[i])[0];
         stride = 1;
         //}
 

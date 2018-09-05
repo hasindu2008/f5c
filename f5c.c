@@ -212,59 +212,74 @@ void process_db(core_t* core, db_t* db) {
         scalings_t scalings =
             estimate_scalings_using_mom(db->read[i], db->read_len[i],core->model, db->et[i]);
 
-        int capacity = 100000;
-        AlignedPair* event_alignment = (AlignedPair*)malloc(sizeof(AlignedPair) * capacity);
-        MALLOC_CHK(event_alignment);
+        int capacity = 100000; //todo : this is horrible. Fix it.
+        AlignedPair* event_align_pairs = (AlignedPair*)malloc(sizeof(AlignedPair) * capacity);
+        MALLOC_CHK(event_align_pairs);
 
-        int32_t n_events = 
-            align(event_alignment,db->read[i], db->read_len[i],db->et[i], core->model, scalings,
+        int32_t n_event_align_pairs = 
+            align(event_align_pairs,db->read[i], db->read_len[i],db->et[i], core->model, scalings,
                   db->f5[i]->sample_rate);
-        fprintf(stderr,"readlen %d,n_events %d\n",db->read_len[i],n_events);    
+        //fprintf(stderr,"readlen %d,n_events %d\n",db->read_len[i],n_event_align_pairs);    
 
-            
-        if (n_events>0) {
+        event_alignment_t* event_alignment=NULL;
+        int32_t n_event_alignment = 0;
+        double events_per_base = 0; //todo : is double needed? not just int8?
+
+        if (n_event_align_pairs>0) {
 
             // prepare data structures for the final calibration
             int32_t n_kmers = db->read_len[i] - KMER_SIZE + 1;
-            event_alignment_t* alignment_output =
-            (event_alignment_t*)malloc(sizeof(event_alignment_t) * n_kmers);
-            MALLOC_CHK(alignment_output);
+            event_alignment =
+            (event_alignment_t*)malloc(sizeof(event_alignment_t) * n_event_align_pairs);
+            MALLOC_CHK(event_alignment);
             
-            int32_t n_events2 =
-                postalign(alignment_output,db->read[i],n_kmers, event_alignment, n_events);
-                fprintf(stderr,"n_events2 %d\n",n_events2);
+            // for (int j = 0; j < n_event_align_pairs; ++j) {
+            //     fprintf(stderr, "%d-%d\n",event_align_pairs[j].ref_pos,event_align_pairs[j].read_pos);
+            // }
+
+            //todo : verify if this n is needed is needed 
+            n_event_alignment =
+                postalign(event_alignment,&events_per_base, db->read[i],n_kmers, event_align_pairs, n_event_align_pairs);
+            //fprintf(stderr,"n_event_alignment %d\n",n_events);
+
             // run recalibration to get the best set of scaling parameters and the residual
             // between the (scaled) event levels and the model.
             // internally this function will set shift/scale/etc of the pore model               
             bool calibrated = recalibrate_model(core->model, db->et[i], &scalings,
-                              alignment_output, n_events, 1);
+                              event_alignment, n_event_alignment, 1);
             
             // QC calibration
-            // if(!calibrated || this->scalings[strand_idx].var > MIN_CALIBRATION_VAR) {
+            if(!calibrated || scalings.var > MIN_CALIBRATION_VAR) {
             //     events[strand_idx].clear();
-            //     g_failed_calibration_reads += 1;
-            // } a
+                   free(event_alignment);
+                   free(event_align_pairs);
+            //     g_failed_calibration_reads += 1; //todo : add these stats
+                   continue;
+            }
 
-            free(alignment_output);
+
+            free(event_alignment);
 
         }
         else{
-        // Could not align, fail this read
-        // this->events[strand_idx].clear();
-        // this->events_per_base[strand_idx] = 0.0f;
-        // g_failed_alignment_reads += 1;
+            // Could not align, fail this read
+            // this->events[strand_idx].clear();
+            // this->events_per_base[strand_idx] = 0.0f;
+            free(event_align_pairs);            
+            // g_failed_alignment_reads += 1; //todo : add these stats
+            continue;
         }
 
-        free(event_alignment);
-
         // Filter poor quality reads that have too many "stays"
-        // if(!this->events[strand_idx].empty() && this->events_per_base[strand_idx] > 5.0) {
-        //     g_qc_fail_reads += 1;
+        if(events_per_base > 5.0) {
+        //     g_qc_fail_reads += 1; //todo : add these stats
         //     events[0].clear();
         //     events[1].clear();
-        // }
+             free(event_align_pairs);          
+             continue;
+        }
 
-        //calculate_methylation_for_read(char* ref);
+        //calculate_methylation_for_read(ref);
 
     }
 

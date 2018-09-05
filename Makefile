@@ -39,3 +39,8 @@ format:
 
 test: $(BINARY)
 	./scripts/test.sh
+
+valgrind : $(BINARY)
+	./scripts/test.sh valgrind
+
+
