@@ -4,10 +4,8 @@
 
 #define METHYLATED_SYMBOL 'M'
 // IUPAC alphabet
-bool isUnambiguous(char c)
-{
-    switch(c)
-    {
+bool isUnambiguous(char c) {
+    switch (c) {
         case 'A':
         case 'C':
         case 'G':
@@ -19,10 +17,8 @@ bool isUnambiguous(char c)
 }
 
 // Returns true if c is a valid ambiguity code
-bool isAmbiguous(char c)
-{
-    switch(c)
-    {
+bool isAmbiguous(char c) {
+    switch (c) {
         case 'M':
         case 'R':
         case 'W':
@@ -40,10 +36,8 @@ bool isAmbiguous(char c)
     }
 }
 
-std::string getPossibleSymbols(char c)
-{
-    switch(c)
-    {
+std::string getPossibleSymbols(char c) {
+    switch (c) {
         case 'A':
             return "A";
         case 'C':
@@ -79,12 +73,22 @@ std::string getPossibleSymbols(char c)
     }
 }
 
-
 // Returns true if c is a valid symbol in this alphabet
-bool isValid(char c)
-{
-    return isUnambiguous(c) || isAmbiguous(c);
-}
+bool isValid(char c) { return isUnambiguous(c) || isAmbiguous(c); }
+
+const char* complement = "TGCA";
+const uint8_t rank[256] = {
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 2,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
 // reverse-complement a string
 // when the string contains methylated bases, the methylation
@@ -94,8 +98,6 @@ std::string reverse_complement(const std::string& str) {
     size_t i = 0;             // input
     int j = str.length() - 1; // output
     while (i < str.length()) {
-        
-
         // int recognition_index = -1;
         // RecognitionMatch match;
 
@@ -119,9 +121,9 @@ std::string reverse_complement(const std::string& str) {
         //         i += 1;
         //     }
         // } else {
-            // complement a single base
-            assert(str[i] != METHYLATED_SYMBOL);
-            out[j--] = complement(str[i++]);
+        // complement a single base
+        assert(str[i] != METHYLATED_SYMBOL);
+        out[j--] = complement[rank[(int)str[i++]]];
         // }
     }
     return out;
@@ -160,6 +162,46 @@ std::string disambiguate(const std::string& str) {
         i += stride;
     }
     return out;
+}
+
+bool find_iter_by_ref_bounds(const std::vector<AlignedPair>& pairs,
+                             int ref_start, int ref_stop,
+                             AlignedPairConstIter& start_iter,
+                             AlignedPairConstIter& stop_iter) {
+    AlignedPairRefLBComp lb_comp;
+    start_iter =
+        std::lower_bound(pairs.begin(), pairs.end(), ref_start, lb_comp);
+
+    stop_iter = std::lower_bound(pairs.begin(), pairs.end(), ref_stop, lb_comp);
+
+    if (start_iter == pairs.end() || stop_iter == pairs.end())
+        return false;
+
+    // require at least one aligned reference base at or outside the boundary
+    bool left_bounded =
+        start_iter->ref_pos <= ref_start ||
+        (start_iter != pairs.begin() && (start_iter - 1)->ref_pos <= ref_start);
+
+    bool right_bounded =
+        stop_iter->ref_pos >= ref_stop ||
+        (stop_iter != pairs.end() && (stop_iter + 1)->ref_pos >= ref_start);
+
+    return left_bounded && right_bounded;
+}
+
+bool find_by_ref_bounds(const std::vector<AlignedPair>& pairs, int ref_start,
+                        int ref_stop, int& read_start, int& read_stop) {
+    AlignedPairConstIter start_iter;
+    AlignedPairConstIter stop_iter;
+    bool bounded = find_iter_by_ref_bounds(pairs, ref_start, ref_stop,
+                                           start_iter, stop_iter);
+    if (bounded) {
+        read_start = start_iter->read_pos;
+        read_stop = stop_iter->read_pos;
+        return true;
+    } else {
+        return false;
+    }
 }
 
 // Test CpG sites in this read for methylation

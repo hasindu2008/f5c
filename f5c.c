@@ -203,7 +203,7 @@ int32_t load_db(core_t* core, db_t* db) {
             (char*)malloc(core->readbb->get_read_sequence(qname).size() +
                           1); // is +1 needed? do errorcheck
         strcpy(db->read[i], core->readbb->get_read_sequence(qname).c_str());
-        db->read_len[i]=strlen(db->read[i]);
+        db->read_len[i] = strlen(db->read[i]);
     }
     // fprintf(stderr,"%s:: %d fast5 read\n",__func__,db->n_bam_rec);
 
@@ -325,10 +325,12 @@ void process_db(core_t* core, db_t* db, double realtime0) {
             //todo : verify if this n is needed is needed 
             db->n_event_alignment[i] =
                 postalign(db->event_alignment[i],&db->events_per_base[i], db->read[i],n_kmers, db->event_align_pairs[i], db->n_event_align_pairs[i]);
+
             //fprintf(stderr,"n_event_alignment %d\n",n_events);
 
             // run recalibration to get the best set of scaling parameters and the residual
             // between the (scaled) event levels and the model.
+
             // internally this function will set shift/scale/etc of the pore model               
             bool calibrated = recalibrate_model(core->model, db->et[i], &db->scalings[i],
                               db->event_alignment[i], db->n_event_alignment[i], 1);
@@ -345,8 +347,7 @@ void process_db(core_t* core, db_t* db, double realtime0) {
 
             free(db->event_alignment[i]);
 
-        }
-        else{
+        } else {
             // Could not align, fail this read
             // this->events[strand_idx].clear();
             // this->events_per_base[strand_idx] = 0.0f;
@@ -356,6 +357,7 @@ void process_db(core_t* core, db_t* db, double realtime0) {
         }
 
         // Filter poor quality reads that have too many "stays"
+
         if(db->events_per_base[i] > 5.0) {
         //     g_qc_fail_reads += 1; //todo : add these stats
         //     events[0].clear();

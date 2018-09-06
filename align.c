@@ -44,8 +44,8 @@ static inline void kmer_cpy(char* dest, char* src, uint32_t k) {
     dest[i] = '\0';
 }
 
-scalings_t estimate_scalings_using_mom(char* sequence, int32_t sequence_len, model_t* pore_model,
-                                       event_table et) {
+scalings_t estimate_scalings_using_mom(char* sequence, int32_t sequence_len,
+                                       model_t* pore_model, event_table et) {
     scalings_t out;
     int32_t n_kmers =
         sequence_len - KMER_SIZE + 1; //todo :strlen can be pre-calculated
@@ -108,15 +108,14 @@ float log_probability_match_r9(scalings_t scaling, model_t* models,
                                float sample_rate) {
     // event level mean, scaled with the drift value
     strand = 0;
-    assert(kmer_rank<4096);
+    assert(kmer_rank < 4096);
     //float level = read.get_drift_scaled_level(event_idx, strand);
 
     //float time =
     //    (events.event[event_idx].start - events.event[0].start) / sample_rate;
     float unscaledLevel = events.event[event_idx].mean;
-    float scaledLevel = unscaledLevel ;
+    float scaledLevel = unscaledLevel;
     //float scaledLevel = unscaledLevel - time * scaling.shift;
-
 
     //fprintf(stderr, "level %f\n",scaledLevel);
     //GaussianParameters gp = read.get_scaled_gaussian_from_pore_model_state(pore_model, strand, kmer_rank);
@@ -150,8 +149,9 @@ float log_probability_match_r9(scalings_t scaling, model_t* models,
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
 
-int32_t align(AlignedPair* out_2, char* sequence, int32_t sequence_len,event_table events, model_t* models,
-                   scalings_t scaling, float sample_rate) {
+int32_t align(AlignedPair* out_2, char* sequence, int32_t sequence_len,
+              event_table events, model_t* models, scalings_t scaling,
+              float sample_rate) {
     //fprintf(stderr, "%s\n", sequence);
     //fprintf(stderr, "Scaling %f %f", scaling.scale, scaling.shift);
 
@@ -232,8 +232,8 @@ int32_t align(AlignedPair* out_2, char* sequence, int32_t sequence_len,event_tab
     };
     //>>>>>>>>>>>>>>>>>New Replacement Begin
     struct EventKmerPair* band_lower_left =
-        (struct EventKmerPair*) malloc(sizeof(struct EventKmerPair) * n_bands);
-        MALLOC_CHK(band_lower_left);
+        (struct EventKmerPair*)malloc(sizeof(struct EventKmerPair) * n_bands);
+    MALLOC_CHK(band_lower_left);
     //std::vector<EventKmerPair> band_lower_left(n_bands);
     //<<<<<<<<<<<<<<<<<New Replacement over
 
@@ -437,7 +437,6 @@ int32_t align(AlignedPair* out_2, char* sequence, int32_t sequence_len,event_tab
         float tempLogProb = log_probability_match_r9(
             scaling, models, events, curr_event_idx, kmer_rank, 0, sample_rate);
 
-
         sum_emission += tempLogProb;
         //fprintf(stderr, "lp_emission %f \n", tempLogProb);
         //fprintf(stderr,"lp_emission %f, sum_emission %f, n_aligned_events %d\n",tempLogProb,sum_emission,outIndex);
@@ -491,8 +490,8 @@ int32_t align(AlignedPair* out_2, char* sequence, int32_t sequence_len,event_tab
     double avg_log_emission = sum_emission / n_aligned_events;
     //fprintf(stderr,"sum_emission %f, n_aligned_events %f, avg_log_emission %f\n",sum_emission,n_aligned_events,avg_log_emission);
     //>>>>>>>>>>>>>New replacement begin
-    bool spanned =
-        out_2[0].ref_pos == 0 && out_2[outIndex - 1].ref_pos == int(n_kmers - 1);
+    bool spanned = out_2[0].ref_pos == 0 &&
+                   out_2[outIndex - 1].ref_pos == int(n_kmers - 1);
     // bool spanned = out.front().ref_pos == 0 && out.back().ref_pos == n_kmers - 1;
     //<<<<<<<<<<<<<New replacement over
     bool failed = false;
@@ -500,7 +499,7 @@ int32_t align(AlignedPair* out_2, char* sequence, int32_t sequence_len,event_tab
         max_gap > max_gap_threshold) {
         failed = true;
         //>>>>>>>>>>>>>New replacement begin
-        outIndex=0;
+        outIndex = 0;
         // out.clear();
         //free(out_2);
         //out_2 = NULL;
@@ -521,10 +520,9 @@ int32_t align(AlignedPair* out_2, char* sequence, int32_t sequence_len,event_tab
     return outIndex;
 }
 
-
-int32_t postalign(event_alignment_t* alignment, double* events_per_base, char* sequence, int32_t n_kmers,AlignedPair* event_alignment,
-                             int32_t n_events) {
-
+int32_t postalign(event_alignment_t* alignment, double* events_per_base,
+                  char* sequence, int32_t n_kmers, AlignedPair* event_alignment,
+                  int32_t n_events) {
     /* transform alignment into the base-to-event map*/
     // create base-to-event map
     index_pair_t* base_to_event_map =
@@ -567,7 +565,6 @@ int32_t postalign(event_alignment_t* alignment, double* events_per_base, char* s
 
     /*prepare data structures for the final calibration*/
 
-
     int32_t alignment_index = 0;
     int32_t prev_kmer_rank = -1;
 
@@ -576,9 +573,9 @@ int32_t postalign(event_alignment_t* alignment, double* events_per_base, char* s
         index_pair_t event_range_for_kmer = base_to_event_map[ki];
 
         //fprintf(stderr, "kindex %d base_to_event_map - start %d stop %d\n",ki,event_range_for_kmer.start, event_range_for_kmer.stop);
-        
+
         // skip kmers without events
-        if (event_range_for_kmer.start == -1){
+        if (event_range_for_kmer.start == -1) {
             continue;
         }
 
@@ -589,8 +586,7 @@ int32_t postalign(event_alignment_t* alignment, double* events_per_base, char* s
         // }
 
         for (int32_t event_idx = event_range_for_kmer.start;
-            event_idx <= event_range_for_kmer.stop; event_idx++) {
-
+             event_idx <= event_range_for_kmer.stop; event_idx++) {
             //fprintf(stderr,"event idx %d n events %d\n",event_idx,n_events);
             // assert(event_idx < n_events);
 
@@ -608,7 +604,8 @@ int32_t postalign(event_alignment_t* alignment, double* events_per_base, char* s
             ea.rc = false;
             kmer_cpy(ea.model_kmer, &sequence[ki], KMER_SIZE);
             ea.hmm_state = prev_kmer_rank != kmer_rank ? 'M' : 'E';
-            if (alignment_index > n_events) { //todo : this is ugly. check and fix.
+            if (alignment_index >
+                n_events) { //todo : this is ugly. check and fix.
                 ERROR("We have run out of space in event_alignment_t* "
                       "alignment. Assumption fialed. Current size %d",
                       n_events);
@@ -623,7 +620,6 @@ int32_t postalign(event_alignment_t* alignment, double* events_per_base, char* s
 
     free(base_to_event_map);
     return alignment_index;
-
 }
 
 // recalculate shift, scale, drift, scale_sd from an alignment and the read
@@ -633,7 +629,6 @@ bool recalibrate_model(model_t* pore_model, event_table et,
                        scalings_t* scallings,
                        const event_alignment_t* alignment_output,
                        int32_t num_alignments, bool scale_var) {
-
     //std::vector<double> raw_events, times, level_means, level_stdvs;
     //std::cout << "Previous pore model parameters: " << sr.pore_model[strand_idx].shift << ", "
     //                                                << sr.pore_model[strand_idx].scale << ", "
@@ -726,12 +721,11 @@ bool recalibrate_model(model_t* pore_model, event_table et,
 
         recalibrated = true;
 
-        #ifdef DEBUG_RECALIB_SCALING
-            fprintf(stderr, "shift: %.2lf scale: %.2lf var: %.2lf\n",
-                    scallings->shift, scallings->scale, scallings->var);
-            //fprintf(stderr, "truth shift: %.2lf scale: %.2lf\n", pore_model.shift, pore_model.scale);
-        #endif
-
+#ifdef DEBUG_RECALIB_SCALING
+        fprintf(stderr, "shift: %.2lf scale: %.2lf var: %.2lf\n",
+                scallings->shift, scallings->scale, scallings->var);
+        //fprintf(stderr, "truth shift: %.2lf scale: %.2lf\n", pore_model.shift, pore_model.scale);
+#endif
     }
 
     return recalibrated;

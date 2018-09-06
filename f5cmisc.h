@@ -7,18 +7,20 @@
 #include <sys/resource.h>
 #include <sys/time.h>
 
-#define MIN_CALIBRATION_VAR  2.5
+#define MIN_CALIBRATION_VAR 2.5
 
 event_table getevents(size_t nsample, float* rawptr);
 void read_model(model_t* model, const char* file);
 void set_model(model_t* model);
 void set_cpgmodel(model_t* model);
-scalings_t estimate_scalings_using_mom(char* sequence, int32_t sequence_len, model_t* pore_model,
-                                       event_table et);
-int32_t align(AlignedPair* out_2, char* sequence, int32_t sequence_len,event_table events, model_t* models,
-                   scalings_t scaling, float sample_rate);
-int32_t postalign(event_alignment_t* alignment,  double* events_per_base, char* sequence, int32_t n_kmers,AlignedPair* event_alignment,
-                             int32_t n_events);
+scalings_t estimate_scalings_using_mom(char* sequence, int32_t sequence_len,
+                                       model_t* pore_model, event_table et);
+int32_t align(AlignedPair* out_2, char* sequence, int32_t sequence_len,
+              event_table events, model_t* models, scalings_t scaling,
+              float sample_rate);
+int32_t postalign(event_alignment_t* alignment, double* events_per_base,
+                  char* sequence, int32_t n_kmers, AlignedPair* event_alignment,
+                  int32_t n_events);
 bool recalibrate_model(model_t* pore_model, event_table et,
                        scalings_t* scallings,
                        const event_alignment_t* alignment_output,
