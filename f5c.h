@@ -18,12 +18,15 @@
 #define F5C_SKIP_UNREADABLE                                                    \
     0x004 //Skip unreadable fast5 and continue rather than exiting
 #define F5C_PRINT_EVENTS 0x008
-
+#define F5C_PRINT_BANDED_ALN    0x010
+#define F5C_PRINT_SCALING    0x020
+    
 typedef struct {
     int32_t min_mapq;       //minimum mapq
     const char* model_file; //name of the model file
     uint32_t flag;
     int32_t batch_size;
+    int32_t num_thread;
 } opt_t;
 
 // from scrappie
@@ -124,6 +127,18 @@ typedef struct {
     //event table
     event_table* et;
 
+    //scalings
+    scalings_t* scalings;
+
+    //aligned pairs
+    AlignedPair** event_align_pairs;
+    int32_t* n_event_align_pairs;
+
+    //event alignments
+    event_alignment_t** event_alignment;
+    int32_t *n_event_alignment;
+    double *events_per_base; //todo : do we need double?
+
 } db_t;
 
 typedef struct {
@@ -148,11 +163,21 @@ typedef struct {
 
 } core_t;
 
+typedef struct {
+
+    core_t *core;
+    db_t* db;
+    int32_t starti;
+    int32_t endi;
+
+} pthread_arg_t;
+
+
 db_t* init_db(core_t* core);
 int32_t load_db(core_t* dg, db_t* db);
 core_t* init_core(const char* bamfilename, const char* fastafile,
                   const char* fastqfile, opt_t opt);
-void process_db(core_t* dg, db_t* db);
+void process_db(core_t* dg, db_t* db, double realtime0);
 void output_db(core_t* core, db_t* db);
 void free_core(core_t* core);
 void free_db_tmp(db_t* db);

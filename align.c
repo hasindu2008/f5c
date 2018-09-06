@@ -418,6 +418,7 @@ int32_t align(AlignedPair* out_2, char* sequence, int32_t sequence_len,event_tab
     while (curr_kmer_idx >= 0 && curr_event_idx >= 0) {
         // emit alignment
         //>>>>>>>New Repalcement begin
+        assert(outIndex<n_events*2);
         out_2[outIndex].ref_pos = curr_kmer_idx;
         out_2[outIndex].read_pos = curr_event_idx;
         outIndex++;
