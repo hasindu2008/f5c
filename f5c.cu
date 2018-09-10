@@ -1,3 +1,9 @@
+#include <errno.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "error.h"
 #include "f5c.h"
 #include "f5cmisc.cuh"
@@ -20,7 +26,7 @@ __global__ void align_kernel(AlignedPair* event_align_pairs,
     int i = blockDim.x * blockIdx.x + threadIdx.x;
 
     if (i < n_bam_rec) {
-        AlignedPair* out_2 = &event_align_pairs[event_ptr[i]];
+        AlignedPair* out_2 = &event_align_pairs[event_ptr[i] * 2];
         char* sequence = &read[read_ptr[i]];
         int32_t sequence_len = read_len[i];
         event_t* events = &event_table[event_ptr[i]];
@@ -161,6 +167,9 @@ void align_cuda(core_t* core, db_t* db) {
     dim3 grid((db->n_bam_rec + BLOCK_LEN - 1) / BLOCK_LEN);
     dim3 block(BLOCK_LEN);
 
+    cudaDeviceSetLimit(cudaLimitMallocHeapSize, 512 * 1024 * 1024);
+    CUDA_CHK();
+
     align_kernel<<<grid, block>>>(event_align_pairs, n_event_align_pairs, read,
                                   read_len, read_ptr, event_table, n_events,
                                   event_ptr, model, scalings, n_bam_rec);
@@ -168,7 +177,21 @@ void align_cuda(core_t* core, db_t* db) {
     //fprintf(stderr,"readlen %d,n_events %d\n",db->read_len[i],n_event_align_pairs);
 
 #ifdef CUDA_DEBUG
+
     cudaDeviceSynchronize();
+    //todo : print a message to detect the launch timed out
+    if (cudaGetLastError() == cudaErrorLaunchTimeout) {
+        ERROR("%s", "The kernel timed out. You have to first disable the cuda "
+                    "time out.");
+        fprintf(
+            stderr,
+            "On Ubuntu do the following\nOpen the file /etc/X11/xorg.conf\nYou "
+            "will have a section about your NVIDIA device. Add the following "
+            "line to it.\nOption \"Interactive\" \"0\"\nIf you do not have a "
+            "section about your NVIDIA device in /etc/X11/xorg.conf or you do "
+            "not have a file named /etc/X11/xorg.conf, run the command sudo "
+            "nvidia-xconfig to generate a xorg.conf file and do as above.\n\n");
+    }
     CUDA_CHK();
 #endif
 
@@ -185,7 +208,7 @@ void align_cuda(core_t* core, db_t* db) {
     //copy back
     for (i = 0; i < n_bam_rec; i++) {
         int32_t idx = event_ptr_host[i];
-        memcpy(db->event_align_pairs, &event_align_pairs_host[idx],
+        memcpy(db->event_align_pairs[i], &event_align_pairs_host[idx * 2],
                sizeof(AlignedPair) * db->n_event_align_pairs[i]);
     }
 

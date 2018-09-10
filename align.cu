@@ -100,9 +100,10 @@ log_probability_match_r9(scalings_t scaling, model_t* models, event_t* event,
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
 
-__device__ int32_t align(AlignedPair* out_2, char* sequence,
-                         int32_t sequence_len, event_t* events, int32_t n_event,
-                         model_t* models, scalings_t scaling) {
+__device__ int32_t align_single(AlignedPair* out_2, char* sequence,
+                                int32_t sequence_len, event_t* events,
+                                int32_t n_event, model_t* models,
+                                scalings_t scaling) {
     //fprintf(stderr, "%s\n", sequence);
     //fprintf(stderr, "Scaling %f %f", scaling.scale, scaling.shift);
 

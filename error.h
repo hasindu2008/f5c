@@ -1,6 +1,8 @@
 #ifndef ERROR_H
 #define ERROR_H
 
+#include <errno.h>
+
 #define WARN "[%s::WARNING]\033[1;33m "
 #define ERR "[%s::ERROR]\033[1;31m "
 #define CEND "\033[0m\n"

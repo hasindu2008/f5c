@@ -3,7 +3,6 @@
 
 #include "error.h"
 #include "f5c.h"
-#include <errno.h>
 #include <sys/resource.h>
 #include <sys/time.h>
 

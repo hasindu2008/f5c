@@ -235,11 +235,13 @@ void* align_pthread(void* voidargs) {
 void align_db(core_t* core, db_t* db) {
 #ifdef HAVE_CUDA
     if (!(core->opt.flag & F5C_DISABLE_CUDA)) {
+        fprintf(stderr, "cuda\n");
         align_cuda(core, db);
     }
 #endif
 
     if (core->opt.flag & F5C_DISABLE_CUDA) {
+        fprintf(stderr, "cpu\n");
         if (core->opt.num_thread == 1) {
             int i;
             for (i = 0; i < db->n_bam_rec; i++) {
@@ -471,6 +473,6 @@ void init_opt(opt_t* opt) {
     opt->batch_size = 4000;
     opt->num_thread = 8;
 #ifndef HAVE_CUDA
-    opt->flag |=  F5C_DISABLE_CUDA ;
-#endif    
+    opt->flag |= F5C_DISABLE_CUDA;
+#endif
 }
