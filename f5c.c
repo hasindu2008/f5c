@@ -230,6 +230,9 @@ void *align_pthread(void *voidargs){
 
 void align_db(core_t* core, db_t* db){
 
+#ifdef HAVE_CUDA
+    align_cuda(core, db);
+#else
     if(core->opt.num_thread == 1){
         int i;
         for (i = 0; i < db->n_bam_rec; i++) {    
@@ -270,6 +273,8 @@ void align_db(core_t* core, db_t* db){
             NEG_CHK(ret); 
         }        
     }
+#endif 
+
 }
 
 void process_db(core_t* core, db_t* db, double realtime0) {

@@ -1,5 +1,5 @@
-#include "f5c.cuh"
-#include <stdint.h>
+#include "f5cmisc.cuh"
+#include <stdio.h>
 
 void gpu_assert(const char* file, uint64_t line) {
     cudaError_t code = cudaGetLastError();

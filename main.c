@@ -165,11 +165,9 @@ int main(int argc, char* argv[]) {
                 realtime() - realtime0, cputime() / (realtime() - realtime0),
                 status);
 
-#ifdef HAVE_CUDA
-        //this is very unoptimal just for testing
-#else
+
         process_db(core, db, realtime0);
-#endif
+
         fprintf(stderr, "[%s::%.3f*%.2f] %d Entries processed\n", __func__,
                 realtime() - realtime0, cputime() / (realtime() - realtime0),
                 status);
