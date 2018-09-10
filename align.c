@@ -94,7 +94,8 @@ scalings_t estimate_scalings_using_mom(char* sequence, int32_t sequence_len,
     return out;
 }
 
-float log_normal_pdf(float x, float gp_mean, float gp_stdv, float gp_log_stdv) {
+static inline float log_normal_pdf(float x, float gp_mean, float gp_stdv,
+                                   float gp_log_stdv) {
     /*INCOMPLETE*/
     float log_inv_sqrt_2pi = -0.918938f; // Natural logarithm
     float a = (x - gp_mean) / gp_stdv;
@@ -102,10 +103,11 @@ float log_normal_pdf(float x, float gp_mean, float gp_stdv, float gp_log_stdv) {
     // return 1;
 }
 
-float log_probability_match_r9(scalings_t scaling, model_t* models,
-                               event_table events, int event_idx,
-                               uint32_t kmer_rank, uint8_t strand,
-                               float sample_rate) {
+static inline float log_probability_match_r9(scalings_t scaling,
+                                             model_t* models,
+                                             event_table events, int event_idx,
+                                             uint32_t kmer_rank, uint8_t strand,
+                                             float sample_rate) {
     // event level mean, scaled with the drift value
     strand = 0;
     assert(kmer_rank < 4096);
@@ -418,7 +420,7 @@ int32_t align(AlignedPair* out_2, char* sequence, int32_t sequence_len,
     while (curr_kmer_idx >= 0 && curr_event_idx >= 0) {
         // emit alignment
         //>>>>>>>New Repalcement begin
-        assert(outIndex<n_events*2);
+        assert(outIndex < n_events * 2);
         out_2[outIndex].ref_pos = curr_kmer_idx;
         out_2[outIndex].read_pos = curr_event_idx;
         outIndex++;

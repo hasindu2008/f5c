@@ -12,23 +12,24 @@
 double realtime0 = 0;
 
 static struct option long_options[] = {
-    {"reads", required_argument, 0, 'r'},         //0
-    {"bam", required_argument, 0, 'b'},           //1
-    {"genome", required_argument, 0, 'g'},        //2
-    {"threads", required_argument, 0, 't'},       //3
-    {"batchsize", required_argument, 0, 'K'},     //4
-    {"print", no_argument, 0, 'p'},               //5
-    {"aaaaaa", no_argument, 0, 0},                //6
-    {"help", no_argument, 0, 'h'},                //7
-    {"version", no_argument, 0, 'V'},             //8
-    {"min-mapq", required_argument, 0, 0},        //9
-    {"secondary", required_argument, 0, 0},       //10
-    {"kmer-model", required_argument, 0, 0},      //11
-    {"skip-unreadable", required_argument, 0, 0}, //12
-    {"print-events", required_argument, 0, 0},    //13
-    {"print-banded-aln", required_argument, 0, 0},    //14
+    {"reads", required_argument, 0, 'r'},          //0
+    {"bam", required_argument, 0, 'b'},            //1
+    {"genome", required_argument, 0, 'g'},         //2
+    {"threads", required_argument, 0, 't'},        //3
+    {"batchsize", required_argument, 0, 'K'},      //4
+    {"print", no_argument, 0, 'p'},                //5
+    {"aaaaaa", no_argument, 0, 0},                 //6
+    {"help", no_argument, 0, 'h'},                 //7
+    {"version", no_argument, 0, 'V'},              //8
+    {"min-mapq", required_argument, 0, 0},         //9
+    {"secondary", required_argument, 0, 0},        //10
+    {"kmer-model", required_argument, 0, 0},       //11
+    {"skip-unreadable", required_argument, 0, 0},  //12
+    {"print-events", required_argument, 0, 0},     //13
+    {"print-banded-aln", required_argument, 0, 0}, //14
     {"print-scaling", required_argument, 0, 0},    //15
-    {"print-raw", required_argument, 0, 0},    //16
+    {"print-raw", required_argument, 0, 0},        //16
+    {"disable-cuda", required_argument, 0, 0},     //17
     {0, 0, 0, 0}};
 
 void sig_handler(int sig) {
@@ -86,7 +87,6 @@ static inline void yes_or_no(opt_t* opt, uint64_t flag, int long_idx,
 }
 
 int main(int argc, char* argv[]) {
-
     realtime0 = realtime();
 
     signal(SIGSEGV, sig_handler);
@@ -119,13 +119,13 @@ int main(int argc, char* argv[]) {
                       opt.batch_size);
                 exit(EXIT_FAILURE);
             }
-        } else if (c == 't'){
+        } else if (c == 't') {
             opt.num_thread = atoi(optarg);
             if (opt.num_thread < 1) {
                 ERROR("Number of threads should larger than 0. You entered %d",
                       opt.num_thread);
                 exit(EXIT_FAILURE);
-            }            
+            }
         } else if (c == 0 && longindex == 9) {
             opt.min_mapq =
                 atoi(optarg); //check whether this is between 0 and 60
@@ -143,7 +143,15 @@ int main(int argc, char* argv[]) {
             yes_or_no(&opt, F5C_PRINT_SCALING, longindex, optarg, 1);
         } else if (c == 0 && longindex == 16) {
             yes_or_no(&opt, F5C_PRINT_RAW, longindex, optarg, 1);
-        }                
+        } else if (c == 0 && longindex == 17) {
+#ifdef HAVE_CUDA
+            yes_or_no(&opt, F5C_DISABLE_CUDA, longindex, optarg, 1);
+#else
+            WARNING("%s",
+                    "disable-cuda has no effect when compiled for the CPU");
+            opt.flag |= F5C_DISABLE_CUDA;
+#endif
+        }
     }
 
     if (fastqfile == NULL || bamfilename == NULL || fastafile == NULL) {
@@ -164,7 +172,6 @@ int main(int argc, char* argv[]) {
         fprintf(stderr, "[%s::%.3f*%.2f] %d Entries loaded\n", __func__,
                 realtime() - realtime0, cputime() / (realtime() - realtime0),
                 status);
-
 
         process_db(core, db, realtime0);
 

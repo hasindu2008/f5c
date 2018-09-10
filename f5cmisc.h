@@ -25,7 +25,10 @@ bool recalibrate_model(model_t* pore_model, event_table et,
                        scalings_t* scallings,
                        const event_alignment_t* alignment_output,
                        int32_t num_alignments, bool scale_var);
+
+#ifdef HAVE_CUDA
 void align_cuda(core_t* core, db_t* db);
+#endif
 
 // taken from minimap2/misc
 static inline double realtime(void) {

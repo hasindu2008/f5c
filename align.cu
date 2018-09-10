@@ -5,6 +5,7 @@
 //#define DEBUG_ADAPTIVE 1
 
 //todo : can make more efficient using bit encoding
+//todo : is inlining correct?
 __device__ static inline uint32_t get_rank(char base) {
     if (base == 'A') { //todo: do we neeed simple alpha?
         return 0;
@@ -44,8 +45,8 @@ __device__ static inline void kmer_cpy(char* dest, char* src, uint32_t k) {
     dest[i] = '\0';
 }
 
-
-__device__ float log_normal_pdf2(float x, float gp_mean, float gp_stdv, float gp_log_stdv) {
+__device__ static inline float
+log_normal_pdf(float x, float gp_mean, float gp_stdv, float gp_log_stdv) {
     /*INCOMPLETE*/
     float log_inv_sqrt_2pi = -0.918938f; // Natural logarithm
     float a = (x - gp_mean) / gp_stdv;
@@ -53,10 +54,9 @@ __device__ float log_normal_pdf2(float x, float gp_mean, float gp_stdv, float gp
     // return 1;
 }
 
-__device__ float log_probability_match_r9(scalings_t scaling, model_t* models,
-                               event_t* event, int event_idx,
-                               uint32_t kmer_rank, uint8_t strand
-                               ) {
+__device__ static inline float
+log_probability_match_r9(scalings_t scaling, model_t* models, event_t* event,
+                         int event_idx, uint32_t kmer_rank, uint8_t strand) {
     // event level mean, scaled with the drift value
     strand = 0;
     assert(kmer_rank < 4096);
@@ -81,7 +81,7 @@ __device__ float log_probability_match_r9(scalings_t scaling, model_t* models,
     float gp_log_stdv =
         log(models[kmer_rank].level_stdv + 0); // scaling.log_var = log(1)=0;
 
-    float lp = log_normal_pdf2(scaledLevel, gp_mean, gp_stdv, gp_log_stdv);
+    float lp = log_normal_pdf(scaledLevel, gp_mean, gp_stdv, gp_log_stdv);
     return lp;
 }
 
@@ -100,8 +100,9 @@ __device__ float log_probability_match_r9(scalings_t scaling, model_t* models,
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
 
-__device__ int32_t align(AlignedPair* out_2, char* sequence, int32_t sequence_len,
-    event_t* events, int32_t n_event,model_t* models, scalings_t scaling) {
+__device__ int32_t align(AlignedPair* out_2, char* sequence,
+                         int32_t sequence_len, event_t* events, int32_t n_event,
+                         model_t* models, scalings_t scaling) {
     //fprintf(stderr, "%s\n", sequence);
     //fprintf(stderr, "Scaling %f %f", scaling.scale, scaling.shift);
 
@@ -289,9 +290,8 @@ __device__ int32_t align(AlignedPair* out_2, char* sequence, int32_t sequence_le
                              ? bands[band_idx - 2][offset_diag]
                              : -INFINITY;
 
-            float lp_emission =
-                log_probability_match_r9(scaling, models, events, event_idx,
-                                         kmer_rank, strand_idx);
+            float lp_emission = log_probability_match_r9(
+                scaling, models, events, event_idx, kmer_rank, strand_idx);
             //fprintf(stderr, "lp emiision : %f , event idx %d, kmer rank %d\n", lp_emission,event_idx,kmer_rank);
             float score_d = diag + lp_step + lp_emission;
             float score_u = up + lp_stay + lp_emission;
@@ -368,7 +368,7 @@ __device__ int32_t align(AlignedPair* out_2, char* sequence, int32_t sequence_le
     while (curr_kmer_idx >= 0 && curr_event_idx >= 0) {
         // emit alignment
         //>>>>>>>New Repalcement begin
-        assert(outIndex<n_events*2);
+        assert(outIndex < n_events * 2);
         out_2[outIndex].ref_pos = curr_kmer_idx;
         out_2[outIndex].read_pos = curr_event_idx;
         outIndex++;
