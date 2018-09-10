@@ -141,4 +141,3 @@ shift: 3.18 scale: 0.98 var: 1.40
 shift: -1.77 scale: 1.04 var: 1.40
 shift: -4.81 scale: 0.97 var: 1.28
 shift: -0.92 scale: 1.00 var: 1.73
-[post-run summary] total reads: 143, unparseable: 0, qc fail: 0, could not calibrate: 0, no alignment: 0, bad fast5: 0

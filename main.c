@@ -149,7 +149,6 @@ int main(int argc, char* argv[]) {
 #else
             WARNING("%s",
                     "disable-cuda has no effect when compiled for the CPU");
-            opt.flag |= F5C_DISABLE_CUDA;
 #endif
         }
     }

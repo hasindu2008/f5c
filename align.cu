@@ -16,7 +16,7 @@ __device__ static inline uint32_t get_rank(char base) {
     } else if (base == 'T') {
         return 3;
     } else {
-        //WARNING("A None ACGT base found : %c", base);
+        //WARNING("A None ACGT base found : %c", base); //todo : fix this in gpu code
         return 0;
     }
 }
@@ -147,7 +147,7 @@ __device__ int32_t align(AlignedPair* out_2, char* sequence,
 
     // Precompute k-mer ranks to avoid doing this in the inner loop
     size_t* kmer_ranks = (size_t*)malloc(sizeof(size_t) * n_kmers);
-    //MALLOC_CHK(kmer_ranks);
+    //MALLOC_CHK(kmer_ranks); //todo : fix these to error check
 
     for (size_t i = 0; i < n_kmers; ++i) {
         //>>>>>>>>> New replacement begin

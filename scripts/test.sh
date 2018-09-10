@@ -19,8 +19,8 @@ for file in "${bamfile}" "${ref}" "${reads}"; do
 done
 
 if [[ "${#}" -eq 0 ]]; then
-    "${exepath}" -b "${bamfile}" -g "${ref}" -r "${reads}" --secondary=yes --min-mapq=0 > ${testdir}/result.txt
-
+    "${exepath}" -b "${bamfile}" -g "${ref}" -r "${reads}" --secondary=yes --min-mapq=0 --print-scaling=yes> ${testdir}/result.txt
+	diff -q ${testdir}/testresult.exp ${testdir}/result.txt  || die "${file}: Diff failed" 
 elif [[ "${#}" -eq 1 ]]; then
     if [[ "${1}" == "valgrind" ]]; then
         valgrind "${exepath}" -b "${bamfile}" -g "${ref}" -r "${reads}" --secondary=yes --min-mapq=0
