@@ -470,7 +470,7 @@ void free_db(db_t* db) {
 void init_opt(opt_t* opt) {
     memset(opt, 0, sizeof(opt_t));
     opt->min_mapq = 30;
-    opt->batch_size = 4000;
+    opt->batch_size = 512;
     opt->num_thread = 8;
 #ifndef HAVE_CUDA
     opt->flag |= F5C_DISABLE_CUDA;

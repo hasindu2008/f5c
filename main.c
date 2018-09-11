@@ -91,7 +91,7 @@ int main(int argc, char* argv[]) {
 
     signal(SIGSEGV, sig_handler);
 
-    const char* optstring = "r:b:g:t:hvp";
+    const char* optstring = "r:b:g:t:K:hvp";
     int longindex = 0;
     int32_t c = -1;
 
