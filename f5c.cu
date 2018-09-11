@@ -11,32 +11,7 @@
 #define CUDA_DEBUG 1
 #define BLOCK_LEN 128
 
-//todo : later try to merge with the cpu version using __host__
-__device__ int32_t align_single(AlignedPair* out_2, char* sequence,
-                                int32_t sequence_len, event_t* events,
-                                int32_t n_event, model_t* models,
-                                scalings_t scaling);
 
-__global__ void align_kernel(AlignedPair* event_align_pairs,
-                             int32_t* n_event_align_pairs, char* read,
-                             int32_t* read_len, int32_t* read_ptr,
-                             event_t* event_table, int32_t* n_events,
-                             int32_t* event_ptr, model_t* model,
-                             scalings_t* scalings, int32_t n_bam_rec) {
-    int i = blockDim.x * blockIdx.x + threadIdx.x;
-
-    if (i < n_bam_rec) {
-        AlignedPair* out_2 = &event_align_pairs[event_ptr[i] * 2];
-        char* sequence = &read[read_ptr[i]];
-        int32_t sequence_len = read_len[i];
-        event_t* events = &event_table[event_ptr[i]];
-        int32_t n_event = n_events[i];
-        scalings_t scaling = scalings[i];
-
-        n_event_align_pairs[i] = align_single(out_2, sequence, sequence_len,
-                                              events, n_event, model, scaling);
-    }
-}
 
 void align_cuda(core_t* core, db_t* db) {
     int32_t i;

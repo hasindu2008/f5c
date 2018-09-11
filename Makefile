@@ -19,11 +19,12 @@ DEPS = f5c.h fast5lite.h nanopolish_read_db.h f5cmisc.h error.h
 ifeq ($(cuda),) #if cuda is undefined
 
 else
-	DEPS_CUDA = f5c.h error.h f5cmisc.cuh
-	SRC_CUDA = f5c.cu f5cmisc.cu align.cu
+	DEPS_CUDA = f5c.h fast5lite.h error.h f5cmisc.cuh
+	SRC_CUDA = f5c.cu align.cu
 	OBJ_CUDA = $(SRC_CUDA:.cu=_cuda.o)
 	CC_CUDA = nvcc
-	CFLAGS_CUDA = -g  -G -Xcompiler -rdynamic  -O2 -std=c++11
+	#CFLAGS_CUDA = -g  -G -Xcompiler -rdynamic  -O2 -std=c++11
+	CFLAGS_CUDA = -g  -O2 -std=c++11
 	LDFLAGS += -L/usr/local/cuda/lib64/ -lcudart -lcudadevrt
 	OBJ += gpucode.o $(OBJ_CUDA)
 	CFLAGS += -DHAVE_CUDA=1

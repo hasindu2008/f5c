@@ -6,7 +6,7 @@
 
 //todo : can make more efficient using bit encoding
 //todo : is inlining correct?
-__device__ static inline uint32_t get_rank(char base) {
+__forceinline__ __device__  uint32_t get_rank(char base) {
     if (base == 'A') { //todo: do we neeed simple alpha?
         return 0;
     } else if (base == 'C') {
@@ -23,7 +23,7 @@ __device__ static inline uint32_t get_rank(char base) {
 
 // return the lexicographic rank of the kmer amongst all strings of
 // length k for this alphabet
-__device__ static inline uint32_t get_kmer_rank(const char* str, uint32_t k) {
+__forceinline__ __device__  uint32_t get_kmer_rank(const char* str, uint32_t k) {
     //uint32_t p = 1;
     uint32_t r = 0;
 
@@ -37,7 +37,7 @@ __device__ static inline uint32_t get_kmer_rank(const char* str, uint32_t k) {
 }
 
 //copy a kmer from a reference
-__device__ static inline void kmer_cpy(char* dest, char* src, uint32_t k) {
+__forceinline__ __device__ void kmer_cpy(char* dest, char* src, uint32_t k) {
     uint32_t i = 0;
     for (i = 0; i < k; i++) {
         dest[i] = src[i];
@@ -45,7 +45,7 @@ __device__ static inline void kmer_cpy(char* dest, char* src, uint32_t k) {
     dest[i] = '\0';
 }
 
-__device__ static inline float
+__forceinline__ __device__ float
 log_normal_pdf(float x, float gp_mean, float gp_stdv, float gp_log_stdv) {
     /*INCOMPLETE*/
     float log_inv_sqrt_2pi = -0.918938f; // Natural logarithm
@@ -54,7 +54,7 @@ log_normal_pdf(float x, float gp_mean, float gp_stdv, float gp_log_stdv) {
     // return 1;
 }
 
-__device__ static inline float
+__forceinline__ __device__ float
 log_probability_match_r9(scalings_t scaling, model_t* models, event_t* event,
                          int event_idx, uint32_t kmer_rank, uint8_t strand) {
     // event level mean, scaled with the drift value
@@ -100,7 +100,7 @@ log_probability_match_r9(scalings_t scaling, model_t* models, event_t* event,
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
 
-__device__ int32_t align_single(AlignedPair* out_2, char* sequence,
+__forceinline__ __device__ int32_t align_single(AlignedPair* out_2, char* sequence,
                                 int32_t sequence_len, event_t* events,
                                 int32_t n_event, model_t* models,
                                 scalings_t scaling) {
@@ -469,4 +469,27 @@ __device__ int32_t align_single(AlignedPair* out_2, char* sequence,
     //outSize=outIndex;
     //if(outIndex>500000)fprintf(stderr, "Max outSize %d\n", outIndex);
     return outIndex;
+}
+
+
+__global__ void align_kernel(AlignedPair* event_align_pairs,
+    int32_t* n_event_align_pairs, char* read,
+    int32_t* read_len, int32_t* read_ptr,
+    event_t* event_table, int32_t* n_events,
+    int32_t* event_ptr, model_t* model,
+    scalings_t* scalings, int32_t n_bam_rec) {
+
+    int i = blockDim.x * blockIdx.x + threadIdx.x;
+
+    if (i < n_bam_rec) {
+        AlignedPair* out_2 = &event_align_pairs[event_ptr[i] * 2];
+        char* sequence = &read[read_ptr[i]];
+        int32_t sequence_len = read_len[i];
+        event_t* events = &event_table[event_ptr[i]];
+        int32_t n_event = n_events[i];
+        scalings_t scaling = scalings[i];
+
+        n_event_align_pairs[i] = align_single(out_2, sequence, sequence_len,
+                            events, n_event, model, scaling);
+    }
 }
