@@ -45,7 +45,7 @@ gpucode.o : $(OBJ_CUDA)
 	$(CC_CUDA) $(CFLAGS_CUDA) -dlink $^ -o $@
 
 %_cuda.o : %.cu $(DEPS_CUDA)
-	$(CC_CUDA) -x cu $(CFLAGS_CUDA) -rdc=true -c $< -o $@
+	$(CC_CUDA) -x cu $(CFLAGS_CUDA) $(CPPFLAGS) -rdc=true -c $< -o $@
 
 	
 clean: 
