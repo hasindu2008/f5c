@@ -27,7 +27,7 @@ Now build f5c
 git clone https://github.com/hasindug/f5c
 cd f5c
 autoreconf
-scripts/install-htslib.sh
+scripts/install-hts.sh
 ./configure
 make
 ```
@@ -39,7 +39,7 @@ make
 git clone https://github.com/hasindug/f5c
 cd f5c
 autoreconf
-scripts/install-htslib.sh
+scripts/install-hts.sh
 scripts/install-hdf5.sh
 ./configure --enable-localhdf5
 make
