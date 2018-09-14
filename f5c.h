@@ -12,6 +12,7 @@
 #define KMER_SIZE 6 //hard coded for now; todo : change to dynamic
 #define NUM_KMER 4096
 //#define HAVE_CUDA 1 //if compile for CUDA or not
+#define ALN_BANDWIDTH 100 // the band size in banded_alignment
 
 //flags
 #define F5C_PRINT_RAW 0x001     //print the raw signal to stdio
@@ -75,6 +76,12 @@ typedef struct {
     float log_scaled_var;
 
 } scalings_t;
+
+
+typedef struct {
+        int event_idx;
+        int kmer_idx;
+} EventKmerPair;
 
 //from nanopolish
 typedef struct {

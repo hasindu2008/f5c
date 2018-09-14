@@ -65,4 +65,6 @@ test: $(BINARY)
 valgrind : $(BINARY)
 	./scripts/test.sh valgrind
 
+rsync :
+	rsync -av *.cu *.cuh $(SRC) $(DEPS) hasindu@kepler:/storage/hasindu/f5c/ && ssh kepler 'cd /storage/hasindu/f5c/ && make cuda=1'
 

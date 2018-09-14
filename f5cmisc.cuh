@@ -15,7 +15,7 @@ __global__ void align_kernel(AlignedPair* event_align_pairs,
         int32_t* read_len, int32_t* read_ptr,
         event_t* event_table, int32_t* n_events,
         int32_t* event_ptr, model_t* model,
-        scalings_t* scalings, int32_t n_bam_rec);
+        scalings_t* scalings, int32_t n_bam_rec,size_t* kmer_ranks,float *bands,uint8_t *trace, EventKmerPair* band_lower_left);
 
 
 
@@ -25,7 +25,7 @@ __global__ void align_kernel(AlignedPair* event_align_pairs,
 static inline void gpu_assert(const char* file, uint64_t line) {
     cudaError_t code = cudaGetLastError();
     if (code != cudaSuccess) {
-        fprintf(stderr, "Cuda error: %s \n in file : %s line number : %d\n",
+        fprintf(stderr, "Cuda error: %s \n in file : %s line number : %lu\n",
                 cudaGetErrorString(code), file, line);
         exit(-1);
     }

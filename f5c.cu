@@ -138,16 +138,34 @@ void align_cuda(core_t* core, db_t* db) {
     cudaMalloc((void**)&n_event_align_pairs, n_bam_rec * sizeof(int32_t));
     CUDA_CHK();
 
+    //scratch arrays
+
+    size_t sum_n_bands = sum_n_events + sum_read_len; //todo : can be optimised
+
+    size_t *kmer_ranks;
+    float *bands;
+    uint8_t *trace;
+    EventKmerPair* band_lower_left;
+
+    cudaMalloc((void**)&kmer_ranks,sizeof(size_t) * sum_read_len); //todo : optimise by the sum of n_kmers
+    CUDA_CHK();
+    cudaMalloc((void**)&bands,sizeof(float) * sum_n_bands * ALN_BANDWIDTH);
+    CUDA_CHK();
+    cudaMalloc((void**)&trace, sizeof(uint8_t*) * sum_n_bands * ALN_BANDWIDTH);
+    CUDA_CHK();
+    cudaMalloc((void**)&band_lower_left, sizeof(EventKmerPair)* sum_n_bands);
+    CUDA_CHK();
+
     //cuda kernel configuraion parameters
     dim3 grid((db->n_bam_rec + BLOCK_LEN - 1) / BLOCK_LEN);
     dim3 block(BLOCK_LEN);
 
-    cudaDeviceSetLimit(cudaLimitMallocHeapSize, 512 * 1024 * 1024);
-    CUDA_CHK();
+    // cudaDeviceSetLimit(cudaLimitMallocHeapSize, 512 * 1024 * 1024);
+    // CUDA_CHK();
 
     align_kernel<<<grid, block>>>(event_align_pairs, n_event_align_pairs, read,
                                   read_len, read_ptr, event_table, n_events,
-                                  event_ptr, model, scalings, n_bam_rec);
+                                  event_ptr, model, scalings, n_bam_rec, kmer_ranks,bands,trace,band_lower_left );
 
     //fprintf(stderr,"readlen %d,n_events %d\n",db->read_len[i],n_event_align_pairs);
 
@@ -204,4 +222,10 @@ void align_cuda(core_t* core, db_t* db) {
     cudaFree(scalings);
     cudaFree(event_align_pairs);
     cudaFree(n_event_align_pairs);
+    cudaFree(kmer_ranks);
+    cudaFree(bands);
+    cudaFree(trace);
+    cudaFree(band_lower_left);
+
+
 }
