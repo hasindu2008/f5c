@@ -7,9 +7,10 @@
 #include "error.h"
 #include "f5c.h"
 #include "f5cmisc.cuh"
+#include "f5cmisc.h"
 
 #define CUDA_DEBUG 1
-#define BLOCK_LEN 128
+#define BLOCK_LEN 8
 
 
 
@@ -42,11 +43,13 @@ void align_cuda(core_t* core, db_t* db) {
     }
 
     //copy to the gpu
+    print_size("read_ptr array",n_bam_rec * sizeof(int32_t));
     cudaMalloc((void**)&read_ptr, n_bam_rec * sizeof(int32_t));
     CUDA_CHK();
     cudaMemcpy(read_ptr, read_ptr_host, n_bam_rec * sizeof(int32_t),
                cudaMemcpyHostToDevice);
     CUDA_CHK();
+    print_size("read array",sum_read_len * sizeof(char));
     cudaMalloc((void**)&read, sum_read_len * sizeof(char)); //with null char
     CUDA_CHK();
     cudaMemcpy(read, read_host, sum_read_len * sizeof(char),
@@ -54,6 +57,7 @@ void align_cuda(core_t* core, db_t* db) {
     CUDA_CHK();
 
     //read length : already linear hence direct copy
+    print_size("read_lens",n_bam_rec * sizeof(int32_t));
     cudaMalloc((void**)&read_len, n_bam_rec * sizeof(int32_t));
     CUDA_CHK();
     cudaMemcpy(read_len, db->read_len, n_bam_rec * sizeof(int32_t),
@@ -82,12 +86,14 @@ void align_cuda(core_t* core, db_t* db) {
     }
 
     //n_events copy
+    print_size("n_events",n_bam_rec * sizeof(int32_t));
     cudaMalloc((void**)&n_events, n_bam_rec * sizeof(int32_t));
     CUDA_CHK();
     cudaMemcpy(n_events, n_events_host, n_bam_rec * sizeof(int32_t),
                cudaMemcpyHostToDevice);
     CUDA_CHK();
     //event ptr copy
+    print_size("event ptr",n_bam_rec * sizeof(int32_t));
     cudaMalloc((void**)&event_ptr, n_bam_rec * sizeof(int32_t));
     CUDA_CHK();
     cudaMemcpy(event_ptr, event_ptr_host, n_bam_rec * sizeof(int32_t),
@@ -105,6 +111,7 @@ void align_cuda(core_t* core, db_t* db) {
                sizeof(event_t) * db->et[i].n);
     }
 
+    print_size("event table",sum_n_events * sizeof(event_t));
     cudaMalloc((void**)&event_table, sum_n_events * sizeof(event_t));
     CUDA_CHK();
     cudaMemcpy(event_table, event_table_host, sizeof(event_t) * sum_n_events,
@@ -122,6 +129,7 @@ void align_cuda(core_t* core, db_t* db) {
 
     //scalings : already linear
     scalings_t* scalings;
+    print_size("Scalings",n_bam_rec * sizeof(scalings_t));
     cudaMalloc((void**)&scalings, n_bam_rec * sizeof(scalings_t));
     CUDA_CHK();
     cudaMemcpy(scalings, db->scalings, sizeof(scalings_t) * n_bam_rec,
@@ -131,10 +139,12 @@ void align_cuda(core_t* core, db_t* db) {
     /**allocate output arrays for cuda**/
     AlignedPair* event_align_pairs;
     int32_t* n_event_align_pairs;
+    print_size("event align pairs",2 * sum_n_events *sizeof(AlignedPair));
     cudaMalloc((void**)&event_align_pairs,
                2 * sum_n_events *
                    sizeof(AlignedPair)); //todo : need better huristic
     CUDA_CHK();
+    print_size("n_event_align_pairs",n_bam_rec * sizeof(int32_t));
     cudaMalloc((void**)&n_event_align_pairs, n_bam_rec * sizeof(int32_t));
     CUDA_CHK();
 
@@ -147,12 +157,16 @@ void align_cuda(core_t* core, db_t* db) {
     uint8_t *trace;
     EventKmerPair* band_lower_left;
 
+    print_size("kmer ranks",sizeof(size_t) * sum_read_len);
     cudaMalloc((void**)&kmer_ranks,sizeof(size_t) * sum_read_len); //todo : optimise by the sum of n_kmers
     CUDA_CHK();
+    print_size("bands",sizeof(float) * sum_n_bands * ALN_BANDWIDTH);
     cudaMalloc((void**)&bands,sizeof(float) * sum_n_bands * ALN_BANDWIDTH);
     CUDA_CHK();
-    cudaMalloc((void**)&trace, sizeof(uint8_t*) * sum_n_bands * ALN_BANDWIDTH);
+    print_size("trace",sizeof(uint8_t) * sum_n_bands * ALN_BANDWIDTH);
+    cudaMalloc((void**)&trace, sizeof(uint8_t) * sum_n_bands * ALN_BANDWIDTH);
     CUDA_CHK();
+    print_size("band_lower_left",sizeof(EventKmerPair)* sum_n_bands);
     cudaMalloc((void**)&band_lower_left, sizeof(EventKmerPair)* sum_n_bands);
     CUDA_CHK();
 

@@ -45,4 +45,29 @@ static inline double cputime(void) {
            1e-6 * (r.ru_utime.tv_usec + r.ru_stime.tv_usec);
 }
 
+// Prints to the provided buffer a nice number of bytes (KB, MB, GB, etc)
+//from https://www.mbeckler.org/blog/?p=114
+static inline void print_size(const char* name, uint64_t bytes)
+{
+    const char* suffixes[7];
+    suffixes[0] = "B";
+    suffixes[1] = "KB";
+    suffixes[2] = "MB";
+    suffixes[3] = "GB";
+    suffixes[4] = "TB";
+    suffixes[5] = "PB";
+    suffixes[6] = "EB";
+    uint64_t s = 0; // which suffix to use
+    double count = bytes;
+    while (count >= 1024 && s < 7)
+    {
+        s++;
+        count /= 1024;
+    }
+    if (count - floor(count) == 0.0)
+        fprintf(stderr, "%s : %d %s\n", name, (int)count, suffixes[s]);
+    else
+        fprintf(stderr, "%s : %.1f %s\n", name, count, suffixes[s]);
+}
+
 #endif
