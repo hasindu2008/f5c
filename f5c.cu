@@ -10,7 +10,7 @@
 #include "f5cmisc.h"
 
 #define CUDA_DEBUG 1
-#define BLOCK_LEN 8
+//#define BLOCK_LEN 8
 
 
 
@@ -171,6 +171,7 @@ void align_cuda(core_t* core, db_t* db) {
     CUDA_CHK();
 
     //cuda kernel configuraion parameters
+    int32_t BLOCK_LEN = core->opt.cuda_block_size;
     dim3 grid((db->n_bam_rec + BLOCK_LEN - 1) / BLOCK_LEN);
     dim3 block(BLOCK_LEN);
 

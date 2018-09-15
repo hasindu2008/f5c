@@ -30,6 +30,7 @@ typedef struct {
     uint32_t flag;
     int32_t batch_size;
     int32_t num_thread;
+    int32_t cuda_block_size;
 } opt_t;
 
 // from scrappie

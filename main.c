@@ -30,6 +30,7 @@ static struct option long_options[] = {
     {"print-scaling", required_argument, 0, 0},    //15
     {"print-raw", required_argument, 0, 0},        //16
     {"disable-cuda", required_argument, 0, 0},     //17
+    {"cuda-block-size",required_argument, 0, 0},   //18
     {0, 0, 0, 0}};
 
 void sig_handler(int sig) {
@@ -150,6 +151,8 @@ int main(int argc, char* argv[]) {
             WARNING("%s",
                     "disable-cuda has no effect when compiled for the CPU");
 #endif
+        } else if(c == 0 && longindex == 18){
+            opt.cuda_block_size = atoi(optarg); //todo : warnining for cpu only mode, check limits
         }
     }
 
