@@ -12,6 +12,9 @@
 #define CUDA_DEBUG 1
 //#define BLOCK_LEN 8
 
+#ifdef CONST_MEM
+  __constant__ model_t model[4096];
+#endif
 
 
 void align_cuda(core_t* core, db_t* db) {
@@ -119,6 +122,7 @@ void align_cuda(core_t* core, db_t* db) {
     CUDA_CHK();
 
     //model : already linear
+#ifndef CONST_MEM
     model_t* model;
     cudaMalloc((void**)&model,
                NUM_KMER * sizeof(model_t)); //todo : constant memory
@@ -126,6 +130,9 @@ void align_cuda(core_t* core, db_t* db) {
     cudaMemcpy(model, core->model, NUM_KMER * sizeof(model_t),
                cudaMemcpyHostToDevice);
     CUDA_CHK();
+#else
+    cudaMemcpyToSymbol (model,  core->model, NUM_KMER * sizeof(model_t));
+#endif
 
     //scalings : already linear
     scalings_t* scalings;
@@ -178,9 +185,16 @@ void align_cuda(core_t* core, db_t* db) {
     // cudaDeviceSetLimit(cudaLimitMallocHeapSize, 512 * 1024 * 1024);
     // CUDA_CHK();
 
+#ifndef CONST_MEM
     align_kernel<<<grid, block>>>(event_align_pairs, n_event_align_pairs, read,
                                   read_len, read_ptr, event_table, n_events,
                                   event_ptr, model, scalings, n_bam_rec, kmer_ranks,bands,trace,band_lower_left );
+#else
+align_kernel<<<grid, block>>>(event_align_pairs, n_event_align_pairs, read,
+                              read_len, read_ptr, event_table, n_events,
+                              event_ptr, scalings, n_bam_rec, kmer_ranks,bands,trace,band_lower_left );
+
+#endif
 
     //fprintf(stderr,"readlen %d,n_events %d\n",db->read_len[i],n_event_align_pairs);
 

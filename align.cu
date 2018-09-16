@@ -1,8 +1,12 @@
 #include "f5c.h"
 #include <assert.h>
+#include "f5cmisc.cuh"
 //#define DEBUG_ESTIMATED_SCALING 1
 //#define DEBUG_RECALIB_SCALING 1
 //#define DEBUG_ADAPTIVE 1
+#ifdef CONST_MEM
+  extern __constant__ model_t model[4096];
+#endif
 
 //todo : can make more efficient using bit encoding
 //todo : is inlining correct?
@@ -474,14 +478,21 @@ __forceinline__ __device__ int32_t align_single(AlignedPair* out_2, char* sequen
     return outIndex;
 }
 
-
+#ifndef CONST_MEM
 __global__ void align_kernel(AlignedPair* event_align_pairs,
     int32_t* n_event_align_pairs, char* read,
     int32_t* read_len, int32_t* read_ptr,
     event_t* event_table, int32_t* n_events,
     int32_t* event_ptr, model_t* model,
     scalings_t* scalings, int32_t n_bam_rec,size_t* kmer_ranks,float *bands,uint8_t *trace, EventKmerPair* band_lower_left) {
-
+#else
+__global__ void align_kernel(AlignedPair* event_align_pairs,
+    int32_t* n_event_align_pairs, char* read,
+    int32_t* read_len, int32_t* read_ptr,
+    event_t* event_table, int32_t* n_events,
+    int32_t* event_ptr,
+    scalings_t* scalings, int32_t n_bam_rec,size_t* kmer_ranks,float *bands,uint8_t *trace, EventKmerPair* band_lower_left) {
+#endif
     int i = blockDim.x * blockIdx.x + threadIdx.x;
 
     if (i < n_bam_rec) {

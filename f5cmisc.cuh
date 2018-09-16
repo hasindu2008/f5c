@@ -3,6 +3,9 @@
 
 #include <stdint.h>
 
+//#define CONST_MEM 1
+
+
 /* check whether the last CUDA function or CUDA kernel launch is erroneous and if yes an error message will be printed
 and then the program will be aborted*/
 #define CUDA_CHK()                                                             \
@@ -10,13 +13,23 @@ and then the program will be aborted*/
 
 
 
+
+#ifndef CONST_MEM
 __global__ void align_kernel(AlignedPair* event_align_pairs,
         int32_t* n_event_align_pairs, char* read,
         int32_t* read_len, int32_t* read_ptr,
         event_t* event_table, int32_t* n_events,
         int32_t* event_ptr, model_t* model,
         scalings_t* scalings, int32_t n_bam_rec,size_t* kmer_ranks,float *bands,uint8_t *trace, EventKmerPair* band_lower_left);
+#else
+__global__ void align_kernel(AlignedPair* event_align_pairs,
+        int32_t* n_event_align_pairs, char* read,
+        int32_t* read_len, int32_t* read_ptr,
+        event_t* event_table, int32_t* n_events,
+        int32_t* event_ptr,
+        scalings_t* scalings, int32_t n_bam_rec,size_t* kmer_ranks,float *bands,uint8_t *trace, EventKmerPair* band_lower_left);
 
+#endif
 
 
 
