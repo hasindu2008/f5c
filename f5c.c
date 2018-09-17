@@ -1,13 +1,12 @@
 #include <assert.h>
 #include <math.h>
+#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "f5c.h"
 #include "f5cmisc.h"
-
-#define m_min_mapping_quality 30
 
 core_t* init_core(const char* bamfilename, const char* fastafile,
                   const char* fastqfile, opt_t opt) {
@@ -38,10 +37,22 @@ core_t* init_core(const char* bamfilename, const char* fastafile,
     core->readbb->load(fastqfile);
 
     //model
-    core->model = (model_t*)malloc(sizeof(model_t) *
-                                   4096); //4096 is 4^6 which os hardcoded now
+    core->model = (model_t*)malloc(
+        sizeof(model_t) * NUM_KMER); //4096 is 4^6 which os hardcoded now
     MALLOC_CHK(core->model);
+    core->cpgmodel = (model_t*)malloc(
+        sizeof(model_t) * NUM_KMER); //4096 is 4^6 which os hardcoded now
+    MALLOC_CHK(core->cpgmodel);
+
     //load the model from files
+    if (opt.model_file) {
+        read_model(core->model, opt.model_file);
+    } else {
+        set_model(core->model);
+    }
+
+    //todo : load the cpg model from file
+    set_cpgmodel(core->cpgmodel);
 
     core->opt = opt;
     return core;
@@ -49,6 +60,7 @@ core_t* init_core(const char* bamfilename, const char* fastafile,
 
 void free_core(core_t* core) {
     free(core->model);
+    free(core->cpgmodel);
     delete core->readbb;
     fai_destroy(core->fai);
     sam_itr_destroy(core->itr);
@@ -58,11 +70,11 @@ void free_core(core_t* core) {
     free(core);
 }
 
-db_t* init_db() {
+db_t* init_db(core_t* core) {
     db_t* db = (db_t*)(malloc(sizeof(db_t)));
     MALLOC_CHK(db);
 
-    db->capacity_bam_rec = 512;
+    db->capacity_bam_rec = core->opt.batch_size;
     db->n_bam_rec = 0;
 
     db->bam_rec = (bam1_t**)(malloc(sizeof(bam1_t*) * db->capacity_bam_rec));
@@ -76,11 +88,38 @@ db_t* init_db() {
 
     db->fasta_cache = (char**)(malloc(sizeof(char*) * db->capacity_bam_rec));
     MALLOC_CHK(db->fasta_cache);
+    db->read = (char**)(malloc(sizeof(char*) * db->capacity_bam_rec));
+    MALLOC_CHK(db->read);
+    db->read_len = (int32_t*)(malloc(sizeof(int32_t) * db->capacity_bam_rec));
+    MALLOC_CHK(db->read_len);
+
     db->f5 = (fast5_t**)malloc(sizeof(fast5_t*) * db->capacity_bam_rec);
     MALLOC_CHK(db->f5);
 
     db->et = (event_table*)malloc(sizeof(event_table) * db->capacity_bam_rec);
     MALLOC_CHK(db->et);
+
+    db->scalings =
+        (scalings_t*)malloc(sizeof(scalings_t) * db->capacity_bam_rec);
+    MALLOC_CHK(db->scalings);
+
+    db->event_align_pairs =
+        (AlignedPair**)malloc(sizeof(AlignedPair*) * db->capacity_bam_rec);
+    MALLOC_CHK(db->event_align_pairs);
+    db->n_event_align_pairs =
+        (int32_t*)malloc(sizeof(int32_t) * db->capacity_bam_rec);
+    MALLOC_CHK(db->n_event_align_pairs);
+
+    db->event_alignment = (event_alignment_t**)malloc(
+        sizeof(event_alignment_t*) * db->capacity_bam_rec);
+    MALLOC_CHK(db->event_alignment);
+    db->n_event_alignment =
+        (int32_t*)malloc(sizeof(int32_t*) * db->capacity_bam_rec);
+    MALLOC_CHK(db->n_event_alignment);
+
+    db->events_per_base =
+        (double*)malloc(sizeof(double*) * db->capacity_bam_rec);
+    MALLOC_CHK(db->events_per_base);
 
     return db;
 }
@@ -100,7 +139,8 @@ int32_t load_db(core_t* core, db_t* db) {
         } else {
             if ((record->core.flag & BAM_FUNMAP) == 0 &&
                 record->core.qual >=
-                    m_min_mapping_quality) { // remove secondraies? //need to use the user parameter
+                    core->opt
+                        .min_mapq) { // remove secondraies? //need to use the user parameter
                 // printf("%s\t%d\n",bam_get_qname(db->bam_rec[db->n_bam_rec]),result);
                 db->n_bam_rec++;
             }
@@ -142,12 +182,17 @@ int32_t load_db(core_t* core, db_t* db) {
             fast5_read(hdf5_file, db->f5[i]); // todo : errorhandle
             fast5_close(hdf5_file);
         } else {
-            WARNING("Fast5 file is unreadable and will be skipped: %s",
-                    fast5_path);
+            if (core->opt.flag & F5C_SKIP_UNREADABLE) {
+                WARNING("Fast5 file is unreadable and will be skipped: %s",
+                        fast5_path);
+            } else {
+                ERROR("Fast5 file could not be opened: %s", fast5_path);
+                exit(EXIT_FAILURE);
+            }
         }
 
-        if (core->opt.print_raw) {
-            printf("@%s\t%s\t%llu\n", qname.c_str(), fast5_path,
+        if (core->opt.flag & F5C_PRINT_RAW) {
+            printf(">%s\tPATH:%s\tLN:%llu\n", qname.c_str(), fast5_path,
                    db->f5[i]->nsample);
             uint32_t j = 0;
             for (j = 0; j < db->f5[i]->nsample; j++) {
@@ -157,13 +202,90 @@ int32_t load_db(core_t* core, db_t* db) {
         }
 
         free(fast5_path);
+
+        //get the read in ascci
+        db->read[i] =
+            (char*)malloc(core->readbb->get_read_sequence(qname).size() +
+                          1); // is +1 needed? do errorcheck
+        strcpy(db->read[i], core->readbb->get_read_sequence(qname).c_str());
+        db->read_len[i] = strlen(db->read[i]);
     }
     // fprintf(stderr,"%s:: %d fast5 read\n",__func__,db->n_bam_rec);
 
     return db->n_bam_rec;
 }
 
-void process_db(core_t* core, db_t* db) {
+void* align_pthread(void* voidargs) {
+    int i;
+    pthread_arg_t* args = (pthread_arg_t*)voidargs;
+    db_t* db = args->db;
+    core_t* core = args->core;
+
+    for (i = args->starti; i < args->endi; i++) {
+        db->n_event_align_pairs[i] = align(
+            db->event_align_pairs[i], db->read[i], db->read_len[i], db->et[i],
+            core->model, db->scalings[i], db->f5[i]->sample_rate);
+        //fprintf(stderr,"readlen %d,n_events %d\n",db->read_len[i],n_event_align_pairs);
+    }
+
+    //fprintf(stderr,"Thread %d done\n",(myargs->position)/THREADS);
+    pthread_exit(0);
+}
+
+void align_db(core_t* core, db_t* db) {
+#ifdef HAVE_CUDA
+    if (!(core->opt.flag & F5C_DISABLE_CUDA)) {
+        fprintf(stderr, "cuda\n");
+        align_cuda(core, db);
+    }
+#endif
+
+    if (core->opt.flag & F5C_DISABLE_CUDA) {
+        fprintf(stderr, "cpu\n");
+        if (core->opt.num_thread == 1) {
+            int i;
+            for (i = 0; i < db->n_bam_rec; i++) {
+                db->n_event_align_pairs[i] =
+                    align(db->event_align_pairs[i], db->read[i],
+                          db->read_len[i], db->et[i], core->model,
+                          db->scalings[i], db->f5[i]->sample_rate);
+                //fprintf(stderr,"readlen %d,n_events %d\n",db->read_len[i],n_event_align_pairs);
+            }
+        } else {
+            //create threads
+            pthread_t tids[core->opt.num_thread];
+            pthread_arg_t pt_args[core->opt.num_thread];
+            int32_t t, ret;
+            int32_t i = 0;
+            int32_t num_thread = core->opt.num_thread;
+            int32_t step = (db->n_bam_rec + num_thread - 1) / num_thread;
+            //todo : check for higher num of threads than the data
+            for (t = 0; t < num_thread; t++) {
+                pt_args[t].core = core;
+                pt_args[t].db = db;
+                pt_args[t].starti = i;
+                i += step;
+                if (i > db->n_bam_rec) {
+                    pt_args[t].endi = db->n_bam_rec;
+                } else {
+                    pt_args[t].endi = i;
+                }
+                //fprintf(stderr,"t%d : %d-%d\n",t,pt_args[t].starti,pt_args[t].endi);
+                ret = pthread_create(&tids[t], NULL, align_pthread,
+                                     (void*)(&pt_args[t]));
+                NEG_CHK(ret);
+            }
+
+            //pthread joining
+            for (t = 0; t < core->opt.num_thread; t++) {
+                int ret = pthread_join(tids[t], NULL);
+                NEG_CHK(ret);
+            }
+        }
+    }
+}
+
+void process_db(core_t* core, db_t* db, double realtime0) {
     int32_t i;
     for (i = 0; i < db->n_bam_rec; i++) {
         float* rawptr = db->f5[i]->rawptr;
@@ -179,12 +301,135 @@ void process_db(core_t* core, db_t* db) {
         }
         db->et[i] = getevents(db->f5[i]->nsample, rawptr);
 
-        //have to test if the computed events are correct
+        //get the scalings
+        db->scalings[i] = estimate_scalings_using_mom(
+            db->read[i], db->read_len[i], core->model, db->et[i]);
+    }
+    fprintf(stderr, "[%s::%.3f*%.2f] Events computed\n", __func__,
+            realtime() - realtime0, cputime() / (realtime() - realtime0));
 
-        //then we should be ready to directly call adaptive_banded_simple_event_align
+    for (i = 0; i < db->n_bam_rec; i++) {
+        db->event_align_pairs[i] = (AlignedPair*)malloc(
+            sizeof(AlignedPair) * db->et[i].n *
+            2); //todo : find a good heuristic to save memory
+        MALLOC_CHK(db->event_align_pairs[i]);
+    }
+
+    align_db(core, db);
+
+    fprintf(stderr, "[%s::%.3f*%.2f] Banded alignment done\n", __func__,
+            realtime() - realtime0, cputime() / (realtime() - realtime0));
+
+    for (i = 0; i < db->n_bam_rec; i++) {
+        db->event_alignment[i] = NULL;
+        db->n_event_alignment[i] = 0;
+        db->events_per_base[i] = 0; //todo : is double needed? not just int8?
+
+        if (db->n_event_align_pairs[i] > 0) {
+            // prepare data structures for the final calibration
+            int32_t n_kmers = db->read_len[i] - KMER_SIZE + 1;
+            db->event_alignment[i] = (event_alignment_t*)malloc(
+                sizeof(event_alignment_t) * db->n_event_align_pairs[i]);
+            MALLOC_CHK(db->event_alignment[i]);
+
+            // for (int j = 0; j < n_event_align_pairs; ++j) {
+            //     fprintf(stderr, "%d-%d\n",event_align_pairs[j].ref_pos,event_align_pairs[j].read_pos);
+            // }
+
+            //todo : verify if this n is needed is needed
+            db->n_event_alignment[i] = postalign(
+                db->event_alignment[i], &db->events_per_base[i], db->read[i],
+                n_kmers, db->event_align_pairs[i], db->n_event_align_pairs[i]);
+
+            //fprintf(stderr,"n_event_alignment %d\n",n_events);
+
+            // run recalibration to get the best set of scaling parameters and the residual
+            // between the (scaled) event levels and the model.
+
+            // internally this function will set shift/scale/etc of the pore model
+            bool calibrated = recalibrate_model(
+                core->model, db->et[i], &db->scalings[i],
+                db->event_alignment[i], db->n_event_alignment[i], 1);
+
+            // QC calibration
+            if (!calibrated || db->scalings[i].var > MIN_CALIBRATION_VAR) {
+                //     events[strand_idx].clear();
+                free(db->event_alignment[i]);
+                //free(db->event_align_pairs[i]);
+                //     g_failed_calibration_reads += 1; //todo : add these stats
+                continue;
+            }
+
+            free(db->event_alignment[i]);
+
+        } else {
+            // Could not align, fail this read
+            // this->events[strand_idx].clear();
+            // this->events_per_base[strand_idx] = 0.0f;
+            //free(db->event_align_pairs[i]);
+            // g_failed_alignment_reads += 1; //todo : add these stats
+            continue;
+        }
+
+        // Filter poor quality reads that have too many "stays"
+
+        if (db->events_per_base[i] > 5.0) {
+            //     g_qc_fail_reads += 1; //todo : add these stats
+            //     events[0].clear();
+            //     events[1].clear();
+            //free(db->event_align_pairs[i]);
+            continue;
+        }
+
+        //calculate_methylation_for_read(ref);
     }
 
     return;
+}
+
+void output_db(core_t* core, db_t* db) {
+    if (core->opt.flag & F5C_PRINT_EVENTS) {
+        int32_t i = 0;
+        for (i = 0; i < db->n_bam_rec; i++) {
+            printf(">%s\tLN:%d\tEVENTSTART:%d\tEVENTEND:%d\n",
+                   bam_get_qname(db->bam_rec[i]), (int)db->et[i].n,
+                   (int)db->et[i].start, (int)db->et[i].end);
+            uint32_t j = 0;
+            for (j = 0; j < db->et[i].n; j++) {
+                printf("{%d,%f,%f,%f,%d,%d}\t", (int)db->et[i].event[j].start,
+                       db->et[i].event[j].length, db->et[i].event[j].mean,
+                       db->et[i].event[j].stdv, (int)db->et[i].event[j].pos,
+                       (int)db->et[i].event[j].state);
+            }
+            printf("\n");
+        }
+    }
+    if (core->opt.flag & F5C_PRINT_BANDED_ALN) {
+        int32_t i = 0;
+        for (i = 0; i < db->n_bam_rec; i++) {
+            printf(">%s\tN_ALGN_PAIR:%d\t{ref_os,read_pos}\n",
+                   bam_get_qname(db->bam_rec[i]),
+                   (int)db->n_event_align_pairs[i]);
+            AlignedPair* event_align_pairs = db->event_align_pairs[i];
+            int32_t j = 0;
+            for (j = 0; j < db->n_event_align_pairs[i]; j++) {
+                printf("{%d,%d}\t", event_align_pairs[j].ref_pos,
+                       event_align_pairs[j].read_pos);
+            }
+            printf("\n");
+        }
+    }
+
+    if (core->opt.flag & F5C_PRINT_SCALING) {
+        int32_t i = 0;
+        printf("read\tshift\tscale\tvar\n");
+
+        for (i = 0; i < db->n_bam_rec; i++) {
+            printf("%s\t%.2lf\t%.2lf\t%.2lf\n", bam_get_qname(db->bam_rec[i]),
+                   db->scalings[i].shift, db->scalings[i].scale,
+                   db->scalings[i].var);
+        }
+    }
 }
 
 void free_db_tmp(db_t* db) {
@@ -193,9 +438,11 @@ void free_db_tmp(db_t* db) {
         bam_destroy1(db->bam_rec[i]);
         db->bam_rec[i] = bam_init1();
         free(db->fasta_cache[i]);
+        free(db->read[i]);
         free(db->f5[i]->rawptr);
         free(db->f5[i]);
         free(db->et[i].event);
+        free(db->event_align_pairs[i]);
     }
 }
 
@@ -206,15 +453,27 @@ void free_db(db_t* db) {
     }
     free(db->bam_rec);
     free(db->fasta_cache);
+    free(db->read);
+    free(db->read_len);
     free(db->et);
     free(db->f5);
+    free(db->scalings);
+    free(db->event_align_pairs);
+    free(db->n_event_align_pairs);
+    free(db->event_alignment);
+    free(db->n_event_alignment);
+    free(db->events_per_base);
+
     free(db);
 }
 
 void init_opt(opt_t* opt) {
     memset(opt, 0, sizeof(opt_t));
-
-    opt->print_raw = 0;
     opt->min_mapq = 30;
-    opt->con_sec = 0;
+    opt->batch_size = 512;
+    opt->num_thread = 8;
+#ifndef HAVE_CUDA
+    opt->flag |= F5C_DISABLE_CUDA;
+#endif
+    opt->cuda_block_size=8;    
 }

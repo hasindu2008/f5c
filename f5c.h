@@ -8,46 +8,115 @@
 #include "fast5lite.h"
 #include "nanopolish_read_db.h"
 
+#define m_min_mapping_quality 30
+#define KMER_SIZE 6 //hard coded for now; todo : change to dynamic
+#define NUM_KMER 4096
+//#define HAVE_CUDA 1 //if compile for CUDA or not
+#define ALN_BANDWIDTH 100 // the band size in banded_alignment
+
+//flags
+#define F5C_PRINT_RAW 0x001     //print the raw signal to stdio
+#define F5C_SECONDARY_YES 0x002 //consider secondary reads
+#define F5C_SKIP_UNREADABLE                                                    \
+    0x004 //Skip unreadable fast5 and continue rather than exiting
+#define F5C_PRINT_EVENTS 0x008
+#define F5C_PRINT_BANDED_ALN 0x010
+#define F5C_PRINT_SCALING 0x020
+#define F5C_DISABLE_CUDA 0x040
+
 typedef struct {
-    int print_raw;    // space save for bool
-    int min_mapq;     //minimum mapq
-    int con_sec;      //consider secondary reads
-    char* model_file; //name of the model file
+    int32_t min_mapq;       //minimum mapq
+    const char* model_file; //name of the model file
+    uint32_t flag;
+    int32_t batch_size;
+    int32_t num_thread;
+    int32_t cuda_block_size;
 } opt_t;
 
 // from scrappie
 typedef struct {
     uint64_t start;
-    float length;
+    float length; //cant be made int
     float mean;
     float stdv;
-    int32_t pos;
-    int32_t state;
+    int32_t pos;   //always -1 can be removed
+    int32_t state; //always -1 can be removed
 } event_t;
 
 // from scrappie
 typedef struct {
     size_t n;
-    size_t start;
-    size_t end;
+    size_t start; //always 0
+    size_t end;   //always eqial to n
     event_t* event;
 } event_table;
 
-#define KMER_SIZE 6 //hard coded for now; todo : change to dynamic
-
 //model
 typedef struct {
-    char kmer[KMER_SIZE + 1]; //KMER_SIZE+null character
+    //char kmer[KMER_SIZE + 1]; //KMER_SIZE+null character //can get rid of this
     float level_mean;
     float level_stdv;
     float sd_mean;
     float sd_stdv;
-    float weight;
+    //float weight;
 } model_t;
+
+//taken from nanopolish
+typedef struct {
+    // direct parameters that must be set
+    float scale;
+    float shift;
+    //float drift; = 0 always?
+    float var; // set later
+    //float scale_sd;
+    //float var_sd;
+
+    // derived parameters that are cached for efficiency
+    float log_var;
+    float scaled_var;
+    float log_scaled_var;
+
+} scalings_t;
+
+
+typedef struct {
+        int event_idx;
+        int kmer_idx;
+} EventKmerPair;
+
+//from nanopolish
+typedef struct {
+    int ref_pos;
+    int read_pos;
+} AlignedPair;
+
+//from nanopolish
+typedef struct {
+    int32_t start;
+    int32_t stop; // inclusive
+} index_pair_t;
+
+//from nanopolish
+typedef struct {
+    // ref data
+    //char* ref_name;
+    char ref_kmer[KMER_SIZE + 1];
+    int32_t ref_position;
+
+    // event data
+    int32_t read_idx;
+    //int32_t strand_idx;
+    int32_t event_idx;
+    bool rc;
+
+    // hmm data
+    char model_kmer[KMER_SIZE + 1];
+    char hmm_state;
+} event_alignment_t;
 
 typedef struct {
     // region string
-    char* region;
+    //char* region;
 
     // bam records
     bam1_t** bam_rec;
@@ -58,11 +127,27 @@ typedef struct {
     // records in the batch
     char** fasta_cache;
 
+    //read sequence //todo : optimise by grabbing it from bam seq. is it possible due to clipping?
+    char** read;
+    int32_t* read_len;
+
     // fast5 file //should flatten this to reduce mallocs
     fast5_t** f5;
 
     //event table
     event_table* et;
+
+    //scalings
+    scalings_t* scalings;
+
+    //aligned pairs
+    AlignedPair** event_align_pairs;
+    int32_t* n_event_align_pairs;
+
+    //event alignments
+    event_alignment_t** event_alignment;
+    int32_t* n_event_alignment;
+    double* events_per_base; //todo : do we need double?
 
 } db_t;
 
@@ -80,18 +165,29 @@ typedef struct {
     ReadDB* readbb;
 
     // models
-    model_t* model;
+    model_t* model; //dna model
+    model_t* cpgmodel;
 
     // options
     opt_t opt;
 
 } core_t;
 
-db_t* init_db();
+typedef struct {
+    core_t* core;
+    db_t* db;
+    int32_t starti;
+    int32_t endi;
+
+} pthread_arg_t;
+
+db_t* init_db(core_t* core);
 int32_t load_db(core_t* dg, db_t* db);
 core_t* init_core(const char* bamfilename, const char* fastafile,
                   const char* fastqfile, opt_t opt);
-void process_db(core_t* dg, db_t* db);
+void process_db(core_t* dg, db_t* db, double realtime0);
+void align_db(core_t* core, db_t* db);
+void output_db(core_t* core, db_t* db);
 void free_core(core_t* core);
 void free_db_tmp(db_t* db);
 void free_db(db_t* db);

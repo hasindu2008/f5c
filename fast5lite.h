@@ -40,6 +40,19 @@ typedef struct {
     float range;
     float sample_rate;
 
+    // computed scaling paramtersd
+    float scale;
+    float shift;
+    float drift;
+    float var;
+    float scale_sd;
+    float var_sd;
+
+    // derived parameters that are cached for efficiency. do we need these?
+    float log_var;
+    float scaled_var;
+    float log_scaled_var;
+
 } fast5_t;
 
 // The following was adapted from Nanopolish : nanopolish_fast5_io.cpp
@@ -106,7 +119,7 @@ static inline int32_t fast5_read(hid_t hdf5_file, fast5_t* f5) {
 
     sprintf(signal_path, "%s%s%s", RAW_ROOT, read_name, "/Signal");
 
-#ifdef DEBUG
+#ifdef DEBUG_SIGNAL_PATH
     printf("Signal path : %s\n", signal_path);
 #endif
     free(read_name);
