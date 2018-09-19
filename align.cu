@@ -351,7 +351,7 @@ __forceinline__ __device__ int32_t align_single(AlignedPair* out_2, char* sequen
 
 #ifdef DYNAMIC_PARALLELISM
         if(max_offset-min_offset>0){
-            int32_t BLOCK_LEN = 8;
+            int32_t BLOCK_LEN = 100;
             int grid=((max_offset-min_offset + BLOCK_LEN - 1) / BLOCK_LEN);
             int block=(BLOCK_LEN);
             adaptive_align_inner<<<grid, block>>>(bands,trace,band_lower_left,min_offset, max_offset, band_idx, kmer_ranks,scaling, models, events,p_stay);        
