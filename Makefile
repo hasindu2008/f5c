@@ -24,7 +24,7 @@ else
 	OBJ_CUDA = $(SRC_CUDA:.cu=_cuda.o)
 	CC_CUDA = nvcc
 	#CFLAGS_CUDA = -g  -G -Xcompiler -rdynamic  -O2 -std=c++11
-	CFLAGS_CUDA = -g  -O2 -std=c++11
+	CFLAGS_CUDA = -g  -O2 -std=c++11 -arch=sm_35
 	LDFLAGS += -L/usr/local/cuda/lib64/ -lcudart -lcudadevrt
 	OBJ += gpucode.o $(OBJ_CUDA)
 	CFLAGS += -DHAVE_CUDA=1
@@ -68,3 +68,5 @@ valgrind : $(BINARY)
 rsync :
 	rsync -av *.cu *.cuh $(SRC) $(DEPS) hasindu@kepler:/storage/hasindu/f5c/ && ssh kepler 'cd /storage/hasindu/f5c/ && make cuda=1'
 
+jetson:
+	rsync -av *.cu *.cuh $(SRC) $(DEPS) hasindu@jetson:~/f5c/ && ssh jetson 'cd ~/f5c/ && make cuda=1'

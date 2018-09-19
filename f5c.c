@@ -121,6 +121,9 @@ db_t* init_db(core_t* core) {
         (double*)malloc(sizeof(double*) * db->capacity_bam_rec);
     MALLOC_CHK(db->events_per_base);
 
+    db->read_stat_flag = (int32_t *)malloc(sizeof(int32_t) * db->capacity_bam_rec);
+    MALLOC_CHK(db->read_stat_flag);
+
     return db;
 }
 
@@ -209,6 +212,8 @@ int32_t load_db(core_t* core, db_t* db) {
                           1); // is +1 needed? do errorcheck
         strcpy(db->read[i], core->readbb->get_read_sequence(qname).c_str());
         db->read_len[i] = strlen(db->read[i]);
+
+        db->read_stat_flag[i] = 0; //reset the flag
     }
     // fprintf(stderr,"%s:: %d fast5 read\n",__func__,db->n_bam_rec);
 
@@ -357,6 +362,7 @@ void process_db(core_t* core, db_t* db, double realtime0) {
                 free(db->event_alignment[i]);
                 //free(db->event_align_pairs[i]);
                 //     g_failed_calibration_reads += 1; //todo : add these stats
+                db->read_stat_flag[i] |= FAILED_CALIBRATION;
                 continue;
             }
 
@@ -367,6 +373,7 @@ void process_db(core_t* core, db_t* db, double realtime0) {
             // this->events[strand_idx].clear();
             // this->events_per_base[strand_idx] = 0.0f;
             //free(db->event_align_pairs[i]);
+            db->read_stat_flag[i] |= FAILED_ALIGNMENT;
             // g_failed_alignment_reads += 1; //todo : add these stats
             continue;
         }
@@ -378,6 +385,7 @@ void process_db(core_t* core, db_t* db, double realtime0) {
             //     events[0].clear();
             //     events[1].clear();
             //free(db->event_align_pairs[i]);
+            db->read_stat_flag[i] |= FAILED_QUALITY_CHK;
             continue;
         }
 
@@ -407,6 +415,9 @@ void output_db(core_t* core, db_t* db) {
     if (core->opt.flag & F5C_PRINT_BANDED_ALN) {
         int32_t i = 0;
         for (i = 0; i < db->n_bam_rec; i++) {
+            if((db->read_stat_flag[i]) & FAILED_ALIGNMENT){
+                continue;
+            }
             printf(">%s\tN_ALGN_PAIR:%d\t{ref_os,read_pos}\n",
                    bam_get_qname(db->bam_rec[i]),
                    (int)db->n_event_align_pairs[i]);
@@ -425,6 +436,9 @@ void output_db(core_t* core, db_t* db) {
         printf("read\tshift\tscale\tvar\n");
 
         for (i = 0; i < db->n_bam_rec; i++) {
+            if((db->read_stat_flag[i])&(FAILED_ALIGNMENT|FAILED_CALIBRATION)){
+                continue;
+            }
             printf("%s\t%.2lf\t%.2lf\t%.2lf\n", bam_get_qname(db->bam_rec[i]),
                    db->scalings[i].shift, db->scalings[i].scale,
                    db->scalings[i].var);
@@ -463,6 +477,7 @@ void free_db(db_t* db) {
     free(db->event_alignment);
     free(db->n_event_alignment);
     free(db->events_per_base);
+    free(db->read_stat_flag);
 
     free(db);
 }

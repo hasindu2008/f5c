@@ -9,8 +9,9 @@
 #include "f5cmisc.cuh"
 #include "f5cmisc.h"
 
-#define CUDA_DEBUG 1
+
 //#define BLOCK_LEN 8
+
 
 #ifdef CONST_MEM
   __constant__ model_t model[4096];

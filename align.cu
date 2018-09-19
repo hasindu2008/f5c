@@ -107,6 +107,87 @@ log_probability_match_r9(scalings_t scaling, model_t* models, event_t* event,
 #define BAND_ARRAY(r, c) ( bands[((r)*(ALN_BANDWIDTH)+(c))] )
 #define TRACE_ARRAY(r, c) ( trace[((r)*(ALN_BANDWIDTH)+(c))] )
 
+#define FROM_D  0
+#define FROM_U  1
+#define FROM_L  2
+
+__global__ void adaptive_align_inner(float *bands,uint8_t *trace,EventKmerPair* band_lower_left,int min_offset, int max_offset, int band_idx, size_t* kmer_ranks,scalings_t scaling, model_t* models, event_t* events,double p_stay){
+    
+    double epsilon = 1e-10;
+    double lp_skip = log(epsilon);
+    double lp_stay = log(p_stay);
+    double lp_step = log(1.0 - exp(lp_skip) - exp(lp_stay));
+    double lp_trim = log(0.01);
+    int bandwidth = ALN_BANDWIDTH;
+
+    int tid=blockIdx.x*blockDim.x+threadIdx.x;
+    //for (int offset = min_offset; offset < max_offset; ++offset) {
+    if(tid < (max_offset-min_offset)) {
+        int offset=min_offset+tid;
+
+        int event_idx = event_at_offset(band_idx, offset);
+        int kmer_idx = kmer_at_offset(band_idx, offset);
+
+        size_t kmer_rank = kmer_ranks[kmer_idx];
+
+        int offset_up = band_event_to_offset(band_idx - 1, event_idx - 1);
+        int offset_left = band_kmer_to_offset(band_idx - 1, kmer_idx - 1);
+        int offset_diag = band_kmer_to_offset(band_idx - 2, kmer_idx - 1);
+
+#ifdef DEBUG_ADAPTIVE
+        // verify loop conditions
+        assert(kmer_idx >= 0 && kmer_idx < n_kmers);
+        assert(event_idx >= 0 && event_idx < n_events);
+        assert(offset_diag ==
+               band_event_to_offset(band_idx - 2, event_idx - 1));
+        assert(offset_up - offset_left == 1);
+        assert(offset >= 0 && offset < bandwidth);
+#endif //DEBUG_ADAPTIVE
+
+        float up = is_offset_valid(offset_up)
+                       ? BAND_ARRAY(band_idx - 1,offset_up)
+                       : -INFINITY;
+        float left = is_offset_valid(offset_left)
+                         ? BAND_ARRAY(band_idx - 1,offset_left)
+                         : -INFINITY;
+        float diag = is_offset_valid(offset_diag)
+                         ? BAND_ARRAY(band_idx - 2,offset_diag)
+                         : -INFINITY;
+
+        float lp_emission = log_probability_match_r9(
+            scaling, models, events, event_idx, kmer_rank, 0);
+        //fprintf(stderr, "lp emiision : %f , event idx %d, kmer rank %d\n", lp_emission,event_idx,kmer_rank);
+        float score_d = diag + lp_step + lp_emission;
+        float score_u = up + lp_stay + lp_emission;
+        float score_l = left + lp_skip;
+
+        float max_score = score_d;
+        uint8_t from = FROM_D;
+
+        max_score = score_u > max_score ? score_u : max_score;
+        from = max_score == score_u ? FROM_U : from;
+        max_score = score_l > max_score ? score_l : max_score;
+        from = max_score == score_l ? FROM_L : from;
+
+#ifdef DEBUG_ADAPTIVE
+        fprintf(stderr,
+                "[adafill] offset-up: %d offset-diag: %d offset-left: %d\n",
+                offset_up, offset_diag, offset_left);
+        fprintf(stderr, "[adafill] up: %.2lf diag: %.2lf left: %.2lf\n", up,
+                diag, left);
+        fprintf(stderr,
+                "[adafill] bi: %d o: %d e: %d k: %d s: %.2lf f: %d emit: "
+                "%.2lf\n",
+                band_idx, offset, event_idx, kmer_idx, max_score, from,
+                lp_emission);
+#endif //DEBUG_ADAPTIVE
+        BAND_ARRAY(band_idx,offset) = max_score;
+        TRACE_ARRAY(band_idx,offset) = from;
+        //fills += 1;
+    }
+}
+
+
 __forceinline__ __device__ int32_t align_single(AlignedPair* out_2, char* sequence,
                                 int32_t sequence_len, event_t* events,
                                 int32_t n_event, model_t* models,
@@ -122,9 +203,9 @@ __forceinline__ __device__ int32_t align_single(AlignedPair* out_2, char* sequen
     size_t n_kmers = sequence_len - k + 1;
     //fprintf(stderr,"n_kmers : %d\n",n_kmers);
     // backtrack markers
-    const uint8_t FROM_D = 0;
-    const uint8_t FROM_U = 1;
-    const uint8_t FROM_L = 2;
+    //const uint8_t FROM_D = 0;
+    //const uint8_t FROM_U = 1;
+    //const uint8_t FROM_L = 2;
 
     // qc
     double min_average_log_emission = -5.0;
@@ -268,6 +349,23 @@ __forceinline__ __device__ int32_t align_single(AlignedPair* out_2, char* sequen
         int max_offset = MIN(kmer_max_offset, event_max_offset);
         max_offset = MIN(max_offset, bandwidth);
 
+#ifdef DYNAMIC_PARALLELISM
+        if(max_offset-min_offset>0){
+            int32_t BLOCK_LEN = 8;
+            int grid=((max_offset-min_offset + BLOCK_LEN - 1) / BLOCK_LEN);
+            int block=(BLOCK_LEN);
+            adaptive_align_inner<<<grid, block>>>(bands,trace,band_lower_left,min_offset, max_offset, band_idx, kmer_ranks,scaling, models, events,p_stay);        
+            cudaDeviceSynchronize();
+            cudaError_t code = cudaGetLastError();
+            if (code != cudaSuccess) {
+                printf("grid %d, block %d\n",grid,block);
+                printf("Cuda error: %s \n in file : %s line number : %lu\n",
+                        cudaGetErrorString(code), __FILE__, __LINE__);
+                return; //todo : generalise
+            }
+        }
+
+#else //DYNAMIC_PARALLELISM
         for (int offset = min_offset; offset < max_offset; ++offset) {
             int event_idx = event_at_offset(band_idx, offset);
             int kmer_idx = kmer_at_offset(band_idx, offset);
@@ -286,7 +384,7 @@ __forceinline__ __device__ int32_t align_single(AlignedPair* out_2, char* sequen
                    band_event_to_offset(band_idx - 2, event_idx - 1));
             assert(offset_up - offset_left == 1);
             assert(offset >= 0 && offset < bandwidth);
-#endif
+#endif //DEBUG_ADAPTIVE
 
             float up = is_offset_valid(offset_up)
                            ? BAND_ARRAY(band_idx - 1,offset_up)
@@ -324,11 +422,12 @@ __forceinline__ __device__ int32_t align_single(AlignedPair* out_2, char* sequen
                     "%.2lf\n",
                     band_idx, offset, event_idx, kmer_idx, max_score, from,
                     lp_emission);
-#endif
+#endif //DEBUG_ADAPTIVE
             BAND_ARRAY(band_idx,offset) = max_score;
             TRACE_ARRAY(band_idx,offset) = from;
             fills += 1;
         }
+#endif  //dynamic paralellism        
     }
 
     //

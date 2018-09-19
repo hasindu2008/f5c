@@ -3,8 +3,9 @@
 
 #include <stdint.h>
 
+#define CUDA_DEBUG 1
 //#define CONST_MEM 1
-
+#define DYNAMIC_PARALLELISM 1
 
 /* check whether the last CUDA function or CUDA kernel launch is erroneous and if yes an error message will be printed
 and then the program will be aborted*/

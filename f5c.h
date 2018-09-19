@@ -14,7 +14,7 @@
 //#define HAVE_CUDA 1 //if compile for CUDA or not
 #define ALN_BANDWIDTH 100 // the band size in banded_alignment
 
-//flags
+//option flags
 #define F5C_PRINT_RAW 0x001     //print the raw signal to stdio
 #define F5C_SECONDARY_YES 0x002 //consider secondary reads
 #define F5C_SKIP_UNREADABLE                                                    \
@@ -23,6 +23,11 @@
 #define F5C_PRINT_BANDED_ALN 0x010
 #define F5C_PRINT_SCALING 0x020
 #define F5C_DISABLE_CUDA 0x040
+
+//flags for a read
+#define FAILED_CALIBRATION 0x001 //if the calibration failed
+#define FAILED_ALIGNMENT 0x002
+#define FAILED_QUALITY_CHK  0x004
 
 typedef struct {
     int32_t min_mapq;       //minimum mapq
@@ -148,6 +153,8 @@ typedef struct {
     event_alignment_t** event_alignment;
     int32_t* n_event_alignment;
     double* events_per_base; //todo : do we need double?
+
+    int32_t* read_stat_flag;
 
 } db_t;
 
