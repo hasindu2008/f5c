@@ -160,13 +160,13 @@ void align_cuda(core_t* core, db_t* db) {
 
     size_t sum_n_bands = sum_n_events + sum_read_len; //todo : can be optimised
 
-    size_t *kmer_ranks;
+    int32_t *kmer_ranks;
     float *bands;
     uint8_t *trace;
     EventKmerPair* band_lower_left;
 
-    print_size("kmer ranks",sizeof(size_t) * sum_read_len);
-    cudaMalloc((void**)&kmer_ranks,sizeof(size_t) * sum_read_len); //todo : optimise by the sum of n_kmers
+    print_size("kmer ranks",sizeof(int32_t) * sum_read_len);
+    cudaMalloc((void**)&kmer_ranks,sizeof(int32_t) * sum_read_len); //todo : optimise by the sum of n_kmers
     CUDA_CHK();
     print_size("bands",sizeof(float) * sum_n_bands * ALN_BANDWIDTH);
     cudaMalloc((void**)&bands,sizeof(float) * sum_n_bands * ALN_BANDWIDTH);
