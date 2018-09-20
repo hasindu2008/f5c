@@ -434,7 +434,7 @@ __forceinline__ __device__ int32_t align_single(AlignedPair* out_2, char* sequen
 #endif //DEBUG_ADAPTIVE
             BAND_ARRAY(band_idx,offset) = max_score;
             TRACE_ARRAY(band_idx,offset) = from;
-            fills += 1;
+            //fills += 1;
         }
 #endif  //dynamic paralellism        
     }
