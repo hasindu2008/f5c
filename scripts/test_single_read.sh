@@ -25,6 +25,8 @@ elif [[ "${#}" -eq 1 ]]; then
         valgrind "${exepath}" -b "${bamdir}" -g "${fadir}" -r "${fastqdir}"
     elif [[ "${1}" == "gdb" ]]; then
         gdb --args "${exepath}" -b "${bamdir}" -g "${fadir}" -r "${fastqdir}"
+	elif [[ "${1}" == "echo" ]]; then	
+		echo "${exepath}" -b "${bamdir}" -g "${fadir}" -r "${fastqdir}" --secondary=yes --min-mapq=20  ">" ${testdir}/result.txt
     else
         echo "wrong option"
 		exit 1

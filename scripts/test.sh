@@ -26,7 +26,9 @@ elif [[ "${#}" -eq 1 ]]; then
         valgrind "${exepath}" -b "${bamfile}" -g "${ref}" -r "${reads}" --secondary=yes --min-mapq=0
     elif [[ "${1}" == "gdb" ]]; then
         gdb --args "${exepath}" -b "${bamfile}" -g "${ref}" -r "${reads}" --secondary=yes --min-mapq=0
-    else
+    elif [[ "${1}" == "echo" ]]; then 
+		echo "${exepath}" -b "${bamfile}" -g "${ref}" -r "${reads}" --secondary=yes --min-mapq=0 --print-scaling=yes ">" ${testdir}/result.txt
+	else
         echo "wrong option"
 		exit 1
     fi
