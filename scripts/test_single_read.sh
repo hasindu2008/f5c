@@ -18,13 +18,15 @@ for file in "${bamdir}" "${fadir}" "${fastqdir}"; do
 done
 
 if [[ "${#}" -eq 0 ]]; then
-    "${exepath}" -b "${bamdir}" -g "${fadir}" -r "${fastqdir}" > ${testdir}/result.txt
+    "${exepath}" -b "${bamdir}" -g "${fadir}" -r "${fastqdir}" --secondary=yes --min-mapq=20  > ${testdir}/result.txt
 
 elif [[ "${#}" -eq 1 ]]; then
     if [[ "${1}" == "valgrind" ]]; then
         valgrind "${exepath}" -b "${bamdir}" -g "${fadir}" -r "${fastqdir}"
     elif [[ "${1}" == "gdb" ]]; then
         gdb --args "${exepath}" -b "${bamdir}" -g "${fadir}" -r "${fastqdir}"
+	elif [[ "${1}" == "echo" ]]; then	
+		echo "${exepath}" -b "${bamdir}" -g "${fadir}" -r "${fastqdir}" --secondary=yes --min-mapq=20  ">" ${testdir}/result.txt
     else
         echo "wrong option"
 		exit 1

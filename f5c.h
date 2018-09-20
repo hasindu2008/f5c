@@ -11,19 +11,31 @@
 #define m_min_mapping_quality 30
 #define KMER_SIZE 6 //hard coded for now; todo : change to dynamic
 #define NUM_KMER 4096
+//#define HAVE_CUDA 1 //if compile for CUDA or not
+#define ALN_BANDWIDTH 100 // the band size in banded_alignment
 
-//flags
+//option flags
 #define F5C_PRINT_RAW 0x001     //print the raw signal to stdio
 #define F5C_SECONDARY_YES 0x002 //consider secondary reads
 #define F5C_SKIP_UNREADABLE                                                    \
     0x004 //Skip unreadable fast5 and continue rather than exiting
 #define F5C_PRINT_EVENTS 0x008
+#define F5C_PRINT_BANDED_ALN 0x010
+#define F5C_PRINT_SCALING 0x020
+#define F5C_DISABLE_CUDA 0x040
+
+//flags for a read
+#define FAILED_CALIBRATION 0x001 //if the calibration failed
+#define FAILED_ALIGNMENT 0x002
+#define FAILED_QUALITY_CHK  0x004
 
 typedef struct {
     int32_t min_mapq;       //minimum mapq
     const char* model_file; //name of the model file
     uint32_t flag;
     int32_t batch_size;
+    int32_t num_thread;
+    int32_t cuda_block_size;
 } opt_t;
 
 // from scrappie
@@ -60,7 +72,7 @@ typedef struct {
     float scale;
     float shift;
     //float drift; = 0 always?
-    float var;
+    float var; // set later
     //float scale_sd;
     //float var_sd;
 
@@ -70,6 +82,12 @@ typedef struct {
     float log_scaled_var;
 
 } scalings_t;
+
+
+typedef struct {
+        int event_idx;
+        int kmer_idx;
+} EventKmerPair;
 
 //from nanopolish
 typedef struct {
@@ -116,12 +134,27 @@ typedef struct {
 
     //read sequence //todo : optimise by grabbing it from bam seq. is it possible due to clipping?
     char** read;
+    int32_t* read_len;
 
     // fast5 file //should flatten this to reduce mallocs
     fast5_t** f5;
 
     //event table
     event_table* et;
+
+    //scalings
+    scalings_t* scalings;
+
+    //aligned pairs
+    AlignedPair** event_align_pairs;
+    int32_t* n_event_align_pairs;
+
+    //event alignments
+    event_alignment_t** event_alignment;
+    int32_t* n_event_alignment;
+    double* events_per_base; //todo : do we need double?
+
+    int32_t* read_stat_flag;
 
 } db_t;
 
@@ -147,11 +180,20 @@ typedef struct {
 
 } core_t;
 
+typedef struct {
+    core_t* core;
+    db_t* db;
+    int32_t starti;
+    int32_t endi;
+
+} pthread_arg_t;
+
 db_t* init_db(core_t* core);
 int32_t load_db(core_t* dg, db_t* db);
 core_t* init_core(const char* bamfilename, const char* fastafile,
                   const char* fastqfile, opt_t opt);
-void process_db(core_t* dg, db_t* db);
+void process_db(core_t* dg, db_t* db, double realtime0);
+void align_db(core_t* core, db_t* db);
 void output_db(core_t* core, db_t* db);
 void free_core(core_t* core);
 void free_db_tmp(db_t* db);

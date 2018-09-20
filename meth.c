@@ -2,46 +2,134 @@
 #include <assert.h>
 #include <vector>
 
+#define METHYLATED_SYMBOL 'M'
+// IUPAC alphabet
+bool isUnambiguous(char c) {
+    switch (c) {
+        case 'A':
+        case 'C':
+        case 'G':
+        case 'T':
+            return true;
+        default:
+            return false;
+    }
+}
+
+// Returns true if c is a valid ambiguity code
+bool isAmbiguous(char c) {
+    switch (c) {
+        case 'M':
+        case 'R':
+        case 'W':
+        case 'S':
+        case 'Y':
+        case 'K':
+        case 'V':
+        case 'H':
+        case 'D':
+        case 'B':
+        case 'N':
+            return true;
+        default:
+            return false;
+    }
+}
+
+std::string getPossibleSymbols(char c) {
+    switch (c) {
+        case 'A':
+            return "A";
+        case 'C':
+            return "C";
+        case 'G':
+            return "G";
+        case 'T':
+            return "T";
+        case 'M':
+            return "AC";
+        case 'R':
+            return "AG";
+        case 'W':
+            return "AT";
+        case 'S':
+            return "CG";
+        case 'Y':
+            return "CT";
+        case 'K':
+            return "GT";
+        case 'V':
+            return "ACG";
+        case 'H':
+            return "ACT";
+        case 'D':
+            return "AGT";
+        case 'B':
+            return "CGT";
+        case 'N':
+            return "ACGT";
+        default:
+            return "";
+    }
+}
+
+// Returns true if c is a valid symbol in this alphabet
+bool isValid(char c) { return isUnambiguous(c) || isAmbiguous(c); }
+
+const char* complement = "TGCA";
+const uint8_t rank[256] = {
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 2,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+
 // reverse-complement a string
 // when the string contains methylated bases, the methylation
 // symbol transfered to the output strand in the appropriate position
-virtual std::string reverse_complement(const std::string& str) const {
+std::string reverse_complement(const std::string& str) {
     std::string out(str.length(), 'A');
     size_t i = 0;             // input
     int j = str.length() - 1; // output
     while (i < str.length()) {
-        int recognition_index = -1;
-        RecognitionMatch match;
+        // int recognition_index = -1;
+        // RecognitionMatch match;
 
-        // Does this location (partially) match a methylated recognition site?
-        for (size_t j = 0; j < num_recognition_sites(); ++j) {
-            match = match_to_site(str, i, get_recognition_site_methylated(j),
-                                  recognition_length());
-            if (match.length > 0 && match.covers_methylated_site) {
-                recognition_index = j;
-                break;
-            }
-        }
+        // // Does this location (partially) match a methylated recognition site?
+        // for (size_t j = 0; j < num_recognition_sites(); ++j) {
+        //     match = match_to_site(str, i, get_recognition_site_methylated(j),
+        //                           recognition_length());
+        //     if (match.length > 0 && match.covers_methylated_site) {
+        //         recognition_index = j;
+        //         break;
+        //     }
+        // }
 
         // If this subsequence matched a methylated recognition site,
         // copy the complement of the site to the output
-        if (recognition_index != -1) {
-            for (size_t k = match.offset; k < match.offset + match.length;
-                 ++k) {
-                out[j--] = get_recognition_site_methylated_complement(
-                    recognition_index)[k];
-                i += 1;
-            }
-        } else {
-            // complement a single base
-            assert(str[i] != METHYLATED_SYMBOL);
-            out[j--] = complement(str[i++]);
-        }
+        // if (recognition_index != -1) {
+        //     for (size_t k = match.offset; k < match.offset + match.length;
+        //          ++k) {
+        //         out[j--] = get_recognition_site_methylated_complement(
+        //             recognition_index)[k];
+        //         i += 1;
+        //     }
+        // } else {
+        // complement a single base
+        assert(str[i] != METHYLATED_SYMBOL);
+        out[j--] = complement[rank[(int)str[i++]]];
+        // }
     }
     return out;
 }
 
-virtual std::string disambiguate(const std::string& str) const {
+std::string disambiguate(const std::string& str) {
     // create output and convert lower case to upper case
     std::string out(str);
     std::transform(out.begin(), out.end(), out.begin(), ::toupper);
@@ -65,8 +153,9 @@ virtual std::string disambiguate(const std::string& str) const {
 
         // disambiguate if not a recognition site
         //if(!is_recognition_site) {
-        assert(IUPAC::isValid(out[i]));
-        out[i] = IUPAC::getPossibleSymbols(out[i])[0];
+
+        assert(isValid(out[i]));
+        out[i] = getPossibleSymbols(out[i])[0];
         stride = 1;
         //}
 
@@ -75,12 +164,48 @@ virtual std::string disambiguate(const std::string& str) const {
     return out;
 }
 
+bool find_iter_by_ref_bounds(const std::vector<AlignedPair>& pairs,
+                             int ref_start, int ref_stop,
+                             AlignedPairConstIter& start_iter,
+                             AlignedPairConstIter& stop_iter) {
+    AlignedPairRefLBComp lb_comp;
+    start_iter =
+        std::lower_bound(pairs.begin(), pairs.end(), ref_start, lb_comp);
+
+    stop_iter = std::lower_bound(pairs.begin(), pairs.end(), ref_stop, lb_comp);
+
+    if (start_iter == pairs.end() || stop_iter == pairs.end())
+        return false;
+
+    // require at least one aligned reference base at or outside the boundary
+    bool left_bounded =
+        start_iter->ref_pos <= ref_start ||
+        (start_iter != pairs.begin() && (start_iter - 1)->ref_pos <= ref_start);
+
+    bool right_bounded =
+        stop_iter->ref_pos >= ref_stop ||
+        (stop_iter != pairs.end() && (stop_iter + 1)->ref_pos >= ref_start);
+
+    return left_bounded && right_bounded;
+}
+
+bool find_by_ref_bounds(const std::vector<AlignedPair>& pairs, int ref_start,
+                        int ref_stop, int& read_start, int& read_stop) {
+    AlignedPairConstIter start_iter;
+    AlignedPairConstIter stop_iter;
+    bool bounded = find_iter_by_ref_bounds(pairs, ref_start, ref_stop,
+                                           start_iter, stop_iter);
+    if (bounded) {
+        read_start = start_iter->read_pos;
+        read_stop = stop_iter->read_pos;
+        return true;
+    } else {
+        return false;
+    }
+}
+
 // Test CpG sites in this read for methylation
-void calculate_methylation_for_read(char* ref, const OutputHandles& handles,
-                                    const ReadDB& read_db, const faidx_t* fai,
-                                    const bam_hdr_t* hdr, const bam1_t* record,
-                                    size_t read_idx, int region_start,
-                                    int region_end) {
+void calculate_methylation_for_read(char* ref) {
     // Load a squiggle read for the mapped read
     // std::string read_name = bam_get_qname(record);
     // SquiggleRead sr(read_name, read_db);

@@ -6,12 +6,14 @@ die() {
     exit 1
 }
 
-exepath="./f5c"
-testdir="test/ecoli_2kb_region/"
+exepath="f5c"
+testdir="/mnt/f/share/778Nanopore/fastq"
 
-bamfile="${testdir}reads.sorted.bam"
-ref="${testdir}draft.fa"
-reads="${testdir}reads.fasta"
+cd $testdir || die "$testdir does not exist"
+
+bamfile="740475-67.bam"
+ref="/mnt/c/genome/reference/hg38noAlt.fa"
+reads="740475-67.fastq"
 
 
 for file in "${bamfile}" "${ref}" "${reads}"; do
@@ -19,16 +21,14 @@ for file in "${bamfile}" "${ref}" "${reads}"; do
 done
 
 if [[ "${#}" -eq 0 ]]; then
-    "${exepath}" -b "${bamfile}" -g "${ref}" -r "${reads}" --secondary=yes --min-mapq=0 --print-scaling=yes> ${testdir}/result.txt
-	diff -q ${testdir}/testresult.exp ${testdir}/result.txt  || die "${file}: Diff failed" 
+    "${exepath}" -b "${bamfile}" -g "${ref}" -r "${reads}" --secondary=yes --min-mapq=0 > ${testdir}/result.txt
+
 elif [[ "${#}" -eq 1 ]]; then
     if [[ "${1}" == "valgrind" ]]; then
         valgrind "${exepath}" -b "${bamfile}" -g "${ref}" -r "${reads}" --secondary=yes --min-mapq=0
     elif [[ "${1}" == "gdb" ]]; then
         gdb --args "${exepath}" -b "${bamfile}" -g "${ref}" -r "${reads}" --secondary=yes --min-mapq=0
-    elif [[ "${1}" == "echo" ]]; then 
-		echo "${exepath}" -b "${bamfile}" -g "${ref}" -r "${reads}" --secondary=yes --min-mapq=0 --print-scaling=yes ">" ${testdir}/result.txt
-	else
+    else
         echo "wrong option"
 		exit 1
     fi
