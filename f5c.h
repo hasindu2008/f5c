@@ -155,6 +155,8 @@ typedef struct {
     int32_t* n_event_alignment;
     double* events_per_base; //todo : do we need double?
 
+    index_pair_t** base_to_event_map;
+
     int32_t* read_stat_flag;
 
 } db_t;

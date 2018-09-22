@@ -121,6 +121,10 @@ db_t* init_db(core_t* core) {
         (double*)malloc(sizeof(double*) * db->capacity_bam_rec);
     MALLOC_CHK(db->events_per_base);
 
+    db->base_to_event_map =
+        (index_pair_t**)malloc(sizeof(index_pair_t*) * db->capacity_bam_rec);
+    MALLOC_CHK(db->base_to_event_map);
+
     db->read_stat_flag = (int32_t *)malloc(sizeof(int32_t) * db->capacity_bam_rec);
     MALLOC_CHK(db->read_stat_flag);
 
@@ -330,9 +334,13 @@ void process_db(core_t* core, db_t* db, double realtime0) {
         db->n_event_alignment[i] = 0;
         db->events_per_base[i] = 0; //todo : is double needed? not just int8?
 
+        int32_t n_kmers = db->read_len[i] - KMER_SIZE + 1;
+        db->base_to_event_map[i]=(index_pair_t*)(malloc(sizeof(index_pair_t) * n_kmers));
+        MALLOC_CHK(db->base_to_event_map[i]);
+
         if (db->n_event_align_pairs[i] > 0) {
             // prepare data structures for the final calibration
-            int32_t n_kmers = db->read_len[i] - KMER_SIZE + 1;
+            
             db->event_alignment[i] = (event_alignment_t*)malloc(
                 sizeof(event_alignment_t) * db->n_event_align_pairs[i]);
             MALLOC_CHK(db->event_alignment[i]);
@@ -341,9 +349,10 @@ void process_db(core_t* core, db_t* db, double realtime0) {
             //     fprintf(stderr, "%d-%d\n",event_align_pairs[j].ref_pos,event_align_pairs[j].read_pos);
             // }
 
+
             //todo : verify if this n is needed is needed
             db->n_event_alignment[i] = postalign(
-                db->event_alignment[i], &db->events_per_base[i], db->read[i],
+                db->event_alignment[i],db->base_to_event_map[i], &db->events_per_base[i], db->read[i],
                 n_kmers, db->event_align_pairs[i], db->n_event_align_pairs[i]);
 
             //fprintf(stderr,"n_event_alignment %d\n",n_events);
@@ -389,7 +398,8 @@ void process_db(core_t* core, db_t* db, double realtime0) {
             continue;
         }
 
-        //calculate_methylation_for_read(ref);
+        calculate_methylation_for_read(db->fasta_cache[i], db->bam_rec[i], db->read_len[i], db->et[i].event, db->base_to_event_map[i],
+db->scalings[i], core->cpgmodel);
     }
 
     return;
@@ -457,6 +467,7 @@ void free_db_tmp(db_t* db) {
         free(db->f5[i]);
         free(db->et[i].event);
         free(db->event_align_pairs[i]);
+        free(db->base_to_event_map[i]);
     }
 }
 
@@ -477,6 +488,7 @@ void free_db(db_t* db) {
     free(db->event_alignment);
     free(db->n_event_alignment);
     free(db->events_per_base);
+    free(db->base_to_event_map);
     free(db->read_stat_flag);
 
     free(db);

@@ -25,7 +25,7 @@ scalings_t estimate_scalings_using_mom(char* sequence, int32_t sequence_len,
 int32_t align(AlignedPair* out_2, char* sequence, int32_t sequence_len,
               event_table events, model_t* models, scalings_t scaling,
               float sample_rate);
-int32_t postalign(event_alignment_t* alignment, double* events_per_base,
+int32_t postalign(event_alignment_t* alignment, index_pair_t* base_to_event_map, double* events_per_base,
                   char* sequence, int32_t n_kmers, AlignedPair* event_alignment,
                   int32_t n_events);
 bool recalibrate_model(model_t* pore_model, event_table et,
@@ -39,6 +39,8 @@ float profile_hmm_score(const char *m_seq,const char *m_rc_seq, event_t* event, 
     int8_t event_stride,
     uint8_t rc
 );
+void calculate_methylation_for_read(char* ref, bam1_t* record, int32_t read_length, event_t* event, index_pair_t* base_to_event_map,
+scalings_t scaling, model_t* cpgmodel);
 
 #ifdef HAVE_CUDA
 void align_cuda(core_t* core, db_t* db);

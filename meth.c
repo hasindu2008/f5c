@@ -62,7 +62,7 @@ std::vector<AlignedSegment> get_aligned_segments(const bam1_t* record, int read_
     
     int ref_pos = c->pos;
 
-    for (int ci = 0; ci < c->n_cigar; ++ci) {
+    for (uint32_t ci = 0; ci < c->n_cigar; ++ci) {
         
         int cigar_len = cigar[ci] >> 4;
         int cigar_op = cigar[ci] & 0xf;
@@ -146,7 +146,7 @@ inline int32_t flip_k_strand(int32_t read_length,int32_t k_idx, uint32_t k)
     return read_length - k_idx - k;
 }
 
-std::vector<AlignedPair> get_event_alignment_record(const bam1_t* record,size_t read_length, index_pair_t* base_to_event_map)
+std::vector<AlignedPair> get_event_alignment_record(const bam1_t* record,int32_t read_length, index_pair_t* base_to_event_map)
 {
 
     uint8_t rc = bam_is_rev(record);
@@ -165,7 +165,7 @@ std::vector<AlignedPair> get_event_alignment_record(const bam1_t* record,size_t 
 
     std::vector<AlignedPair>  aligned_events;
     //this->sr = sr;
-    size_t k = KMER_SIZE;
+    int32_t k = KMER_SIZE;
     //size_t read_length = this->sr->read_sequence.length();
     
     for(size_t i = 0; i < seq_record.size(); ++i) {
@@ -624,8 +624,15 @@ scalings_t scaling, model_t* cpgmodel) {
         const char* m_seq = subseq.c_str();
         const char* m_rc_seq = rc_subseq.c_str();
         
-        profile_hmm_score(m_seq,m_rc_seq, event, scaling, cpgmodel, event_start_idx, event_stop_idx,
+        fprintf(stderr,"m_seq : %s\n",m_seq);
+        fprintf(stderr,"m_rc_seq : %s\n",m_rc_seq);
+        fprintf(stderr,"event_start_idx %d, event_stop_idx %d, event_stride %d, rc %d\n",event_start_idx,event_stop_idx,event_stride,rc);
+
+
+        double unmethylated_score=profile_hmm_score(m_seq,m_rc_seq, event, scaling, cpgmodel, event_start_idx, event_stop_idx,
         strand,event_stride,rc);
+
+
 
 #if 0
 
