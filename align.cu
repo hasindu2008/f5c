@@ -359,8 +359,8 @@ __forceinline__ __device__ int32_t align_single(AlignedPair* out_2, char* sequen
         max_offset = MIN(max_offset, bandwidth);
 
 #ifdef DYNAMIC_PARALLELISM
-        if(max_offset-min_offset>0){
-            int32_t BLOCK_LEN = 100;
+        if(max_offset-min_offset > DYNAMIC_THRESH){
+            int32_t BLOCK_LEN = DYNAMIC_BLOCK_LEN;
             int grid=((max_offset-min_offset + BLOCK_LEN - 1) / BLOCK_LEN);
             int block=(BLOCK_LEN);
             adaptive_align_inner<<<grid, block>>>(bands,trace,band_lower_left,min_offset, max_offset, band_idx, kmer_ranks,scaling, models, events,p_stay);        
@@ -373,8 +373,9 @@ __forceinline__ __device__ int32_t align_single(AlignedPair* out_2, char* sequen
                 return 0; //todo : generalise
             }
         }
+        else{
+#endif  //dynamic paralellism 
 
-#else //DYNAMIC_PARALLELISM
         for (int offset = min_offset; offset < max_offset; ++offset) {
             int event_idx = event_at_offset(band_idx, offset);
             int kmer_idx = kmer_at_offset(band_idx, offset);
@@ -436,7 +437,11 @@ __forceinline__ __device__ int32_t align_single(AlignedPair* out_2, char* sequen
             TRACE_ARRAY(band_idx,offset) = from;
             //fills += 1;
         }
-#endif  //dynamic paralellism        
+
+#ifdef DYNAMIC_PARALLELISM
+        }
+#endif  //dynamic paralellism     
+
     }
 
     //

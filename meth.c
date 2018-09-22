@@ -1,8 +1,177 @@
 #include "f5c.h"
 #include <assert.h>
 #include <vector>
+#include <algorithm>
+#include <iostream>
 
 #define METHYLATED_SYMBOL 'M'
+
+
+typedef std::vector<AlignedPair> AlignedSegment;
+
+
+// structs
+struct SequenceAlignmentRecord
+{
+    SequenceAlignmentRecord(const bam1_t* record);
+
+    std::string read_name;
+    std::string sequence;
+    std::vector<AlignedPair> aligned_bases;
+    uint8_t rc; // with respect to reference genome
+};
+
+struct EventAlignmentRecord
+{
+    EventAlignmentRecord() {}
+    EventAlignmentRecord(size_t read_length,
+                         const int strand_idx,
+                         const SequenceAlignmentRecord& seq_record);
+
+    //SquiggleRead* sr;
+    uint8_t rc; // with respect to reference genome
+    uint8_t strand; // 0 = template, 1 = complement
+    int8_t stride; // whether event indices increase or decrease along the reference
+    std::vector<AlignedPair> aligned_events;
+};
+
+
+std::vector<AlignedSegment> get_aligned_segments(const bam1_t* record, int read_stride)
+{
+    std::vector<AlignedSegment> out;
+    // Initialize first segment
+    out.push_back(AlignedSegment());
+
+    // This code is derived from bam_fillmd1_core
+    //uint8_t *ref = NULL;
+    //uint8_t *seq = bam_get_seq(record);
+    uint32_t *cigar = bam_get_cigar(record);
+    const bam1_core_t *c = &record->core;
+
+    // read pos is an index into the original sequence that is present in the FASTQ
+    // on the strand matching the reference
+    int read_pos = 0;
+
+    // query pos is an index in the query string that is recorded in the bam
+    // we record this as a sanity check
+    //int query_pos = 0;
+    
+    int ref_pos = c->pos;
+
+    for (int ci = 0; ci < c->n_cigar; ++ci) {
+        
+        int cigar_len = cigar[ci] >> 4;
+        int cigar_op = cigar[ci] & 0xf;
+
+        // Set the amount that the ref/read positions should be incremented
+        // based on the cigar operation
+        int read_inc = 0;
+        int ref_inc = 0;
+ 
+        // Process match between the read and the reference
+        bool is_aligned = false;
+        if(cigar_op == BAM_CMATCH || cigar_op == BAM_CEQUAL || cigar_op == BAM_CDIFF) {
+            is_aligned = true;
+            read_inc = read_stride;
+            ref_inc = 1;
+        } else if(cigar_op == BAM_CDEL) {
+            ref_inc = 1;   
+        } else if(cigar_op == BAM_CREF_SKIP) {
+            // end the current segment and start a new one
+            out.push_back(AlignedSegment());
+            ref_inc = 1;
+        } else if(cigar_op == BAM_CINS) {
+            read_inc = read_stride;
+        } else if(cigar_op == BAM_CSOFT_CLIP) {
+            read_inc = 1; // special case, do not use read_stride
+        } else if(cigar_op == BAM_CHARD_CLIP) {
+            read_inc = 0;
+        } else {
+            printf("Cigar: %d\n", cigar_op);
+            assert(false && "Unhandled cigar operation");
+        }
+
+        // Iterate over the pairs of aligned bases
+        for(int j = 0; j < cigar_len; ++j) {
+            if(is_aligned) {
+                out.back().push_back({ref_pos, read_pos});
+            }
+
+            // increment
+            read_pos += read_inc;
+            ref_pos += ref_inc;
+        }
+    }
+    return out;
+}
+//
+// SequenceAlignmentRecord
+//
+SequenceAlignmentRecord::SequenceAlignmentRecord(const bam1_t* record)
+{
+    this->read_name = bam_get_qname(record);
+    this->rc = bam_is_rev(record);
+
+    // copy sequence out of the record
+    uint8_t* pseq = bam_get_seq(record);
+    this->sequence.resize(record->core.l_qseq);
+    for(int i = 0; i < record->core.l_qseq; ++i) {
+        this->sequence[i] = seq_nt16_str[bam_seqi(pseq, i)];
+    }
+    
+    // copy read base-to-reference alignment
+    std::vector<AlignedSegment> alignments = get_aligned_segments(record);
+    if(alignments.size() > 1) {
+        fprintf(stderr, "Error: spliced alignments detected when loading read %s\n", this->read_name.c_str());
+        fprintf(stderr, "Please align the reads to the genome using a non-spliced aligner\n");
+        exit(EXIT_FAILURE);
+    }
+    assert(!alignments.empty());
+    this->aligned_bases = alignments[0];
+}
+
+//
+// EventAlignmentRecord
+//
+EventAlignmentRecord::EventAlignmentRecord(size_t read_length,
+                                           const int strand_idx,
+                                           const SequenceAlignmentRecord& seq_record)
+{
+    //this->sr = sr;
+    size_t k = KMER_SIZE;
+    //size_t read_length = this->sr->read_sequence.length();
+    
+    for(size_t i = 0; i < seq_record.aligned_bases.size(); ++i) {
+        // skip positions at the boundary
+        if(seq_record.aligned_bases[i].read_pos < k) {
+            continue;
+        }
+
+        if(seq_record.aligned_bases[i].read_pos + k >= read_length) {
+            continue;
+        }
+
+        size_t kmer_pos_ref_strand = seq_record.aligned_bases[i].read_pos;
+        size_t kmer_pos_read_strand = seq_record.rc ? this->sr->flip_k_strand(kmer_pos_ref_strand, k) : kmer_pos_ref_strand;
+        size_t event_idx = this->sr->get_closest_event_to(kmer_pos_read_strand, strand_idx);
+        this->aligned_events.push_back( { seq_record.aligned_bases[i].ref_pos, (int)event_idx });
+    }
+    this->rc = strand_idx == 0 ? seq_record.rc : !seq_record.rc;
+    this->strand = strand_idx;
+
+    if(!this->aligned_events.empty()) {
+        this->stride = this->aligned_events.front().read_pos < this->aligned_events.back().read_pos ? 1 : -1;
+
+        // check for a degenerate alignment and discard the events if so
+        if(this->aligned_events.front().read_pos == this->aligned_events.back().read_pos) {
+            this->aligned_events.clear();
+        }
+    } else {
+        this->stride = 1;
+    }
+}
+
+
 // IUPAC alphabet
 bool isUnambiguous(char c) {
     switch (c) {
@@ -164,6 +333,7 @@ std::string disambiguate(const std::string& str) {
     return out;
 }
 
+#if 0
 bool find_iter_by_ref_bounds(const std::vector<AlignedPair>& pairs,
                              int ref_start, int ref_stop,
                              AlignedPairConstIter& start_iter,
@@ -204,8 +374,40 @@ bool find_by_ref_bounds(const std::vector<AlignedPair>& pairs, int ref_start,
     }
 }
 
+#endif
+
+
+struct ScoredSite
+{
+    ScoredSite() 
+    { 
+        ll_unmethylated[0] = 0;
+        ll_unmethylated[1] = 0;
+        ll_methylated[0] = 0;
+        ll_methylated[1] = 0;
+        strands_scored = 0;
+    }
+
+    std::string chromosome;
+    int start_position;
+    int end_position;
+    int n_cpg;
+    std::string sequence;
+
+    // scores per strand
+    double ll_unmethylated[2];
+    double ll_methylated[2];
+    int strands_scored;
+
+    //
+    static bool sort_by_position(const ScoredSite& a, const ScoredSite& b) { return a.start_position < b.start_position; }
+
+};
+
+
+
 // Test CpG sites in this read for methylation
-void calculate_methylation_for_read(char* ref) {
+void calculate_methylation_for_read(char* ref, bam1_t* record) {
     // Load a squiggle read for the mapped read
     // std::string read_name = bam_get_qname(record);
     // SquiggleRead sr(read_name, read_db);
@@ -231,8 +433,8 @@ void calculate_methylation_for_read(char* ref) {
     // }
 
     // Build the event-to-reference map for this read from the bam record
-    //SequenceAlignmentRecord seq_align_record(record);
-    //EventAlignmentRecord event_align_record(&sr, strand_idx, seq_align_record);
+    SequenceAlignmentRecord seq_align_record(record);
+    EventAlignmentRecord event_align_record(&sr, strand_idx, seq_align_record);
 
     std::vector<double> site_scores;
     std::vector<int> site_starts;
@@ -240,8 +442,8 @@ void calculate_methylation_for_read(char* ref) {
     std::vector<int> site_count;
 
     // std::string contig = hdr->target_name[record->core.tid];
-    // int ref_start_pos = record->core.pos;
-    // int ref_end_pos =  bam_endpos(record);
+    int ref_start_pos = record->core.pos;
+    int ref_end_pos =  bam_endpos(record);
 
     // // Extract the reference sequence for this region
     // int fetched_len = 0;
@@ -302,10 +504,12 @@ void calculate_methylation_for_read(char* ref) {
         int calling_start = sub_start_pos + ref_start_pos;
         int calling_end = sub_end_pos + ref_start_pos;
 
+
+#if 0
         // using the reference-to-event map, look up the event indices for this segment
         int e1, e2;
-        bool bounded = AlignmentDB::_find_by_ref_bounds(
-            event_align_record.aligned_events, calling_start, calling_end, e1,
+        bool bounded = find_by_ref_bounds(
+            aligned_events, calling_start, calling_end, e1,
             e2);
 
         double ratio = fabs(e2 - e1) / (calling_start - calling_end);
@@ -372,5 +576,8 @@ void calculate_methylation_for_read(char* ref) {
         iter->second.ll_unmethylated[strand_idx] = unmethylated_score;
         iter->second.ll_methylated[strand_idx] = methylated_score;
         iter->second.strands_scored += 1;
+
+#endif
+
     } // for group
 }
