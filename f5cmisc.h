@@ -7,6 +7,14 @@
 #include <sys/time.h>
 
 #define MIN_CALIBRATION_VAR 2.5
+#define MAX_EVENT_TO_BP_RATIO 20
+
+// Flags to modify the behaviour of the HMM
+enum HMMAlignmentFlags
+{
+    HAF_ALLOW_PRE_CLIP = 1, // allow events to go unmatched before the aligning region
+    HAF_ALLOW_POST_CLIP = 2 // allow events to go unmatched after the aligning region
+};
 
 event_table getevents(size_t nsample, float* rawptr);
 void read_model(model_t* model, const char* file);
@@ -24,6 +32,13 @@ bool recalibrate_model(model_t* pore_model, event_table et,
                        scalings_t* scallings,
                        const event_alignment_t* alignment_output,
                        int32_t num_alignments, bool scale_var);
+
+float profile_hmm_score(const char *m_seq,const char *m_rc_seq, event_t* event, scalings_t scaling,  model_t* cpgmodel, uint32_t event_start_idx,
+    uint32_t event_stop_idx,
+    uint8_t strand,
+    int8_t event_stride,
+    uint8_t rc
+);
 
 #ifdef HAVE_CUDA
 void align_cuda(core_t* core, db_t* db);

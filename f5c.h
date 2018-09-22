@@ -101,6 +101,7 @@ typedef struct {
     int32_t stop; // inclusive
 } index_pair_t;
 
+
 //from nanopolish
 typedef struct {
     // ref data
