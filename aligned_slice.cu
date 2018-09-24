@@ -2,15 +2,12 @@
 #include <assert.h>
 #include "f5cmisc.cuh"
 
+#ifdef ALIGN_KERNEL_SLICED
+
 //#define DEBUG_ESTIMATED_SCALING 1
 //#define DEBUG_RECALIB_SCALING 1
 //#define DEBUG_ADAPTIVE 1
 
-#ifndef ALIGN_KERNEL_SLICED
-
-#ifdef CONST_MEM
-  extern __constant__ model_t model[4096];
-#endif
 
 //todo : can make more efficient using bit encoding
 //todo : is inlining correct?
@@ -199,9 +196,10 @@ __global__ void adaptive_align_inner(float *bands,uint8_t *trace,EventKmerPair* 
         TRACE_ARRAY(band_idx,offset) = from;
         //fills += 1;
     }
+
 }
 
-__forceinline__ __device__ int32_t align_single(AlignedPair* out_2, char* sequence,
+__forceinline__ __device__ void align_single_pre(AlignedPair* out_2, char* sequence,
                                 int32_t sequence_len, event_t* events,
                                 int32_t n_event, model_t* models,
                                 scalings_t scaling,int32_t* kmer_ranks,float *bands,uint8_t *trace, EventKmerPair* band_lower_left) {
@@ -313,6 +311,53 @@ __forceinline__ __device__ int32_t align_single(AlignedPair* out_2, char* sequen
             first_trim_offset, 0, -1, BAND_ARRAY(1,first_trim_offset);
 #endif
 
+}
+
+__forceinline__ __device__ void align_single(AlignedPair* out_2, char* sequence,
+                                int32_t sequence_len, event_t* events,
+                                int32_t n_event, model_t* models,
+                                scalings_t scaling,int32_t* kmer_ranks,float *bands,uint8_t *trace, EventKmerPair* band_lower_left) {
+
+    //fprintf(stderr, "%s\n", sequence);
+    //fprintf(stderr, "Scaling %f %f", scaling.scale, scaling.shift);
+
+    //size_t strand_idx = 0;
+    //size_t k = 6;
+
+    // size_t n_events = events[strand_idx].n;
+    int32_t n_events = n_event;
+    int32_t n_kmers = sequence_len - KMER_SIZE + 1;
+    //fprintf(stderr,"n_kmers : %d\n",n_kmers);
+    // backtrack markers
+    //const uint8_t FROM_D = 0;
+    //const uint8_t FROM_U = 1;
+    //const uint8_t FROM_L = 2;
+
+    // qc
+    //double min_average_log_emission = -5.0;
+    //int max_gap_threshold = 50;
+
+    // banding
+    //int bandwidth = ALN_BANDWIDTH;
+    //half_bandwidth = bandwidth / 2;
+
+    // transition penalties
+    float events_per_kmer = (float)n_events / n_kmers;
+    float p_stay = 1 - (1 / (events_per_kmer + 1));
+
+    // setting a tiny skip penalty helps keep the true alignment within the adaptive band
+    // this was empirically determined
+    //double epsilon = 1e-10;
+    double lp_skip = log(epsilon);
+    double lp_stay = log(p_stay);
+    double lp_step = log(1.0 - exp(lp_skip) - exp(lp_stay));
+    double lp_trim = log(0.01);
+
+    // dp matrix
+    int32_t n_rows = n_events + 1;
+    int32_t n_cols = n_kmers + 1;
+    int32_t n_bands = n_rows + n_cols;                                    
+
     // fill in remaining bands
     for (int32_t band_idx = 2; band_idx < n_bands; ++band_idx) {
         // Determine placement of this band according to Suzuki's adaptive algorithm
@@ -374,7 +419,7 @@ __forceinline__ __device__ int32_t align_single(AlignedPair* out_2, char* sequen
                 printf("grid %d, block %d\n",grid,block);
                 printf("Cuda error: %s \n in file : %s line number : %lu\n",
                         cudaGetErrorString(code), __FILE__, __LINE__);
-                return 0; //todo : generalise
+                return ; //todo : generalise
             }
         }
         else{
@@ -448,6 +493,52 @@ __forceinline__ __device__ int32_t align_single(AlignedPair* out_2, char* sequen
 
     }
 
+}
+
+__forceinline__ __device__ int32_t align_single_post(AlignedPair* out_2, char* sequence,
+    int32_t sequence_len, event_t* events,
+    int32_t n_event, model_t* models,
+    scalings_t scaling,int32_t* kmer_ranks,float *bands,uint8_t *trace, EventKmerPair* band_lower_left) {
+
+    //fprintf(stderr, "%s\n", sequence);
+    //fprintf(stderr, "Scaling %f %f", scaling.scale, scaling.shift);
+
+    //size_t strand_idx = 0;
+    //size_t k = 6;
+
+    // size_t n_events = events[strand_idx].n;
+    int32_t n_events = n_event;
+    int32_t n_kmers = sequence_len - KMER_SIZE + 1;
+    //fprintf(stderr,"n_kmers : %d\n",n_kmers);
+    // backtrack markers
+    //const uint8_t FROM_D = 0;
+    //const uint8_t FROM_U = 1;
+    //const uint8_t FROM_L = 2;
+
+    // qc
+    //double min_average_log_emission = -5.0;
+    //int max_gap_threshold = 50;
+
+    // banding
+    //int bandwidth = ALN_BANDWIDTH;
+    //half_bandwidth = bandwidth / 2;
+
+    // transition penalties
+    float events_per_kmer = (float)n_events / n_kmers;
+    float p_stay = 1 - (1 / (events_per_kmer + 1));
+
+    // setting a tiny skip penalty helps keep the true alignment within the adaptive band
+    // this was empirically determined
+    //double epsilon = 1e-10;
+    double lp_skip = log(epsilon);
+    double lp_stay = log(p_stay);
+    double lp_step = log(1.0 - exp(lp_skip) - exp(lp_stay));
+    double lp_trim = log(0.01);
+
+    // dp matrix
+    int32_t n_rows = n_events + 1;
+    int32_t n_cols = n_kmers + 1;
+    int32_t n_bands = n_rows + n_cols;
     //
     // Backtrack to compute alignment
     //
@@ -595,21 +686,14 @@ __forceinline__ __device__ int32_t align_single(AlignedPair* out_2, char* sequen
     return outIndex;
 }
 
-#ifndef CONST_MEM
-__global__ void align_kernel(AlignedPair* event_align_pairs,
+
+__global__ void align_kernel_pre(AlignedPair* event_align_pairs,
     int32_t* n_event_align_pairs, char* read,
     int32_t* read_len, int32_t* read_ptr,
     event_t* event_table, int32_t* n_events,
     int32_t* event_ptr, model_t* model,
     scalings_t* scalings, int32_t n_bam_rec,int32_t* kmer_ranks,float *bands,uint8_t *trace, EventKmerPair* band_lower_left) {
-#else
-__global__ void align_kernel(AlignedPair* event_align_pairs,
-    int32_t* n_event_align_pairs, char* read,
-    int32_t* read_len, int32_t* read_ptr,
-    event_t* event_table, int32_t* n_events,
-    int32_t* event_ptr,
-    scalings_t* scalings, int32_t n_bam_rec,int32_t* kmer_ranks,float *bands,uint8_t *trace, EventKmerPair* band_lower_left) {
-#endif
+
     int i = blockDim.x * blockIdx.x + threadIdx.x;
 
     if (i < n_bam_rec) {
@@ -624,7 +708,60 @@ __global__ void align_kernel(AlignedPair* event_align_pairs,
         uint8_t *trace1 = &trace[(read_ptr[i]+event_ptr[i])*ALN_BANDWIDTH];
         EventKmerPair* band_lower_left1 = &band_lower_left[read_ptr[i]+event_ptr[i]];;
 
-        n_event_align_pairs[i] = align_single(out_2, sequence, sequence_len,
+        align_single_pre(out_2, sequence, sequence_len,
+                            events, n_event, model, scaling,kmer_rank,band,trace1,band_lower_left1);
+    }
+}
+
+__global__ void align_kernel(AlignedPair* event_align_pairs,
+    int32_t* n_event_align_pairs, char* read,
+    int32_t* read_len, int32_t* read_ptr,
+    event_t* event_table, int32_t* n_events,
+    int32_t* event_ptr, model_t* model,
+    scalings_t* scalings, int32_t n_bam_rec,int32_t* kmer_ranks,float *bands,uint8_t *trace, EventKmerPair* band_lower_left) {
+
+    int i = blockDim.x * blockIdx.x + threadIdx.x;
+
+    if (i < n_bam_rec) {
+        AlignedPair* out_2 = &event_align_pairs[event_ptr[i] * 2];
+        char* sequence = &read[read_ptr[i]];
+        int32_t sequence_len = read_len[i];
+        event_t* events = &event_table[event_ptr[i]];
+        int32_t n_event = n_events[i];
+        scalings_t scaling = scalings[i];
+        int32_t* kmer_rank = &kmer_ranks[read_ptr[i]];
+        float *band = &bands[(read_ptr[i]+event_ptr[i])*ALN_BANDWIDTH];
+        uint8_t *trace1 = &trace[(read_ptr[i]+event_ptr[i])*ALN_BANDWIDTH];
+        EventKmerPair* band_lower_left1 = &band_lower_left[read_ptr[i]+event_ptr[i]];;
+
+        align_single(out_2, sequence, sequence_len,
+                            events, n_event, model, scaling,kmer_rank,band,trace1,band_lower_left1);
+    }
+}
+
+
+__global__ void align_kernel_post(AlignedPair* event_align_pairs,
+    int32_t* n_event_align_pairs, char* read,
+    int32_t* read_len, int32_t* read_ptr,
+    event_t* event_table, int32_t* n_events,
+    int32_t* event_ptr, model_t* model,
+    scalings_t* scalings, int32_t n_bam_rec,int32_t* kmer_ranks,float *bands,uint8_t *trace, EventKmerPair* band_lower_left) {
+
+    int i = blockDim.x * blockIdx.x + threadIdx.x;
+
+    if (i < n_bam_rec) {
+        AlignedPair* out_2 = &event_align_pairs[event_ptr[i] * 2];
+        char* sequence = &read[read_ptr[i]];
+        int32_t sequence_len = read_len[i];
+        event_t* events = &event_table[event_ptr[i]];
+        int32_t n_event = n_events[i];
+        scalings_t scaling = scalings[i];
+        int32_t* kmer_rank = &kmer_ranks[read_ptr[i]];
+        float *band = &bands[(read_ptr[i]+event_ptr[i])*ALN_BANDWIDTH];
+        uint8_t *trace1 = &trace[(read_ptr[i]+event_ptr[i])*ALN_BANDWIDTH];
+        EventKmerPair* band_lower_left1 = &band_lower_left[read_ptr[i]+event_ptr[i]];;
+
+        n_event_align_pairs[i] = align_single_post(out_2, sequence, sequence_len,
                             events, n_event, model, scaling,kmer_rank,band,trace1,band_lower_left1);
     }
 }

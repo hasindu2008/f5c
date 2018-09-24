@@ -31,6 +31,7 @@ static struct option long_options[] = {
     {"print-raw", required_argument, 0, 0},        //16
     {"disable-cuda", required_argument, 0, 0},     //17
     {"cuda-block-size",required_argument, 0, 0},   //18
+    {"debug-break",required_argument, 0, 0},   //19
     {0, 0, 0, 0}};
 
 void sig_handler(int sig) {
@@ -153,7 +154,10 @@ int main(int argc, char* argv[]) {
 #endif
         } else if(c == 0 && longindex == 18){
             opt.cuda_block_size = atoi(optarg); //todo : warnining for cpu only mode, check limits
+        }else if(c == 0 && longindex == 19){
+            yes_or_no(&opt, F5C_DEBUG_BRK, longindex, optarg, 1);
         }
+
     }
 
     if (fastqfile == NULL || bamfilename == NULL || fastafile == NULL) {
@@ -182,6 +186,9 @@ int main(int argc, char* argv[]) {
                 status);
         output_db(core, db);
         free_db_tmp(db);
+        if(opt.flag & F5C_DEBUG_BRK){
+            break;
+        }
     }
     free_db(db);
     free_core(core);

@@ -623,11 +623,6 @@ scalings_t scaling, model_t* cpgmodel) {
 
         const char* m_seq = subseq.c_str();
         const char* m_rc_seq = rc_subseq.c_str();
-        
-        fprintf(stderr,"m_seq : %s\n",m_seq);
-        fprintf(stderr,"m_rc_seq : %s\n",m_rc_seq);
-        fprintf(stderr,"event_start_idx %d, event_stop_idx %d, event_stride %d, rc %d\n",event_start_idx,event_stop_idx,event_stride,rc);
-
 
         double unmethylated_score=profile_hmm_score(m_seq,m_rc_seq, event, scaling, cpgmodel, event_start_idx, event_stop_idx,
         strand,event_stride,rc);
