@@ -625,7 +625,7 @@ scalings_t scaling, model_t* cpgmodel,double events_per_base) {
         const char* m_rc_seq = rc_subseq.c_str();
 
         double unmethylated_score=profile_hmm_score(m_seq,m_rc_seq, event, scaling, cpgmodel, event_start_idx, event_stop_idx,
-        strand,event_stride,rc,events_per_base);
+        strand,event_stride,rc,events_per_base,hmm_flags);
 
 
 
