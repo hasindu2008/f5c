@@ -5,7 +5,7 @@
 
 #define CUDA_DEBUG 1
 //#define CONST_MEM 1
-#define DYNAMIC_PARALLELISM 1
+//#define DYNAMIC_PARALLELISM 1
 #define DYNAMIC_THRESH 63
 #define DYNAMIC_BLOCK_LEN 64
 
@@ -34,7 +34,7 @@ and then the program will be aborted*/
         int32_t* event_ptr, model_t* model,
         scalings_t* scalings, int32_t n_bam_rec,int32_t* kmer_ranks,float *bands,uint8_t *trace, EventKmerPair* band_lower_left);
     
-        __global__ void align_kernel(AlignedPair* event_align_pairs,
+        __global__ void align_kernel_core(AlignedPair* event_align_pairs,
             int32_t* n_event_align_pairs, char* read,
             int32_t* read_len, int32_t* read_ptr,
             event_t* event_table, int32_t* n_events,

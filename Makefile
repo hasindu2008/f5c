@@ -20,11 +20,11 @@ ifeq ($(cuda),) #if cuda is undefined
 
 else
 	DEPS_CUDA = f5c.h fast5lite.h error.h f5cmisc.cuh
-	SRC_CUDA = f5c.cu align.cu align_slice.cu
+	SRC_CUDA = f5c.cu align.cu aligned_slice.cu
 	OBJ_CUDA = $(SRC_CUDA:.cu=_cuda.o)
 	CC_CUDA = nvcc
 	#CFLAGS_CUDA = -g  -G -Xcompiler -rdynamic  -O2 -std=c++11
-	CFLAGS_CUDA = -g  -O2 -std=c++11 -arch=sm_61
+	CFLAGS_CUDA = -g  -O2 -std=c++11 -lineinfo -arch=sm_61 
 	LDFLAGS += -L/usr/local/cuda/lib64/ -lcudart -lcudadevrt
 	OBJ += gpucode.o $(OBJ_CUDA)
 	CFLAGS += -DHAVE_CUDA=1

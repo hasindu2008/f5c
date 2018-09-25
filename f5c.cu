@@ -203,7 +203,7 @@ void align_cuda(core_t* core, db_t* db) {
                 realtime() - realtime1, cputime() / (realtime() - realtime1));
                 
         realtime1 = realtime();
-        align_kernel<<<grid, block>>>(event_align_pairs, n_event_align_pairs, read,
+        align_kernel_core<<<grid, block>>>(event_align_pairs, n_event_align_pairs, read,
             read_len, read_ptr, event_table, n_events,
             event_ptr, model, scalings, n_bam_rec, kmer_ranks,bands,trace,band_lower_left );
         cudaDeviceSynchronize();CUDA_CHK();

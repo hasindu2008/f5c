@@ -66,7 +66,9 @@ log_probability_match_r9(scalings_t scaling, model_t* models, event_t* event,
                          int event_idx, uint32_t kmer_rank) {
     // event level mean, scaled with the drift value
     //strand = 0;
+ #ifdef DEBUG_ADAPTIVE   
     assert(kmer_rank < 4096);
+ #endif   
     //float level = read.get_drift_scaled_level(event_idx, strand);
 
     //float time =
@@ -561,7 +563,9 @@ __forceinline__ __device__ int32_t align_single_post(AlignedPair* out_2, char* s
 
         //>>>>>>>New  replacement begin
         /*assert(band_idx < bands.size());*/
+
         assert(band_idx < n_bands);
+
         //<<<<<<<<New Replacement over
         int offset = band_event_to_offset(band_idx, event_idx);
         if (is_offset_valid(offset)) {
@@ -713,7 +717,7 @@ __global__ void align_kernel_pre(AlignedPair* event_align_pairs,
     }
 }
 
-__global__ void align_kernel(AlignedPair* event_align_pairs,
+__global__ void align_kernel_core(AlignedPair* event_align_pairs,
     int32_t* n_event_align_pairs, char* read,
     int32_t* read_len, int32_t* read_ptr,
     event_t* event_table, int32_t* n_events,
