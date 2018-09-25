@@ -496,7 +496,7 @@ struct ScoredSite
 
 // Test CpG sites in this read for methylation
 void calculate_methylation_for_read(char* ref, bam1_t* record, int32_t read_length, event_t* event, index_pair_t* base_to_event_map,
-scalings_t scaling, model_t* cpgmodel) {
+scalings_t scaling, model_t* cpgmodel,double events_per_base) {
     // Load a squiggle read for the mapped read
     // std::string read_name = bam_get_qname(record);
     // SquiggleRead sr(read_name, read_db);
@@ -625,7 +625,7 @@ scalings_t scaling, model_t* cpgmodel) {
         const char* m_rc_seq = rc_subseq.c_str();
 
         double unmethylated_score=profile_hmm_score(m_seq,m_rc_seq, event, scaling, cpgmodel, event_start_idx, event_stop_idx,
-        strand,event_stride,rc);
+        strand,event_stride,rc,events_per_base);
 
 
 
