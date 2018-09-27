@@ -204,18 +204,31 @@ void align_cuda(core_t* core, db_t* db) {
                 realtime() - realtime1, cputime() / (realtime() - realtime1));
                 
         realtime1 = realtime();
-    #ifndef WARP_HACK      
-        align_kernel_core<<<grid, block>>>(event_align_pairs, n_event_align_pairs, read,
-            read_len, read_ptr, event_table, n_events,
-            event_ptr, model, scalings, n_bam_rec, kmer_ranks,bands,trace,band_lower_left );
-    #else
-        assert(BLOCK_LEN>=32);    
-        dim3 grid1((db->n_bam_rec + (BLOCK_LEN/32) - 1) / (BLOCK_LEN/32)); 
-        fprintf(stderr,"grid new %d\n",grid1.x);   
-        align_kernel_core<<<grid1, block>>>(event_align_pairs, n_event_align_pairs, read,
-        read_len, read_ptr, event_table, n_events,
-        event_ptr, model, scalings, n_bam_rec, kmer_ranks,bands,trace,band_lower_left );   
-    #endif
+
+        #ifndef TWODIM_KERNEL    
+            #ifndef WARP_HACK      
+                align_kernel_core<<<grid, block>>>(event_align_pairs, n_event_align_pairs, read,
+                    read_len, read_ptr, event_table, n_events,
+                    event_ptr, model, scalings, n_bam_rec, kmer_ranks,bands,trace,band_lower_left );
+            #else
+                assert(BLOCK_LEN>=32);    
+                dim3 grid1((db->n_bam_rec + (BLOCK_LEN/32) - 1) / (BLOCK_LEN/32)); 
+                fprintf(stderr,"grid new %d\n",grid1.x);   
+                align_kernel_core<<<grid1, block>>>(event_align_pairs, n_event_align_pairs, read,
+                read_len, read_ptr, event_table, n_events,
+                event_ptr, model, scalings, n_bam_rec, kmer_ranks,bands,trace,band_lower_left );   
+            #endif
+        #else
+            dim3 grid1(1,(db->n_bam_rec + BLOCK_LEN_Y - 1) / BLOCK_LEN_Y);
+            dim3 block1(BLOCK_LEN_X,BLOCK_LEN_Y);
+            align_kernel_core_2d<<<grid1, block1>>>(event_align_pairs, n_event_align_pairs, read,
+                    read_len, read_ptr, event_table, n_events,
+                    event_ptr, model, scalings, n_bam_rec, kmer_ranks,bands,trace,band_lower_left );
+
+        #endif        
+
+
+
         cudaDeviceSynchronize();CUDA_CHK();
         fprintf(stderr, "[%s::%.3f*%.2f] align done\n", __func__,
         realtime() - realtime1, cputime() / (realtime() - realtime1));

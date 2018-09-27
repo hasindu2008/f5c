@@ -25,6 +25,7 @@ else
 	CC_CUDA = nvcc
 	#CFLAGS_CUDA = -g  -G -Xcompiler -rdynamic  -O2 -std=c++11
 	CFLAGS_CUDA = -g  -O2 -std=c++11 -lineinfo -arch=sm_61 
+	#CFLAGS_CUDA = -g  -O2 -std=c++11 -lineinfo -arch=sm_61 -maxrregcount=32
 	LDFLAGS += -L/usr/local/cuda/lib64/ -lcudart -lcudadevrt
 	OBJ += gpucode.o $(OBJ_CUDA)
 	CFLAGS += -DHAVE_CUDA=1
@@ -71,3 +72,6 @@ rsync :
 jetson:
 	rsync -av *.cu *.cuh $(SRC) $(DEPS) hasindu@jetson:~/f5c/ && ssh jetson 'cd ~/f5c/ && make cuda=1'
 	rsync -av scripts/*.sh hasindu@jetson:~/f5c/scripts/
+
+nsight:
+	nvprof  -f --kernels "align_kernel_core" --analysis-metrics -o bv.nvprof ./f5c -b test/chr22_meth_example/reads10k.bam -g test/chr22_meth_example//humangenome.fa -r test/chr22_meth_example//reads10k.fq -t 8 --print-scaling=yes -K512 --cuda-block-size=64 --debug-break=yes > /dev/null

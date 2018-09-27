@@ -718,8 +718,9 @@ __global__ void align_kernel_pre(AlignedPair* event_align_pairs,
 }
 
 
-
-__global__ void align_kernel_core(AlignedPair* event_align_pairs,
+__global__ void 
+//__launch_bounds__(MY_KERNEL_MAX_THREADS, MY_KERNEL_MIN_BLOCKS)
+align_kernel_core(AlignedPair* event_align_pairs,
     int32_t* n_event_align_pairs, char* read,
     int32_t* read_len, int32_t* read_ptr,
     event_t* event_table, int32_t* n_events,
@@ -776,5 +777,179 @@ __global__ void align_kernel_post(AlignedPair* event_align_pairs,
                             events, n_event, model, scaling,kmer_rank,band,trace1,band_lower_left1);
     }
 }
+
+
+
+__global__ void 
+//__launch_bounds__(MY_KERNEL_MAX_THREADS, MY_KERNEL_MIN_BLOCKS)
+align_kernel_core_2d(AlignedPair* event_align_pairs,
+    int32_t* n_event_align_pairs, char* read,
+    int32_t* read_len, int32_t* read_ptr,
+    event_t* event_table, int32_t* n_events1,
+    int32_t* event_ptr, model_t* models,
+    scalings_t* scalings, int32_t n_bam_rec,int32_t* kmer_rank,float *band,uint8_t *traces, EventKmerPair* band_lower_lefts) {
+   
+    int i = blockDim.y * blockIdx.y + threadIdx.y;
+    int tid=blockIdx.x*blockDim.x+threadIdx.x;
+
+    if (i < n_bam_rec) {   
+
+        AlignedPair* out_2 = &event_align_pairs[event_ptr[i] * 2];
+        char* sequence = &read[read_ptr[i]];
+        int32_t sequence_len = read_len[i];
+        event_t* events = &event_table[event_ptr[i]];
+        int32_t n_event = n_events1[i];
+        scalings_t scaling = scalings[i];
+        int32_t* kmer_ranks = &kmer_rank[read_ptr[i]];
+        float *bands = &band[(read_ptr[i]+event_ptr[i])*ALN_BANDWIDTH];
+        uint8_t *trace = &traces[(read_ptr[i]+event_ptr[i])*ALN_BANDWIDTH];
+        EventKmerPair* band_lower_left = &band_lower_lefts[read_ptr[i]+event_ptr[i]];;
+
+        // size_t n_events = events[strand_idx].n;
+        int32_t n_events = n_event;
+        int32_t n_kmers = sequence_len - KMER_SIZE + 1;
+        //fprintf(stderr,"n_kmers : %d\n",n_kmers);
+
+        // transition penalties
+        float events_per_kmer = (float)n_events / n_kmers;
+        float p_stay = 1 - (1 / (events_per_kmer + 1));
+
+        // setting a tiny skip penalty helps keep the true alignment within the adaptive band
+        // this was empirically determined
+        //double epsilon = 1e-10;
+        double lp_skip = log(epsilon);
+        double lp_stay = log(p_stay);
+        double lp_step = log(1.0 - exp(lp_skip) - exp(lp_stay));
+        double lp_trim = log(0.01);
+
+        // dp matrix
+        int32_t n_rows = n_events + 1;
+        int32_t n_cols = n_kmers + 1;
+        int32_t n_bands = n_rows + n_cols;                                    
+
+        // fill in remaining bands
+        for (int32_t band_idx = 2; band_idx < n_bands; ++band_idx) {
+            // Determine placement of this band according to Suzuki's adaptive algorithm
+            // When both ll and ur are out-of-band (ob) we alternate movements
+            // otherwise we decide based on scores
+            float ll = BAND_ARRAY((band_idx - 1), 0);
+            float ur = BAND_ARRAY((band_idx - 1),(bandwidth - 1));
+            bool ll_ob = ll == -INFINITY;
+            bool ur_ob = ur == -INFINITY;
+
+            bool right = false;
+            if (ll_ob && ur_ob) {
+                right = band_idx % 2 == 1;
+            } else {
+                right = ll < ur; // Suzuki's rule
+            }
+
+            if (right) {
+                band_lower_left[band_idx] =
+                    move_right(band_lower_left[band_idx - 1]);
+            } else {
+                band_lower_left[band_idx] =
+                    move_down(band_lower_left[band_idx - 1]);
+            }
+            // If the trim state is within the band, fill it in here
+            int trim_offset = band_kmer_to_offset(band_idx, -1);
+            if (is_offset_valid(trim_offset)) {
+                int32_t event_idx = event_at_offset(band_idx, trim_offset);
+                if (event_idx >= 0 && event_idx < n_events) {
+                    BAND_ARRAY(band_idx,trim_offset) = lp_trim * (event_idx + 1);
+                    TRACE_ARRAY(band_idx,trim_offset) = FROM_U;
+                } else {
+                    BAND_ARRAY(band_idx,trim_offset) = -INFINITY;
+                }
+            }
+
+            // Get the offsets for the first and last event and kmer
+            // We restrict the inner loop to only these values
+            int kmer_min_offset = band_kmer_to_offset(band_idx, 0);
+            int kmer_max_offset = band_kmer_to_offset(band_idx, n_kmers);
+            int event_min_offset = band_event_to_offset(band_idx, n_events - 1);
+            int event_max_offset = band_event_to_offset(band_idx, -1);
+
+            int min_offset = MAX(kmer_min_offset, event_min_offset);
+            min_offset = MAX(min_offset, 0);
+
+            int max_offset = MIN(kmer_max_offset, event_max_offset);
+            max_offset = MIN(max_offset, bandwidth);
+
+            __syncthreads();    
+   
+            if(tid < (max_offset-min_offset)) {
+                int offset=min_offset+tid;
+
+                int event_idx = event_at_offset(band_idx, offset);
+                int kmer_idx = kmer_at_offset(band_idx, offset);
+
+                int32_t kmer_rank = kmer_ranks[kmer_idx];
+
+                int offset_up = band_event_to_offset(band_idx - 1, event_idx - 1);
+                int offset_left = band_kmer_to_offset(band_idx - 1, kmer_idx - 1);
+                int offset_diag = band_kmer_to_offset(band_idx - 2, kmer_idx - 1);
+
+    #ifdef DEBUG_ADAPTIVE
+                // verify loop conditions
+                assert(kmer_idx >= 0 && kmer_idx < n_kmers);
+                assert(event_idx >= 0 && event_idx < n_events);
+                assert(offset_diag ==
+                       band_event_to_offset(band_idx - 2, event_idx - 1));
+                assert(offset_up - offset_left == 1);
+                assert(offset >= 0 && offset < bandwidth);
+    #endif //DEBUG_ADAPTIVE
+
+                float up = is_offset_valid(offset_up)
+                               ? BAND_ARRAY(band_idx - 1,offset_up)
+                               : -INFINITY;
+                float left = is_offset_valid(offset_left)
+                                 ? BAND_ARRAY(band_idx - 1,offset_left)
+                                 : -INFINITY;
+                float diag = is_offset_valid(offset_diag)
+                                 ? BAND_ARRAY(band_idx - 2,offset_diag)
+                                 : -INFINITY;
+
+                float lp_emission = log_probability_match_r9(
+                    scaling, models, events, event_idx, kmer_rank);
+                //fprintf(stderr, "lp emiision : %f , event idx %d, kmer rank %d\n", lp_emission,event_idx,kmer_rank);
+                float score_d = diag + lp_step + lp_emission;
+                float score_u = up + lp_stay + lp_emission;
+                float score_l = left + lp_skip;
+
+                float max_score = score_d;
+                uint8_t from = FROM_D;
+
+                max_score = score_u > max_score ? score_u : max_score;
+                from = max_score == score_u ? FROM_U : from;
+                max_score = score_l > max_score ? score_l : max_score;
+                from = max_score == score_l ? FROM_L : from;
+
+    #ifdef DEBUG_ADAPTIVE
+                fprintf(stderr,
+                        "[adafill] offset-up: %d offset-diag: %d offset-left: %d\n",
+                        offset_up, offset_diag, offset_left);
+                fprintf(stderr, "[adafill] up: %.2lf diag: %.2lf left: %.2lf\n", up,
+                        diag, left);
+                fprintf(stderr,
+                        "[adafill] bi: %d o: %d e: %d k: %d s: %.2lf f: %d emit: "
+                        "%.2lf\n",
+                        band_idx, offset, event_idx, kmer_idx, max_score, from,
+                        lp_emission);
+    #endif //DEBUG_ADAPTIVE
+                BAND_ARRAY(band_idx,offset) = max_score;
+                TRACE_ARRAY(band_idx,offset) = from;
+                //fills += 1;
+            }
+
+            __syncthreads();  
+   
+        }
+
+    }
+
+}
+
+
 
 #endif
