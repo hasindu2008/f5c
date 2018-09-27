@@ -10,6 +10,7 @@
 #define DYNAMIC_BLOCK_LEN 64
 
 #define ALIGN_KERNEL_SLICED 1 //not to be used with CONST_MEM defined
+#define WARP_HACK 1
 
 /* check whether the last CUDA function or CUDA kernel launch is erroneous and if yes an error message will be printed
 and then the program will be aborted*/

@@ -502,5 +502,5 @@ void init_opt(opt_t* opt) {
 #ifndef HAVE_CUDA
     opt->flag |= F5C_DISABLE_CUDA;
 #endif
-    opt->cuda_block_size=8;    
+    opt->cuda_block_size=64;    
 }
