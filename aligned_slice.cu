@@ -780,6 +780,144 @@ __global__ void align_kernel_post(AlignedPair* event_align_pairs,
 
 
 
+
+
+
+__global__ void align_kernel_pre_2d(AlignedPair* event_align_pairs,
+    int32_t* n_event_align_pairs, char* read,
+    int32_t* read_len, int32_t* read_ptr,
+    event_t* event_table, int32_t* n_events,
+    int32_t* event_ptr, model_t* models,
+    scalings_t* scalings, int32_t n_bam_rec,int32_t* kmer_ranks1,float *bands1,uint8_t *trace1, EventKmerPair* band_lower_left1) {
+
+    // int i = blockDim.z * blockIdx.z + threadIdx.z;
+    // int band_i = blockDim.x * blockIdx.x + threadIdx.x;
+    // int band_j = blockDim.y * blockIdx.y + threadIdx.y;
+
+    int i = blockDim.y * blockIdx.y + threadIdx.y;
+    int band_i = blockDim.x * blockIdx.x + threadIdx.x;
+
+
+    if (i < n_bam_rec) {
+        //AlignedPair* out_2 = &event_align_pairs[event_ptr[i] * 2];
+        char* sequence = &read[read_ptr[i]];
+        int32_t sequence_len = read_len[i];
+        //event_t* events = &event_table[event_ptr[i]];
+        int32_t n_event = n_events[i];
+        //scalings_t scaling = scalings[i];
+        int32_t* kmer_ranks = &kmer_ranks1[read_ptr[i]];
+        float *bands = &bands1[(read_ptr[i]+event_ptr[i])*ALN_BANDWIDTH];
+        uint8_t *trace = &trace1[(read_ptr[i]+event_ptr[i])*ALN_BANDWIDTH];
+        EventKmerPair* band_lower_left = &band_lower_left1[read_ptr[i]+event_ptr[i]];;
+
+        //printf("a");    
+
+        // size_t n_events = events[strand_idx].n;
+        int32_t n_events = n_event;
+        int32_t n_kmers = sequence_len - KMER_SIZE + 1;
+        //fprintf(stderr,"n_kmers : %d\n",n_kmers);
+
+        // transition penalties
+        // float events_per_kmer = (float)n_events / n_kmers;
+        // float p_stay = 1 - (1 / (events_per_kmer + 1));
+
+        // setting a tiny skip penalty helps keep the true alignment within the adaptive band
+        // this was empirically determined
+        //double epsilon = 1e-10;
+        // double lp_skip = log(epsilon);
+        // double lp_stay = log(p_stay);
+        // double lp_step = log(1.0 - exp(lp_skip) - exp(lp_stay));
+        double lp_trim = log(0.01);
+
+        // dp matrix
+        int32_t n_rows = n_events + 1;
+        int32_t n_cols = n_kmers + 1;
+        int32_t n_bands = n_rows + n_cols;
+
+        // Initialize
+
+        // Precompute k-mer ranks to avoid doing this in the inner loop
+        //size_t* kmer_ranks = (size_t*)malloc(sizeof(size_t) * n_kmers);
+        //MALLOC_CHK(kmer_ranks); //todo : fix these to error check
+
+        //if(band_i<n_kmers && band_j==0){
+        if(band_i<n_kmers){
+        //for (int32_t i = 0; i < n_kmers; ++i) {
+            //>>>>>>>>> New replacement begin
+            char* substring = &sequence[band_i];
+            kmer_ranks[band_i] = get_kmer_rank(substring, KMER_SIZE);
+            //<<<<<<<<< New replacement over
+        }
+
+        //float** bands = (float**)malloc(sizeof(float*) * n_bands);
+        //MALLOC_CHK(bands);
+        //uint8_t** trace = (uint8_t**)malloc(sizeof(uint8_t*) * n_bands);
+        //MALLOC_CHK(trace);
+
+        if(band_i<n_bands){
+        //for (int32_t i = 0; i < n_bands; i++) {
+            //bands[i] = (float*)malloc(sizeof(float) * bandwidth);
+            //MALLOC_CHK(bands[i]);
+            //trace[i] = (uint8_t*)malloc(sizeof(uint8_t) * bandwidth);
+            //MALLOC_CHK(trace[i]);
+
+            //if(band_j<bandwidth){
+            for (int j = 0; j < bandwidth; j++) {
+                //BAND_ARRAY(band_i,band_j) = -INFINITY;
+                //TRACE_ARRAY(band_i,band_j) = 0;
+                BAND_ARRAY(band_i,j) = -INFINITY;
+                TRACE_ARRAY(band_i,j) = 0;
+            }
+        }
+
+        // Keep track of the event/kmer index for the lower left corner of the band
+        // these indices are updated at every iteration to perform the adaptive banding
+        // Only the first two bands have their coordinates initialized, the rest are computed adaptively
+
+        // struct EventKmerPair {
+        //     int event_idx;
+        //     int kmer_idx;
+        // };
+        //>>>>>>>>>>>>>>>>>New Replacement Begin
+        //struct EventKmerPair* band_lower_left =
+        //    (struct EventKmerPair*)malloc(sizeof(struct EventKmerPair) * n_bands);
+        //MALLOC_CHK(band_lower_left);
+        //std::vector<EventKmerPair> band_lower_left(n_bands);
+        //<<<<<<<<<<<<<<<<<New Replacement over
+
+        //if(band_i==0 && band_j==0){
+        if(band_i==0){
+            // initialize range of first two bands
+            band_lower_left[0].event_idx = half_bandwidth - 1;
+            band_lower_left[0].kmer_idx = -1 - half_bandwidth;
+            band_lower_left[1] = move_down(band_lower_left[0]);
+
+            int start_cell_offset = band_kmer_to_offset(0, -1);
+            assert(is_offset_valid(start_cell_offset));
+            assert(band_event_to_offset(0, -1) == start_cell_offset);
+            BAND_ARRAY(0,start_cell_offset) = 0.0f;
+
+            // band 1: first event is trimmed
+            int first_trim_offset = band_event_to_offset(1, 0);
+            assert(kmer_at_offset(1, first_trim_offset) == -1);
+            assert(is_offset_valid(first_trim_offset));
+            BAND_ARRAY(1,first_trim_offset) = lp_trim;
+            TRACE_ARRAY(1,first_trim_offset) = FROM_U;
+
+            //int fills = 0;
+        #ifdef DEBUG_ADAPTIVE
+            fprintf(stderr, "[trim] bi: %d o: %d e: %d k: %d s: %.2lf\n", 1,
+                    first_trim_offset, 0, -1, BAND_ARRAY(1,first_trim_offset);
+        #endif
+
+        }
+
+    }
+}
+
+
+
+
 __global__ void 
 //__launch_bounds__(MY_KERNEL_MAX_THREADS, MY_KERNEL_MIN_BLOCKS)
 align_kernel_core_2d(AlignedPair* event_align_pairs,
@@ -794,8 +932,8 @@ align_kernel_core_2d(AlignedPair* event_align_pairs,
 
     if (i < n_bam_rec) {   
 
-        AlignedPair* out_2 = &event_align_pairs[event_ptr[i] * 2];
-        char* sequence = &read[read_ptr[i]];
+        //AlignedPair* out_2 = &event_align_pairs[event_ptr[i] * 2];
+        //char* sequence = &read[read_ptr[i]];
         int32_t sequence_len = read_len[i];
         event_t* events = &event_table[event_ptr[i]];
         int32_t n_event = n_events1[i];

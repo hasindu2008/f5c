@@ -196,9 +196,19 @@ void align_cuda(core_t* core, db_t* db) {
                                   event_ptr, model, scalings, n_bam_rec, kmer_ranks,bands,trace,band_lower_left );
     #else
         double realtime1 = realtime();    
-        align_kernel_pre<<<grid, block>>>(event_align_pairs, n_event_align_pairs, read,
-        read_len, read_ptr, event_table, n_events,
-        event_ptr, model, scalings, n_bam_rec, kmer_ranks,bands,trace,band_lower_left );
+        #ifndef TWODIM_KERNEL  
+            align_kernel_pre<<<grid, block>>>(event_align_pairs, n_event_align_pairs, read,
+            read_len, read_ptr, event_table, n_events,
+            event_ptr, model, scalings, n_bam_rec, kmer_ranks,bands,trace,band_lower_left );
+        #else
+            //dim3 gridpre((sum_n_bands + BLOCK_LEN_NUMBAND - 1) / BLOCK_LEN_NUMBAND,1,(db->n_bam_rec + BLOCK_LEN_READS - 1) / BLOCK_LEN_READS);
+            //dim3 blockpre(BLOCK_LEN_NUMBAND,BLOCK_LEN_BANDWIDTH,BLOCK_LEN_READS);    
+            dim3 gridpre((sum_n_bands + BLOCK_LEN_NUMBAND - 1) / BLOCK_LEN_NUMBAND,(db->n_bam_rec + BLOCK_LEN_READS - 1) / BLOCK_LEN_READS);
+            dim3 blockpre(BLOCK_LEN_NUMBAND,BLOCK_LEN_READS);    
+            align_kernel_pre_2d<<<gridpre, blockpre>>>(event_align_pairs, n_event_align_pairs, read,
+            read_len, read_ptr, event_table, n_events,
+            event_ptr, model, scalings, n_bam_rec, kmer_ranks,bands,trace,band_lower_left );
+        #endif
         cudaDeviceSynchronize();CUDA_CHK();
         fprintf(stderr, "[%s::%.3f*%.2f] align pre done\n", __func__,
                 realtime() - realtime1, cputime() / (realtime() - realtime1));
@@ -219,8 +229,9 @@ void align_cuda(core_t* core, db_t* db) {
                 event_ptr, model, scalings, n_bam_rec, kmer_ranks,bands,trace,band_lower_left );   
             #endif
         #else
-            dim3 grid1(1,(db->n_bam_rec + BLOCK_LEN_Y - 1) / BLOCK_LEN_Y);
-            dim3 block1(BLOCK_LEN_X,BLOCK_LEN_Y);
+            assert(BLOCK_LEN_BANDWIDTH>=ALN_BANDWIDTH);
+            dim3 grid1(1,(db->n_bam_rec + BLOCK_LEN_READS - 1) / BLOCK_LEN_READS);
+            dim3 block1(BLOCK_LEN_BANDWIDTH,BLOCK_LEN_READS);
             align_kernel_core_2d<<<grid1, block1>>>(event_align_pairs, n_event_align_pairs, read,
                     read_len, read_ptr, event_table, n_events,
                     event_ptr, model, scalings, n_bam_rec, kmer_ranks,bands,trace,band_lower_left );

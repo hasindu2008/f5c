@@ -17,8 +17,9 @@
 #define MY_KERNEL_MIN_BLOCKS 64
 
 //for 2d kernel
-#define BLOCK_LEN_Y 1
-#define BLOCK_LEN_X 128
+#define BLOCK_LEN_READS 1
+#define BLOCK_LEN_BANDWIDTH 128
+#define BLOCK_LEN_NUMBAND 1024
 
 /* check whether the last CUDA function or CUDA kernel launch is erroneous and if yes an error message will be printed
 and then the program will be aborted*/
@@ -68,6 +69,12 @@ and then the program will be aborted*/
         int32_t* event_ptr, model_t* models,
         scalings_t* scalings, int32_t n_bam_rec,int32_t* kmer_rank,float *band,uint8_t *traces, EventKmerPair* band_lower_lefts) ;
 
+    __global__ void align_kernel_pre_2d(AlignedPair* event_align_pairs,
+        int32_t* n_event_align_pairs, char* read,
+        int32_t* read_len, int32_t* read_ptr,
+        event_t* event_table, int32_t* n_events,
+        int32_t* event_ptr, model_t* models,
+        scalings_t* scalings, int32_t n_bam_rec,int32_t* kmer_ranks1,float *bands1,uint8_t *trace1, EventKmerPair* band_lower_left1) ;
 
 #else
     __global__ void align_kernel(AlignedPair* event_align_pairs,
