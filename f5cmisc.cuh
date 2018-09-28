@@ -19,7 +19,11 @@
 //for 2d kernel
 #define BLOCK_LEN_READS 1
 #define BLOCK_LEN_BANDWIDTH 128
-#define BLOCK_LEN_NUMBAND 1024
+
+
+#define BLOCK_LEN_NUMBAND 8
+
+//#define PRE_3D 1
 
 /* check whether the last CUDA function or CUDA kernel launch is erroneous and if yes an error message will be printed
 and then the program will be aborted*/

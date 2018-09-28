@@ -201,10 +201,13 @@ void align_cuda(core_t* core, db_t* db) {
             read_len, read_ptr, event_table, n_events,
             event_ptr, model, scalings, n_bam_rec, kmer_ranks,bands,trace,band_lower_left );
         #else
-            //dim3 gridpre((sum_n_bands + BLOCK_LEN_NUMBAND - 1) / BLOCK_LEN_NUMBAND,1,(db->n_bam_rec + BLOCK_LEN_READS - 1) / BLOCK_LEN_READS);
-            //dim3 blockpre(BLOCK_LEN_NUMBAND,BLOCK_LEN_BANDWIDTH,BLOCK_LEN_READS);    
-            dim3 gridpre((sum_n_bands + BLOCK_LEN_NUMBAND - 1) / BLOCK_LEN_NUMBAND,(db->n_bam_rec + BLOCK_LEN_READS - 1) / BLOCK_LEN_READS);
-            dim3 blockpre(BLOCK_LEN_NUMBAND,BLOCK_LEN_READS);    
+            #ifdef  PRE_3D    
+                dim3 gridpre((sum_n_bands + BLOCK_LEN_NUMBAND - 1) / BLOCK_LEN_NUMBAND,1,(db->n_bam_rec + BLOCK_LEN_READS - 1) / BLOCK_LEN_READS);
+                dim3 blockpre(BLOCK_LEN_NUMBAND,BLOCK_LEN_BANDWIDTH,BLOCK_LEN_READS);    
+            #else
+                dim3 gridpre((sum_n_bands + BLOCK_LEN_NUMBAND - 1) / BLOCK_LEN_NUMBAND,(db->n_bam_rec + BLOCK_LEN_READS - 1) / BLOCK_LEN_READS);
+                dim3 blockpre(BLOCK_LEN_NUMBAND,BLOCK_LEN_READS);    
+            #endif
             align_kernel_pre_2d<<<gridpre, blockpre>>>(event_align_pairs, n_event_align_pairs, read,
             read_len, read_ptr, event_table, n_events,
             event_ptr, model, scalings, n_bam_rec, kmer_ranks,bands,trace,band_lower_left );
