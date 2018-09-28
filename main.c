@@ -9,7 +9,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-double realtime0 = 0;
+//double realtime0 = 0;
 
 static struct option long_options[] = {
     {"reads", required_argument, 0, 'r'},          //0
@@ -89,7 +89,8 @@ static inline void yes_or_no(opt_t* opt, uint64_t flag, int long_idx,
 }
 
 int main(int argc, char* argv[]) {
-    realtime0 = realtime();
+    
+    double realtime0 = realtime();
 
     signal(SIGSEGV, sig_handler);
 
@@ -168,7 +169,7 @@ int main(int argc, char* argv[]) {
         exit(EXIT_FAILURE);
     }
 
-    core_t* core = init_core(bamfilename, fastafile, fastqfile, opt);
+    core_t* core = init_core(bamfilename, fastafile, fastqfile, opt,realtime0);
     db_t* db = init_db(core);
 
     int32_t status = db->capacity_bam_rec;
@@ -179,7 +180,7 @@ int main(int argc, char* argv[]) {
                 realtime() - realtime0, cputime() / (realtime() - realtime0),
                 status);
 
-        process_db(core, db, realtime0);
+        process_db(core, db);
 
         fprintf(stderr, "[%s::%.3f*%.2f] %d Entries processed\n", __func__,
                 realtime() - realtime0, cputime() / (realtime() - realtime0),
@@ -196,6 +197,9 @@ int main(int argc, char* argv[]) {
     for (int i = 0; i < argc; ++i) {
         fprintf(stderr, " %s", argv[i]);
     }
+
+    fprintf(stderr, "\n\n[%s] Alignment time: %.3f sec",
+            __func__, core->align_time);
 
     fprintf(stderr, "\n[%s] Real time: %.3f sec; CPU time: %.3f sec\n",
             __func__, realtime() - realtime0, cputime());

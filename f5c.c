@@ -9,7 +9,7 @@
 #include "f5cmisc.h"
 
 core_t* init_core(const char* bamfilename, const char* fastafile,
-                  const char* fastqfile, opt_t opt) {
+                  const char* fastqfile, opt_t opt,double realtime0) {
     core_t* core = (core_t*)malloc(sizeof(core_t));
     MALLOC_CHK(core);
 
@@ -55,6 +55,12 @@ core_t* init_core(const char* bamfilename, const char* fastafile,
     set_cpgmodel(core->cpgmodel);
 
     core->opt = opt;
+
+    //realtime0
+    core->realtime0=realtime0;
+
+    core->align_time=0;
+
     return core;
 }
 
@@ -294,7 +300,8 @@ void align_db(core_t* core, db_t* db) {
     }
 }
 
-void process_db(core_t* core, db_t* db, double realtime0) {
+void process_db(core_t* core, db_t* db) {
+    double realtime0=core->realtime0;
     int32_t i;
     for (i = 0; i < db->n_bam_rec; i++) {
         float* rawptr = db->f5[i]->rawptr;
@@ -324,7 +331,10 @@ void process_db(core_t* core, db_t* db, double realtime0) {
         MALLOC_CHK(db->event_align_pairs[i]);
     }
 
+    double align_start = realtime();
     align_db(core, db);
+    double align_end = realtime();
+    core->align_time += (align_end-align_start);
 
     fprintf(stderr, "[%s::%.3f*%.2f] Banded alignment done\n", __func__,
             realtime() - realtime0, cputime() / (realtime() - realtime0));
