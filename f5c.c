@@ -188,6 +188,8 @@ int32_t load_db(core_t* core, db_t* db) {
                           10); // is +10 needed? do errorcheck
         strcpy(fast5_path, core->readbb->get_signal_path(qname).c_str());
 
+        //fprintf(stderr,"readname : %s\n",qname.c_str());
+
         hid_t hdf5_file = fast5_open(fast5_path);
         if (hdf5_file >= 0) {
             db->f5[i] = (fast5_t*)calloc(1, sizeof(fast5_t));
@@ -230,6 +232,102 @@ int32_t load_db(core_t* core, db_t* db) {
     return db->n_bam_rec;
 }
 
+
+void* event_pthread(void* voidargs) {
+    int i;
+    pthread_arg_t* args = (pthread_arg_t*)voidargs;
+    db_t* db = args->db;
+    core_t* core = args->core;
+
+    for (i = args->starti; i < args->endi; i++) {
+        float* rawptr = db->f5[i]->rawptr;
+        float range = db->f5[i]->range;
+        float digitisation = db->f5[i]->digitisation;
+        float offset = db->f5[i]->offset;
+        int32_t nsample = db->f5[i]->nsample;
+
+        // convert to pA
+        float raw_unit = range / digitisation;
+        for (int32_t j = 0; j < nsample; j++) {
+            rawptr[j] = (rawptr[j] + offset) * raw_unit;
+        }
+        db->et[i] = getevents(db->f5[i]->nsample, rawptr);
+
+        //get the scalings
+        db->scalings[i] = estimate_scalings_using_mom(
+            db->read[i], db->read_len[i], core->model, db->et[i]);        
+    }
+
+    //fprintf(stderr,"Thread %d done\n",(myargs->position)/THREADS);
+    pthread_exit(0);
+}
+
+
+
+void event_db(core_t* core, db_t* db){
+    
+
+    if (core->opt.num_thread == 1) {
+        int32_t i=0;
+        for (i = 0; i < db->n_bam_rec; i++) {
+            float* rawptr = db->f5[i]->rawptr;
+            float range = db->f5[i]->range;
+            float digitisation = db->f5[i]->digitisation;
+            float offset = db->f5[i]->offset;
+            int32_t nsample = db->f5[i]->nsample;
+
+            // convert to pA
+            float raw_unit = range / digitisation;
+            for (int32_t j = 0; j < nsample; j++) {
+                rawptr[j] = (rawptr[j] + offset) * raw_unit;
+            }
+            db->et[i] = getevents(db->f5[i]->nsample, rawptr);
+
+            //get the scalings
+            db->scalings[i] = estimate_scalings_using_mom(
+                db->read[i], db->read_len[i], core->model, db->et[i]);
+        }
+
+    } 
+
+    else {
+        //create threads
+        pthread_t tids[core->opt.num_thread];
+        pthread_arg_t pt_args[core->opt.num_thread];
+        int32_t t, ret;
+        int32_t i = 0;
+        int32_t num_thread = core->opt.num_thread;
+        int32_t step = (db->n_bam_rec + num_thread - 1) / num_thread;
+        //todo : check for higher num of threads than the data
+        for (t = 0; t < num_thread; t++) {
+            pt_args[t].core = core;
+            pt_args[t].db = db;
+            pt_args[t].starti = i;
+            i += step;
+            if (i > db->n_bam_rec) {
+                pt_args[t].endi = db->n_bam_rec;
+            } else {
+                pt_args[t].endi = i;
+            }
+            //fprintf(stderr,"t%d : %d-%d\n",t,pt_args[t].starti,pt_args[t].endi);
+            ret = pthread_create(&tids[t], NULL, event_pthread,
+                                 (void*)(&pt_args[t]));
+            NEG_CHK(ret);
+        }
+
+        //pthread joining
+        for (t = 0; t < core->opt.num_thread; t++) {
+            int ret = pthread_join(tids[t], NULL);
+            NEG_CHK(ret);
+        }
+    
+    }
+
+
+   
+}
+
+
 void* align_pthread(void* voidargs) {
     int i;
     pthread_arg_t* args = (pthread_arg_t*)voidargs;
@@ -246,6 +344,7 @@ void* align_pthread(void* voidargs) {
     //fprintf(stderr,"Thread %d done\n",(myargs->position)/THREADS);
     pthread_exit(0);
 }
+
 
 void align_db(core_t* core, db_t* db) {
 #ifdef HAVE_CUDA
@@ -303,24 +402,9 @@ void align_db(core_t* core, db_t* db) {
 void process_db(core_t* core, db_t* db) {
     double realtime0=core->realtime0;
     int32_t i;
-    for (i = 0; i < db->n_bam_rec; i++) {
-        float* rawptr = db->f5[i]->rawptr;
-        float range = db->f5[i]->range;
-        float digitisation = db->f5[i]->digitisation;
-        float offset = db->f5[i]->offset;
-        int32_t nsample = db->f5[i]->nsample;
 
-        // convert to pA
-        float raw_unit = range / digitisation;
-        for (int32_t j = 0; j < nsample; j++) {
-            rawptr[j] = (rawptr[j] + offset) * raw_unit;
-        }
-        db->et[i] = getevents(db->f5[i]->nsample, rawptr);
+    event_db(core,db);
 
-        //get the scalings
-        db->scalings[i] = estimate_scalings_using_mom(
-            db->read[i], db->read_len[i], core->model, db->et[i]);
-    }
     fprintf(stderr, "[%s::%.3f*%.2f] Events computed\n", __func__,
             realtime() - realtime0, cputime() / (realtime() - realtime0));
 

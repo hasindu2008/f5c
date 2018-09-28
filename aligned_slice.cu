@@ -790,14 +790,18 @@ __global__ void align_kernel_pre_2d(AlignedPair* event_align_pairs,
     int32_t* event_ptr, model_t* models,
     scalings_t* scalings, int32_t n_bam_rec,int32_t* kmer_ranks1,float *bands1,uint8_t *trace1, EventKmerPair* band_lower_left1) {
 
-#ifdef  PRE_3D       
-    int i = blockDim.z * blockIdx.z + threadIdx.z;
-    int band_i = blockDim.x * blockIdx.x + threadIdx.x;
-    int band_j = blockDim.y * blockIdx.y + threadIdx.y;
-#else
+// #ifdef  PRE_3D       
+//     int i = blockDim.z * blockIdx.z + threadIdx.z;
+//     int band_i = blockDim.x * blockIdx.x + threadIdx.x;
+//     int band_j = blockDim.y * blockIdx.y + threadIdx.y;
+// #else
+//     int i = blockDim.y * blockIdx.y + threadIdx.y;
+//     int band_i = blockDim.x * blockIdx.x + threadIdx.x;
+// #endif
+
     int i = blockDim.y * blockIdx.y + threadIdx.y;
-    int band_i = blockDim.x * blockIdx.x + threadIdx.x;
-#endif
+    int tid=blockIdx.x*blockDim.x+threadIdx.x;
+
 
     if (i < n_bam_rec) {
         //AlignedPair* out_2 = &event_align_pairs[event_ptr[i] * 2];
@@ -838,65 +842,55 @@ __global__ void align_kernel_pre_2d(AlignedPair* event_align_pairs,
         // Initialize
 
         // Precompute k-mer ranks to avoid doing this in the inner loop
-        //size_t* kmer_ranks = (size_t*)malloc(sizeof(size_t) * n_kmers);
-        //MALLOC_CHK(kmer_ranks); //todo : fix these to error check
 
-     
-    #ifdef  PRE_3D    
-        if(band_i<n_kmers && band_j==0){
-    #else
-        if(band_i<n_kmers){
-    #endif
-            //>>>>>>>>> New replacement begin
-            char* substring = &sequence[band_i];
-            kmer_ranks[band_i] = get_kmer_rank(substring, KMER_SIZE);
-            //<<<<<<<<< New replacement over
+
+    // #ifdef  PRE_3D    
+    //     if(band_i<n_kmers && band_j==0){
+    // #else
+    //     if(band_i<n_kmers){
+    // #endif
+
+
+
+        if(tid==0){ //todo : can be optimised
+            for (int32_t i = 0; i < n_kmers; ++i) {
+                //>>>>>>>>> New replacement begin
+                char* substring = &sequence[i];
+                kmer_ranks[i] = get_kmer_rank(substring, KMER_SIZE);
+                //<<<<<<<<< New replacement over
+            }
         }
 
-        //float** bands = (float**)malloc(sizeof(float*) * n_bands);
-        //MALLOC_CHK(bands);
-        //uint8_t** trace = (uint8_t**)malloc(sizeof(uint8_t*) * n_bands);
-        //MALLOC_CHK(trace);
-  
-        if(band_i<n_bands){
-            //bands[i] = (float*)malloc(sizeof(float) * bandwidth);
-            //MALLOC_CHK(bands[i]);
-            //trace[i] = (uint8_t*)malloc(sizeof(uint8_t) * bandwidth);
-            //MALLOC_CHK(trace[i]);
-
-        #ifdef  PRE_3D  
-            if(band_j<bandwidth){
-                BAND_ARRAY(band_i,band_j) = -INFINITY;
-                TRACE_ARRAY(band_i,band_j) = 0;
+        if(tid<bandwidth){
+            for (int32_t i = 0; i < n_bands; i++) {
+                    BAND_ARRAY(i,tid) = -INFINITY;
+                    TRACE_ARRAY(i,tid) = 0;
+                
             }
-        #else
-            for (int j = 0; j < bandwidth; j++) {
-                BAND_ARRAY(band_i,j) = -INFINITY;
-                TRACE_ARRAY(band_i,j) = 0;
-            }
-        #endif
         }
+    
 
-        // Keep track of the event/kmer index for the lower left corner of the band
-        // these indices are updated at every iteration to perform the adaptive banding
-        // Only the first two bands have their coordinates initialized, the rest are computed adaptively
+        // #ifdef  PRE_3D  
+        //     if(band_j<bandwidth){
+        //         BAND_ARRAY(band_i,band_j) = -INFINITY;
+        //         TRACE_ARRAY(band_i,band_j) = 0;
+        //     }
+        // #else
+        //     for (int j = 0; j < bandwidth; j++) {
+        //         BAND_ARRAY(band_i,j) = -INFINITY;
+        //         TRACE_ARRAY(band_i,j) = 0;
+        //     }
+        // #endif
+        // }
 
-        // struct EventKmerPair {
-        //     int event_idx;
-        //     int kmer_idx;
-        // };
-        //>>>>>>>>>>>>>>>>>New Replacement Begin
-        //struct EventKmerPair* band_lower_left =
-        //    (struct EventKmerPair*)malloc(sizeof(struct EventKmerPair) * n_bands);
-        //MALLOC_CHK(band_lower_left);
-        //std::vector<EventKmerPair> band_lower_left(n_bands);
-        //<<<<<<<<<<<<<<<<<New Replacement over
-         
-    #ifdef  PRE_3D    
-        if(band_i==0 && band_j==0){
-    #else
-        if(band_i==0){
-    #endif
+
+    // #ifdef  PRE_3D    
+    //     if(band_i==0 && band_j==0){
+    // #else
+    //     if(band_i==0){
+    // #endif
+
+        if(tid==0){
             // initialize range of first two bands
             band_lower_left[0].event_idx = half_bandwidth - 1;
             band_lower_left[0].kmer_idx = -1 - half_bandwidth;

@@ -5,25 +5,28 @@
 
 #define CUDA_DEBUG 1
 //#define CONST_MEM 1
+
 //#define DYNAMIC_PARALLELISM 1
 #define DYNAMIC_THRESH 63
 #define DYNAMIC_BLOCK_LEN 64
 
 #define ALIGN_KERNEL_SLICED 1 //not to be used with CONST_MEM defined
-#define WARP_HACK 1
-#define TWODIM_KERNEL 1
+#define WARP_HACK 1 //whether the align core kernel is  performed in 1D with a warp hack (effective only  if TWODIM_ALIGN_CORE is not defined)
 
+//align core options
+#define TWODIM_ALIGN_CORE 1     //align core in 2D
 #define MY_KERNEL_MAX_THREADS 128
 #define MY_KERNEL_MIN_BLOCKS 64
-
-//for 2d kernel
 #define BLOCK_LEN_READS 1
 #define BLOCK_LEN_BANDWIDTH 128
 
 
-#define BLOCK_LEN_NUMBAND 8
+//align pre options
+#define TWODIM_ALIGN_PRE 1  
+#define BLOCK_LEN_NUMBAND 16
+#define BLOCK_LEN_READS2 16
 
-//#define PRE_3D 1
+//#define PRE_3D 1 //only works with TWODIM_ALIGN_PRE active
 
 /* check whether the last CUDA function or CUDA kernel launch is erroneous and if yes an error message will be printed
 and then the program will be aborted*/
