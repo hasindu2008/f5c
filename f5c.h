@@ -23,6 +23,8 @@
 #define F5C_PRINT_BANDED_ALN 0x010
 #define F5C_PRINT_SCALING 0x020
 #define F5C_DISABLE_CUDA 0x040
+#define F5C_DEBUG_BRK 0x080
+
 
 //flags for a read
 #define FAILED_CALIBRATION 0x001 //if the calibration failed
@@ -101,6 +103,7 @@ typedef struct {
     int32_t stop; // inclusive
 } index_pair_t;
 
+
 //from nanopolish
 typedef struct {
     // ref data
@@ -153,6 +156,8 @@ typedef struct {
     event_alignment_t** event_alignment;
     int32_t* n_event_alignment;
     double* events_per_base; //todo : do we need double?
+
+    index_pair_t** base_to_event_map;
 
     int32_t* read_stat_flag;
 

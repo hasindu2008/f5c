@@ -11,7 +11,7 @@ include config.mk
 LDFLAGS += $(LIBS) -lpthread 
 
 #SRC = $(wildcard *.c)
-SRC = main.c f5c.c events.c nanopolish_read_db.c model.c align.c
+SRC = main.c f5c.c events.c nanopolish_read_db.c model.c align.c meth.c hmm.c
 OBJ = $(SRC:.c=.o)
 BINARY = f5c
 DEPS = f5c.h fast5lite.h nanopolish_read_db.h f5cmisc.h error.h
@@ -20,11 +20,12 @@ ifeq ($(cuda),) #if cuda is undefined
 
 else
 	DEPS_CUDA = f5c.h fast5lite.h error.h f5cmisc.cuh
-	SRC_CUDA = f5c.cu align.cu
+	SRC_CUDA = f5c.cu align.cu aligned_slice.cu
 	OBJ_CUDA = $(SRC_CUDA:.cu=_cuda.o)
 	CC_CUDA = nvcc
 	#CFLAGS_CUDA = -g  -G -Xcompiler -rdynamic  -O2 -std=c++11
-	CFLAGS_CUDA = -g  -O2 -std=c++11 -arch=sm_61
+	CFLAGS_CUDA = -g  -O2 -std=c++11 -lineinfo -arch=sm_61 
+	#CFLAGS_CUDA = -g  -O2 -std=c++11 -lineinfo -arch=sm_61 -maxrregcount=32
 	LDFLAGS += -L/usr/local/cuda/lib64/ -lcudart -lcudadevrt
 	OBJ += gpucode.o $(OBJ_CUDA)
 	CFLAGS += -DHAVE_CUDA=1
@@ -71,3 +72,6 @@ rsync :
 jetson:
 	rsync -av *.cu *.cuh $(SRC) $(DEPS) hasindu@jetson:~/f5c/ && ssh jetson 'cd ~/f5c/ && make cuda=1'
 	rsync -av scripts/*.sh hasindu@jetson:~/f5c/scripts/
+
+nsight:
+	nvprof  -f --kernels "align_kernel_core" --analysis-metrics -o bv.nvprof ./f5c -b test/chr22_meth_example/reads10k.bam -g test/chr22_meth_example//humangenome.fa -r test/chr22_meth_example//reads10k.fq -t 8 --print-scaling=yes -K512 --cuda-block-size=64 --debug-break=yes > /dev/null

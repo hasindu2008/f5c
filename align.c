@@ -522,14 +522,14 @@ int32_t align(AlignedPair* out_2, char* sequence, int32_t sequence_len,
     return outIndex;
 }
 
-int32_t postalign(event_alignment_t* alignment, double* events_per_base,
+int32_t postalign(event_alignment_t* alignment, index_pair_t* base_to_event_map,double* events_per_base,
                   char* sequence, int32_t n_kmers, AlignedPair* event_alignment,
                   int32_t n_events) {
     /* transform alignment into the base-to-event map*/
     // create base-to-event map
-    index_pair_t* base_to_event_map =
-        (index_pair_t*)(malloc(sizeof(index_pair_t) * n_kmers));
-    MALLOC_CHK(base_to_event_map);
+    // index_pair_t* base_to_event_map =
+    //     (index_pair_t*)(malloc(sizeof(index_pair_t) * n_kmers));
+    // MALLOC_CHK(base_to_event_map);
 
     //initialisesing (todo : check if really required)
     int32_t i = 0;
@@ -620,7 +620,7 @@ int32_t postalign(event_alignment_t* alignment, double* events_per_base,
         //fprintf(stderr,"event idx : %d\n",alignment_index);
     }
 
-    free(base_to_event_map);
+    //free(base_to_event_map);
     return alignment_index;
 }
 
