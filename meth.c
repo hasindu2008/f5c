@@ -7,36 +7,9 @@
 
 #define METHYLATED_SYMBOL 'M'
 
-
 //#define METH_DEBUG 1
 
-
-// structs
-// struct SequenceAlignmentRecord
-// {
-//     SequenceAlignmentRecord(const bam1_t* record);
-
-//     std::string read_name;
-//     std::string sequence;
-//     std::vector<AlignedPair> aligned_bases;
-//     uint8_t rc; // with respect to reference genome
-// };
-
-
-// struct EventAlignmentRecord
-// {
-//     EventAlignmentRecord() {}
-//     EventAlignmentRecord(size_t read_length,
-//                          const int strand_idx,
-//                          const SequenceAlignmentRecord& seq_record);
-
-//     //SquiggleRead* sr;
-//     uint8_t rc; // with respect to reference genome
-//     uint8_t strand; // 0 = template, 1 = complement
-//     int8_t stride; // whether event indices increase or decrease along the reference
-//     std::vector<AlignedPair> aligned_events;
-// };
-
+//contains extracted and modified code from nanopolish
 
 typedef std::vector<AlignedPair> AlignedSegment;
 
@@ -110,9 +83,7 @@ std::vector<AlignedSegment> get_aligned_segments(const bam1_t* record, int read_
 }
 
 
-//
-// EventAlignmentRecord
-//
+
 // helper for get_closest_event_to
 int get_next_event(int start, int stop, int stride,index_pair_t* base_to_event_map) 
 {
@@ -126,7 +97,7 @@ int get_next_event(int start, int stop, int stride,index_pair_t* base_to_event_m
     return -1;
 }
 
-//
+
 int get_closest_event_to(int k_idx, index_pair_t* base_to_event_map, int base_to_event_map_size)
 {
     int stop_before = std::max(0, k_idx - 1000);
@@ -288,41 +259,15 @@ const uint8_t rank_dna[256] = {
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
-// reverse-complement a string
-// when the string contains methylated bases, the methylation
-// symbol transfered to the output strand in the appropriate position
+// reverse-complement a DNA string
 std::string reverse_complement(const std::string& str) {
     std::string out(str.length(), 'A');
     size_t i = 0;             // input
     int j = str.length() - 1; // output
     while (i < str.length()) {
-        // int recognition_index = -1;
-        // RecognitionMatch match;
-
-        // // Does this location (partially) match a methylated recognition site?
-        // for (size_t j = 0; j < num_recognition_sites(); ++j) {
-        //     match = match_to_site(str, i, get_recognition_site_methylated(j),
-        //                           recognition_length());
-        //     if (match.length > 0 && match.covers_methylated_site) {
-        //         recognition_index = j;
-        //         break;
-        //     }
-        // }
-
-        // If this subsequence matched a methylated recognition site,
-        // copy the complement of the site to the output
-        // if (recognition_index != -1) {
-        //     for (size_t k = match.offset; k < match.offset + match.length;
-        //          ++k) {
-        //         out[j--] = get_recognition_site_methylated_complement(
-        //             recognition_index)[k];
-        //         i += 1;
-        //     }
-        // } else {
         // complement a single base
         assert(str[i] != METHYLATED_SYMBOL);
         out[j--] = complement_dna[rank_dna[(int)str[i++]]];
-        // }
     }
     return out;
 }
@@ -337,25 +282,10 @@ std::string disambiguate(const std::string& str) {
         size_t stride = 1;
         bool is_recognition_site = false;
 
-        // Does this location (partially) match a methylated recognition site?
-        // not to worry about in DNA alphabet
-        // for(size_t j = 0; j < num_recognition_sites(); ++j) {
-
-        //     RecognitionMatch match = match_to_site(out, i, get_recognition_site_methylated(j), recognition_length());
-        //     if(match.length > 0) {
-        //         stride = match.length; // skip to end of match
-        //         is_recognition_site = true;
-        //         break;
-        //     }
-        // }
-
-        // disambiguate if not a recognition site
-        //if(!is_recognition_site) {
-
         assert(isValid(out[i]));
         out[i] = getPossibleSymbols(out[i])[0];
         stride = 1;
-        //}
+
 
         i += stride;
     }

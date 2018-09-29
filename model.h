@@ -1,6 +1,8 @@
 #ifndef MODEL_H
 #define MODEL_H
 
+//extracted from nanopolish
+
 static float r9_4_450bps_nucleotide_6mer_template_model_builtin_data[] = {
     86.48634,  1.51785, 0.94148, 0.60936, // AAAAAA
     83.94884,  1.51785, 1.07705, 0.74561, // AAAAAC
