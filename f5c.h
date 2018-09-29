@@ -160,6 +160,7 @@ typedef struct {
     index_pair_t** base_to_event_map;
 
     int32_t* read_stat_flag;
+    
 
 } db_t;
 

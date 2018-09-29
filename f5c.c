@@ -492,7 +492,7 @@ void process_db(core_t* core, db_t* db) {
             continue;
         }
 
-        calculate_methylation_for_read(db->fasta_cache[i], db->bam_rec[i], db->read_len[i], db->et[i].event, db->base_to_event_map[i],
+        calculate_methylation_for_read(core->m_hdr, db->fasta_cache[i], db->bam_rec[i], db->read_len[i], db->et[i].event, db->base_to_event_map[i],
 db->scalings[i], core->cpgmodel,db->events_per_base[i]);
     }
 
