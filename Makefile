@@ -24,7 +24,7 @@ else
 	OBJ_CUDA = $(SRC_CUDA:.cu=_cuda.o)
 	CC_CUDA = nvcc
 	#CFLAGS_CUDA = -g  -G -Xcompiler -rdynamic  -O2 -std=c++11
-	CFLAGS_CUDA = -g  -O2 -std=c++11 -lineinfo -arch=sm_61 
+	CFLAGS_CUDA = -g  -O2 -std=c++11 -lineinfo $(CUDA_ARCH) 
 	#CFLAGS_CUDA = -g  -O2 -std=c++11 -lineinfo -arch=sm_61 -maxrregcount=32
 	LDFLAGS += -L/usr/local/cuda/lib64/ -lcudart -lcudadevrt
 	OBJ += gpucode.o $(OBJ_CUDA)
@@ -66,11 +66,12 @@ test: $(BINARY)
 valgrind : $(BINARY)
 	./scripts/test.sh valgrind
 
-rsync :
-	rsync -av *.cu *.cuh $(SRC) $(DEPS) hasindu@kepler:/storage/hasindu/f5c/ && ssh kepler 'cd /storage/hasindu/f5c/ && make cuda=1'
+kepler :
+	rsync -av *.cu *.cuh Makefile $(SRC) $(DEPS) hasindu@kepler:/storage/hasindu/f5c/ && ssh kepler 'cd /storage/hasindu/f5c/ && make cuda=1'
+	rsync -av scripts/*.sh hasindu@kepler:/storage/hasindu/f5c/scripts/ 
 
 jetson:
-	rsync -av *.cu *.cuh $(SRC) $(DEPS) hasindu@jetson:~/f5c/ && ssh jetson 'cd ~/f5c/ && make cuda=1'
+	rsync -av *.cu *.cuh Makefile $(SRC) $(DEPS) hasindu@jetson:~/f5c/ && ssh jetson 'cd ~/f5c/ && make cuda=1'
 	rsync -av scripts/*.sh hasindu@jetson:~/f5c/scripts/
 
 nsight:
