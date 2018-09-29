@@ -918,6 +918,8 @@ __global__ void align_kernel_pre_2d(AlignedPair* event_align_pairs,
 }
 
 
+#define PROFILE 1
+
 __global__ void 
 //__launch_bounds__(MY_KERNEL_MAX_THREADS, MY_KERNEL_MIN_BLOCKS)
 align_kernel_core_2d(AlignedPair* event_align_pairs,
@@ -1048,9 +1050,24 @@ align_kernel_core_2d(AlignedPair* event_align_pairs,
                                  ? BAND_ARRAY(band_idx - 2,offset_diag)
                                  : -INFINITY;
 
+            #ifndef PROFILE
                 float lp_emission = log_probability_match_r9(
                     scaling, models, events, event_idx, kmer_rank);
                 //fprintf(stderr, "lp emiision : %f , event idx %d, kmer rank %d\n", lp_emission,event_idx,kmer_rank);
+            #else
+                float unscaledLevel = events[event_idx].mean;
+                float scaledLevel = unscaledLevel;
+                model_t model = models[kmer_rank];
+                float gp_mean =
+                    scaling.scale * model.level_mean + scaling.shift;
+                float gp_stdv = model.level_stdv ; //scaling.var = 1;
+                float gp_log_stdv = log(gp_stdv); // scaling.log_var = log(1)=0;
+                float a = (scaledLevel - gp_mean) / gp_stdv;
+                float lp_emission  = log_inv_sqrt_2pi - gp_log_stdv + (-0.5f * a * a);
+
+            #endif    
+
+
                 float score_d = diag + lp_step + lp_emission;
                 float score_u = up + lp_stay + lp_emission;
                 float score_l = left + lp_skip;
@@ -1089,3 +1106,5 @@ align_kernel_core_2d(AlignedPair* event_align_pairs,
 
 
 #endif
+
+

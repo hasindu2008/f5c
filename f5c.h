@@ -79,9 +79,9 @@ typedef struct {
     //float var_sd;
 
     // derived parameters that are cached for efficiency
-    float log_var;
-    float scaled_var;
-    float log_scaled_var;
+    //float log_var;
+    //float scaled_var;
+    //float log_scaled_var;
 
 } scalings_t;
 
