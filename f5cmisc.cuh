@@ -3,30 +3,32 @@
 
 #include <stdint.h>
 
-#define CUDA_DEBUG 1
-//#define CONST_MEM 1
+#define CUDA_DEBUG 1 //whether perform CUDA_device_synchronise or not
+//#define CONST_MEM 1 //the model is in constant memory (only works without ALIGN_KERNEL_SLICED)
 
-//#define DYNAMIC_PARALLELISM 1
-#define DYNAMIC_THRESH 63
-#define DYNAMIC_BLOCK_LEN 64
+//whether dynamic parallelism enabled for the inner loop of alignment. only works without ALIGN_KERNEL_SLICED
+//#define DYNAMIC_PARALLELISM 1 
+#define DYNAMIC_THRESH 63 //if loop count > DYNAMIC_THRESH call dynamic parallel kernel
+#define DYNAMIC_BLOCK_LEN 64 //the cuda block size for the dynamic parallel kernel
 
-#define ALIGN_KERNEL_SLICED 1 //not to be used with CONST_MEM defined
+#define ALIGN_KERNEL_SLICED 1 //Perform the alignment in 3 steps : pre, core and post, not to be used with CONST_MEM defined
 #define WARP_HACK 1 //whether the align core kernel is  performed in 1D with a warp hack (effective only  if TWODIM_ALIGN_CORE is not defined)
 
-//align core options
-#define TWODIM_ALIGN_CORE 1     //align core in 2D
-#define MY_KERNEL_MAX_THREADS 128
-#define MY_KERNEL_MIN_BLOCKS 64
-#define BLOCK_LEN_READS 1
-#define BLOCK_LEN_BANDWIDTH 128
+//align-core-kernel options
+#define TWODIM_ALIGN_CORE 1     //align-core in 2D thread model
+#define MY_KERNEL_MAX_THREADS 128  //not used at the moment
+#define MY_KERNEL_MIN_BLOCKS 64 //not used at the moment
+#define BLOCK_LEN_READS 1 //the block size along y axis (the number of reads)
+#define BLOCK_LEN_BANDWIDTH 128 //the block size along the x axis, should be >= ALN_BANDWIDTH
 
 
-//align pre options
-#define TWODIM_ALIGN_PRE 1  
-#define BLOCK_LEN_NUMBAND 16
-#define BLOCK_LEN_READS2 16
+//align-pre-kernel options
+#define TWODIM_ALIGN_PRE 1   //align-pre in 2D thread model
+#define BLOCK_LEN_NUMBAND 16    //the block size along the x axis (BANDWDITH)
+#define BLOCK_LEN_READS2 16 // //the block size along y axis (the number of reads)
 
-//#define PRE_3D 1 //only works with TWODIM_ALIGN_PRE active
+//#define PRE_3D 1 //only works with TWODIM_ALIGN_PRE active //this is buggy
+
 
 /* check whether the last CUDA function or CUDA kernel launch is erroneous and if yes an error message will be printed
 and then the program will be aborted*/

@@ -20,7 +20,7 @@ ifeq ($(cuda),) #if cuda is undefined
 
 else
 	DEPS_CUDA = f5c.h fast5lite.h error.h f5cmisc.cuh
-	SRC_CUDA = f5c.cu align.cu aligned_slice.cu
+	SRC_CUDA = f5c.cu align.cu align_single.cu
 	OBJ_CUDA = $(SRC_CUDA:.cu=_cuda.o)
 	CC_CUDA = nvcc
 	#CFLAGS_CUDA = -g  -G -Xcompiler -rdynamic  -O2 -std=c++11
@@ -74,7 +74,8 @@ jetson:
 	rsync -av scripts/*.sh hasindu@jetson:~/f5c/scripts/
 
 nsight:
-	nvprof  -f --kernels "align_kernel_core" --analysis-metrics -o bv.nvprof ./f5c -b test/chr22_meth_example/reads10k.bam -g test/chr22_meth_example//humangenome.fa -r test/chr22_meth_example//reads10k.fq -t 8 --print-scaling=yes -K512 --cuda-block-size=64 --debug-break=yes > /dev/null
+	#nvprof  -f --kernels "align_kernel_core" --analysis-metrics -o bv.nvprof ./f5c -b test/chr22_meth_example/reads10k.bam -g test/chr22_meth_example//humangenome.fa -r test/chr22_meth_example//reads10k.fq -t 8 --print-scaling=yes -K512 --cuda-block-size=64 --debug-break=yes > /dev/null
+	nvprof  -f --analysis-metrics -o bv.nvprof ./f5c -b test/chr22_meth_example/reads10k.bam -g test/chr22_meth_example//humangenome.fa -r test/chr22_meth_example//reads10k.fq -t 8 --print-scaling=yes -K512 --cuda-block-size=64 --debug-break=yes > /dev/null
 
 benchmark:
 	./f5c -b test/chr22_meth_example/reads10k.bam -g test/chr22_meth_example//humangenome.fa -r test/chr22_meth_example//reads10k.fq -t 8 --print-scaling=yes -K512 --cuda-block-size=64 > /dev/null
