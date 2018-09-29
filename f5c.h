@@ -79,9 +79,9 @@ typedef struct {
     //float var_sd;
 
     // derived parameters that are cached for efficiency
-    float log_var;
-    float scaled_var;
-    float log_scaled_var;
+    //float log_var;
+    //float scaled_var;
+    //float log_scaled_var;
 
 } scalings_t;
 
@@ -160,6 +160,7 @@ typedef struct {
     index_pair_t** base_to_event_map;
 
     int32_t* read_stat_flag;
+    
 
 } db_t;
 
@@ -183,6 +184,10 @@ typedef struct {
     // options
     opt_t opt;
 
+    //realtime0
+    double realtime0;
+    double align_time;
+
 } core_t;
 
 typedef struct {
@@ -196,8 +201,8 @@ typedef struct {
 db_t* init_db(core_t* core);
 int32_t load_db(core_t* dg, db_t* db);
 core_t* init_core(const char* bamfilename, const char* fastafile,
-                  const char* fastqfile, opt_t opt);
-void process_db(core_t* dg, db_t* db, double realtime0);
+                  const char* fastqfile, opt_t opt,double realtime0);
+void process_db(core_t* dg, db_t* db);
 void align_db(core_t* core, db_t* db);
 void output_db(core_t* core, db_t* db);
 void free_core(core_t* core);

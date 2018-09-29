@@ -7,36 +7,9 @@
 
 #define METHYLATED_SYMBOL 'M'
 
+//#define METH_DEBUG 1
 
-
-
-
-// structs
-// struct SequenceAlignmentRecord
-// {
-//     SequenceAlignmentRecord(const bam1_t* record);
-
-//     std::string read_name;
-//     std::string sequence;
-//     std::vector<AlignedPair> aligned_bases;
-//     uint8_t rc; // with respect to reference genome
-// };
-
-
-// struct EventAlignmentRecord
-// {
-//     EventAlignmentRecord() {}
-//     EventAlignmentRecord(size_t read_length,
-//                          const int strand_idx,
-//                          const SequenceAlignmentRecord& seq_record);
-
-//     //SquiggleRead* sr;
-//     uint8_t rc; // with respect to reference genome
-//     uint8_t strand; // 0 = template, 1 = complement
-//     int8_t stride; // whether event indices increase or decrease along the reference
-//     std::vector<AlignedPair> aligned_events;
-// };
-
+//contains extracted and modified code from nanopolish
 
 typedef std::vector<AlignedPair> AlignedSegment;
 
@@ -110,9 +83,7 @@ std::vector<AlignedSegment> get_aligned_segments(const bam1_t* record, int read_
 }
 
 
-//
-// EventAlignmentRecord
-//
+
 // helper for get_closest_event_to
 int get_next_event(int start, int stop, int stride,index_pair_t* base_to_event_map) 
 {
@@ -126,7 +97,7 @@ int get_next_event(int start, int stop, int stride,index_pair_t* base_to_event_m
     return -1;
 }
 
-//
+
 int get_closest_event_to(int k_idx, index_pair_t* base_to_event_map, int base_to_event_map_size)
 {
     int stop_before = std::max(0, k_idx - 1000);
@@ -288,92 +259,15 @@ const uint8_t rank_dna[256] = {
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
-struct RecognitionMatch
-{
-    unsigned offset; // the matched position in the recognition site
-    unsigned length; // the length of the match, 0 indicates no match
-    bool covers_methylated_site; // does the match cover an M base?
-};
-
-const uint32_t num_recognition_sites = 1;
-const uint32_t recognition_length = 2;
-const char* recognition_sites[] = { "CG" };
-const char* recognition_sites_methylated[] = { "MG" };
-const char* recognition_sites_methylated_complement[] = { "GM" };
-
-// // reverse-complement a string
-// // when the string contains methylated bases, the methylation
-// // symbol transfered to the output strand in the appropriate position
-// std::string reverse_complement(const std::string& str) 
-// {
-//     std::string out(str.length(), 'A');
-//     size_t i = 0; // input
-//     int j = str.length() - 1; // output
-//     while(i < str.length()) {
-//         int recognition_index = -1;
-//         RecognitionMatch match;
-
-//         // Does this location (partially) match a methylated recognition site?
-//         for(size_t j = 0; j < num_recognition_sites; ++j) {
-//             match = match_to_site(str, i, get_recognition_site_methylated(j), recognition_length());
-//             if(match.length > 0 && match.covers_methylated_site) {
-//                 recognition_index = j;
-//                 break;
-//             }
-//         }
-
-//         // If this subsequence matched a methylated recognition site,
-//         // copy the complement of the site to the output
-//         if(recognition_index != -1) {
-//             for(size_t k = match.offset; k < match.offset + match.length; ++k) {
-//                 out[j--] = get_recognition_site_methylated_complement(recognition_index)[k];
-//                 i += 1;
-//             }
-//         } else {
-//             // complement a single base
-//             assert(str[i] != METHYLATED_SYMBOL);
-//             out[j--] = complement(str[i++]);
-//         }
-//     }
-//     return out;
-// }
-
-
-// reverse-complement a string
-// when the string contains methylated bases, the methylation
-// symbol transfered to the output strand in the appropriate position
+// reverse-complement a DNA string
 std::string reverse_complement(const std::string& str) {
     std::string out(str.length(), 'A');
     size_t i = 0;             // input
     int j = str.length() - 1; // output
     while (i < str.length()) {
-        // int recognition_index = -1;
-        // RecognitionMatch match;
-
-        // // Does this location (partially) match a methylated recognition site?
-        // for (size_t j = 0; j < num_recognition_sites(); ++j) {
-        //     match = match_to_site(str, i, get_recognition_site_methylated(j),
-        //                           recognition_length());
-        //     if (match.length > 0 && match.covers_methylated_site) {
-        //         recognition_index = j;
-        //         break;
-        //     }
-        // }
-
-        // If this subsequence matched a methylated recognition site,
-        // copy the complement of the site to the output
-        // if (recognition_index != -1) {
-        //     for (size_t k = match.offset; k < match.offset + match.length;
-        //          ++k) {
-        //         out[j--] = get_recognition_site_methylated_complement(
-        //             recognition_index)[k];
-        //         i += 1;
-        //     }
-        // } else {
         // complement a single base
         assert(str[i] != METHYLATED_SYMBOL);
         out[j--] = complement_dna[rank_dna[(int)str[i++]]];
-        // }
     }
     return out;
 }
@@ -388,31 +282,129 @@ std::string disambiguate(const std::string& str) {
         size_t stride = 1;
         bool is_recognition_site = false;
 
-        // Does this location (partially) match a methylated recognition site?
-        // not to worry about in DNA alphabet
-        // for(size_t j = 0; j < num_recognition_sites(); ++j) {
-
-        //     RecognitionMatch match = match_to_site(out, i, get_recognition_site_methylated(j), recognition_length());
-        //     if(match.length > 0) {
-        //         stride = match.length; // skip to end of match
-        //         is_recognition_site = true;
-        //         break;
-        //     }
-        // }
-
-        // disambiguate if not a recognition site
-        //if(!is_recognition_site) {
-
         assert(isValid(out[i]));
         out[i] = getPossibleSymbols(out[i])[0];
         stride = 1;
-        //}
+
 
         i += stride;
     }
     return out;
 }
 
+
+
+struct RecognitionMatch
+{
+    unsigned offset; // the matched position in the recognition site
+    unsigned length; // the length of the match, 0 indicates no match
+    bool covers_methylated_site; // does the match cover an M base?
+};
+
+const uint32_t num_recognition_sites = 1;
+const uint32_t recognition_length = 2;
+const char* recognition_sites[] = { "CG" };
+const char* recognition_sites_methylated[] = { "MG" };
+const char* recognition_sites_methylated_complement[] = { "GM" };
+
+
+
+// Check whether a recognition site starts at position i of str
+inline RecognitionMatch match_to_site(const std::string& str, size_t i, const char* recognition, size_t rl)
+{
+    RecognitionMatch match;
+    match.length = 0;
+    match.offset = 0;
+    match.covers_methylated_site = false;
+
+    // Case 1: str is a substring of recognition
+    const char* p = strstr(recognition, str.c_str());
+    if(i == 0 && p != NULL) {
+        match.offset = p - recognition;
+        match.length = str.length();
+    } else {
+        // Case 2: the suffix str[i..n] is a prefix of recognition
+        size_t cl = std::min(rl, str.length() - i);
+        if(str.compare(i, cl, recognition, cl) == 0) {
+            match.offset = 0;
+            match.length = cl;
+        }
+    }   
+
+    //printf("Match site: %s %s %s %d %d\n", str.c_str(), str.substr(i).c_str(), recognition, match.offset, match.length);
+    if(match.length > 0) {
+        match.covers_methylated_site = 
+            str.substr(i, match.length).find_first_of(METHYLATED_SYMBOL) != std::string::npos;
+    }
+
+    return match;
+}
+
+
+// If the alphabet supports methylated bases, convert str
+// to a methylated string using the recognition sites
+std::string methylate(const std::string& str) 
+{
+    std::string out(str);
+    size_t i = 0;
+    while(i < out.length()) {
+        size_t stride = 1;
+
+        // Does this location match a recognition site?
+        for(size_t j = 0; j < num_recognition_sites; ++j) {
+
+            RecognitionMatch match = match_to_site(str, i, recognition_sites[j], recognition_length);
+            // Require the recognition site to be completely matched
+            if(match.length == recognition_length) {
+                // Replace by the methylated version
+                out.replace(i, recognition_length, recognition_sites_methylated[j]);
+                stride = match.length; // skip to end of match
+                break;
+            }
+        }
+
+        i += stride;
+    }
+    return out;
+}
+
+// reverse-complement a string meth aware
+// when the string contains methylated bases, the methylation
+// symbol transfered to the output strand in the appropriate position
+std::string reverse_complement_meth(const std::string& str) 
+{
+    std::string out(str.length(), 'A');
+    size_t i = 0; // input
+    int j = str.length() - 1; // output
+    while(i < str.length()) {
+        int recognition_index = -1;
+        RecognitionMatch match;
+
+        // Does this location (partially) match a methylated recognition site?
+        for(size_t j = 0; j < num_recognition_sites; ++j) {
+            match = match_to_site(str, i, recognition_sites_methylated[j], recognition_length);
+            if(match.length > 0 && match.covers_methylated_site) {
+                recognition_index = j;
+                break;
+            }
+        }
+
+        // If this subsequence matched a methylated recognition site,
+        // copy the complement of the site to the output
+        if(recognition_index != -1) {
+            for(size_t k = match.offset; k < match.offset + match.length; ++k) {
+                out[j--] = recognition_sites_methylated_complement[recognition_index][k];
+                i += 1;
+            }
+        } else {
+            // complement a single base
+            assert(str[i] != METHYLATED_SYMBOL);
+            //out[j--] = complement(str[i++]);
+            out[j--] = complement_dna[rank_dna[(int)str[i++]]];
+        }
+    }
+    return out;
+}
 
 //typedef std::vector<AlignedPair>::iterator AlignedPairIter;
 typedef std::vector<AlignedPair>::const_iterator AlignedPairConstIter;
@@ -495,7 +487,7 @@ struct ScoredSite
 
 
 // Test CpG sites in this read for methylation
-void calculate_methylation_for_read(char* ref, bam1_t* record, int32_t read_length, event_t* event, index_pair_t* base_to_event_map,
+void calculate_methylation_for_read(bam_hdr_t* m_hdr, char* ref, bam1_t* record, int32_t read_length, event_t* event, index_pair_t* base_to_event_map,
 scalings_t scaling, model_t* cpgmodel,double events_per_base) {
     // Load a squiggle read for the mapped read
     // std::string read_name = bam_get_qname(record);
@@ -627,36 +619,16 @@ scalings_t scaling, model_t* cpgmodel,double events_per_base) {
         double unmethylated_score=profile_hmm_score(m_seq,m_rc_seq, event, scaling, cpgmodel, event_start_idx, event_stop_idx,
         strand,event_stride,rc,events_per_base,hmm_flags);
 
-
-
-#if 0
-
-        // Set up event data
-        HMMInputData data;
-        data.read = &sr;
-        data.pore_model = sr.get_model(strand_idx, "cpg");
-        data.strand = strand_idx;
-        data.rc = event_align_record.rc;
-        data.event_start_idx = e1;
-        data.event_stop_idx = e2;
-        data.event_stride =
-            data.event_start_idx <= data.event_stop_idx ? 1 : -1;
-
-        // Calculate the likelihood of the unmethylated sequence
-        HMMInputSequence unmethylated(subseq, rc_subseq, mtest_alphabet);
-        double unmethylated_score =
-            profile_hmm_score(unmethylated, data, hmm_flags);
-
         // Methylate all CpGs in the sequence and score again
-        std::string mcpg_subseq = mtest_alphabet->methylate(subseq);
-        std::string rc_mcpg_subseq =
-            mtest_alphabet->reverse_complement(mcpg_subseq);
+        std::string mcpg_subseq = methylate(subseq);
+        std::string rc_mcpg_subseq = reverse_complement_meth(mcpg_subseq);
 
-        // Calculate the likelihood of the methylated sequence
-        HMMInputSequence methylated(mcpg_subseq, rc_mcpg_subseq,
-                                    mtest_alphabet);
-        double methylated_score =
-            profile_hmm_score(methylated, data, hmm_flags);
+
+        double methylated_score=profile_hmm_score(mcpg_subseq.c_str(),rc_mcpg_subseq.c_str(), event, scaling, cpgmodel, event_start_idx, event_stop_idx,
+        strand,event_stride,rc,events_per_base,hmm_flags);
+
+
+        std::string contig = m_hdr->target_name[record->core.tid];
 
         // Aggregate score
         int start_position = cpg_sites[start_idx] + ref_start_pos;
@@ -682,11 +654,30 @@ scalings_t scaling, model_t* cpgmodel,double events_per_base) {
 
         // set strand-specific score
         // upon output below the strand scores will be summed
+        int strand_idx=0;
         iter->second.ll_unmethylated[strand_idx] = unmethylated_score;
         iter->second.ll_methylated[strand_idx] = methylated_score;
         iter->second.strands_scored += 1;
 
-#endif
 
     } // for group
+
+    char* qname = bam_get_qname(record);
+
+    #ifdef METH_DEBUG
+    // write all sites for this read
+    for(auto iter = site_score_map.begin(); iter != site_score_map.end(); ++iter) {
+
+        const ScoredSite& ss = iter->second;
+        double sum_ll_m = ss.ll_methylated[0] + ss.ll_methylated[1];
+        double sum_ll_u = ss.ll_unmethylated[0] + ss.ll_unmethylated[1];
+        double diff = sum_ll_m - sum_ll_u;
+
+        fprintf(stderr, "%s\t%d\t%d\t", ss.chromosome.c_str(), ss.start_position, ss.end_position);
+        fprintf(stderr, "%s\t%.2lf\t", qname, diff);
+        fprintf(stderr, "%.2lf\t%.2lf\t", sum_ll_m, sum_ll_u);
+        fprintf(stderr, "%d\t%d\t%s\n", ss.strands_scored, ss.n_cpg, ss.sequence.c_str());
+    }
+    #endif
+
 }

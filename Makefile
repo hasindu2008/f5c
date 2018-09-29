@@ -20,11 +20,11 @@ ifeq ($(cuda),) #if cuda is undefined
 
 else
 	DEPS_CUDA = f5c.h fast5lite.h error.h f5cmisc.cuh
-	SRC_CUDA = f5c.cu align.cu aligned_slice.cu
+	SRC_CUDA = f5c.cu align.cu align_single.cu
 	OBJ_CUDA = $(SRC_CUDA:.cu=_cuda.o)
 	CC_CUDA = nvcc
 	#CFLAGS_CUDA = -g  -G -Xcompiler -rdynamic  -O2 -std=c++11
-	CFLAGS_CUDA = -g  -O2 -std=c++11 -lineinfo -arch=sm_61 
+	CFLAGS_CUDA = -g  -O2 -std=c++11 -lineinfo $(CUDA_ARCH) 
 	#CFLAGS_CUDA = -g  -O2 -std=c++11 -lineinfo -arch=sm_61 -maxrregcount=32
 	LDFLAGS += -L/usr/local/cuda/lib64/ -lcudart -lcudadevrt
 	OBJ += gpucode.o $(OBJ_CUDA)
@@ -66,12 +66,20 @@ test: $(BINARY)
 valgrind : $(BINARY)
 	./scripts/test.sh valgrind
 
-rsync :
-	rsync -av *.cu *.cuh $(SRC) $(DEPS) hasindu@kepler:/storage/hasindu/f5c/ && ssh kepler 'cd /storage/hasindu/f5c/ && make cuda=1'
+kepler :
+	rsync -av *.cu *.cuh Makefile $(SRC) $(DEPS) hasindu@kepler:/storage/hasindu/f5c/ && ssh kepler 'cd /storage/hasindu/f5c/ && make cuda=1'
+	rsync -av scripts/*.sh hasindu@kepler:/storage/hasindu/f5c/scripts/ 
 
 jetson:
-	rsync -av *.cu *.cuh $(SRC) $(DEPS) hasindu@jetson:~/f5c/ && ssh jetson 'cd ~/f5c/ && make cuda=1'
+	rsync -av *.cu *.cuh Makefile $(SRC) $(DEPS) hasindu@jetson:~/f5c/ && ssh jetson 'cd ~/f5c/ && make cuda=1'
 	rsync -av scripts/*.sh hasindu@jetson:~/f5c/scripts/
 
 nsight:
-	nvprof  -f --kernels "align_kernel_core" --analysis-metrics -o bv.nvprof ./f5c -b test/chr22_meth_example/reads10k.bam -g test/chr22_meth_example//humangenome.fa -r test/chr22_meth_example//reads10k.fq -t 8 --print-scaling=yes -K512 --cuda-block-size=64 --debug-break=yes > /dev/null
+	#nvprof  -f --kernels "align_kernel_core" --analysis-metrics -o bv.nvprof ./f5c -b test/chr22_meth_example/reads10k.bam -g test/chr22_meth_example//humangenome.fa -r test/chr22_meth_example//reads10k.fq -t 8 --print-scaling=yes -K512 --cuda-block-size=64 --debug-break=yes > /dev/null
+	nvprof  -f --analysis-metrics -o bv.nvprof ./f5c -b test/chr22_meth_example/reads10k.bam -g test/chr22_meth_example//humangenome.fa -r test/chr22_meth_example//reads10k.fq -t 8 --print-scaling=yes -K512 --cuda-block-size=64 --debug-break=yes > /dev/null
+
+benchmark:
+	./f5c -b test/chr22_meth_example/reads10k.bam -g test/chr22_meth_example//humangenome.fa -r test/chr22_meth_example//reads10k.fq -t 8 --print-scaling=yes -K512 --cuda-block-size=64 > /dev/null
+
+
+

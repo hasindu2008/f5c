@@ -4,6 +4,8 @@
 //#define DEBUG_RECALIB_SCALING 1
 //#define DEBUG_ADAPTIVE 1
 
+//contains extracted and modified code from nanopolish
+
 //todo : can make more efficient using bit encoding
 static inline uint32_t get_rank(char base) {
     if (base == 'A') { //todo: do we neeed simple alpha?
