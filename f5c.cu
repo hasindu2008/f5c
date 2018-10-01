@@ -184,7 +184,7 @@ void align_cuda(core_t* core, db_t* db) {
     dim3 grid((db->n_bam_rec + BLOCK_LEN - 1) / BLOCK_LEN);
     dim3 block(BLOCK_LEN);
 
-    fprintf(stderr,"grid %d, block %d\n",grid.x,block.x);
+    //fprintf(stderr,"grid %d, block %d\n",grid.x,block.x);
     // cudaDeviceSetLimit(cudaLimitMallocHeapSize, 512 * 1024 * 1024);
     // CUDA_CHK();
 
@@ -210,7 +210,8 @@ void align_cuda(core_t* core, db_t* db) {
             // #endif
             assert(BLOCK_LEN_BANDWIDTH>=ALN_BANDWIDTH);
             dim3 gridpre(1,(db->n_bam_rec + BLOCK_LEN_READS - 1) / BLOCK_LEN_READS);
-            dim3 blockpre(BLOCK_LEN_BANDWIDTH,BLOCK_LEN_READS);           
+            dim3 blockpre(BLOCK_LEN_BANDWIDTH,BLOCK_LEN_READS);  
+			fprintf(stderr,"grid %d,%d, block %d,%d\n",gridpre.x,gridpre.y, blockpre.x,blockpre.y);	
             align_kernel_pre_2d<<<gridpre, blockpre>>>(event_align_pairs, n_event_align_pairs, read,
             read_len, read_ptr, event_table, n_events,
             event_ptr, model, scalings, n_bam_rec, kmer_ranks,bands,trace,band_lower_left );

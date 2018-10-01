@@ -522,7 +522,94 @@ void align_db(core_t* core, db_t* db) {
 }
 
 
+void process_single(core_t* core, db_t* db,int32_t i) {
+
+    event_single(core,db,i);
+
+    db->event_align_pairs[i] = (AlignedPair*)malloc( 
+        sizeof(AlignedPair) * db->et[i].n *
+        2); //todo : find a good heuristic to save memory //todo : save memory by freeing here itself
+    MALLOC_CHK(db->event_align_pairs[i]);
+
+    align_single(core, db,i);
+
+    db->event_alignment[i] = NULL;
+    db->n_event_alignment[i] = 0;
+    db->events_per_base[i] = 0; //todo : is double needed? not just int8?
+
+    int32_t n_kmers = db->read_len[i] - KMER_SIZE + 1;
+    db->base_to_event_map[i]=(index_pair_t*)(malloc(sizeof(index_pair_t) * n_kmers));
+    MALLOC_CHK(db->base_to_event_map[i]);
+
+    if (db->n_event_align_pairs[i] > 0) {
+        // prepare data structures for the final calibration
+        
+        db->event_alignment[i] = (event_alignment_t*)malloc(
+            sizeof(event_alignment_t) * db->n_event_align_pairs[i]);
+        MALLOC_CHK(db->event_alignment[i]);
+
+        // for (int j = 0; j < n_event_align_pairs; ++j) {
+        //     fprintf(stderr, "%d-%d\n",event_align_pairs[j].ref_pos,event_align_pairs[j].read_pos);
+        // }
+
+
+        //todo : verify if this n is needed is needed
+        db->n_event_alignment[i] = postalign(
+            db->event_alignment[i],db->base_to_event_map[i], &db->events_per_base[i], db->read[i],
+            n_kmers, db->event_align_pairs[i], db->n_event_align_pairs[i]);
+
+        //fprintf(stderr,"n_event_alignment %d\n",n_events);
+
+        // run recalibration to get the best set of scaling parameters and the residual
+        // between the (scaled) event levels and the model.
+
+        // internally this function will set shift/scale/etc of the pore model
+        bool calibrated = recalibrate_model(
+            core->model, db->et[i], &db->scalings[i],
+            db->event_alignment[i], db->n_event_alignment[i], 1);
+
+        // QC calibration
+        if (!calibrated || db->scalings[i].var > MIN_CALIBRATION_VAR) {
+            //     events[strand_idx].clear();
+            free(db->event_alignment[i]);
+            //free(db->event_align_pairs[i]);
+            //     g_failed_calibration_reads += 1; //todo : add these stats
+            db->read_stat_flag[i] |= FAILED_CALIBRATION;
+            return;
+        }
+
+        free(db->event_alignment[i]);
+
+    } else {
+        // Could not align, fail this read
+        // this->events[strand_idx].clear();
+        // this->events_per_base[strand_idx] = 0.0f;
+        //free(db->event_align_pairs[i]);
+        db->read_stat_flag[i] |= FAILED_ALIGNMENT;
+        // g_failed_alignment_reads += 1; //todo : add these stats
+        return;
+    }
+
+    // Filter poor quality reads that have too many "stays"
+
+    if (db->events_per_base[i] > 5.0) {
+        //     g_qc_fail_reads += 1; //todo : add these stats
+        //     events[0].clear();
+        //     events[1].clear();
+        //free(db->event_align_pairs[i]);
+        db->read_stat_flag[i] |= FAILED_QUALITY_CHK;
+        return;
+    }
+
+    calculate_methylation_for_read(core->m_hdr, db->fasta_cache[i], db->bam_rec[i], db->read_len[i], db->et[i].event, db->base_to_event_map[i],
+db->scalings[i], core->cpgmodel,db->events_per_base[i]);
+    
+}
+
 void process_db(core_t* core, db_t* db) {
+    
+#ifdef SECTIONAL_BENCHMARK
+
     double realtime0=core->realtime0;
     int32_t i;
 
@@ -619,6 +706,20 @@ void process_db(core_t* core, db_t* db) {
 db->scalings[i], core->cpgmodel,db->events_per_base[i]);
     }
 
+#else
+    if (core->opt.num_thread == 1) {
+        int32_t i=0;
+        for (i = 0; i < db->n_bam_rec; i++) {
+            process_single(core,db,i);
+        }
+
+    } 
+    else {
+        pthread_db(core,db,process_single);    
+    }
+
+#endif
+    
     return;
 }
 

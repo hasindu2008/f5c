@@ -35,6 +35,8 @@
 #define WORK_STEAL 1
 #define STEAL_THRESH 5
 
+#define IO_PROC_INTERLEAVE 1
+
 typedef struct {
     int32_t min_mapq;       //minimum mapq
     const char* model_file; //name of the model file
@@ -204,6 +206,14 @@ typedef struct {
     void *all_pthread_args;
 #endif
 } pthread_arg_t;
+
+typedef struct {
+    core_t* core;
+    db_t* db;
+    //conditional variable for notifying the processing to the output threads
+    pthread_cond_t cond;
+    pthread_mutex_t mutex;
+} pthread_arg2_t;
 
 db_t* init_db(core_t* core);
 int32_t load_db(core_t* dg, db_t* db);
