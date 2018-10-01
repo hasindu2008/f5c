@@ -31,6 +31,10 @@
 #define FAILED_ALIGNMENT 0x002
 #define FAILED_QUALITY_CHK  0x004
 
+
+#define WORK_STEAL 1
+#define STEAL_THRESH 5
+
 typedef struct {
     int32_t min_mapq;       //minimum mapq
     const char* model_file; //name of the model file
@@ -195,7 +199,10 @@ typedef struct {
     db_t* db;
     int32_t starti;
     int32_t endi;
-
+    void (*func)(core_t*,db_t*,int);
+#ifdef WORK_STEAL
+    void *all_pthread_args;
+#endif
 } pthread_arg_t;
 
 db_t* init_db(core_t* core);
@@ -203,6 +210,7 @@ int32_t load_db(core_t* dg, db_t* db);
 core_t* init_core(const char* bamfilename, const char* fastafile,
                   const char* fastqfile, opt_t opt,double realtime0);
 void process_db(core_t* dg, db_t* db);
+void pthread_db(core_t* core, db_t* db, void (*func)(core_t*,db_t*,int));
 void align_db(core_t* core, db_t* db);
 void output_db(core_t* core, db_t* db);
 void free_core(core_t* core);
