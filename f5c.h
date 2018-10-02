@@ -36,6 +36,7 @@
 #define STEAL_THRESH 5
 
 #define IO_PROC_INTERLEAVE 1
+#define SECTIONAL_BENCHMARK 1   
 
 typedef struct {
     int32_t min_mapq;       //minimum mapq
