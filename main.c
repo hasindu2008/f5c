@@ -313,7 +313,7 @@ int main(int argc, char* argv[]) {
 
 #endif
 
-    free_core(core);
+
     fprintf(stderr, "[%s] CMD:", __func__);
     for (int i = 0; i < argc; ++i) {
         fprintf(stderr, " %s", argv[i]);
@@ -324,6 +324,7 @@ int main(int argc, char* argv[]) {
             __func__, core->align_time);
 #endif
 
+    free_core(core);
     fprintf(stderr, "\n[%s] Real time: %.3f sec; CPU time: %.3f sec\n",
             __func__, realtime() - realtime0, cputime());
     // }
@@ -333,6 +334,7 @@ int main(int argc, char* argv[]) {
     // genome.fa\n",argv[0]);
     // exit(EXIT_FAILURE);
     // }
+
 
     return 0;
 }
