@@ -116,12 +116,18 @@ log_probability_match_r9(scalings_t scaling, model_t* models, event_t* event,
 #define FROM_U  1
 #define FROM_L  2
 
-#define min_average_log_emission  -5.0
+
 #define max_gap_threshold  50
 #define bandwidth  ALN_BANDWIDTH
 #define half_bandwidth  ALN_BANDWIDTH/2
 
-#define epsilon 1e-10
+#ifndef ALIGN_KERNEL_FLOAT
+    #define min_average_log_emission  -5.0
+    #define epsilon 1e-10
+#else
+    #define min_average_log_emission -5.0f
+    #define epsilon 1e-10f
+#endif    
 
 /******************kernels with 1D thread models**************/
 
@@ -920,6 +926,8 @@ __global__ void align_kernel_pre_2d(AlignedPair* event_align_pairs,
 
 #define PROFILE 1
 
+
+
 __global__ void 
 //__launch_bounds__(MY_KERNEL_MAX_THREADS, MY_KERNEL_MIN_BLOCKS)
 align_kernel_core_2d(AlignedPair* event_align_pairs,
@@ -957,11 +965,18 @@ align_kernel_core_2d(AlignedPair* event_align_pairs,
         // setting a tiny skip penalty helps keep the true alignment within the adaptive band
         // this was empirically determined
         //double epsilon = 1e-10;
+
+#ifndef ALIGN_KERNEL_FLOAT       
         double lp_skip = log(epsilon);
         double lp_stay = log(p_stay);
         double lp_step = log(1.0 - exp(lp_skip) - exp(lp_stay));
         double lp_trim = log(0.01);
-
+#else
+        float lp_skip = logf(epsilon);
+        float lp_stay = logf(p_stay);
+        float lp_step = logf(1.0 - expf(lp_skip) - expf(lp_stay));
+        float lp_trim = logf(0.01);
+#endif
         // dp matrix
         int32_t n_rows = n_events + 1;
         int32_t n_cols = n_kmers + 1;
@@ -1061,7 +1076,11 @@ align_kernel_core_2d(AlignedPair* event_align_pairs,
                 float gp_mean =
                     scaling.scale * model.level_mean + scaling.shift;
                 float gp_stdv = model.level_stdv ; //scaling.var = 1;
+            #ifndef ALIGN_KERNEL_FLOAT  
                 float gp_log_stdv = log(gp_stdv); // scaling.log_var = log(1)=0;
+            #else
+                float gp_log_stdv = logf(gp_stdv); // scaling.log_var = log(1)=0;
+            #endif    
                 float a = (scaledLevel - gp_mean) / gp_stdv;
                 float lp_emission  = log_inv_sqrt_2pi - gp_log_stdv + (-0.5f * a * a);
 
