@@ -20,7 +20,8 @@ done
 
 if [[ "${#}" -eq 0 ]]; then
     "${exepath}" -b "${bamfile}" -g "${ref}" -r "${reads}" --secondary=yes --min-mapq=0 --print-scaling=yes > ${testdir}/result.txt
-	diff -q ${testdir}/testresult.exp ${testdir}/result.txt  || die "${file}: Diff failed" 
+	diff -q ${testdir}/testresult.exp ${testdir}/result.txt  || echo "${file}: Diff failed" 
+	join --nocheck-order ${testdir}/testresult.exp ${testdir}/result.txt -a 1 -a 2 | awk 'function abs(x){return ((x < 0.0) ? -x : x)} BEGIN{status=0} {if(abs($2-$5)>0.01 || abs($3-$6)>0.01 || abs($4-$7)>0.01){print $0;status=1} } END{if(status>0){exit 1}}' || die "${file}: Validation failed" 
 elif [[ "${#}" -eq 1 ]]; then
     if [[ "${1}" == "valgrind" ]]; then
         valgrind "${exepath}" -b "${bamfile}" -g "${ref}" -r "${reads}" --secondary=yes --min-mapq=0
