@@ -39,7 +39,7 @@
 #define SECTIONAL_BENCHMARK 1   
 
 //#define ALIGN_2D_ARRAY 1 //for CPU whether to use a 1D array or a 2D array
-#define ALIGN_KERNEL_FLOAT 1
+//#define ALIGN_KERNEL_FLOAT 1
 
 
 typedef struct {
