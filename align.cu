@@ -1188,41 +1188,47 @@ align_kernel_core_2d_shm(AlignedPair* event_align_pairs,
 
         // fill in remaining bands
         for (int32_t band_idx = 2; band_idx < n_bands; ++band_idx) {
-            // Determine placement of this band according to Suzuki's adaptive algorithm
-            // When both ll and ur are out-of-band (ob) we alternate movements
-            // otherwise we decide based on scores
-            float ll = BAND_ARRAY((band_idx - 1), 0);
-            float ur = BAND_ARRAY((band_idx - 1),(bandwidth - 1));
-            bool ll_ob = ll == -INFINITY;
-            bool ur_ob = ur == -INFINITY;
+            
+            if(offset==0){
+                // Determine placement of this band according to Suzuki's adaptive algorithm
+                // When both ll and ur are out-of-band (ob) we alternate movements
+                // otherwise we decide based on scores
+                //float ll = BAND_ARRAY((band_idx - 1), 0);
+                float ll = BAND_ARRAY_SHM((1), 0);
+                //float ur = BAND_ARRAY((band_idx - 1),(bandwidth - 1));
+                float ur = BAND_ARRAY_SHM((1),(bandwidth - 1));
+                bool ll_ob = ll == -INFINITY;
+                bool ur_ob = ur == -INFINITY;
 
-            bool right = false;
-            if (ll_ob && ur_ob) {
-                right = band_idx % 2 == 1;
-            } else {
-                right = ll < ur; // Suzuki's rule
-            }
-
-            if (right) {
-                band_lower_left[band_idx] =
-                    move_right(band_lower_left[band_idx - 1]);
-            } else {
-                band_lower_left[band_idx] =
-                    move_down(band_lower_left[band_idx - 1]);
-            }
-            // If the trim state is within the band, fill it in here
-            int trim_offset = band_kmer_to_offset(band_idx, -1);
-            if (is_offset_valid(trim_offset)) {
-                int32_t event_idx = event_at_offset(band_idx, trim_offset);
-                if (event_idx >= 0 && event_idx < n_events) {
-                    BAND_ARRAY(band_idx,trim_offset) = lp_trim * (event_idx + 1);
-                    BAND_ARRAY_SHM(0,trim_offset) = lp_trim * (event_idx + 1);
-                    TRACE_ARRAY(band_idx,trim_offset) = FROM_U;
+                bool right = false;
+                if (ll_ob && ur_ob) {
+                    right = band_idx % 2 == 1;
                 } else {
-                    BAND_ARRAY(band_idx,trim_offset) = -INFINITY;
-                    BAND_ARRAY_SHM(0,trim_offset) = -INFINITY;
+                    right = ll < ur; // Suzuki's rule
+                }
+
+                if (right) {
+                    band_lower_left[band_idx] =
+                        move_right(band_lower_left[band_idx - 1]);
+                } else {
+                    band_lower_left[band_idx] =
+                        move_down(band_lower_left[band_idx - 1]);
+                }
+                // If the trim state is within the band, fill it in here
+                int trim_offset = band_kmer_to_offset(band_idx, -1);
+                if (is_offset_valid(trim_offset)) {
+                    int32_t event_idx = event_at_offset(band_idx, trim_offset);
+                    if (event_idx >= 0 && event_idx < n_events) {
+                        //BAND_ARRAY(band_idx,trim_offset) = lp_trim * (event_idx + 1);
+                        BAND_ARRAY_SHM(0,trim_offset) = lp_trim * (event_idx + 1);
+                        TRACE_ARRAY(band_idx,trim_offset) = FROM_U;
+                    } else {
+                        //BAND_ARRAY(band_idx,trim_offset) = -INFINITY;
+                        BAND_ARRAY_SHM(0,trim_offset) = -INFINITY;
+                    }
                 }
             }
+            __syncthreads();
 
             // Get the offsets for the first and last event and kmer
             // We restrict the inner loop to only these values
@@ -1237,8 +1243,6 @@ align_kernel_core_2d_shm(AlignedPair* event_align_pairs,
             int max_offset = MIN(kmer_max_offset, event_max_offset);
             max_offset = MIN(max_offset, bandwidth);
 
-            float max_score = -INFINITY; 
-            
             __syncthreads();    
    
             if(offset>=min_offset && offset< max_offset) {
@@ -1263,13 +1267,13 @@ align_kernel_core_2d_shm(AlignedPair* event_align_pairs,
     #endif //DEBUG_ADAPTIVE
 
                 float up = is_offset_valid(offset_up)
-                               ? BAND_ARRAY(band_idx - 1,offset_up)
+                               ? BAND_ARRAY_SHM(1,offset_up)
                                : -INFINITY;
                 float left = is_offset_valid(offset_left)
-                                 ? BAND_ARRAY(band_idx - 1,offset_left)
+                                 ? BAND_ARRAY_SHM(1,offset_left)
                                  : -INFINITY;
                 float diag = is_offset_valid(offset_diag)
-                                 ? BAND_ARRAY(band_idx - 2,offset_diag)
+                                 ? BAND_ARRAY_SHM(2,offset_diag)
                                  : -INFINITY;
 
             #ifndef PROFILE
@@ -1298,7 +1302,7 @@ align_kernel_core_2d_shm(AlignedPair* event_align_pairs,
                 float score_u = up + lp_stay + lp_emission;
                 float score_l = left + lp_skip;
 
-                max_score = score_d;
+                float max_score = score_d;
                 uint8_t from = FROM_D;
 
                 max_score = score_u > max_score ? score_u : max_score;
@@ -1318,17 +1322,20 @@ align_kernel_core_2d_shm(AlignedPair* event_align_pairs,
                         band_idx, offset, event_idx, kmer_idx, max_score, from,
                         lp_emission);
     #endif //DEBUG_ADAPTIVE
-                BAND_ARRAY(band_idx,offset) = max_score;
+                //BAND_ARRAY(band_idx,offset) = max_score;
+                BAND_ARRAY_SHM(0,offset) = max_score;
                 TRACE_ARRAY(band_idx,offset) = from;
                 //fills += 1;
             }
 
-            BAND_ARRAY_SHM(0,offset) = max_score;
+            
 
             __syncthreads();
+            BAND_ARRAY(band_idx,offset) = BAND_ARRAY_SHM(0,offset);
             
             BAND_ARRAY_SHM(2,offset) = BAND_ARRAY_SHM(1,offset);
             BAND_ARRAY_SHM(1,offset) = BAND_ARRAY_SHM(0,offset);
+            BAND_ARRAY_SHM(0,offset) = -INFINITY;
 
 
             __syncthreads();  
