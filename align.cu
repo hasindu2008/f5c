@@ -1122,6 +1122,13 @@ align_kernel_core_2d(AlignedPair* event_align_pairs,
     }
 }
 
+
+#define band_event_to_offset_shm(bi, ei) band_lower_left_shm[bi].event_idx - (ei)
+#define band_kmer_to_offset_shm(bi, ki) (ki) - band_lower_left_shm[bi].kmer_idx
+
+#define event_at_offset_shm(bi, offset) band_lower_left_shm[(bi)].event_idx - (offset)
+#define kmer_at_offset_shm(bi, offset) band_lower_left_shm[(bi)].kmer_idx + (offset)
+
 #define BAND_ARRAY_SHM(r, c) ( bands_shm[(r)][(c)] )
 __global__ void 
 //__launch_bounds__(MY_KERNEL_MAX_THREADS, MY_KERNEL_MIN_BLOCKS)
@@ -1136,6 +1143,7 @@ align_kernel_core_2d_shm(AlignedPair* event_align_pairs,
     int offset=blockIdx.x*blockDim.x+threadIdx.x;
 
     __shared__ float  bands_shm[3][ALN_BANDWIDTH];
+    __shared__ EventKmerPair  band_lower_left_shm[3];
 
     if (i < n_bam_rec && offset<ALN_BANDWIDTH) {   
 
@@ -1184,6 +1192,10 @@ align_kernel_core_2d_shm(AlignedPair* event_align_pairs,
         BAND_ARRAY_SHM(1,offset) = BAND_ARRAY(1,offset);
         BAND_ARRAY_SHM(2,offset) = BAND_ARRAY(0,offset);
 
+        band_lower_left_shm[0] = band_lower_left[2];
+        band_lower_left_shm[1] = band_lower_left[1];
+        band_lower_left_shm[2] = band_lower_left[0];
+
         __syncthreads();
 
         // fill in remaining bands
@@ -1208,16 +1220,16 @@ align_kernel_core_2d_shm(AlignedPair* event_align_pairs,
                 }
 
                 if (right) {
-                    band_lower_left[band_idx] =
-                        move_right(band_lower_left[band_idx - 1]);
+                    band_lower_left[band_idx] = band_lower_left_shm[0] =
+                        move_right(band_lower_left_shm[1]);                        
                 } else {
-                    band_lower_left[band_idx] =
-                        move_down(band_lower_left[band_idx - 1]);
+                    band_lower_left[band_idx] = band_lower_left_shm[0] =
+                        move_down(band_lower_left_shm[1]);                        
                 }
                 // If the trim state is within the band, fill it in here
-                int trim_offset = band_kmer_to_offset(band_idx, -1);
+                int trim_offset = band_kmer_to_offset_shm(0, -1);
                 if (is_offset_valid(trim_offset)) {
-                    int32_t event_idx = event_at_offset(band_idx, trim_offset);
+                    int32_t event_idx = event_at_offset_shm(0, trim_offset);
                     if (event_idx >= 0 && event_idx < n_events) {
                         //BAND_ARRAY(band_idx,trim_offset) = lp_trim * (event_idx + 1);
                         BAND_ARRAY_SHM(0,trim_offset) = lp_trim * (event_idx + 1);
@@ -1232,10 +1244,10 @@ align_kernel_core_2d_shm(AlignedPair* event_align_pairs,
 
             // Get the offsets for the first and last event and kmer
             // We restrict the inner loop to only these values
-            int kmer_min_offset = band_kmer_to_offset(band_idx, 0);
-            int kmer_max_offset = band_kmer_to_offset(band_idx, n_kmers);
-            int event_min_offset = band_event_to_offset(band_idx, n_events - 1);
-            int event_max_offset = band_event_to_offset(band_idx, -1);
+            int kmer_min_offset = band_kmer_to_offset_shm(0, 0);
+            int kmer_max_offset = band_kmer_to_offset_shm(0, n_kmers);
+            int event_min_offset = band_event_to_offset_shm(0, n_events - 1);
+            int event_max_offset = band_event_to_offset_shm(0, -1);
 
             int min_offset = MAX(kmer_min_offset, event_min_offset);
             min_offset = MAX(min_offset, 0);
@@ -1247,21 +1259,21 @@ align_kernel_core_2d_shm(AlignedPair* event_align_pairs,
    
             if(offset>=min_offset && offset< max_offset) {
 
-                int event_idx = event_at_offset(band_idx, offset);
-                int kmer_idx = kmer_at_offset(band_idx, offset);
+                int event_idx = event_at_offset_shm(0, offset);
+                int kmer_idx = kmer_at_offset_shm(0, offset);
 
                 int32_t kmer_rank = kmer_ranks[kmer_idx];
 
-                int offset_up = band_event_to_offset(band_idx - 1, event_idx - 1);
-                int offset_left = band_kmer_to_offset(band_idx - 1, kmer_idx - 1);
-                int offset_diag = band_kmer_to_offset(band_idx - 2, kmer_idx - 1);
+                int offset_up = band_event_to_offset_shm(1, event_idx - 1);
+                int offset_left = band_kmer_to_offset_shm(1, kmer_idx - 1);
+                int offset_diag = band_kmer_to_offset_shm(2, kmer_idx - 1);
 
     #ifdef DEBUG_ADAPTIVE
                 // verify loop conditions
                 assert(kmer_idx >= 0 && kmer_idx < n_kmers);
                 assert(event_idx >= 0 && event_idx < n_events);
                 assert(offset_diag ==
-                       band_event_to_offset(band_idx - 2, event_idx - 1));
+                       band_event_to_offset_shm(2, event_idx - 1));
                 assert(offset_up - offset_left == 1);
                 assert(offset >= 0 && offset < bandwidth);
     #endif //DEBUG_ADAPTIVE
@@ -1336,6 +1348,11 @@ align_kernel_core_2d_shm(AlignedPair* event_align_pairs,
             BAND_ARRAY_SHM(2,offset) = BAND_ARRAY_SHM(1,offset);
             BAND_ARRAY_SHM(1,offset) = BAND_ARRAY_SHM(0,offset);
             BAND_ARRAY_SHM(0,offset) = -INFINITY;
+
+            if(offset==0){
+                band_lower_left_shm[2]=band_lower_left_shm[1];
+                band_lower_left_shm[1]=band_lower_left_shm[0];
+            }
 
 
             __syncthreads();  
