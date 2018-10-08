@@ -20,8 +20,8 @@
 #define MY_KERNEL_MIN_BLOCKS 64 //not used at the moment
 #define BLOCK_LEN_READS 1 //the block size along y axis (the number of reads)
 #define BLOCK_LEN_BANDWIDTH 128 //the block size along the x axis, should be >= ALN_BANDWIDTH
-//#define ALIGN_KERNEL_FLOAT 1 (for 2d kernel only)
-#define ALIGN_KERNEL_SHM 1 //(for 2d kernel only)
+#define ALIGN_KERNEL_FLOAT 1 //(for 2d kernel only)
+//#define ALIGN_KERNEL_SHM 1 //(for 2d kernel only)
 
 //align-pre-kernel options
 #define TWODIM_ALIGN_PRE 1   //align-pre in 2D thread model
