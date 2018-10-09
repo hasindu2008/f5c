@@ -15,6 +15,8 @@
 #define ESL_MIN(a,b)    (((a)<(b))?(a):(b))
 #define eslINFINITY     INFINITY
 
+#define TRUE 1
+#define FALSE 0
 
 // storage
 float flogsum_lookup[p7_LOGSUM_TBL]; /* p7_LOGSUM_TBL=16000: (A-B) = 0..16 nats, steps of 0.001 */
