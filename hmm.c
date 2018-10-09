@@ -8,6 +8,17 @@
 
 #define INPUT_DEBUG 1
 
+
+enum ProfileStateR9
+{
+    PSR9_KMER_SKIP = 0,
+    PSR9_BAD_EVENT,
+    PSR9_MATCH,
+    PSR9_NUM_STATES = 3,
+    PSR9_PRE_SOFT // intentionally after PS_NUM_STATES
+};
+
+
 //all the blocks(functions, structures) are added in reverse order. at bottom is the first block called and on top is the latest block called.
 
 static inline float log_normal_pdf(float x, float gp_mean, float gp_stdv,
@@ -535,14 +546,7 @@ class ProfileHMMForwardOutputR9
         float lp_end;
 };
 
-enum ProfileStateR9
-{
-    PSR9_KMER_SKIP = 0,
-    PSR9_BAD_EVENT,
-    PSR9_MATCH,
-    PSR9_NUM_STATES = 3,
-    PSR9_PRE_SOFT // intentionally after PS_NUM_STATES
-};
+
 
 
 void profile_hmm_forward_initialize_r9(FloatMatrix& fm)
