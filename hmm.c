@@ -10,6 +10,11 @@
 #define TRANS_START_TO_CLIP 0.5
 #define TRANS_CLIP_SELF 0.9
 
+uint32_t get_kmer_rank(char* ar){
+        //Have to be implemented
+	return 1;   
+}
+
 enum ProfileStateR9
 {
     PSR9_KMER_SKIP = 0,
@@ -75,6 +80,7 @@ static inline float log_probability_match_r9(scalings_t scaling,
     float lp = log_normal_pdf(scaledLevel, gp_mean, gp_stdv, gp_log_stdv);
     return lp;
 }
+
 
 
 // Allocate a vector with the model probabilities of skipping the remaining
@@ -302,9 +308,7 @@ inline float profile_hmm_fill_generic_r9( char *m_seq,
     uint32_t last_kmer_idx = num_kmers - 1;
     
 	
-    uint32_t get_kmer_rank(char* ar){
-	 return 1;   
-    }
+
 	
     std::vector<BlockTransitions> transitions = calculate_transitions(num_kmers,
                                                                         m_seq,
