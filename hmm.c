@@ -60,7 +60,7 @@ static inline float log_probability_match_r9(scalings_t scaling,
     float gp_log_stdv =
         log(models[kmer_rank].level_stdv + 0); // scaling.log_var = log(1)=0;
 
-    float lp = log_normal_pdf(scaledLevel, gp_mean, gp_stdv, gp_log_stdv);
+    float lp = log_normal_pdf(scaledLevel, gp_kmer_rankmean, gp_stdv, gp_log_stdv);
     return lp;
 }
 
@@ -289,6 +289,11 @@ inline float profile_hmm_fill_generic_r9( char *m_seq,
     uint32_t num_kmers = num_blocks - 2; // two terminal blocks
     uint32_t last_kmer_idx = num_kmers - 1;
     
+	
+    uint32_t get_kmer_rank(char* ar){
+	 return 1;   
+    }
+	
     std::vector<BlockTransitions> transitions = calculate_transitions(num_kmers,
                                                                         m_seq,
                                                                         m_rc_seq,
@@ -316,7 +321,7 @@ inline float profile_hmm_fill_generic_r9( char *m_seq,
 
     for(size_t ki = 0; ki < num_kmers; ++ki)
         // kmer_ranks[ki] = sequence.get_kmer_rank(ki, k, data.rc);
-        kmer_ranks[ki] = get_kmer_rank(k, m_seq);
+        kmer_ranks[ki] = get_kmer_rank("temp");
 
 
     ///change over
