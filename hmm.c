@@ -266,7 +266,7 @@ inline float profile_hmm_fill_generic_r9( char *m_seq,
     }
 #endif
 
-    uint32_t e_start = event_start_idx;
+    e_start = event_start_idx;
     
     // Calculate number of blocks
     // A block of the HMM is a set of states for one kmer
