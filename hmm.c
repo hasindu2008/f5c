@@ -3,6 +3,8 @@
 #include "matrix.h"
 #include <math.h>
 #include <assert.h>
+#include <vector.h>
+
 
 #define INPUT_DEBUG 1
 
