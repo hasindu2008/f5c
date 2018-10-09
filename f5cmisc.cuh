@@ -20,7 +20,8 @@
 #define MY_KERNEL_MIN_BLOCKS 64 //not used at the moment
 #define BLOCK_LEN_READS 1 //the block size along y axis (the number of reads)
 #define BLOCK_LEN_BANDWIDTH 128 //the block size along the x axis, should be >= ALN_BANDWIDTH
-
+#define ALIGN_KERNEL_FLOAT 1 //(for 2d kernel only)
+//#define ALIGN_KERNEL_SHM 1 //(for 2d kernel only)
 
 //align-pre-kernel options
 #define TWODIM_ALIGN_PRE 1   //align-pre in 2D thread model
@@ -77,6 +78,16 @@ and then the program will be aborted*/
         event_t* event_table, int32_t* n_events1,
         int32_t* event_ptr, model_t* models,
         scalings_t* scalings, int32_t n_bam_rec,int32_t* kmer_rank,float *band,uint8_t *traces, EventKmerPair* band_lower_lefts) ;
+
+    __global__ void 
+    //__launch_bounds__(MY_KERNEL_MAX_THREADS, MY_KERNEL_MIN_BLOCKS)
+    align_kernel_core_2d_shm(AlignedPair* event_align_pairs,
+        int32_t* n_event_align_pairs, char* read,
+        int32_t* read_len, int32_t* read_ptr,
+        event_t* event_table, int32_t* n_events1,
+        int32_t* event_ptr, model_t* models,
+        scalings_t* scalings, int32_t n_bam_rec,int32_t* kmer_rank,float *band,uint8_t *traces, EventKmerPair* band_lower_lefts) ;
+
 
     __global__ void align_kernel_pre_2d(AlignedPair* event_align_pairs,
         int32_t* n_event_align_pairs, char* read,

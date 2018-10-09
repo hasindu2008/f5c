@@ -88,6 +88,52 @@ static inline void yes_or_no(opt_t* opt, uint64_t flag, int long_idx,
     }
 }
 
+
+
+void* pthread_processor(void* voidargs) {
+    pthread_arg2_t* args = (pthread_arg2_t*)voidargs;
+    db_t* db = args->db;
+    core_t* core = args->core;
+    double realtime0=core->realtime0;
+
+    process_db(core, db);
+
+    fprintf(stderr, "[%s::%.3f*%.2f] %d Entries processed\n", __func__,
+                realtime() - realtime0, cputime() / (realtime() - realtime0),
+                db->n_bam_rec);
+
+    //need to say that we processed stuff
+    pthread_mutex_lock(&args->mutex);
+    pthread_cond_signal(&args->cond);
+    pthread_mutex_unlock(&args->mutex); 
+
+    fprintf(stderr, "[%s::%.3f*%.2f] Signal sent!\n", __func__,
+                realtime() - realtime0, cputime() / (realtime() - realtime0));
+
+    pthread_exit(0);
+}
+
+
+void* pthread_post_processor(void* voidargs){
+    pthread_arg2_t* args = (pthread_arg2_t*)voidargs;
+    db_t* db = args->db;
+    core_t* core = args->core;
+    double realtime0=core->realtime0;
+
+    pthread_mutex_lock(&args->mutex);
+    pthread_cond_wait(&args->cond, &args->mutex);
+    pthread_mutex_unlock(&args->mutex);
+
+    fprintf(stderr, "[%s::%.3f*%.2f] Signal got!\n", __func__,
+                realtime() - realtime0, cputime() / (realtime() - realtime0));
+
+    output_db(core, db);
+    free_db_tmp(db);
+    free_db(db);    
+    free(args);
+    pthread_exit(0);    
+}
+
 int main(int argc, char* argv[]) {
     
     double realtime0 = realtime();
@@ -170,6 +216,8 @@ int main(int argc, char* argv[]) {
     }
 
     core_t* core = init_core(bamfilename, fastafile, fastqfile, opt,realtime0);
+
+ #ifndef IO_PROC_INTERLEAVE   
     db_t* db = init_db(core);
 
     int32_t status = db->capacity_bam_rec;
@@ -192,15 +240,91 @@ int main(int argc, char* argv[]) {
         }
     }
     free_db(db);
-    free_core(core);
+
+#else
+    int32_t status = core->opt.batch_size;
+    int8_t first_flag_p=0;
+    int8_t first_flag_pp=0;
+    pthread_t tid_p;
+    pthread_t tid_pp;
+
+
+    while (status >= core->opt.batch_size) {
+        db_t* db = init_db(core);
+        status = load_db(core, db);
+
+        fprintf(stderr, "[%s::%.3f*%.2f] %d Entries loaded\n", __func__,
+                realtime() - realtime0, cputime() / (realtime() - realtime0),
+                status);
+
+        if(first_flag_p){
+            int ret = pthread_join(tid_p, NULL);
+            fprintf(stderr, "[%s::%.3f*%.2f] Joined to thread %lu\n", __func__,
+                realtime() - realtime0, cputime() / (realtime() - realtime0),
+                tid_p);
+            NEG_CHK(ret);
+        }
+        first_flag_p=1;
+
+        pthread_arg2_t *pt_arg = (pthread_arg2_t*)malloc(sizeof(pthread_arg2_t));
+        pt_arg->core=core;
+        pt_arg->db=db;
+        pt_arg->cond = PTHREAD_COND_INITIALIZER;
+        pt_arg->mutex = PTHREAD_MUTEX_INITIALIZER;
+        int ret = pthread_create(&tid_p, NULL, pthread_processor,
+                                (void*)(pt_arg));
+        NEG_CHK(ret);
+        fprintf(stderr, "[%s::%.3f*%.2f] Spawned thread %lu\n", __func__,
+                realtime() - realtime0, cputime() / (realtime() - realtime0),
+                tid_p);
+
+        if(first_flag_pp){
+            int ret = pthread_join(tid_pp, NULL);
+            fprintf(stderr, "[%s::%.3f*%.2f] Joined to thread %lu\n", __func__,
+                realtime() - realtime0, cputime() / (realtime() - realtime0),
+                tid_pp);
+            NEG_CHK(ret);
+        }
+        first_flag_pp=1;
+
+
+        ret = pthread_create(&tid_pp, NULL, pthread_post_processor,
+                                (void*)(pt_arg));
+        NEG_CHK(ret);
+        fprintf(stderr, "[%s::%.3f*%.2f] Spawned thread %lu\n", __func__,
+                realtime() - realtime0, cputime() / (realtime() - realtime0),
+                tid_pp);
+
+        if(opt.flag & F5C_DEBUG_BRK){
+            break;
+        }
+    }
+    int ret = pthread_join(tid_p, NULL);
+    NEG_CHK(ret);
+    fprintf(stderr, "[%s::%.3f*%.2f] Joined to thread %lu\n", __func__,
+                realtime() - realtime0, cputime() / (realtime() - realtime0),
+                tid_p);
+    ret = pthread_join(tid_pp, NULL);
+    NEG_CHK(ret);
+    fprintf(stderr, "[%s::%.3f*%.2f] Joined to thread %lu\n", __func__,
+                realtime() - realtime0, cputime() / (realtime() - realtime0),
+                tid_pp);
+
+
+#endif
+
+
     fprintf(stderr, "[%s] CMD:", __func__);
     for (int i = 0; i < argc; ++i) {
         fprintf(stderr, " %s", argv[i]);
     }
 
+#ifdef SECTIONAL_BENCHMARK 
     fprintf(stderr, "\n\n[%s] Alignment time: %.3f sec",
             __func__, core->align_time);
+#endif
 
+    free_core(core);
     fprintf(stderr, "\n[%s] Real time: %.3f sec; CPU time: %.3f sec\n",
             __func__, realtime() - realtime0, cputime());
     // }
@@ -210,6 +334,7 @@ int main(int argc, char* argv[]) {
     // genome.fa\n",argv[0]);
     // exit(EXIT_FAILURE);
     // }
+
 
     return 0;
 }

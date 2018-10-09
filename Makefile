@@ -24,7 +24,7 @@ else
 	OBJ_CUDA = $(SRC_CUDA:.cu=_cuda.o)
 	CC_CUDA = nvcc
 	#CFLAGS_CUDA = -g  -G -Xcompiler -rdynamic  -O2 -std=c++11
-	CFLAGS_CUDA = -g  -O2 -std=c++11 -lineinfo $(CUDA_ARCH) 
+	CFLAGS_CUDA = -g  -O2 -std=c++11 -lineinfo $(CUDA_ARCH) -maxrregcount=32
 	#CFLAGS_CUDA = -g  -O2 -std=c++11 -lineinfo -arch=sm_61 -maxrregcount=32
 	LDFLAGS += -L/usr/local/cuda/lib64/ -lcudart -lcudadevrt
 	OBJ += gpucode.o $(OBJ_CUDA)
@@ -82,4 +82,6 @@ benchmark:
 	./f5c -b test/chr22_meth_example/reads10k.bam -g test/chr22_meth_example//humangenome.fa -r test/chr22_meth_example//reads10k.fq -t 8 --print-scaling=yes -K512 --cuda-block-size=64 > /dev/null
 
 
+run:
+	./f5c -b test/chr22_meth_example/reads10k.bam -g test/chr22_meth_example//humangenome.fa -r test/chr22_meth_example//reads10k.fq -t 8 --print-scaling=yes -K512 --cuda-block-size=64 --debug-break=yes > /dev/null
 
