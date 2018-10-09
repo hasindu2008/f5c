@@ -10,6 +10,9 @@
 #define TRANS_START_TO_CLIP 0.5
 #define TRANS_CLIP_SELF 0.9
 
+// storage
+float flogsum_lookup[p7_LOGSUM_TBL]; /* p7_LOGSUM_TBL=16000: (A-B) = 0..16 nats, steps of 0.001 */
+
 uint32_t get_kmer_rank(char* ar){
         //Have to be implemented
 	return 1;   
@@ -468,6 +471,19 @@ inline float profile_hmm_fill_generic_r9( char *m_seq,
     return output.get_end();
 }
 
+inline int p7_FLogsumInit(void)
+{
+
+	  static int firsttime = TRUE;
+	  if (!firsttime) return 1;
+	  firsttime = FALSE;
+
+	  int i;
+	  for (i = 0; i < p7_LOGSUM_TBL; i++) {
+	    flogsum_lookup[i] = log(1. + exp((double) -i / p7_LOGSUM_SCALE));
+	  }
+	  return 1;
+}
 
 inline float p7_FLogsum(float a, float b){
   int i;
@@ -511,7 +527,9 @@ inline double add_logs(const double a, const double b)
 class ProfileHMMForwardOutputR9
 {
     public:
-        ProfileHMMForwardOutputR9(FloatMatrix* p) : p_fm(p), lp_end(-INFINITY) {}
+        ProfileHMMForwardOutputR9(FloatMatrix* p) : p_fm(p), lp_end(-INFINITY) {
+		p7_FLogsumInit();
+	}
         
         //
         inline void update_cell(uint32_t row, uint32_t col, const HMMUpdateScores& scores, float lp_emission)
