@@ -9,6 +9,12 @@
 #define INPUT_DEBUG 1
 #define TRANS_START_TO_CLIP 0.5
 #define TRANS_CLIP_SELF 0.9
+#define p7_LOGSUM_TBL   16000
+#define p7_LOGSUM_SCALE 1000.f
+#define ESL_MAX(a,b)    (((a)>(b))?(a):(b))
+#define ESL_MIN(a,b)    (((a)<(b))?(a):(b))
+#define eslINFINITY     INFINITY
+
 
 // storage
 float flogsum_lookup[p7_LOGSUM_TBL]; /* p7_LOGSUM_TBL=16000: (A-B) = 0..16 nats, steps of 0.001 */
@@ -164,11 +170,6 @@ inline std::vector<float> make_pre_flanking(const uint32_t e_start,
 }
 
 
-#define p7_LOGSUM_TBL   16000
-#define p7_LOGSUM_SCALE 1000.f
-#define ESL_MAX(a,b)    (((a)>(b))?(a):(b))
-#define ESL_MIN(a,b)    (((a)<(b))?(a):(b))
-#define eslINFINITY     INFINITY
 
 
 // Pre-computed transitions from the previous block
