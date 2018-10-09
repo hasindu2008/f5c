@@ -376,7 +376,7 @@ inline float profile_hmm_fill_generic_r9( char *m_seq,
             uint32_t event_idx = e_start + (row - 1) * event_stride;
             uint32_t rank = kmer_ranks[kmer_idx];
             // float lp_emission_m = log_probability_match_r9(*data.read, *data.pore_model, rank, event_idx, data.strand);
-            float lp_emission =
+            float lp_emission_m =
                 log_probability_match_r9(scaling, cpgmodel, event, event_idx,rank, strand, 0);
             float lp_emission_b = BAD_EVENT_PENALTY;
             
