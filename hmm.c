@@ -195,8 +195,8 @@ struct BlockTransitions
     float lp_km;
 };
 
-inline std::vector<BlockTransitions> calculate_transitions(uint32_t num_kmers, char *m_seq,
-                                                                                char *m_rc_seq,
+inline std::vector<BlockTransitions> calculate_transitions(uint32_t num_kmers, const char *m_seq,
+                                                                                const char *m_rc_seq,
                                                                                 event_t* event,
                                                                                 scalings_t scaling,
                                                                                 model_t* cpgmodel,
