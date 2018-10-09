@@ -269,7 +269,7 @@ inline std::vector<BlockTransitions> calculate_transitions(uint32_t num_kmers, c
 // The templated ProfileHMMOutput class allows one to run either Viterbi
 // or the Forward algorithm.
 template<class ProfileHMMOutput>
-inline float profile_hmm_fill_generic_r9( char *m_seq,
+inline float profile_hmm_fill_generic_r9(const char *m_seq,
                                          char *m_rc_seq,
                                         event_t* event,
                                         scalings_t scaling,
