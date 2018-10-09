@@ -19,6 +19,18 @@ enum ProfileStateR9
     PSR9_PRE_SOFT // intentionally after PS_NUM_STATES
 };
 
+enum HMMMovementType
+{
+    HMT_FROM_SAME_M = 0,
+    HMT_FROM_PREV_M,
+    HMT_FROM_SAME_B,
+    HMT_FROM_PREV_B,
+    HMT_FROM_PREV_K,
+    HMT_FROM_SOFT,
+    HMT_NUM_MOVEMENT_TYPES
+};
+typedef struct { float x[HMT_NUM_MOVEMENT_TYPES]; } HMMUpdateScores;
+
 
 //all the blocks(functions, structures) are added in reverse order. at bottom is the first block called and on top is the latest block called.
 
@@ -490,17 +502,7 @@ inline double add_logs(const double a, const double b)
 #endif
 }
 
-enum HMMMovementType
-{
-    HMT_FROM_SAME_M = 0,
-    HMT_FROM_PREV_M,
-    HMT_FROM_SAME_B,
-    HMT_FROM_PREV_B,
-    HMT_FROM_PREV_K,
-    HMT_FROM_SOFT,
-    HMT_NUM_MOVEMENT_TYPES
-};
-typedef struct { float x[HMT_NUM_MOVEMENT_TYPES]; } HMMUpdateScores;
+
 
 class ProfileHMMForwardOutputR9
 {
