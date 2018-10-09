@@ -12,7 +12,7 @@
 
 static inline float log_probability_match_r9(scalings_t scaling,
                                              model_t* models,
-                                             event_t* event,, int event_idx,
+                                             event_t* event, int event_idx,
                                              uint32_t kmer_rank, uint8_t strand,
                                              float sample_rate) {
     // event level mean, scaled with the drift value
