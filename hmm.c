@@ -8,7 +8,14 @@
 
 //all the blocks(functions, structures) are added in reverse order. at bottom is the first block called and on top is the latest block called.
 
-
+static inline float log_normal_pdf(float x, float gp_mean, float gp_stdv,
+                                   float gp_log_stdv) {
+    /*INCOMPLETE*/
+    float log_inv_sqrt_2pi = -0.918938f; // Natural logarithm
+    float a = (x - gp_mean) / gp_stdv;
+    return log_inv_sqrt_2pi - gp_log_stdv + (-0.5f * a * a);
+    // return 1;
+}
 
 static inline float log_probability_match_r9(scalings_t scaling,
                                              model_t* models,
