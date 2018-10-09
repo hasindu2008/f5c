@@ -8,6 +8,7 @@
 
 #define INPUT_DEBUG 1
 #define TRANS_START_TO_CLIP 0.5
+#define TRANS_CLIP_SELF 0.9
 
 enum ProfileStateR9
 {
