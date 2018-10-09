@@ -72,7 +72,7 @@ static inline float log_probability_match_r9(scalings_t scaling,
     float gp_log_stdv =
         log(models[kmer_rank].level_stdv + 0); // scaling.log_var = log(1)=0;
 
-    float lp = log_normal_pdf(scaledLevel, gp_kmer_rankmean, gp_stdv, gp_log_stdv);
+    float lp = log_normal_pdf(scaledLevel, gp_mean, gp_stdv, gp_log_stdv);
     return lp;
 }
 
