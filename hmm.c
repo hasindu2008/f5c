@@ -8,12 +8,7 @@
 
 //all the blocks(functions, structures) are added in reverse order. at bottom is the first block called and on top is the latest block called.
 
-// Flags to modify the behaviour of the HMM
-enum HMMAlignmentFlags
-{
-    HAF_ALLOW_PRE_CLIP = 1, // allow events to go unmatched before the aligning region
-    HAF_ALLOW_POST_CLIP = 2 // allow events to go unmatched after the aligning region
-};
+
 
 static inline float log_probability_match_r9(scalings_t scaling,
                                              model_t* models,
