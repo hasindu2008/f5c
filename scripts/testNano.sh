@@ -19,7 +19,8 @@ done
 
 if [[ "${#}" -eq 0 ]]; then
     #"${exepath}" -b "${bamdir}" -g "${fadir}" -r "${fastqdir}" 
-    "${exepath}" call-methylation -t 1 -r "$fastqdir" -b "${bamdir}" -g "${fadir} --secondary=yes --min-mapq=0 "
+	echo "${exepath}" call-methylation -t 1 -r "$fastqdir" -b "${bamdir}" -g "${fadir}"
+    "${exepath}" call-methylation -t 1 -r "$fastqdir" -b "${bamdir}" -g "${fadir}"
 
 elif [[ "${#}" -eq 1 ]]; then
     if [[ "${1}" == "valgrind" ]]; then
