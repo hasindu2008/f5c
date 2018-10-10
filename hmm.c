@@ -18,13 +18,46 @@
 #define TRUE 1
 #define FALSE 0
 
+//contains extracted code from nanopolish hmm and matrix
+
+
 // storage
 float flogsum_lookup[p7_LOGSUM_TBL]; /* p7_LOGSUM_TBL=16000: (A-B) = 0..16 nats, steps of 0.001 */
 
-uint32_t get_kmer_rank(char* ar){
-        //Have to be implemented
-	return 1;   
+//todo : can make more efficient using bit encoding
+static inline uint32_t get_rank(char base) {
+    if (base == 'A') { //todo: do we neeed simple alpha?
+        return 0;
+    } else if (base == 'C') {
+        return 1;
+    } else if (base == 'G') {
+        return 2;
+    } else if (base == 'M') {
+        return 3;
+    } else if (base == 'T') {
+        return 4;        
+    } else {
+        WARNING("A None ACGMT base found : %c", base);
+        return 0;
+    }
 }
+
+// return the lexicographic rank of the kmer amongst all strings of
+// length k for this alphabet
+static inline uint32_t get_kmer_rank(const char* str, uint32_t k) {
+    uint32_t p = 1;
+    uint32_t r = 0;
+
+    // from last base to first
+    for (uint32_t i = 0; i < k; ++i) {
+        //r += rank(str[k - i - 1]) * p;
+        //p *= size();
+        r += get_rank(str[k - i - 1]) * p;
+        p *= 5;
+    }
+    return r;
+}
+
 
 enum ProfileStateR9
 {
@@ -66,7 +99,7 @@ static inline float log_probability_match_r9(scalings_t scaling,
                                              float sample_rate) {
     // event level mean, scaled with the drift value
     strand = 0;
-    assert(kmer_rank < 4096);
+    assert(kmer_rank < 15625);
     //float level = read.get_drift_scaled_level(event_idx, strand);
 
     //float time =
@@ -331,7 +364,7 @@ inline float profile_hmm_fill_generic_r9(const char *m_seq,
  
     // Precompute kmer ranks
     // const uint32_t k = data.pore_model->k;
-    const uint32_t k = KMER_SIZE;
+    //const uint32_t k = KMER_SIZE;
     // Make sure the HMMInputSequence's alphabet matches the state space of the read
 
 
@@ -341,9 +374,12 @@ inline float profile_hmm_fill_generic_r9(const char *m_seq,
 
     std::vector<uint32_t> kmer_ranks(num_kmers);
 
-    for(size_t ki = 0; ki < num_kmers; ++ki)
+    //check : this might be reverse cmplement kmer rnak
+    for(size_t ki = 0; ki < num_kmers; ++ki){
+        const char* substring = &m_rc_seq[ki];
         // kmer_ranks[ki] = sequence.get_kmer_rank(ki, k, data.rc);
-        kmer_ranks[ki] = get_kmer_rank("temp");
+        kmer_ranks[ki] = get_kmer_rank(substring,KMER_SIZE);
+    }
 
 
     ///change over
@@ -503,8 +539,8 @@ inline float p7_FLogsum(float a, float b){
   return (min == -eslINFINITY || (max-min) >= 15.7f) ? max : max + flogsum_lookup[(int)((max-min)*p7_LOGSUM_SCALE)];
 } 
 
-
-#define ESL_LOG_SUM 1
+// commented by hasindu
+//#define ESL_LOG_SUM 1
 
 // Add the log-scaled values a and b using a transform to avoid precision errors
 inline double add_logs(const double a, const double b)
@@ -531,7 +567,8 @@ class ProfileHMMForwardOutputR9
 {
     public:
         ProfileHMMForwardOutputR9(FloatMatrix* p) : p_fm(p), lp_end(-INFINITY) {
-		p7_FLogsumInit();
+		//p7_FLogsumInit(); 
+        //commented by hasindu
 	}
         
         //

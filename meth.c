@@ -7,7 +7,7 @@
 
 #define METHYLATED_SYMBOL 'M'
 
-//#define METH_DEBUG 1
+#define METH_DEBUG 1
 
 //contains extracted and modified code from nanopolish
 
