@@ -102,7 +102,7 @@ void set_model(model_t* model) {
 //todo : duplicate function can be removed
 void set_cpgmodel(model_t* model) {
     uint32_t i = 0;
-    for (i = 0; i < NUM_KMER; i++) {
+    for (i = 0; i < NUM_KMER_METH; i++) {
         model[i].level_mean =
             r9_4_450bps_cpg_6mer_template_model_builtin_data[i * 4 + 0];
         model[i].level_stdv =
