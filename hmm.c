@@ -6,7 +6,7 @@
 #include <vector>
 
 
-#define INPUT_DEBUG 1
+// #define INPUT_DEBUG 1
 #define TRANS_START_TO_CLIP 0.5
 #define TRANS_CLIP_SELF 0.9
 #define p7_LOGSUM_TBL   16000
@@ -112,14 +112,14 @@ static inline float log_probability_match_r9(scalings_t scaling,
     //GaussianParameters gp = read.get_scaled_gaussian_from_pore_model_state(pore_model, strand, kmer_rank);
     float gp_mean =
         scaling.scale * models[kmer_rank].level_mean + scaling.shift;
-    float gp_stdv = models[kmer_rank].level_stdv * 1; //scaling.var = 1;
+    float gp_stdv = models[kmer_rank].level_stdv * scaling.var; 
     // float gp_stdv = 0;
     // float gp_log_stdv = models[kmer_rank].level_log_stdv + scaling.log_var;
     // if(models[kmer_rank].level_stdv <0.01 ){
     //  fprintf(stderr,"very small std dev %f\n",models[kmer_rank].level_stdv);
     // }
     float gp_log_stdv =
-        log(models[kmer_rank].level_stdv + 0); // scaling.log_var = log(1)=0;
+        log(models[kmer_rank].level_stdv) + log(scaling.var); 
 
     float lp = log_normal_pdf(scaledLevel, gp_mean, gp_stdv, gp_log_stdv);
     return lp;
@@ -712,6 +712,14 @@ float profile_hmm_score(
     double events_per_base,
     uint32_t hmm_flags
 ){
+    #ifdef INPUT_DEBUG
+
+        fprintf(stderr,"m_seq : %s\n",m_seq);
+        fprintf(stderr,"m_rc_seq : %s\n",m_rc_seq);
+        fprintf(stderr,"event_start_idx %d, event_stop_idx %d, event_stride %d, rc %d\n",event_start_idx,event_stop_idx,event_stride,rc);
+
+    #endif
+
 	
 	return profile_hmm_score_r9(m_seq,
 								m_rc_seq,
@@ -730,15 +738,7 @@ float profile_hmm_score(
 
 
 
-// #ifdef INPUT_DEBUG
 
-//     fprintf(stderr,"m_seq : %s\n",m_seq);
-//     fprintf(stderr,"m_rc_seq : %s\n",m_rc_seq);
-//     fprintf(stderr,"event_start_idx %d, event_stop_idx %d, event_stride %d, rc %d\n",event_start_idx,event_stop_idx,event_stride,rc);
-
-// #endif
-
-//     return 0;
 
 
 }

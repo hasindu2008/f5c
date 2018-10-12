@@ -627,7 +627,7 @@ scalings_t scaling, model_t* cpgmodel,double events_per_base) {
         double methylated_score=profile_hmm_score(mcpg_subseq.c_str(),rc_mcpg_subseq.c_str(), event, scaling, cpgmodel, event_start_idx, event_stop_idx,
         strand,event_stride,rc,events_per_base,hmm_flags);
 
-        fprintf(stderr,"meth score %f\n",methylated_score);
+        //fprintf(stderr,"meth score %f\n",methylated_score);
 
         std::string contig = m_hdr->target_name[record->core.tid];
 

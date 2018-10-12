@@ -1,0 +1,270 @@
+m_seq : ATCCATTCAACGCATATGATT
+m_rc_seq : AATCATATGCGTTGAATGGAT
+event_start_idx 2901, event_stop_idx 2856, event_stride -1, rc 1
+m_seq : ATCCATTCAAMGCATATGATT
+m_rc_seq : AATCATATGMGTTGAATGGAT
+event_start_idx 2901, event_stop_idx 2856, event_stride -1, rc 1
+m_seq : TAAACTCCACCGATTCAGATT
+m_rc_seq : AATCTGAATCGGTGGAGTTTA
+event_start_idx 2784, event_stop_idx 2751, event_stride -1, rc 1
+m_seq : TAAACTCCACMGATTCAGATT
+m_rc_seq : AATCTGAATMGGTGGAGTTTA
+event_start_idx 2784, event_stop_idx 2751, event_stride -1, rc 1
+m_seq : TTAAACAAGGCGTTCCATTCA
+m_rc_seq : TGAATGGAACGCCTTGTTTAA
+event_start_idx 2610, event_stop_idx 2566, event_stride -1, rc 1
+m_seq : TTAAACAAGGMGTTCCATTCA
+m_rc_seq : TGAATGGAAMGCCTTGTTTAA
+event_start_idx 2610, event_stop_idx 2566, event_stride -1, rc 1
+m_seq : TCAACCAGAACGCCCCTTATT
+m_rc_seq : AATAAGGGGCGTTCTGGTTGA
+event_start_idx 2570, event_stop_idx 2527, event_stride -1, rc 1
+m_seq : TCAACCAGAAMGCCCCTTATT
+m_rc_seq : AATAAGGGGMGTTCTGGTTGA
+event_start_idx 2570, event_stop_idx 2527, event_stride -1, rc 1
+m_seq : CTCATCACCCCGCAAACTGCC
+m_rc_seq : GGCAGTTTGCGGGGTGATGAG
+event_start_idx 2503, event_stop_idx 2474, event_stride -1, rc 1
+m_seq : CTCATCACCCMGCAAACTGCC
+m_rc_seq : GGCAGTTTGMGGGGTGATGAG
+event_start_idx 2503, event_stop_idx 2474, event_stride -1, rc 1
+m_seq : GCCTGAACAGCGCCTTACCCT
+m_rc_seq : AGGGTAAGGCGCTGTTCAGGC
+event_start_idx 2477, event_stop_idx 2434, event_stride -1, rc 1
+m_seq : GCCTGAACAGMGCCTTACCCT
+m_rc_seq : AGGGTAAGGMGCTGTTCAGGC
+event_start_idx 2477, event_stop_idx 2434, event_stride -1, rc 1
+m_seq : CTTAACCAGTCGCGCACCCAGCC
+m_rc_seq : GGCTGGGTGCGCGACTGGTTAAG
+event_start_idx 2439, event_stop_idx 2412, event_stride -1, rc 1
+m_seq : CTTAACCAGTMGMGCACCCAGCC
+m_rc_seq : GGCTGGGTGMGMGACTGGTTAAG
+event_start_idx 2439, event_stop_idx 2412, event_stride -1, rc 1
+m_seq : CCCAGCCAGCCGCCGAAAAGCGACAGCAGCA
+m_rc_seq : TGCTGCTGTCGCTTTTCGGCGGCTGGCTGGG
+event_start_idx 2420, event_stop_idx 2373, event_stride -1, rc 1
+m_seq : CCCAGCCAGCMGCMGAAAAGMGACAGCAGCA
+m_rc_seq : TGCTGCTGTMGCTTTTMGGMGGCTGGCTGGG
+event_start_idx 2420, event_stop_idx 2373, event_stride -1, rc 1
+m_seq : ACAGCAGCAGCGCTCCGCTGCACGGCAGAACAA
+m_rc_seq : TTGTTCTGCCGTGCAGCGGAGCGCTGCTGCTGT
+event_start_idx 2383, event_stop_idx 2308, event_stride -1, rc 1
+m_seq : ACAGCAGCAGMGCTCMGCTGCAMGGCAGAACAA
+m_rc_seq : TTGTTCTGCMGTGCAGMGGAGMGCTGCTGCTGT
+event_start_idx 2383, event_stop_idx 2308, event_stride -1, rc 1
+m_seq : AATCCACAATCGCCAGTCTGG
+m_rc_seq : CCAGACTGGCGATTGTGGATT
+event_start_idx 2311, event_stop_idx 2271, event_stride -1, rc 1
+m_seq : AATCCACAATMGCCAGTCTGG
+m_rc_seq : CCAGACTGGMGATTGTGGATT
+event_start_idx 2311, event_stop_idx 2271, event_stride -1, rc 1
+m_seq : TCTGGCTCCACGGAAAATCAA
+m_rc_seq : TTGATTTTCCGTGGAGCCAGA
+event_start_idx 2280, event_stop_idx 2225, event_stride -1, rc 1
+m_seq : TCTGGCTCCAMGGAAAATCAA
+m_rc_seq : TTGATTTTCMGTGGAGCCAGA
+event_start_idx 2280, event_stop_idx 2225, event_stride -1, rc 1
+m_seq : CAAACACTTTCGCCTGCAACA
+m_rc_seq : TGTTGCAGGCGAAAGTGTTTG
+event_start_idx 2227, event_stop_idx 2193, event_stride -1, rc 1
+m_seq : CAAACACTTTMGCCTGCAACA
+m_rc_seq : TGTTGCAGGMGAAAGTGTTTG
+event_start_idx 2227, event_stop_idx 2193, event_stride -1, rc 1
+m_seq : ACACTGCCAGCGCCGTTTCCGCACCAATTG
+m_rc_seq : CAATTGGTGCGGAAACGGCGCTGGCAGTGT
+event_start_idx 2196, event_stop_idx 2117, event_stride -1, rc 1
+m_seq : ACACTGCCAGMGCMGTTTCMGCACCAATTG
+m_rc_seq : CAATTGGTGMGGAAAMGGMGCTGGCAGTGT
+event_start_idx 2196, event_stop_idx 2117, event_stride -1, rc 1
+m_seq : GCACCAATTGCGGCCACCAGG
+m_rc_seq : CCTGGTGGCCGCAATTGGTGC
+event_start_idx 2139, event_stop_idx 2098, event_stride -1, rc 1
+m_seq : GCACCAATTGMGGCCACCAGG
+m_rc_seq : CCTGGTGGCMGCAATTGGTGC
+event_start_idx 2139, event_stop_idx 2098, event_stride -1, rc 1
+m_seq : GCCACCAGGCCGGAAACAAAC
+m_rc_seq : GTTTGTTTCCGGCCTGGTGGC
+event_start_idx 2111, event_stop_idx 2073, event_stride -1, rc 1
+m_seq : GCCACCAGGCMGGAAACAAAC
+m_rc_seq : GTTTGTTTCMGGCCTGGTGGC
+event_start_idx 2111, event_stop_idx 2073, event_stride -1, rc 1
+m_seq : CAAAGCATGGCGAACTCACAC
+m_rc_seq : GTGTGAGTTCGCCATGCTTTG
+event_start_idx 2072, event_stop_idx 2034, event_stride -1, rc 1
+m_seq : CAAAGCATGGMGAACTCACAC
+m_rc_seq : GTGTGAGTTMGCCATGCTTTG
+event_start_idx 2072, event_stop_idx 2034, event_stride -1, rc 1
+m_seq : CACACCACAACGTGGTACGCAGCAGTTT
+m_rc_seq : AAACTGCTGCGTACCACGTTGTGGTGTG
+event_start_idx 2039, event_stop_idx 1983, event_stride -1, rc 1
+m_seq : CACACCACAAMGTGGTAMGCAGCAGTTT
+m_rc_seq : AAACTGCTGMGTACCAMGTTGTGGTGTG
+event_start_idx 2039, event_stop_idx 1983, event_stride -1, rc 1
+m_seq : AGTTTTTCCCCGCACCGAGTGTGCGCCACACCAC
+m_rc_seq : GTGGTGTGGCGCACACTCGGTGCGGGGAAAAACT
+event_start_idx 1991, event_stop_idx 1938, event_stride -1, rc 1
+m_seq : AGTTTTTCCCMGCACMGAGTGTGMGCCACACCAC
+m_rc_seq : GTGGTGTGGMGCACACTMGGTGMGGGGAAAAACT
+event_start_idx 1991, event_stop_idx 1938, event_stride -1, rc 1
+m_seq : CTCCTGATGACGCTGACGCATTCCCAC
+m_rc_seq : GTGGGAATGCGTCAGCGTCATCAGGAG
+event_start_idx 1924, event_stop_idx 1868, event_stride -1, rc 1
+m_seq : CTCCTGATGAMGCTGAMGCATTCCCAC
+m_rc_seq : GTGGGAATGMGTCAGMGTCATCAGGAG
+event_start_idx 1924, event_stop_idx 1868, event_stride -1, rc 1
+m_seq : AGCAACATACCGCAGGCGGTGACCAGT
+m_rc_seq : ACTGGTCACCGCCTGCGGTATGTTGCT
+event_start_idx 1820, event_stop_idx 1764, event_stride -1, rc 1
+m_seq : AGCAACATACMGCAGGMGGTGACCAGT
+m_rc_seq : ACTGGTCACMGCCTGMGGTATGTTGCT
+event_start_idx 1820, event_stop_idx 1764, event_stride -1, rc 1
+m_seq : TCACTTCCAGCGCCCGACTTACCTG
+m_rc_seq : CAGGTAAGTCGGGCGCTGGAAGTGA
+event_start_idx 1747, event_stop_idx 1680, event_stride -1, rc 1
+m_seq : TCACTTCCAGMGCCMGACTTACCTG
+m_rc_seq : CAGGTAAGTMGGGMGCTGGAAGTGA
+event_start_idx 1747, event_stop_idx 1680, event_stride -1, rc 1
+m_seq : AGCACCTGACCGACCTGTTTT
+m_rc_seq : AAAACAGGTCGGTCAGGTGCT
+event_start_idx 1675, event_stop_idx 1643, event_stride -1, rc 1
+m_seq : AGCACCTGACMGACCTGTTTT
+m_rc_seq : AAAACAGGTMGGTCAGGTGCT
+event_start_idx 1675, event_stop_idx 1643, event_stride -1, rc 1
+m_seq : GTTTTAAAATCGCGCCAATATCT
+m_rc_seq : AGATATTGGCGCGATTTTAAAAC
+event_start_idx 1650, event_stop_idx 1601, event_stride -1, rc 1
+m_seq : GTTTTAAAATMGMGCCAATATCT
+m_rc_seq : AGATATTGGMGMGATTTTAAAAC
+event_start_idx 1650, event_stop_idx 1601, event_stride -1, rc 1
+m_seq : GGCTAATGGTCGGGAACTGGCGGTTGAGTTG
+m_rc_seq : CAACTCAACCGCCAGTTCCCGACCATTAGCC
+event_start_idx 1592, event_stop_idx 1544, event_stride -1, rc 1
+m_seq : GGCTAATGGTMGGGAACTGGMGGTTGAGTTG
+m_rc_seq : CAACTCAACMGCCAGTTCCMGACCATTAGCC
+event_start_idx 1592, event_stop_idx 1544, event_stride -1, rc 1
+m_seq : GTCAACATGCCGTTGCCATTC
+m_rc_seq : GAATGGCAACGGCATGTTGAC
+event_start_idx 1542, event_stop_idx 1504, event_stride -1, rc 1
+m_seq : GTCAACATGCMGTTGCCATTC
+m_rc_seq : GAATGGCAAMGGCATGTTGAC
+event_start_idx 1542, event_stop_idx 1504, event_stride -1, rc 1
+m_seq : ATTCTCCCAGCGGAAACTGGT
+m_rc_seq : ACCAGTTTCCGCTGGGAGAAT
+event_start_idx 1515, event_stop_idx 1468, event_stride -1, rc 1
+m_seq : ATTCTCCCAGMGGAAACTGGT
+m_rc_seq : ACCAGTTTCMGCTGGGAGAAT
+event_start_idx 1515, event_stop_idx 1468, event_stride -1, rc 1
+m_seq : GCCAGCTCTGCGGTTGCCCGTCTAATGCC
+m_rc_seq : GGCATTAGACGGGCAACCGCAGAGCTGGC
+event_start_idx 1465, event_stop_idx 1395, event_stride -1, rc 1
+m_seq : GCCAGCTCTGMGGTTGCCMGTCTAATGCC
+m_rc_seq : GGCATTAGAMGGGCAACMGCAGAGCTGGC
+event_start_idx 1465, event_stop_idx 1395, event_stride -1, rc 1
+m_seq : GAAATTAGGCCGCAGACTTTC
+m_rc_seq : GAAAGTCTGCGGCCTAATTTC
+event_start_idx 1333, event_stop_idx 1295, event_stride -1, rc 1
+m_seq : GAAATTAGGCMGCAGACTTTC
+m_rc_seq : GAAAGTCTGMGGCCTAATTTC
+event_start_idx 1333, event_stop_idx 1295, event_stride -1, rc 1
+m_seq : GTCCACTTTGCGCAGGCTGGT
+m_rc_seq : ACCAGCCTGCGCAAAGTGGAC
+event_start_idx 1287, event_stop_idx 1242, event_stride -1, rc 1
+m_seq : GTCCACTTTGMGCAGGCTGGT
+m_rc_seq : ACCAGCCTGMGCAAAGTGGAC
+event_start_idx 1287, event_stop_idx 1242, event_stride -1, rc 1
+m_seq : GTCACTTTAGCGCGGAACTCCTG
+m_rc_seq : CAGGAGTTCCGCGCTAAAGTGAC
+event_start_idx 1246, event_stop_idx 1198, event_stride -1, rc 1
+m_seq : GTCACTTTAGMGMGGAACTCCTG
+m_rc_seq : CAGGAGTTCMGMGCTAAAGTGAC
+event_start_idx 1246, event_stop_idx 1198, event_stride -1, rc 1
+m_seq : TCCTGGGTATCGCCCATAAAA
+m_rc_seq : TTTTATGGGCGATACCCAGGA
+event_start_idx 1205, event_stop_idx 1167, event_stride -1, rc 1
+m_seq : TCCTGGGTATMGCCCATAAAA
+m_rc_seq : TTTTATGGGMGATACCCAGGA
+event_start_idx 1205, event_stop_idx 1167, event_stride -1, rc 1
+m_seq : ATAAAAGTCACGGTATCACCGAGGGCAACGTTTAAGCGTTTCGCCAGCCCCT
+m_rc_seq : AGGGGCTGGCGAAACGCTTAAACGTTGCCCTCGGTGATACCGTGACTTTTAT
+event_start_idx 1178, event_stop_idx 1078, event_stride -1, rc 1
+m_seq : ATAAAAGTCAMGGTATCACMGAGGGCAAMGTTTAAGMGTTTMGCCAGCCCCT
+m_rc_seq : AGGGGCTGGMGAAAMGCTTAAAMGTTGCCCTMGGTGATACMGTGACTTTTAT
+event_start_idx 1178, event_stop_idx 1078, event_stride -1, rc 1
+m_seq : CCTCTTCCATCGACACTTCAT
+m_rc_seq : ATGAAGTGTCGATGGAAGAGG
+event_start_idx 1080, event_stop_idx 1046, event_stride -1, rc 1
+m_seq : CCTCTTCCATMGACACTTCAT
+m_rc_seq : ATGAAGTGTMGATGGAAGAGG
+event_start_idx 1080, event_stop_idx 1046, event_stride -1, rc 1
+m_seq : GACACTTCATCGGCTTTTGGCGGCCAGTTAC
+m_rc_seq : GTAACTGGCCGCCAAAAGCCGATGAAGTGTC
+event_start_idx 1059, event_stop_idx 1018, event_stride -1, rc 1
+m_seq : GACACTTCATMGGCTTTTGGMGGCCAGTTAC
+m_rc_seq : GTAACTGGCMGCCAAAAGCMGATGAAGTGTC
+event_start_idx 1059, event_stop_idx 1018, event_stride -1, rc 1
+m_seq : GGCCAGTTACCGGCGACAATCGGATTATGAT
+m_rc_seq : ATCATAATCCGATTGTCGCCGGTAACTGGCC
+event_start_idx 1032, event_stop_idx 983, event_stride -1, rc 1
+m_seq : GGCCAGTTACMGGMGACAATMGGATTATGAT
+m_rc_seq : ATCATAATCMGATTGTMGCMGGTAACTGGCC
+event_start_idx 1032, event_stop_idx 983, event_stride -1, rc 1
+m_seq : GGATTATGATCGGGCCGCGTATTTTGCC
+m_rc_seq : GGCAAAATACGCGGCCCGATCATAATCC
+event_start_idx 999, event_stop_idx 946, event_stride -1, rc 1
+m_seq : GGATTATGATMGGGCMGMGTATTTTGCC
+m_rc_seq : GGCAAAATAMGMGGCCMGATCATAATCC
+event_start_idx 999, event_stop_idx 946, event_stride -1, rc 1
+m_seq : AGATTGAGTTCGCGGTTAAGCGCCTCATCTT
+m_rc_seq : AAGATGAGGCGCTTAACCGCGAACTCAATCT
+event_start_idx 933, event_stop_idx 885, event_stride -1, rc 1
+m_seq : AGATTGAGTTMGMGGTTAAGMGCCTCATCTT
+m_rc_seq : AAGATGAGGMGCTTAACMGMGAACTCAATCT
+event_start_idx 933, event_stop_idx 885, event_stride -1, rc 1
+m_seq : TACCTTCTGTCGGCTTATCGTTAATCGCCGTCAGCCGCGCCCGCACCACCGGATAAAACGATTCCGGGACTATCT
+m_rc_seq : AGATAGTCCCGGAATCGTTTTATCCGGTGGTGCGGGCGCGGCTGACGGCGATTAACGATAAGCCGACAGAAGGTA
+event_start_idx 873, event_stop_idx 736, event_stride -1, rc 1
+m_seq : TACCTTCTGTMGGCTTATMGTTAATMGCMGTCAGCMGMGCCMGCACCACMGGATAAAAMGATTCMGGGACTATCT
+m_rc_seq : AGATAGTCCMGGAATMGTTTTATCMGGTGGTGMGGGMGMGGCTGAMGGMGATTAAMGATAAGCMGACAGAAGGTA
+event_start_idx 873, event_stop_idx 736, event_stride -1, rc 1
+m_seq : TCTGATGTTCCGCGAGGAACGCTTTTAGCGGTGCTACCT
+m_rc_seq : AGGTAGCACCGCTAAAAGCGTTCCTCGCGGAACATCAGA
+event_start_idx 743, event_stop_idx 687, event_stride -1, rc 1
+m_seq : TCTGATGTTCMGMGAGGAAMGCTTTTAGMGGTGCTACCT
+m_rc_seq : AGGTAGCACMGCTAAAAGMGTTCCTMGMGGAACATCAGA
+event_start_idx 743, event_stop_idx 687, event_stride -1, rc 1
+m_seq : TGTTCTGTGGCGATGTTAATT
+m_rc_seq : AATTAACATCGCCACAGAACA
+event_start_idx 687, event_stop_idx 634, event_stride -1, rc 1
+m_seq : TGTTCTGTGGMGATGTTAATT
+m_rc_seq : AATTAACATMGCCACAGAACA
+event_start_idx 687, event_stop_idx 634, event_stride -1, rc 1
+m_seq : AAAAGTAGTTCGGGCTTTCTG
+m_rc_seq : CAGAAAGCCCGAACTACTTTT
+event_start_idx 634, event_stop_idx 603, event_stride -1, rc 1
+m_seq : AAAAGTAGTTMGGGCTTTCTG
+m_rc_seq : CAGAAAGCCMGAACTACTTTT
+event_start_idx 634, event_stop_idx 603, event_stride -1, rc 1
+m_seq : CTGCTGCCAGCGGTCGAGCAGATCGCCACGCAACACCAG
+m_rc_seq : CTGGTGTTGCGTGGCGATCTGCTCGACCGCTGGCAGCAG
+event_start_idx 591, event_stop_idx 514, event_stride -1, rc 1
+m_seq : CTGCTGCCAGMGGTMGAGCAGATMGCCAMGCAACACCAG
+m_rc_seq : CTGGTGTTGMGTGGMGATCTGCTMGACMGCTGGCAGCAG
+event_start_idx 591, event_stop_idx 514, event_stride -1, rc 1
+m_seq : TAAAGGAGAGCGAAAATGCCGAAAGCTGAC
+m_rc_seq : GTCAGCTTTCGGCATTTTCGCTCTCCTTTA
+event_start_idx 460, event_stop_idx 414, event_stride -1, rc 1
+m_seq : TAAAGGAGAGMGAAAATGCMGAAAGCTGAC
+m_rc_seq : GTCAGCTTTMGGCATTTTMGCTCTCCTTTA
+event_start_idx 460, event_stop_idx 414, event_stride -1, rc 1
+m_seq : GCTGACTTAACGTTGACCACGGCTGACGTAACAGGCGGCTAACCGCCAGGCGCAGAGGCAG
+m_rc_seq : CTGCCTCTGCGCCTGGCGGTTAGCCGCCTGTTACGTCAGCCGTGGTCAACGTTAAGTCAGC
+event_start_idx 424, event_stop_idx 308, event_stride -1, rc 1
+m_seq : GCTGACTTAAMGTTGACCAMGGCTGAMGTAACAGGMGGCTAACMGCCAGGMGCAGAGGCAG
+m_rc_seq : CTGCCTCTGMGCCTGGMGGTTAGCMGCCTGTTAMGTCAGCMGTGGTCAAMGTTAAGTCAGC
+event_start_idx 424, event_stop_idx 308, event_stride -1, rc 1
+m_seq : GCAGAGGCAGCGATTTCAGCGTCATGCGGCGAAGTACATT
+m_rc_seq : AATGTACTTCGCCGCATGACGCTGAAATCGCTGCCTCTGC
+event_start_idx 331, event_stop_idx 264, event_stride -1, rc 1
+m_seq : GCAGAGGCAGMGATTTCAGMGTCATGMGGMGAAGTACATT
+m_rc_seq : AATGTACTTMGCMGCATGAMGCTGAAATMGCTGCCTCTGC
+event_start_idx 331, event_stop_idx 264, event_stride -1, rc 1
