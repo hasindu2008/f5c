@@ -6,7 +6,7 @@
 #include <vector>
 
 
-// #define INPUT_DEBUG 1
+//#define INPUT_DEBUG 1
 #define TRANS_START_TO_CLIP 0.5
 #define TRANS_CLIP_SELF 0.9
 #define p7_LOGSUM_TBL   16000
@@ -340,6 +340,7 @@ inline float profile_hmm_fill_generic_r9(const char *m_seq,
     // Calculate number of blocks
     // A block of the HMM is a set of states for one kmer
     uint32_t num_blocks = output.get_num_columns() / PSR9_NUM_STATES;
+    //fprintf(stderr,"%d %d\n",output.get_num_columns(),PSR9_NUM_STATES);
     uint32_t last_event_row_idx = output.get_num_rows() - 1;
 
     // Precompute the transition probabilites for each kmer block
@@ -374,9 +375,19 @@ inline float profile_hmm_fill_generic_r9(const char *m_seq,
 
     std::vector<uint32_t> kmer_ranks(num_kmers);
 
+    //todo : pre-calculate
+    int32_t seq_len = strlen(m_seq);
+
     //check : this might be reverse cmplement kmer rnak
     for(size_t ki = 0; ki < num_kmers; ++ki){
-        const char* substring = &m_rc_seq[ki];
+        const char* substring = 0;
+        if(rc==0){
+            substring=m_seq+ki;
+        }
+        else{
+            substring=m_rc_seq+seq_len-ki-KMER_SIZE;
+        }
+
         // kmer_ranks[ki] = sequence.get_kmer_rank(ki, k, data.rc);
         kmer_ranks[ki] = get_kmer_rank(substring,KMER_SIZE);
     }
@@ -420,8 +431,10 @@ inline float profile_hmm_fill_generic_r9(const char *m_seq,
             // float lp_emission_m = log_probability_match_r9(*data.read, *data.pore_model, rank, event_idx, data.strand);
             float lp_emission_m =
                 log_probability_match_r9(scaling, cpgmodel, event, event_idx,rank, strand, 0);
+            //fprintf(stderr,"m_seq %s, event_idx %d, kmer_rank %d, log prob : %f\n",m_seq,event_idx,rank,lp_emission_m);
+            //fprintf(stderr,"e_start %d, row %d, event_stride %d, block %d, num_block %d\n",e_start,row,event_stride,block,num_blocks);
             float lp_emission_b = BAD_EVENT_PENALTY;
-            
+
             HMMUpdateScores scores;
 
             // state PSR9_MATCH
@@ -648,7 +661,7 @@ float profile_hmm_score_r9(const char *m_seq,
                                 uint32_t hmm_flags)
 {
     const uint32_t k = KMER_SIZE; //hardcoded had this const uint32_t k = data.pore_model->k;
-    uint32_t n_kmers = sizeof(m_seq)/sizeof(m_seq[0]) - k + 1;
+    uint32_t n_kmers = strlen(m_seq) - k + 1;
 
     uint32_t n_states = PSR9_NUM_STATES * (n_kmers + 2); // + 2 for explicit terminal states
 

@@ -674,10 +674,16 @@ scalings_t scaling, model_t* cpgmodel,double events_per_base) {
         double sum_ll_u = ss.ll_unmethylated[0]; //+ ss.ll_unmethylated[1];
         double diff = sum_ll_m - sum_ll_u;
 
-        fprintf(stderr, "%s\t%d\t%d\t", ss.chromosome.c_str(), ss.start_position, ss.end_position);
-        fprintf(stderr, "%s\t%.2lf\t", qname, diff);
-        fprintf(stderr, "%.2lf\t%.2lf\t", sum_ll_m, sum_ll_u);
-        fprintf(stderr, "%d\t%d\t%s\n", ss.strands_scored, ss.n_cpg, ss.sequence.c_str());
+        // fprintf(stderr, "%s\t%d\t%d\t", ss.chromosome.c_str(), ss.start_position, ss.end_position);
+        // fprintf(stderr, "%s\t%.2lf\t", qname, diff);
+        // fprintf(stderr, "%.2lf\t%.2lf\t", sum_ll_m, sum_ll_u);
+        // fprintf(stderr, "%d\t%d\t%s\n", ss.strands_scored, ss.n_cpg, ss.sequence.c_str());
+
+        printf("%s\t%d\t%d\t", ss.chromosome.c_str(), ss.start_position, ss.end_position);
+        printf("%s\t%.2lf\t", qname, diff);
+        printf("%.2lf\t%.2lf\t", sum_ll_m, sum_ll_u);
+        printf("%d\t%d\t%s\n", ss.strands_scored, ss.n_cpg, ss.sequence.c_str());
+
     }
     #endif
 
