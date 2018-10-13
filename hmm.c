@@ -6,7 +6,7 @@
 #include <vector>
 
 
-#define INPUT_DEBUG 1
+//#define INPUT_DEBUG 1
 #define TRANS_START_TO_CLIP 0.5
 #define TRANS_CLIP_SELF 0.9
 #define p7_LOGSUM_TBL   16000
@@ -18,13 +18,46 @@
 #define TRUE 1
 #define FALSE 0
 
+//contains extracted code from nanopolish hmm and matrix
+
+
 // storage
 float flogsum_lookup[p7_LOGSUM_TBL]; /* p7_LOGSUM_TBL=16000: (A-B) = 0..16 nats, steps of 0.001 */
 
-uint32_t get_kmer_rank(char* ar){
-        //Have to be implemented
-	return 1;   
+//todo : can make more efficient using bit encoding
+static inline uint32_t get_rank(char base) {
+    if (base == 'A') { //todo: do we neeed simple alpha?
+        return 0;
+    } else if (base == 'C') {
+        return 1;
+    } else if (base == 'G') {
+        return 2;
+    } else if (base == 'M') {
+        return 3;
+    } else if (base == 'T') {
+        return 4;        
+    } else {
+        WARNING("A None ACGMT base found : %c", base);
+        return 0;
+    }
 }
+
+// return the lexicographic rank of the kmer amongst all strings of
+// length k for this alphabet
+static inline uint32_t get_kmer_rank(const char* str, uint32_t k) {
+    uint32_t p = 1;
+    uint32_t r = 0;
+
+    // from last base to first
+    for (uint32_t i = 0; i < k; ++i) {
+        //r += rank(str[k - i - 1]) * p;
+        //p *= size();
+        r += get_rank(str[k - i - 1]) * p;
+        p *= 5;
+    }
+    return r;
+}
+
 
 enum ProfileStateR9
 {
@@ -66,7 +99,7 @@ static inline float log_probability_match_r9(scalings_t scaling,
                                              float sample_rate) {
     // event level mean, scaled with the drift value
     strand = 0;
-    assert(kmer_rank < 4096);
+    assert(kmer_rank < 15625);
     //float level = read.get_drift_scaled_level(event_idx, strand);
 
     //float time =
@@ -79,14 +112,14 @@ static inline float log_probability_match_r9(scalings_t scaling,
     //GaussianParameters gp = read.get_scaled_gaussian_from_pore_model_state(pore_model, strand, kmer_rank);
     float gp_mean =
         scaling.scale * models[kmer_rank].level_mean + scaling.shift;
-    float gp_stdv = models[kmer_rank].level_stdv * 1; //scaling.var = 1;
+    float gp_stdv = models[kmer_rank].level_stdv * scaling.var; 
     // float gp_stdv = 0;
     // float gp_log_stdv = models[kmer_rank].level_log_stdv + scaling.log_var;
     // if(models[kmer_rank].level_stdv <0.01 ){
     //  fprintf(stderr,"very small std dev %f\n",models[kmer_rank].level_stdv);
     // }
     float gp_log_stdv =
-        log(models[kmer_rank].level_stdv + 0); // scaling.log_var = log(1)=0;
+        log(models[kmer_rank].level_stdv) + log(scaling.var); 
 
     float lp = log_normal_pdf(scaledLevel, gp_mean, gp_stdv, gp_log_stdv);
     return lp;
@@ -307,6 +340,7 @@ inline float profile_hmm_fill_generic_r9(const char *m_seq,
     // Calculate number of blocks
     // A block of the HMM is a set of states for one kmer
     uint32_t num_blocks = output.get_num_columns() / PSR9_NUM_STATES;
+    //fprintf(stderr,"%d %d\n",output.get_num_columns(),PSR9_NUM_STATES);
     uint32_t last_event_row_idx = output.get_num_rows() - 1;
 
     // Precompute the transition probabilites for each kmer block
@@ -331,7 +365,7 @@ inline float profile_hmm_fill_generic_r9(const char *m_seq,
  
     // Precompute kmer ranks
     // const uint32_t k = data.pore_model->k;
-    const uint32_t k = KMER_SIZE;
+    //const uint32_t k = KMER_SIZE;
     // Make sure the HMMInputSequence's alphabet matches the state space of the read
 
 
@@ -341,9 +375,22 @@ inline float profile_hmm_fill_generic_r9(const char *m_seq,
 
     std::vector<uint32_t> kmer_ranks(num_kmers);
 
-    for(size_t ki = 0; ki < num_kmers; ++ki)
+    //todo : pre-calculate
+    int32_t seq_len = strlen(m_seq);
+
+    //check : this might be reverse cmplement kmer rnak
+    for(size_t ki = 0; ki < num_kmers; ++ki){
+        const char* substring = 0;
+        if(rc==0){
+            substring=m_seq+ki;
+        }
+        else{
+            substring=m_rc_seq+seq_len-ki-KMER_SIZE;
+        }
+
         // kmer_ranks[ki] = sequence.get_kmer_rank(ki, k, data.rc);
-        kmer_ranks[ki] = get_kmer_rank("temp");
+        kmer_ranks[ki] = get_kmer_rank(substring,KMER_SIZE);
+    }
 
 
     ///change over
@@ -384,8 +431,10 @@ inline float profile_hmm_fill_generic_r9(const char *m_seq,
             // float lp_emission_m = log_probability_match_r9(*data.read, *data.pore_model, rank, event_idx, data.strand);
             float lp_emission_m =
                 log_probability_match_r9(scaling, cpgmodel, event, event_idx,rank, strand, 0);
+            //fprintf(stderr,"m_seq %s, event_idx %d, kmer_rank %d, log prob : %f\n",m_seq,event_idx,rank,lp_emission_m);
+            //fprintf(stderr,"e_start %d, row %d, event_stride %d, block %d, num_block %d\n",e_start,row,event_stride,block,num_blocks);
             float lp_emission_b = BAD_EVENT_PENALTY;
-            
+
             HMMUpdateScores scores;
 
             // state PSR9_MATCH
@@ -503,8 +552,8 @@ inline float p7_FLogsum(float a, float b){
   return (min == -eslINFINITY || (max-min) >= 15.7f) ? max : max + flogsum_lookup[(int)((max-min)*p7_LOGSUM_SCALE)];
 } 
 
-
-#define ESL_LOG_SUM 1
+// commented by hasindu
+//#define ESL_LOG_SUM 1
 
 // Add the log-scaled values a and b using a transform to avoid precision errors
 inline double add_logs(const double a, const double b)
@@ -531,7 +580,8 @@ class ProfileHMMForwardOutputR9
 {
     public:
         ProfileHMMForwardOutputR9(FloatMatrix* p) : p_fm(p), lp_end(-INFINITY) {
-		p7_FLogsumInit();
+		//p7_FLogsumInit(); 
+        //commented by hasindu
 	}
         
         //
@@ -611,7 +661,7 @@ float profile_hmm_score_r9(const char *m_seq,
                                 uint32_t hmm_flags)
 {
     const uint32_t k = KMER_SIZE; //hardcoded had this const uint32_t k = data.pore_model->k;
-    uint32_t n_kmers = sizeof(m_seq)/sizeof(m_seq[0]) - k + 1;
+    uint32_t n_kmers = strlen(m_seq) - k + 1;
 
     uint32_t n_states = PSR9_NUM_STATES * (n_kmers + 2); // + 2 for explicit terminal states
 
@@ -675,6 +725,14 @@ float profile_hmm_score(
     double events_per_base,
     uint32_t hmm_flags
 ){
+    #ifdef INPUT_DEBUG
+
+        fprintf(stderr,"m_seq : %s\n",m_seq);
+        fprintf(stderr,"m_rc_seq : %s\n",m_rc_seq);
+        fprintf(stderr,"event_start_idx %d, event_stop_idx %d, event_stride %d, rc %d\n",event_start_idx,event_stop_idx,event_stride,rc);
+
+    #endif
+
 	
 	return profile_hmm_score_r9(m_seq,
 								m_rc_seq,
@@ -693,15 +751,7 @@ float profile_hmm_score(
 
 
 
-// #ifdef INPUT_DEBUG
 
-//     fprintf(stderr,"m_seq : %s\n",m_seq);
-//     fprintf(stderr,"m_rc_seq : %s\n",m_rc_seq);
-//     fprintf(stderr,"event_start_idx %d, event_stop_idx %d, event_stride %d, rc %d\n",event_start_idx,event_stop_idx,event_stride,rc);
-
-// #endif
-
-//     return 0;
 
 
 }
