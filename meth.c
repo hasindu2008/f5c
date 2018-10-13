@@ -7,7 +7,7 @@
 
 #define METHYLATED_SYMBOL 'M'
 
-//#define METH_DEBUG 1
+#define METH_DEBUG 1
 
 //contains extracted and modified code from nanopolish
 
@@ -627,6 +627,7 @@ scalings_t scaling, model_t* cpgmodel,double events_per_base) {
         double methylated_score=profile_hmm_score(mcpg_subseq.c_str(),rc_mcpg_subseq.c_str(), event, scaling, cpgmodel, event_start_idx, event_stop_idx,
         strand,event_stride,rc,events_per_base,hmm_flags);
 
+        //fprintf(stderr,"meth score %f\n",methylated_score);
 
         std::string contig = m_hdr->target_name[record->core.tid];
 
@@ -669,14 +670,20 @@ scalings_t scaling, model_t* cpgmodel,double events_per_base) {
     for(auto iter = site_score_map.begin(); iter != site_score_map.end(); ++iter) {
 
         const ScoredSite& ss = iter->second;
-        double sum_ll_m = ss.ll_methylated[0] + ss.ll_methylated[1];
-        double sum_ll_u = ss.ll_unmethylated[0] + ss.ll_unmethylated[1];
+        double sum_ll_m = ss.ll_methylated[0]; //+ ss.ll_methylated[1];
+        double sum_ll_u = ss.ll_unmethylated[0]; //+ ss.ll_unmethylated[1];
         double diff = sum_ll_m - sum_ll_u;
 
-        fprintf(stderr, "%s\t%d\t%d\t", ss.chromosome.c_str(), ss.start_position, ss.end_position);
-        fprintf(stderr, "%s\t%.2lf\t", qname, diff);
-        fprintf(stderr, "%.2lf\t%.2lf\t", sum_ll_m, sum_ll_u);
-        fprintf(stderr, "%d\t%d\t%s\n", ss.strands_scored, ss.n_cpg, ss.sequence.c_str());
+        // fprintf(stderr, "%s\t%d\t%d\t", ss.chromosome.c_str(), ss.start_position, ss.end_position);
+        // fprintf(stderr, "%s\t%.2lf\t", qname, diff);
+        // fprintf(stderr, "%.2lf\t%.2lf\t", sum_ll_m, sum_ll_u);
+        // fprintf(stderr, "%d\t%d\t%s\n", ss.strands_scored, ss.n_cpg, ss.sequence.c_str());
+
+        printf("%s\t%d\t%d\t", ss.chromosome.c_str(), ss.start_position, ss.end_position);
+        printf("%s\t%.2lf\t", qname, diff);
+        printf("%.2lf\t%.2lf\t", sum_ll_m, sum_ll_u);
+        printf("%d\t%d\t%s\n", ss.strands_scored, ss.n_cpg, ss.sequence.c_str());
+
     }
     #endif
 

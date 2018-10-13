@@ -41,7 +41,7 @@ core_t* init_core(const char* bamfilename, const char* fastafile,
         sizeof(model_t) * NUM_KMER); //4096 is 4^6 which os hardcoded now
     MALLOC_CHK(core->model);
     core->cpgmodel = (model_t*)malloc(
-        sizeof(model_t) * NUM_KMER); //4096 is 4^6 which os hardcoded now
+        sizeof(model_t) * NUM_KMER_METH); //15625 is 4^6 which os hardcoded now
     MALLOC_CHK(core->cpgmodel);
 
     //load the model from files
@@ -295,6 +295,9 @@ void pthread_db(core_t* core, db_t* db, void (*func)(core_t*,db_t*,int)){
     int32_t num_thread = core->opt.num_thread;
     int32_t step = (db->n_bam_rec + num_thread - 1) / num_thread;
     //todo : check for higher num of threads than the data
+    //current works but many threads are created despite 
+
+    //set the data structures
     for (t = 0; t < num_thread; t++) {
         pt_args[t].core = core;
         pt_args[t].db = db;
@@ -310,6 +313,11 @@ void pthread_db(core_t* core, db_t* db, void (*func)(core_t*,db_t*,int)){
         pt_args[t].all_pthread_args =  (void *)pt_args;
     #endif
         //fprintf(stderr,"t%d : %d-%d\n",t,pt_args[t].starti,pt_args[t].endi);
+
+    }
+
+    //create threads
+    for(t = 0; t < core->opt.num_thread; t++){
         ret = pthread_create(&tids[t], NULL, pthread_single,
                                 (void*)(&pt_args[t]));
         NEG_CHK(ret);

@@ -11,6 +11,7 @@
 #define m_min_mapping_quality 30
 #define KMER_SIZE 6 //hard coded for now; todo : change to dynamic
 #define NUM_KMER 4096
+#define NUM_KMER_METH 15625
 //#define HAVE_CUDA 1 //if compile for CUDA or not
 #define ALN_BANDWIDTH 100 // the band size in banded_alignment
 
