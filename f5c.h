@@ -8,7 +8,7 @@
 #include "fast5lite.h"
 #include "nanopolish_read_db.h"
 
-#define m_min_mapping_quality 30
+//#define m_min_mapping_quality 30
 #define KMER_SIZE 6 //hard coded for now; todo : change to dynamic
 #define NUM_KMER 4096
 #define NUM_KMER_METH 15625
@@ -31,6 +31,7 @@
 #define FAILED_CALIBRATION 0x001 //if the calibration failed
 #define FAILED_ALIGNMENT 0x002
 #define FAILED_QUALITY_CHK  0x004
+//#define FAILED_FAST5  0x008
 
 
 #define WORK_STEAL 1

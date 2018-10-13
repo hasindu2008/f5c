@@ -153,7 +153,8 @@ int32_t load_db(core_t* core, db_t* db) {
     db->n_bam_rec = 0;
     int32_t i = 0;
     while (db->n_bam_rec < db->capacity_bam_rec) {
-        record = db->bam_rec[db->n_bam_rec];
+        i=db->n_bam_rec;
+        record = db->bam_rec[i];
         result = sam_itr_next(core->m_bam_fh, core->itr, record);
 
         if (result < 0) {
@@ -164,7 +165,54 @@ int32_t load_db(core_t* core, db_t* db) {
                     core->opt
                         .min_mapq) { // remove secondraies? //need to use the user parameter
                 // printf("%s\t%d\n",bam_get_qname(db->bam_rec[db->n_bam_rec]),result);
-                db->n_bam_rec++;
+                
+                if(!(core->opt.flag & F5C_SECONDARY_YES)){
+                    if((record->core.flag & BAM_FSECONDARY)){
+                        continue;
+                    }
+                }
+                std::string qname = bam_get_qname(record);
+
+                char* fast5_path =
+                    (char*)malloc(core->readbb->get_signal_path(qname).size() +
+                                10); // is +10 needed? do errorcheck
+                strcpy(fast5_path, core->readbb->get_signal_path(qname).c_str());
+
+                //fprintf(stderr,"readname : %s\n",qname.c_str());
+
+                hid_t hdf5_file = fast5_open(fast5_path);
+                if (hdf5_file >= 0) {
+                    db->f5[i] = (fast5_t*)calloc(1, sizeof(fast5_t));
+                    MALLOC_CHK(db->f5[i]);
+                    fast5_read(hdf5_file, db->f5[i]); // todo : errorhandle
+                    fast5_close(hdf5_file);
+
+                    if (core->opt.flag & F5C_PRINT_RAW) {
+                        printf(">%s\tPATH:%s\tLN:%llu\n", qname.c_str(), fast5_path,
+                            db->f5[i]->nsample);
+                        uint32_t j = 0;
+                        for (j = 0; j < db->f5[i]->nsample; j++) {
+                            printf("%d\t", (int)db->f5[i]->rawptr[j]);
+                        }
+                        printf("\n");
+                    }
+                    
+                    db->n_bam_rec++;
+                
+                } else {
+                    if (core->opt.flag & F5C_SKIP_UNREADABLE) {
+                        WARNING("Fast5 file (%s for for read %s) is unreadable and will be skipped",
+                                fast5_path,qname.c_str());
+                    } else {
+                        ERROR("Fast5 file (%s) could not be opened for read %s", fast5_path, qname.c_str());
+                        exit(EXIT_FAILURE);
+                    }
+                }
+
+                
+
+                free(fast5_path);                
+                
             }
         }
     }
@@ -192,40 +240,6 @@ int32_t load_db(core_t* core, db_t* db) {
 
         // Get the read type from the fast5 file
         std::string qname = bam_get_qname(db->bam_rec[i]);
-        char* fast5_path =
-            (char*)malloc(core->readbb->get_signal_path(qname).size() +
-                          10); // is +10 needed? do errorcheck
-        strcpy(fast5_path, core->readbb->get_signal_path(qname).c_str());
-
-        //fprintf(stderr,"readname : %s\n",qname.c_str());
-
-        hid_t hdf5_file = fast5_open(fast5_path);
-        if (hdf5_file >= 0) {
-            db->f5[i] = (fast5_t*)calloc(1, sizeof(fast5_t));
-            MALLOC_CHK(db->f5[i]);
-            fast5_read(hdf5_file, db->f5[i]); // todo : errorhandle
-            fast5_close(hdf5_file);
-        } else {
-            if (core->opt.flag & F5C_SKIP_UNREADABLE) {
-                WARNING("Fast5 file (%s for for read %s) is unreadable and will be skipped",
-                        fast5_path,qname.c_str());
-            } else {
-                ERROR("Fast5 file (%s) could not be opened for read %s", fast5_path, qname.c_str());
-                exit(EXIT_FAILURE);
-            }
-        }
-
-        if (core->opt.flag & F5C_PRINT_RAW) {
-            printf(">%s\tPATH:%s\tLN:%llu\n", qname.c_str(), fast5_path,
-                   db->f5[i]->nsample);
-            uint32_t j = 0;
-            for (j = 0; j < db->f5[i]->nsample; j++) {
-                printf("%d\t", (int)db->f5[i]->rawptr[j]);
-            }
-            printf("\n");
-        }
-
-        free(fast5_path);
 
         //get the read in ascci
         db->read[i] =
@@ -927,5 +941,6 @@ void init_opt(opt_t* opt) {
     opt->flag |= F5C_DISABLE_CUDA;
 #endif
     opt->cuda_block_size=64;   
-    //opt->flag |= F5C_SKIP_UNREADABLE;
+    opt->flag |= F5C_SKIP_UNREADABLE;
+    opt->flag |= F5C_SECONDARY_YES;
 }
