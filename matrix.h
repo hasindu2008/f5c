@@ -13,7 +13,6 @@
 #include <stdio.h>
 #include <assert.h>
 #include <string.h>
-#include "matrix.h"
 
 //
 // Template Matrix for POD types
