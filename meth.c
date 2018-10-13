@@ -9,7 +9,7 @@
 
 #define METH_DEBUG 1
 
-//contains extracted and modified code from nanopolish
+//following Code is adapted from Nanopolish 
 
 typedef std::vector<AlignedPair> AlignedSegment;
 
@@ -121,7 +121,7 @@ std::vector<AlignedPair> get_event_alignment_record(const bam1_t* record,int32_t
 {
 
     uint8_t rc = bam_is_rev(record);
-    int8_t stride;
+    //int8_t stride;
 
     // copy read base-to-reference alignment
     std::vector<AlignedSegment> alignments = get_aligned_segments(record,1);
@@ -158,15 +158,16 @@ std::vector<AlignedPair> get_event_alignment_record(const bam1_t* record,int32_t
     //this->strand = strand_idx;
 
     if(!aligned_events.empty()) {
-        stride = aligned_events.front().read_pos < aligned_events.back().read_pos ? 1 : -1;
+        //stride = aligned_events.front().read_pos < aligned_events.back().read_pos ? 1 : -1;
 
         // check for a degenerate alignment and discard the events if so
         if(aligned_events.front().read_pos == aligned_events.back().read_pos) {
             aligned_events.clear();
         }
-    } else {
-        stride = 1;
-    }
+    } 
+    // else {
+    //     stride = 1;
+    // }
 
     return aligned_events;
 }
@@ -280,7 +281,7 @@ std::string disambiguate(const std::string& str) {
     size_t i = 0;
     while (i < out.length()) {
         size_t stride = 1;
-        bool is_recognition_site = false;
+        //bool is_recognition_site = false;
 
         assert(isValid(out[i]));
         out[i] = getPossibleSymbols(out[i])[0];
@@ -524,7 +525,7 @@ scalings_t scaling, model_t* cpgmodel,double events_per_base) {
 
     // std::string contig = hdr->target_name[record->core.tid];
     int ref_start_pos = record->core.pos;
-    int ref_end_pos =  bam_endpos(record);
+    //int ref_end_pos =  bam_endpos(record);
 
     // // Extract the reference sequence for this region
     // int fetched_len = 0;

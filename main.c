@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include "logsum.h"
 
 //double realtime0 = 0;
 float flogsum_lookup[p7_LOGSUM_TBL]; //todo : get rid of global vars
@@ -218,7 +219,9 @@ int main(int argc, char* argv[]) {
 
     core_t* core = init_core(bamfilename, fastafile, fastqfile, opt,realtime0);
 
-    p7_FLogsumInit();
+    #ifdef ESL_LOG_SUM
+        p7_FLogsumInit();
+    #endif
 
  #ifndef IO_PROC_INTERLEAVE   
     db_t* db = init_db(core);

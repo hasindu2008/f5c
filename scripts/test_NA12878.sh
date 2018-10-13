@@ -21,8 +21,8 @@ for file in "${bamfile}" "${ref}" "${reads}"; do
 done
 
 if [[ "${#}" -eq 0 ]]; then
-	echo "${exepath}" -b "${bamfile}" -g "${ref}" -r "${reads}" -t 8 --secondary=yes --min-mapq=0 --print-scaling=yes ">" result.txt
-    "${exepath}" -b "${bamfile}" -g "${ref}" -r "${reads}" -t 8 --secondary=yes --min-mapq=0 --print-scaling=yes > result.txt
+	echo "${exepath}" -b "${bamfile}" -g "${ref}" -r "${reads}" -t 8 --secondary=yes --min-mapq=0 ">" result.txt
+    "${exepath}" -b "${bamfile}" -g "${ref}" -r "${reads}" -t 8 --secondary=yes --min-mapq=0  > result.txt
 
 elif [[ "${#}" -eq 1 ]]; then
     if [[ "${1}" == "valgrind" ]]; then
@@ -30,11 +30,11 @@ elif [[ "${#}" -eq 1 ]]; then
     elif [[ "${1}" == "gdb" ]]; then
         gdb --args "${exepath}" -b "${bamfile}" -g "${ref}" -r "${reads}" --secondary=yes --min-mapq=0
     elif [[ "${1}" == "cpu" ]]; then
-        "${exepath}" -b "${bamfile}" -g "${ref}" -r "${reads}" -t 8 --secondary=yes --min-mapq=0 --print-scaling=yes --disable-cuda=yes > result.txt	
+        "${exepath}" -b "${bamfile}" -g "${ref}" -r "${reads}" -t 8 --secondary=yes --min-mapq=0 --disable-cuda=yes > result.txt	
     elif [[ "${1}" == "cuda" ]]; then
-        "${exepath}" -b "${bamfile}" -g "${ref}" -r "${reads}" -t 8 --secondary=yes --min-mapq=0 --print-scaling=yes --disable-cuda=no > result.txt		
+        "${exepath}" -b "${bamfile}" -g "${ref}" -r "${reads}" -t 8 --secondary=yes --min-mapq=0 --disable-cuda=no > result.txt		
     elif [[ "${1}" == "echo" ]]; then
-		"${exepath}" -b "${bamfile}" -g "${ref}" -r "${reads}" -t 8 --secondary=yes --min-mapq=0 --print-scaling=yes ">" result.txt
+		"${exepath}" -b "${bamfile}" -g "${ref}" -r "${reads}" -t 8 --secondary=yes --min-mapq=0 ">" result.txt
 	else
         echo "wrong option"
 		exit 1

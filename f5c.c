@@ -207,10 +207,10 @@ int32_t load_db(core_t* core, db_t* db) {
             fast5_close(hdf5_file);
         } else {
             if (core->opt.flag & F5C_SKIP_UNREADABLE) {
-                WARNING("Fast5 file is unreadable and will be skipped: %s",
-                        fast5_path);
+                WARNING("Fast5 file (%s for for read %s) is unreadable and will be skipped",
+                        fast5_path,qname.c_str());
             } else {
-                ERROR("Fast5 file could not be opened: %s", fast5_path);
+                ERROR("Fast5 file (%s) could not be opened for read %s", fast5_path, qname.c_str());
                 exit(EXIT_FAILURE);
             }
         }
@@ -926,5 +926,6 @@ void init_opt(opt_t* opt) {
 #ifndef HAVE_CUDA
     opt->flag |= F5C_DISABLE_CUDA;
 #endif
-    opt->cuda_block_size=64;    
+    opt->cuda_block_size=64;   
+    //opt->flag |= F5C_SKIP_UNREADABLE;
 }

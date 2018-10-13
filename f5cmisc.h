@@ -88,40 +88,4 @@ static inline void print_size(const char* name, uint64_t bytes)
 }
 
 
-#define p7_LOGSUM_TBL   16000
-#define p7_LOGSUM_SCALE 1000.f
-#define ESL_MAX(a,b)    (((a)>(b))?(a):(b))
-#define ESL_MIN(a,b)    (((a)<(b))?(a):(b))
-#define eslINFINITY     INFINITY
-
-// storage
-//float flogsum_lookup[p7_LOGSUM_TBL]; /* p7_LOGSUM_TBL=16000: (A-B) = 0..16 nats, steps of 0.001 */
-
-static inline int p7_FLogsumInit(void)
-{
-
-	//   static int firsttime = TRUE;
-	//   if (!firsttime) return 1;
-	//   firsttime = FALSE;
-
-    extern float flogsum_lookup[p7_LOGSUM_TBL];
-	int i;
-	for (i = 0; i < p7_LOGSUM_TBL; i++) {
-	  flogsum_lookup[i] = log(1. + exp((double) -i / p7_LOGSUM_SCALE));
-	}
-	return 1;
-}
-
-static inline float p7_FLogsum(float a, float b){
-
-  extern float flogsum_lookup[p7_LOGSUM_TBL]; /* p7_LOGSUM_TBL=16000: (A-B) = 0..16 nats, steps of 0.001 */
-
-  const float max = ESL_MAX(a, b);
-  const float min = ESL_MIN(a, b);
-
-  //return (min == -eslINFINITY || (max-min) >= 15.7f) ? max : max + log(1.0 + exp(min-max));  /* SRE: While debugging SSE impl. Remember to remove! */
-  
-  return (min == -eslINFINITY || (max-min) >= 15.7f) ? max : max + flogsum_lookup[(int)((max-min)*p7_LOGSUM_SCALE)];
-} 
-
 #endif

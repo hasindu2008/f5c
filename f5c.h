@@ -37,7 +37,7 @@
 #define STEAL_THRESH 5
 
 #define IO_PROC_INTERLEAVE 1
-#define SECTIONAL_BENCHMARK 1   
+//#define SECTIONAL_BENCHMARK 1   
 
 //#define ALIGN_2D_ARRAY 1 //for CPU whether to use a 1D array or a 2D array
 

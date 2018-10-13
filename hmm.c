@@ -4,6 +4,7 @@
 #include <math.h>
 #include <assert.h>
 #include <vector>
+#include "logsum.h"
 
 
 //#define INPUT_DEBUG 1
@@ -51,30 +52,6 @@ static inline uint32_t get_kmer_rank(const char* str, uint32_t k) {
 }
 
 
-enum ProfileStateR9
-{
-    PSR9_KMER_SKIP = 0,
-    PSR9_BAD_EVENT,
-    PSR9_MATCH,
-    PSR9_NUM_STATES = 3,
-    PSR9_PRE_SOFT // intentionally after PS_NUM_STATES
-};
-
-enum HMMMovementType
-{
-    HMT_FROM_SAME_M = 0,
-    HMT_FROM_PREV_M,
-    HMT_FROM_SAME_B,
-    HMT_FROM_PREV_B,
-    HMT_FROM_PREV_K,
-    HMT_FROM_SOFT,
-    HMT_NUM_MOVEMENT_TYPES
-};
-typedef struct { float x[HMT_NUM_MOVEMENT_TYPES]; } HMMUpdateScores;
-
-
-//all the blocks(functions, structures) are added in reverse order. at bottom is the first block called and on top is the latest block called.
-
 static inline float log_normal_pdf(float x, float gp_mean, float gp_stdv,
                                    float gp_log_stdv) {
     /*INCOMPLETE*/
@@ -119,6 +96,32 @@ static inline float log_probability_match_r9(scalings_t scaling,
 
 
 
+//following Code is from Nanopolish HMM
+
+enum ProfileStateR9
+{
+    PSR9_KMER_SKIP = 0,
+    PSR9_BAD_EVENT,
+    PSR9_MATCH,
+    PSR9_NUM_STATES = 3,
+    PSR9_PRE_SOFT // intentionally after PS_NUM_STATES
+};
+
+enum HMMMovementType
+{
+    HMT_FROM_SAME_M = 0,
+    HMT_FROM_PREV_M,
+    HMT_FROM_SAME_B,
+    HMT_FROM_PREV_B,
+    HMT_FROM_PREV_K,
+    HMT_FROM_SOFT,
+    HMT_NUM_MOVEMENT_TYPES
+};
+typedef struct { float x[HMT_NUM_MOVEMENT_TYPES]; } HMMUpdateScores;
+
+
+//all the blocks(functions, structures) are added in reverse order. at bottom is the first block called and on top is the latest block called.
+
 // Allocate a vector with the model probabilities of skipping the remaining
 // events after the alignment of event i
 inline std::vector<float> make_post_flanking(const uint32_t e_start,
@@ -147,7 +150,7 @@ inline std::vector<float> make_post_flanking(const uint32_t e_start,
         }
 
         for(int i = num_events - 3; i >= 0; --i) {
-            uint32_t event_idx = e_start + (i + 1) * event_stride;
+            //uint32_t event_idx = e_start + (i + 1) * event_stride;
             // post_flank[i] = log(TRANS_CLIP_SELF) +
             //                 log_probability_background(*data.read, event_idx, data.strand) + // emit from background
             //                 post_flank[i + 1]; // this accounts for the transition from start, and to silent pre
@@ -183,7 +186,7 @@ inline std::vector<float> make_pre_flanking(const uint32_t e_start,
 
     // skip the remaining events
     for(size_t i = 2; i < pre_flank.size(); ++i) {
-        uint32_t event_idx = e_start + (i - 1) * event_stride;
+        //uint32_t event_idx = e_start + (i - 1) * event_stride;
         // pre_flank[i] = log(TRANS_CLIP_SELF) + 
         //                log_probability_background(*data.read, event_idx, data.strand) + // emit from background
         //                pre_flank[i - 1]; // this accounts for the transition from the start & to the silent pre

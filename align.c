@@ -4,7 +4,7 @@
 //#define DEBUG_RECALIB_SCALING 1
 //#define DEBUG_ADAPTIVE 1
 
-//contains extracted and modified code from nanopolish
+//Code was adapted from Nanopolish : nanopolish_raw_loader.cpp
 
 //todo : can make more efficient using bit encoding
 static inline uint32_t get_rank(char base) {
@@ -439,7 +439,7 @@ int32_t align(AlignedPair* out_2, char* sequence, int32_t sequence_len,
     while (curr_kmer_idx >= 0 && curr_event_idx >= 0) {
         // emit alignment
         //>>>>>>>New Repalcement begin
-        assert(outIndex < n_events * 2);
+        assert(outIndex < (int)(n_events * 2));
         out_2[outIndex].ref_pos = curr_kmer_idx;
         out_2[outIndex].read_pos = curr_event_idx;
         outIndex++;
@@ -515,10 +515,10 @@ int32_t align(AlignedPair* out_2, char* sequence, int32_t sequence_len,
                    out_2[outIndex - 1].ref_pos == int(n_kmers - 1);
     // bool spanned = out.front().ref_pos == 0 && out.back().ref_pos == n_kmers - 1;
     //<<<<<<<<<<<<<New replacement over
-    bool failed = false;
+    //bool failed = false;
     if (avg_log_emission < min_average_log_emission || !spanned ||
         max_gap > max_gap_threshold) {
-        failed = true;
+        //failed = true;
         //>>>>>>>>>>>>>New replacement begin
         outIndex = 0;
         // out.clear();
