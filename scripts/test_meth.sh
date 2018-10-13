@@ -19,7 +19,7 @@ for file in "${bamfile}" "${ref}" "${reads}"; do
 done
 
 if [[ "${#}" -eq 0 ]]; then
-    "${exepath}" -b "${bamfile}" -g "${ref}" -r "${reads}" --secondary=yes --min-mapq=0 > ${testdir}/result.txt
+    "${exepath}" -b "${bamfile}" -g "${ref}" -r "${reads}" --secondary=yes --min-mapq=0 --print-scaling=no > ${testdir}/result.txt
 	awk '{print $1,$2,$3,$4,$8,$9,$10}' ${testdir}/result.txt > ${testdir}/result_exact.txt
 	awk '{print $1,$2,$3,$4,$8,$9,$10}' ${testdir}/meth.exp > ${testdir}/meth_exact.txt
 	diff -q ${testdir}/meth_exact.txt ${testdir}/result_exact.txt  || die "diff ${testdir}/result_exact.txt ${testdir}/meth_exact.txt failed" 

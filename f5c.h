@@ -41,6 +41,7 @@
 
 //#define ALIGN_2D_ARRAY 1 //for CPU whether to use a 1D array or a 2D array
 
+#define ESL_LOG_SUM 1
 
 
 typedef struct {
@@ -134,6 +135,38 @@ typedef struct {
     char hmm_state;
 } event_alignment_t;
 
+//from nanopolish
+struct ScoredSite
+{
+    //toto : clean up unused
+    ScoredSite() 
+    { 
+        ll_unmethylated[0] = 0;
+        ll_unmethylated[1] = 0;
+        ll_methylated[0] = 0;
+        ll_methylated[1] = 0;
+        strands_scored = 0;
+    }
+
+    std::string chromosome;
+    int start_position;
+    int end_position;
+    int n_cpg;
+    std::string sequence;
+
+    // scores per strand
+    double ll_unmethylated[2];
+    double ll_methylated[2];
+    int strands_scored;
+
+    //
+    static bool sort_by_position(const ScoredSite& a, const ScoredSite& b) { return a.start_position < b.start_position; }
+
+};
+
+
+
+
 typedef struct {
     // region string
     //char* region;
@@ -172,8 +205,10 @@ typedef struct {
     index_pair_t** base_to_event_map;
 
     int32_t* read_stat_flag;
-    
 
+    //extreme ugly hack till converted to C
+    std::map<int, ScoredSite> **site_score_map;
+    
 } db_t;
 
 typedef struct {
@@ -199,6 +234,7 @@ typedef struct {
     //realtime0
     double realtime0;
     double align_time;
+    double meth_time;
 
 } core_t;
 

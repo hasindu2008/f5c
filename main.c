@@ -10,6 +10,7 @@
 #include <unistd.h>
 
 //double realtime0 = 0;
+float flogsum_lookup[p7_LOGSUM_TBL]; //todo : get rid of global vars
 
 static struct option long_options[] = {
     {"reads", required_argument, 0, 'r'},          //0
@@ -217,6 +218,8 @@ int main(int argc, char* argv[]) {
 
     core_t* core = init_core(bamfilename, fastafile, fastqfile, opt,realtime0);
 
+    p7_FLogsumInit();
+
  #ifndef IO_PROC_INTERLEAVE   
     db_t* db = init_db(core);
 
@@ -322,6 +325,8 @@ int main(int argc, char* argv[]) {
 #ifdef SECTIONAL_BENCHMARK 
     fprintf(stderr, "\n\n[%s] Alignment time: %.3f sec",
             __func__, core->align_time);
+    fprintf(stderr, "\n[%s] Call methylation time: %.3f sec",
+            __func__, core->meth_time);            
 #endif
 
     free_core(core);

@@ -39,7 +39,7 @@ float profile_hmm_score(const char *m_seq,const char *m_rc_seq, event_t* event, 
     int8_t event_stride,
     uint8_t rc,double events_per_base,uint32_t hmm_flags 
 );
-void calculate_methylation_for_read(bam_hdr_t* m_hdr, char* ref, bam1_t* record, int32_t read_length, event_t* event, index_pair_t* base_to_event_map,
+void calculate_methylation_for_read(std::map<int, ScoredSite>* site_score_map, char* ref, bam1_t* record, int32_t read_length, event_t* event, index_pair_t* base_to_event_map,
 scalings_t scaling, model_t* cpgmodel,double events_per_base);
 
 #ifdef HAVE_CUDA
@@ -86,5 +86,42 @@ static inline void print_size(const char* name, uint64_t bytes)
     else
         fprintf(stderr, "%s : %.1f %s\n", name, count, suffixes[s]);
 }
+
+
+#define p7_LOGSUM_TBL   16000
+#define p7_LOGSUM_SCALE 1000.f
+#define ESL_MAX(a,b)    (((a)>(b))?(a):(b))
+#define ESL_MIN(a,b)    (((a)<(b))?(a):(b))
+#define eslINFINITY     INFINITY
+
+// storage
+//float flogsum_lookup[p7_LOGSUM_TBL]; /* p7_LOGSUM_TBL=16000: (A-B) = 0..16 nats, steps of 0.001 */
+
+static inline int p7_FLogsumInit(void)
+{
+
+	//   static int firsttime = TRUE;
+	//   if (!firsttime) return 1;
+	//   firsttime = FALSE;
+
+    extern float flogsum_lookup[p7_LOGSUM_TBL];
+	int i;
+	for (i = 0; i < p7_LOGSUM_TBL; i++) {
+	  flogsum_lookup[i] = log(1. + exp((double) -i / p7_LOGSUM_SCALE));
+	}
+	return 1;
+}
+
+static inline float p7_FLogsum(float a, float b){
+
+  extern float flogsum_lookup[p7_LOGSUM_TBL]; /* p7_LOGSUM_TBL=16000: (A-B) = 0..16 nats, steps of 0.001 */
+
+  const float max = ESL_MAX(a, b);
+  const float min = ESL_MIN(a, b);
+
+  //return (min == -eslINFINITY || (max-min) >= 15.7f) ? max : max + log(1.0 + exp(min-max));  /* SRE: While debugging SSE impl. Remember to remove! */
+  
+  return (min == -eslINFINITY || (max-min) >= 15.7f) ? max : max + flogsum_lookup[(int)((max-min)*p7_LOGSUM_SCALE)];
+} 
 
 #endif

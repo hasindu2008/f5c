@@ -60,6 +60,7 @@ core_t* init_core(const char* bamfilename, const char* fastafile,
     core->realtime0=realtime0;
 
     core->align_time=0;
+    core->meth_time=0;
 
     return core;
 }
@@ -133,6 +134,14 @@ db_t* init_db(core_t* core) {
 
     db->read_stat_flag = (int32_t *)malloc(sizeof(int32_t) * db->capacity_bam_rec);
     MALLOC_CHK(db->read_stat_flag);
+
+    db->site_score_map = (std::map<int, ScoredSite> **)malloc(sizeof(std::map<int, ScoredSite> *) * db->capacity_bam_rec);
+    MALLOC_CHK(db->site_score_map);
+
+    for (i = 0; i < db->capacity_bam_rec; ++i) {
+        db->site_score_map[i] = new std::map<int, ScoredSite>;
+        NULL_CHK(db->site_score_map[i]);
+    }
 
     return db;
 }
@@ -483,7 +492,7 @@ void align_db(core_t* core, db_t* db) {
 #endif
 
     if (core->opt.flag & F5C_DISABLE_CUDA) {
-        fprintf(stderr, "cpu\n");
+        //fprintf(stderr, "cpu\n");
         if (core->opt.num_thread == 1) {
             int i;
             for (i = 0; i < db->n_bam_rec; i++) {
@@ -528,6 +537,27 @@ void align_db(core_t* core, db_t* db) {
         }
     }
 }
+
+
+void meth_single(core_t* core, db_t* db, int32_t i){
+    if(!db->read_stat_flag[i]){
+        calculate_methylation_for_read(db->site_score_map[i], db->fasta_cache[i], db->bam_rec[i], db->read_len[i], db->et[i].event, db->base_to_event_map[i],
+db->scalings[i], core->cpgmodel,db->events_per_base[i]);
+    }
+}
+
+void meth_db(core_t* core, db_t* db) {
+    if (core->opt.num_thread == 1) {
+        int i;
+        for (i = 0; i < db->n_bam_rec; i++) {
+            meth_single(core, db, i);
+        }
+    } 
+    else {
+        pthread_db(core, db, meth_single);
+    }
+}
+    
 
 
 void process_single(core_t* core, db_t* db,int32_t i) {
@@ -609,7 +639,7 @@ void process_single(core_t* core, db_t* db,int32_t i) {
         return;
     }
 
-    calculate_methylation_for_read(core->m_hdr, db->fasta_cache[i], db->bam_rec[i], db->read_len[i], db->et[i].event, db->base_to_event_map[i],
+    calculate_methylation_for_read(db->site_score_map[i], db->fasta_cache[i], db->bam_rec[i], db->read_len[i], db->et[i].event, db->base_to_event_map[i],
 db->scalings[i], core->cpgmodel,db->events_per_base[i]);
     
 }
@@ -710,9 +740,19 @@ void process_db(core_t* core, db_t* db) {
             continue;
         }
 
-        calculate_methylation_for_read(core->m_hdr, db->fasta_cache[i], db->bam_rec[i], db->read_len[i], db->et[i].event, db->base_to_event_map[i],
-db->scalings[i], core->cpgmodel,db->events_per_base[i]);
     }
+
+    fprintf(stderr, "[%s::%.3f*%.2f] Scaling calibration done\n", __func__,
+            realtime() - realtime0, cputime() / (realtime() - realtime0));
+
+    double meth_start = realtime();
+    meth_db(core,db);
+    double meth_end = realtime();
+    core->meth_time += (meth_end-meth_start);
+
+    fprintf(stderr, "[%s::%.3f*%.2f] Methylation calling done\n", __func__,
+            realtime() - realtime0, cputime() / (realtime() - realtime0));   
+
 
 #else
     if (core->opt.num_thread == 1) {
@@ -780,6 +820,59 @@ void output_db(core_t* core, db_t* db) {
                    db->scalings[i].var);
         }
     }
+
+    int32_t i = 0;
+    for (i = 0; i < db->n_bam_rec; i++){
+        if(!db->read_stat_flag[i]){
+            char* qname = bam_get_qname(db->bam_rec[i]);
+            char* contig = core->m_hdr->target_name[db->bam_rec[i]->core.tid];
+            std::map<int, ScoredSite> *site_score_map = db->site_score_map[i];
+
+            // write all sites for this read
+            for(auto iter = site_score_map->begin(); iter != site_score_map->end(); ++iter) {
+
+                const ScoredSite& ss = iter->second;
+                double sum_ll_m = ss.ll_methylated[0]; //+ ss.ll_methylated[1];
+                double sum_ll_u = ss.ll_unmethylated[0]; //+ ss.ll_unmethylated[1];
+                double diff = sum_ll_m - sum_ll_u;
+
+                // fprintf(stderr, "%s\t%d\t%d\t", ss.chromosome.c_str(), ss.start_position, ss.end_position);
+                // fprintf(stderr, "%s\t%.2lf\t", qname, diff);
+                // fprintf(stderr, "%.2lf\t%.2lf\t", sum_ll_m, sum_ll_u);
+                // fprintf(stderr, "%d\t%d\t%s\n", ss.strands_scored, ss.n_cpg, ss.sequence.c_str());
+
+                printf("%s\t%d\t%d\t", contig, ss.start_position, ss.end_position);
+                printf("%s\t%.2lf\t", qname, diff);
+                printf("%.2lf\t%.2lf\t", sum_ll_m, sum_ll_u);
+                printf("%d\t%d\t%s\n", ss.strands_scored, ss.n_cpg, ss.sequence.c_str());
+
+            }
+        }
+    }
+    // 
+
+    // #ifdef METH_DEBUG
+    // // write all sites for this read
+    // for(auto iter = site_score_map.begin(); iter != site_score_map.end(); ++iter) {
+
+    //     const ScoredSite& ss = iter->second;
+    //     double sum_ll_m = ss.ll_methylated[0]; //+ ss.ll_methylated[1];
+    //     double sum_ll_u = ss.ll_unmethylated[0]; //+ ss.ll_unmethylated[1];
+    //     double diff = sum_ll_m - sum_ll_u;
+
+    //     // fprintf(stderr, "%s\t%d\t%d\t", ss.chromosome.c_str(), ss.start_position, ss.end_position);
+    //     // fprintf(stderr, "%s\t%.2lf\t", qname, diff);
+    //     // fprintf(stderr, "%.2lf\t%.2lf\t", sum_ll_m, sum_ll_u);
+    //     // fprintf(stderr, "%d\t%d\t%s\n", ss.strands_scored, ss.n_cpg, ss.sequence.c_str());
+
+    //     printf("%s\t%d\t%d\t", ss.chromosome.c_str(), ss.start_position, ss.end_position);
+    //     printf("%s\t%.2lf\t", qname, diff);
+    //     printf("%.2lf\t%.2lf\t", sum_ll_m, sum_ll_u);
+    //     printf("%d\t%d\t%s\n", ss.strands_scored, ss.n_cpg, ss.sequence.c_str());
+
+    // }
+    // #endif
+
 }
 
 void free_db_tmp(db_t* db) {
@@ -794,6 +887,8 @@ void free_db_tmp(db_t* db) {
         free(db->et[i].event);
         free(db->event_align_pairs[i]);
         free(db->base_to_event_map[i]);
+        delete db->site_score_map[i];
+        db->site_score_map[i] = new std::map<int, ScoredSite>;
     }
 }
 
@@ -816,7 +911,10 @@ void free_db(db_t* db) {
     free(db->events_per_base);
     free(db->base_to_event_map);
     free(db->read_stat_flag);
-
+    for (i = 0; i < db->capacity_bam_rec; ++i) {
+        delete db->site_score_map[i];
+    }   
+    free(db->site_score_map);
     free(db);
 }
 

@@ -9,20 +9,12 @@
 //#define INPUT_DEBUG 1
 #define TRANS_START_TO_CLIP 0.5
 #define TRANS_CLIP_SELF 0.9
-#define p7_LOGSUM_TBL   16000
-#define p7_LOGSUM_SCALE 1000.f
-#define ESL_MAX(a,b)    (((a)>(b))?(a):(b))
-#define ESL_MIN(a,b)    (((a)<(b))?(a):(b))
-#define eslINFINITY     INFINITY
 
 #define TRUE 1
 #define FALSE 0
 
 //contains extracted code from nanopolish hmm and matrix
 
-
-// storage
-float flogsum_lookup[p7_LOGSUM_TBL]; /* p7_LOGSUM_TBL=16000: (A-B) = 0..16 nats, steps of 0.001 */
 
 //todo : can make more efficient using bit encoding
 static inline uint32_t get_rank(char base) {
@@ -523,37 +515,7 @@ inline float profile_hmm_fill_generic_r9(const char *m_seq,
     return output.get_end();
 }
 
-inline int p7_FLogsumInit(void)
-{
 
-	  static int firsttime = TRUE;
-	  if (!firsttime) return 1;
-	  firsttime = FALSE;
-
-	  int i;
-	  for (i = 0; i < p7_LOGSUM_TBL; i++) {
-	    flogsum_lookup[i] = log(1. + exp((double) -i / p7_LOGSUM_SCALE));
-	  }
-	  return 1;
-}
-
-inline float p7_FLogsum(float a, float b){
-  int i;
-  for (i = 0; i < p7_LOGSUM_TBL; i++) {
-    flogsum_lookup[i] = log(1. + exp((double) -i / p7_LOGSUM_SCALE));
-  }
-  // extern float flogsum_lookup[p7_LOGSUM_TBL]; /* p7_LOGSUM_TBL=16000: (A-B) = 0..16 nats, steps of 0.001 */
-
-  const float max = ESL_MAX(a, b);
-  const float min = ESL_MIN(a, b);
-
-  //return (min == -eslINFINITY || (max-min) >= 15.7f) ? max : max + log(1.0 + exp(min-max));  /* SRE: While debugging SSE impl. Remember to remove! */
-  
-  return (min == -eslINFINITY || (max-min) >= 15.7f) ? max : max + flogsum_lookup[(int)((max-min)*p7_LOGSUM_SCALE)];
-} 
-
-// commented by hasindu
-//#define ESL_LOG_SUM 1
 
 // Add the log-scaled values a and b using a transform to avoid precision errors
 inline double add_logs(const double a, const double b)
