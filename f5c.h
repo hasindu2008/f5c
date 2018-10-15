@@ -42,7 +42,10 @@
 
 //#define ALIGN_2D_ARRAY 1 //for CPU whether to use a 1D array or a 2D array
 
-#define ESL_LOG_SUM 1
+#define CACHED_LOG 1 //if the log values of scalings and the model k-mers are cached
+//#define LOAD_SD_MEANSSTDV 1 //if the sd_mean and the sd_stdv is yo be loaded
+
+#define ESL_LOG_SUM 1 // the fast log sum for HMM
 
 
 typedef struct {
@@ -77,9 +80,17 @@ typedef struct {
     //char kmer[KMER_SIZE + 1]; //KMER_SIZE+null character //can get rid of this
     float level_mean;
     float level_stdv;
-    float sd_mean;
-    float sd_stdv;
+
+#ifdef CACHED_LOG
+    //calculated for efficiency
+    float level_log_stdv;
+#endif
+
+#ifdef LOAD_SD_MEANSSTDV
+    //float sd_mean;
+    //float sd_stdv;
     //float weight;
+#endif
 } model_t;
 
 //taken from nanopolish
@@ -93,7 +104,9 @@ typedef struct {
     //float var_sd;
 
     // derived parameters that are cached for efficiency
-    //float log_var;
+#ifdef CACHED_LOG    
+    float log_var;
+#endif
     //float scaled_var;
     //float log_scaled_var;
 

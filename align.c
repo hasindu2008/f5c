@@ -131,8 +131,12 @@ static inline float log_probability_match_r9(scalings_t scaling,
     // if(models[kmer_rank].level_stdv <0.01 ){
     // 	fprintf(stderr,"very small std dev %f\n",models[kmer_rank].level_stdv);
     // }
-    float gp_log_stdv =
-        log(models[kmer_rank].level_stdv + 0); // scaling.log_var = log(1)=0;
+    #ifdef CACHED_LOG
+        float gp_log_stdv = models[kmer_rank].level_log_stdv;
+    #else
+        float gp_log_stdv =
+        log(models[kmer_rank].level_stdv); // scaling.log_var = log(1)=0;
+    #endif
 
     float lp = log_normal_pdf(scaledLevel, gp_mean, gp_stdv, gp_log_stdv);
     return lp;
@@ -741,6 +745,9 @@ bool recalibrate_model(model_t* pore_model, event_table et,
         scallings->scale = scale;
         //scallings->drift=drift;
         scallings->var = var;
+#ifdef CACHED_LOG        
+        scallings->log_var = log(var);
+#endif
 
         recalibrated = true;
 

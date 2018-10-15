@@ -40,19 +40,19 @@ diff -q origsorted.tsv cppsorted.tsv || die "diff failed"
 
 #--ploidy=2 -b test/chr22_meth_example//reads.sorted.bam -g test/chr22_meth_example//humangenome.fa -r test/chr22_meth_example//reads.fastq -w chr20
 
-for t in 8 16 24 32 48 64
+for t in 8 16 32 64
 do
-    /usr/bin/time -v "${nanopath_cpp_vec}" call-methylation -b "${bamfile}" -g "${ref}" -r "${reads}" -t $t  -K4096 > result.txt 2> nano_$t.log
+    /usr/bin/time -v "${nanopath_cpp_vec}" call-methylation -b "${bamfile}" -g "${ref}" -r "${reads}" -t $t  -K4096 > result.txt 2> nano_cpp_$t.log
 done
 
 
-for t in 8 16 24 32 48 64
+for t in 8 16 32 64
 do
-    /usr/bin/time -v "${nanopath_1d}" call-methylation -b "${bamfile}" -g "${ref}" -r "${reads}" -t $t  -K4096 > result.txt 2> nano_$t.log
+    /usr/bin/time -v "${nanopath_1d}" call-methylation -b "${bamfile}" -g "${ref}" -r "${reads}" -t $t  -K4096 > result.txt 2> nano_1d_$t.log
 done
 
 
-for t in 8 16 24 32 48 64
+for t in 8 16 32 64
 do
-    /usr/bin/time -v "${nanopath_orig}" call-methylation -b "${bamfile}" -g "${ref}" -r "${reads}" -t $t  -K4096 > result.txt 2> nano_$t.log
+    /usr/bin/time -v "${nanopath_orig}" call-methylation -b "${bamfile}" -g "${ref}" -r "${reads}" -t $t  -K4096 > result.txt 2> nano_orig_$t.log
 done

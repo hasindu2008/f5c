@@ -37,10 +37,21 @@ void read_model(model_t* model, const char* file) {
             fprintf(stderr, "%s\n", buffer);
             continue;
         } else {
-            int32_t ret =
-                sscanf(buffer, "%s\t%f\t%f\t%f\t%f\t%f", kmer,
-                       &model[num_k].level_mean, &model[num_k].level_stdv,
-                       &model[num_k].sd_mean, &model[num_k].sd_stdv, &weight);
+            //as sd_mean and sd_stdv seems not to be used just read to the summy weight
+            #ifdef LOAD_SD_MEANSSTDV           
+                int32_t ret =
+                    sscanf(buffer, "%s\t%f\t%f\t%f\t%f\t%f", kmer,
+                        &model[num_k].level_mean, &model[num_k].level_stdv,
+                        &model[num_k].sd_mean, &model[num_k].sd_stdv, &weight);
+            #else
+                int32_t ret =
+                    sscanf(buffer, "%s\t%f\t%f\t%f\t%f\t%f", kmer,
+                        &model[num_k].level_mean, &model[num_k].level_stdv,
+                        &weight, &weight, &weight);
+            #endif
+            #ifdef CACHED_LOG
+                model[num_k].level_log_stdv=log(model[num_k].level_stdv);
+            #endif
             num_k++;
             if (ret != 6) {
                 ERROR("File %s is corrupted at line %d", file, i);
@@ -83,10 +94,15 @@ void set_model(model_t* model) {
             r9_4_450bps_nucleotide_6mer_template_model_builtin_data[i * 4 + 0];
         model[i].level_stdv =
             r9_4_450bps_nucleotide_6mer_template_model_builtin_data[i * 4 + 1];
+    #ifdef LOAD_SD_MEANSSTDV     
         model[i].sd_mean =
             r9_4_450bps_nucleotide_6mer_template_model_builtin_data[i * 4 + 2];
         model[i].sd_stdv =
             r9_4_450bps_nucleotide_6mer_template_model_builtin_data[i * 4 + 3];
+    #endif
+    #ifdef CACHED_LOG
+        model[i].level_log_stdv=log(model[i].level_stdv);
+    #endif
     }
 #ifdef DEBUG_MODEL_PRINT
     i = 0;
@@ -107,10 +123,15 @@ void set_cpgmodel(model_t* model) {
             r9_4_450bps_cpg_6mer_template_model_builtin_data[i * 4 + 0];
         model[i].level_stdv =
             r9_4_450bps_cpg_6mer_template_model_builtin_data[i * 4 + 1];
+    #ifdef LOAD_SD_MEANSSTDV              
         model[i].sd_mean =
             r9_4_450bps_cpg_6mer_template_model_builtin_data[i * 4 + 2];
         model[i].sd_stdv =
             r9_4_450bps_cpg_6mer_template_model_builtin_data[i * 4 + 3];
+    #endif
+    #ifdef CACHED_LOG
+        model[i].level_log_stdv=log(model[i].level_stdv);
+    #endif
     }
 #ifdef DEBUG_MODEL_PRINT
     i = 0;

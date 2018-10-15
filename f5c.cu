@@ -123,18 +123,25 @@ void align_cuda(core_t* core, db_t* db) {
                cudaMemcpyHostToDevice);
     CUDA_CHK();
 
-    //model : already linear
+#ifdef MODEL_KMER_CACHE
+        model_t* model_kmer_cache;
+        cudaMalloc((void**)&model_kmer_cache, sum_read_len * sizeof(model_t)); 
+        CUDA_CHK();
+#endif
+
+//model : already linear
 #ifndef CONST_MEM
     model_t* model;
     cudaMalloc((void**)&model,
-               NUM_KMER * sizeof(model_t)); //todo : constant memory
+            NUM_KMER * sizeof(model_t)); //todo : constant memory
     CUDA_CHK();
     cudaMemcpy(model, core->model, NUM_KMER * sizeof(model_t),
-               cudaMemcpyHostToDevice);
+            cudaMemcpyHostToDevice);
     CUDA_CHK();
 #else
     cudaMemcpyToSymbol (model,  core->model, NUM_KMER * sizeof(model_t));
 #endif
+
 
     //scalings : already linear
     scalings_t* scalings;
@@ -212,9 +219,15 @@ void align_cuda(core_t* core, db_t* db) {
             dim3 gridpre(1,(db->n_bam_rec + BLOCK_LEN_READS - 1) / BLOCK_LEN_READS);
             dim3 blockpre(BLOCK_LEN_BANDWIDTH,BLOCK_LEN_READS);  
 			fprintf(stderr,"grid %d,%d, block %d,%d\n",gridpre.x,gridpre.y, blockpre.x,blockpre.y);	
-            align_kernel_pre_2d<<<gridpre, blockpre>>>(event_align_pairs, n_event_align_pairs, read,
+            #ifdef MODEL_KMER_CACHE
+                align_kernel_pre_2d<<<gridpre, blockpre>>>(event_align_pairs, n_event_align_pairs, read,
+                read_len, read_ptr, event_table, n_events,
+                event_ptr, model, scalings, n_bam_rec, model_kmer_cache,bands,trace,band_lower_left ); 
+            #else
+                align_kernel_pre_2d<<<gridpre, blockpre>>>(event_align_pairs, n_event_align_pairs, read,
             read_len, read_ptr, event_table, n_events,
             event_ptr, model, scalings, n_bam_rec, kmer_ranks,bands,trace,band_lower_left );
+            #endif        
         #endif
         cudaDeviceSynchronize();CUDA_CHK();
         fprintf(stderr, "[%s::%.3f*%.2f] align pre done\n", __func__,
@@ -244,9 +257,16 @@ void align_cuda(core_t* core, db_t* db) {
                     read_len, read_ptr, event_table, n_events,
                     event_ptr, model, scalings, n_bam_rec, kmer_ranks,bands,trace,band_lower_left );
             #else
-                align_kernel_core_2d_shm<<<grid1, block1>>>(event_align_pairs, n_event_align_pairs, read,
-                read_len, read_ptr, event_table, n_events,
-                event_ptr, model, scalings, n_bam_rec, kmer_ranks,bands,trace,band_lower_left );
+                #ifdef MODEL_KMER_CACHE    
+                    align_kernel_core_2d_shm<<<grid1, block1>>>(event_align_pairs, n_event_align_pairs, read,
+                    read_len, read_ptr, event_table, n_events,
+                    event_ptr, model, scalings, n_bam_rec, model_kmer_cache,bands,trace,band_lower_left );
+                #else
+                    align_kernel_core_2d_shm<<<grid1, block1>>>(event_align_pairs, n_event_align_pairs, read,
+                    read_len, read_ptr, event_table, n_events,
+                    event_ptr, model, scalings, n_bam_rec, kmer_ranks,bands,trace,band_lower_left );
+                    
+                #endif
             #endif
         #endif        
 
@@ -337,6 +357,8 @@ void align_cuda(core_t* core, db_t* db) {
     cudaFree(bands);
     cudaFree(trace);
     cudaFree(band_lower_left);
-
+#ifdef MODEL_KMER_CACHE
+    cudaFree(model_kmer_cache);
+#endif
 
 }

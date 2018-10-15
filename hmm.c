@@ -87,8 +87,13 @@ static inline float log_probability_match_r9(scalings_t scaling,
     // if(models[kmer_rank].level_stdv <0.01 ){
     //  fprintf(stderr,"very small std dev %f\n",models[kmer_rank].level_stdv);
     // }
+#ifdef CACHED_LOG
+    float gp_log_stdv =
+        models[kmer_rank].level_log_stdv + scaling.log_var; 
+#else
     float gp_log_stdv =
         log(models[kmer_rank].level_stdv) + log(scaling.var); 
+#endif
 
     float lp = log_normal_pdf(scaledLevel, gp_mean, gp_stdv, gp_log_stdv);
     return lp;
