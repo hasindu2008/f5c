@@ -87,8 +87,12 @@ log_probability_match_r9(scalings_t scaling, model_t* models, event_t* event,
     // if(models[kmer_rank].level_stdv <0.01 ){
     // 	fprintf(stderr,"very small std dev %f\n",models[kmer_rank].level_stdv);
     // }
-    float gp_log_stdv =
-        log(models[kmer_rank].level_stdv + 0); // scaling.log_var = log(1)=0;
+    #ifdef CACHED_LOG
+        float gp_log_stdv = models[kmer_rank].level_log_stdv;
+    #else
+        float gp_log_stdv =
+        log(models[kmer_rank].level_stdv); // scaling.log_var = log(1)=0;
+    #endif
 
     float lp = log_normal_pdf(scaledLevel, gp_mean, gp_stdv, gp_log_stdv);
     return lp;
@@ -412,11 +416,17 @@ align_kernel_core_2d_shm(AlignedPair* event_align_pairs,
                 float gp_mean =
                     scaling.scale * model.level_mean + scaling.shift;
                 float gp_stdv = model.level_stdv ; //scaling.var = 1;
-            #ifndef ALIGN_KERNEL_FLOAT  
-                float gp_log_stdv = log(gp_stdv); // scaling.log_var = log(1)=0;
-            #else
-                float gp_log_stdv = logf(gp_stdv); // scaling.log_var = log(1)=0;
-            #endif    
+                
+                #ifdef  CACHED_LOG
+                    float gp_log_stdv = model.level_log_stdv;
+                #else
+                    #ifndef ALIGN_KERNEL_FLOAT  
+                        float gp_log_stdv = log(gp_stdv); // scaling.log_var = log(1)=0;
+                    #else
+                        float gp_log_stdv = logf(gp_stdv); // scaling.log_var = log(1)=0;
+                    #endif  
+                #endif
+
                 float a = (scaledLevel - gp_mean) / gp_stdv;
                 float lp_emission  = log_inv_sqrt_2pi - gp_log_stdv + (-0.5f * a * a);
 

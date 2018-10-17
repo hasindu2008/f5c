@@ -29,7 +29,7 @@
 #define BLOCK_LEN_READS2 16 // //the block size along y axis (the number of reads)
 
 //#define PRE_3D 1 //only works with TWODIM_ALIGN_PRE active //this is buggy
-//#define MODEL_KMER_CACHE 1
+#define MODEL_KMER_CACHE 1
 
 /* check whether the last CUDA function or CUDA kernel launch is erroneous and if yes an error message will be printed
 and then the program will be aborted*/
