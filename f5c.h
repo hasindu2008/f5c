@@ -249,6 +249,8 @@ typedef struct {
     double realtime0;
     double align_time;
     double meth_time;
+    
+    double align_kernel_time;
 
 } core_t;
 

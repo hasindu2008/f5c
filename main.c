@@ -328,8 +328,13 @@ int main(int argc, char* argv[]) {
 #ifdef SECTIONAL_BENCHMARK 
     fprintf(stderr, "\n\n[%s] Alignment time: %.3f sec",
             __func__, core->align_time);
+    #ifdef HAVE_CUDA
+        fprintf(stderr, "\n[%s] Alignment kernel only time: %.3f sec",
+            __func__, core->align_kernel_time);
+    #endif            
     fprintf(stderr, "\n[%s] Call methylation time: %.3f sec",
-            __func__, core->meth_time);            
+            __func__, core->meth_time);    
+
 #endif
 
     free_core(core);

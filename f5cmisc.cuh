@@ -12,7 +12,7 @@
 #define DYNAMIC_BLOCK_LEN 64 //the cuda block size for the dynamic parallel kernel
 
 #define ALIGN_KERNEL_SLICED 1 //Perform the alignment in 3 steps : pre, core and post, not to be used with CONST_MEM defined
-#define WARP_HACK 1 //whether the align core kernel is  performed in 1D with a warp hack (effective only  if TWODIM_ALIGN_CORE is not defined)
+#define WARP_HACK 1 //whether the kernels are  performed in 1D with a warp hack (effective only  if specific TWODIM_ALIGN is not defined)
 
 //align-core-kernel options
 #define TWODIM_ALIGN_CORE 1     //align-core in 2D thread model
@@ -27,9 +27,10 @@
 #define TWODIM_ALIGN_PRE 1   //align-pre in 2D thread model
 #define BLOCK_LEN_NUMBAND 16    //the block size along the x axis (BANDWDITH)
 #define BLOCK_LEN_READS2 16 // //the block size along y axis (the number of reads)
-
 //#define PRE_3D 1 //only works with TWODIM_ALIGN_PRE active //this is buggy
-#define MODEL_KMER_CACHE 1
+
+#define MODEL_KMER_CACHE 1 //if the model cache is to be used (works only with 2D kernels)
+
 
 /* check whether the last CUDA function or CUDA kernel launch is erroneous and if yes an error message will be printed
 and then the program will be aborted*/
@@ -98,6 +99,14 @@ and then the program will be aborted*/
         int32_t* event_ptr, model_t* models,
         scalings_t* scalings, int32_t n_bam_rec,model_t* model_kmer_cache,float *bands1,uint8_t *trace1, EventKmerPair* band_lower_left1) ;
 
+    __global__ void align_kernel_post(AlignedPair* event_align_pairs,
+            int32_t* n_event_align_pairs, char* read,
+            int32_t* read_len, int32_t* read_ptr,
+            event_t* event_table, int32_t* n_events,
+            int32_t* event_ptr, model_t* model,
+            scalings_t* scalings, int32_t n_bam_rec,model_t* model_kmer_caches,float *bands,uint8_t *trace, EventKmerPair* band_lower_left) ;
+
+                
     #endif
         
     __global__ void 

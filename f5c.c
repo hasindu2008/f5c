@@ -62,6 +62,10 @@ core_t* init_core(const char* bamfilename, const char* fastafile,
     core->align_time=0;
     core->meth_time=0;
 
+#ifdef HAVE_CUDA
+    core->align_kernel_time=0;
+#endif
+
     return core;
 }
 

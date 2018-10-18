@@ -711,9 +711,15 @@ __global__ void align_kernel_pre(AlignedPair* event_align_pairs,
     int32_t* event_ptr, model_t* model,
     scalings_t* scalings, int32_t n_bam_rec,int32_t* kmer_ranks,float *bands,uint8_t *trace, EventKmerPair* band_lower_left) {
 
-    int i = blockDim.x * blockIdx.x + threadIdx.x;
+    #ifndef WARP_HACK        
+        int i = blockDim.x * blockIdx.x + threadIdx.x;
+        if (i < n_bam_rec) {
+    #else
+        int tid = blockDim.x * blockIdx.x + threadIdx.x;
+        int i = tid/32;    
+        if (i < n_bam_rec && tid%32==0) {
+    #endif          
 
-    if (i < n_bam_rec) {
         AlignedPair* out_2 = &event_align_pairs[event_ptr[i] * 2];
         char* sequence = &read[read_ptr[i]];
         int32_t sequence_len = read_len[i];
@@ -774,9 +780,14 @@ __global__ void align_kernel_post(AlignedPair* event_align_pairs,
     int32_t* event_ptr, model_t* model,
     scalings_t* scalings, int32_t n_bam_rec,int32_t* kmer_ranks,float *bands,uint8_t *trace, EventKmerPair* band_lower_left) {
 
-    int i = blockDim.x * blockIdx.x + threadIdx.x;
-
-    if (i < n_bam_rec) {
+    #ifndef WARP_HACK        
+        int i = blockDim.x * blockIdx.x + threadIdx.x;
+        if (i < n_bam_rec) {
+    #else
+        int tid = blockDim.x * blockIdx.x + threadIdx.x;
+        int i = tid/32;    
+        if (i < n_bam_rec && tid%32==0) {
+    #endif  
         AlignedPair* out_2 = &event_align_pairs[event_ptr[i] * 2];
         char* sequence = &read[read_ptr[i]];
         int32_t sequence_len = read_len[i];
