@@ -182,6 +182,7 @@ void align_cuda(core_t* core, db_t* db) {
     print_size("trace",sizeof(uint8_t) * sum_n_bands * ALN_BANDWIDTH);
     cudaMalloc((void**)&trace, sizeof(uint8_t) * sum_n_bands * ALN_BANDWIDTH);
     CUDA_CHK();
+    cudaMemset(trace,0,sizeof(uint8_t) * sum_n_bands * ALN_BANDWIDTH); //initialise the trace array to 0
     print_size("band_lower_left",sizeof(EventKmerPair)* sum_n_bands);
     cudaMalloc((void**)&band_lower_left, sizeof(EventKmerPair)* sum_n_bands);
     CUDA_CHK();

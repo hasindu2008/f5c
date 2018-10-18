@@ -207,9 +207,9 @@ __global__ void align_kernel_pre_2d(AlignedPair* event_align_pairs,
         }
 
         if(tid<bandwidth){
-            for (int32_t i = 0; i < n_bands; i++) {
+            for (int32_t i = 0; i < 3; i++) {
                     BAND_ARRAY(i,tid) = -INFINITY;
-                    TRACE_ARRAY(i,tid) = 0;
+                    //TRACE_ARRAY(i,tid) = 0;
             }
         }
 
