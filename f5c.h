@@ -251,6 +251,15 @@ typedef struct {
     double meth_time;
     
     double align_kernel_time;
+    double align_pre_kernel_time;
+    double align_core_kernel_time;
+    double align_post_kernel_time;
+    double align_cuda_malloc;
+    double align_cuda_memcpy;
+    double align_cuda_postprocess;
+    double align_cuda_preprocess;
+    double align_cuda_total_kernel;
+
 
 } core_t;
 
