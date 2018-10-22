@@ -59,7 +59,9 @@ core_t* init_core(const char* bamfilename, const char* fastafile,
     //realtime0
     core->realtime0=realtime0;
 
+    core->event_time=0;
     core->align_time=0;
+    core->est_scale_time=0;
     core->meth_time=0;
 
 #ifdef HAVE_CUDA
@@ -675,8 +677,11 @@ void process_db(core_t* core, db_t* db) {
 
     double realtime0=core->realtime0;
     int32_t i;
-
+    
+    double event_start = realtime();
     event_db(core,db);
+    double event_end = realtime();
+    core->event_time += (event_end-event_start);
 
     fprintf(stderr, "[%s::%.3f*%.2f] Events computed\n", __func__,
             realtime() - realtime0, cputime() / (realtime() - realtime0));
@@ -696,6 +701,7 @@ void process_db(core_t* core, db_t* db) {
     fprintf(stderr, "[%s::%.3f*%.2f] Banded alignment done\n", __func__,
             realtime() - realtime0, cputime() / (realtime() - realtime0));
 
+    double est_scale_start = realtime();
     for (i = 0; i < db->n_bam_rec; i++) {
         db->event_alignment[i] = NULL;
         db->n_event_alignment[i] = 0;
@@ -766,6 +772,8 @@ void process_db(core_t* core, db_t* db) {
         }
 
     }
+    double est_scale_end = realtime();
+    core->est_scale_time += (est_scale_end-est_scale_start);
 
     fprintf(stderr, "[%s::%.3f*%.2f] Scaling calibration done\n", __func__,
             realtime() - realtime0, cputime() / (realtime() - realtime0));

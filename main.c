@@ -326,26 +326,32 @@ int main(int argc, char* argv[]) {
     }
 
 #ifdef SECTIONAL_BENCHMARK 
-    fprintf(stderr, "\n\n[%s] Alignment time: %.3f sec",
+    fprintf(stderr, "\n\n[%s] Events time: %.3f sec",
+            __func__, core->event_time);
+    fprintf(stderr, "\n[%s] Alignment time: %.3f sec",
             __func__, core->align_time);
     #ifdef HAVE_CUDA
-        fprintf(stderr, "\n[%s] Alignment kernel only time: %.3f sec",
-            __func__, core->align_kernel_time);
-        fprintf(stderr, "\n[%s] Alignment pre kernel only time: %.3f sec",
-            __func__, core->align_pre_kernel_time);
-        fprintf(stderr, "\n[%s] Alignment core kernel only time: %.3f sec",
-            __func__, core->align_core_kernel_time);
-        fprintf(stderr, "\n[%s] Alignment post kernel only time: %.3f sec",
-            __func__, core->align_post_kernel_time);
-        fprintf(stderr, "\n[%s] Alignment preprocess time: %.3f sec",
-            __func__, core->align_cuda_preprocess);
-        fprintf(stderr, "\n[%s] Alignment malloc time: %.3f sec",
-            __func__, core->align_cuda_malloc);
-        fprintf(stderr, "\n[%s] Alignment data move time: %.3f sec",
-            __func__, core->align_cuda_memcpy);
-        fprintf(stderr, "\n[%s] Alignment post process time: %.3f sec",
-            __func__, core->align_cuda_postprocess);
+        if (!(core->opt.flag & F5C_DISABLE_CUDA)) {
+            fprintf(stderr, "\n[%s] Alignment kernel only time: %.3f sec",
+                __func__, core->align_kernel_time);
+            fprintf(stderr, "\n[%s] Alignment pre kernel only time: %.3f sec",
+                __func__, core->align_pre_kernel_time);
+            fprintf(stderr, "\n[%s] Alignment core kernel only time: %.3f sec",
+                __func__, core->align_core_kernel_time);
+            fprintf(stderr, "\n[%s] Alignment post kernel only time: %.3f sec",
+                __func__, core->align_post_kernel_time);
+            fprintf(stderr, "\n[%s] Alignment preprocess time: %.3f sec",
+                __func__, core->align_cuda_preprocess);
+            fprintf(stderr, "\n[%s] Alignment malloc time: %.3f sec",
+                __func__, core->align_cuda_malloc);
+            fprintf(stderr, "\n[%s] Alignment data move time: %.3f sec",
+                __func__, core->align_cuda_memcpy);
+            fprintf(stderr, "\n[%s] Alignment post process time: %.3f sec",
+                __func__, core->align_cuda_postprocess);
+        }
     #endif            
+    fprintf(stderr, "\n[%s] Estimate scaling time: %.3f sec",
+            __func__, core->est_scale_time);    
     fprintf(stderr, "\n[%s] Call methylation time: %.3f sec",
             __func__, core->meth_time);    
 

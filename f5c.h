@@ -247,7 +247,9 @@ typedef struct {
 
     //realtime0
     double realtime0;
+    double event_time;
     double align_time;
+    double est_scale_time;
     double meth_time;
     
     double align_kernel_time;
