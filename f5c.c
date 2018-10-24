@@ -64,15 +64,11 @@ core_t* init_core(const char* bamfilename, const char* fastafile,
     core->est_scale_time=0;
     core->meth_time=0;
 
+    //cuda stuff
 #ifdef HAVE_CUDA
-    core->align_kernel_time=0;
-    core->align_pre_kernel_time=0;
-    core->align_core_kernel_time=0;
-    core->align_post_kernel_time=0;
-    core->align_cuda_malloc=0;
-    core->align_cuda_memcpy=0;
-    core->align_cuda_postprocess=0;
-    core->align_cuda_preprocess=0;
+    if (!(core->opt.flag & F5C_DISABLE_CUDA)) {
+        init_cuda(core);
+    }
 #endif
 
     return core;

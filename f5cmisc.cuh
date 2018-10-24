@@ -5,6 +5,8 @@
 
 #define CUDA_DEBUG 1 //whether perform CUDA_device_synchronise or not
 
+#define CUDA_PRE_MALLOC 1
+
 #define WARP_HACK 1 //whether the kernels are  performed in 1D with a warp hack (effective only  if specific TWODIM_ALIGN is not defined)
 
 //align-core-kernel options

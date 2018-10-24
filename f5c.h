@@ -225,6 +225,23 @@ typedef struct {
     
 } db_t;
 
+#ifdef HAVE_CUDA 
+    typedef struct{
+    int32_t* event_ptr_host;
+    int32_t* n_events_host;
+    int32_t* read_ptr_host;
+
+    int32_t* read_ptr; //index pointer for flattedned "reads"
+    int32_t* read_len;
+    int32_t* n_events;
+    int32_t* event_ptr;
+    scalings_t* scalings;
+    int32_t* n_event_align_pairs;
+    model_t *model;
+
+    } cuda_data_t;
+#endif
+
 typedef struct {
     // bam file related
     htsFile* m_bam_fh;
@@ -252,6 +269,11 @@ typedef struct {
     double est_scale_time;
     double meth_time;
     
+#ifdef HAVE_CUDA   
+
+    //cuda structures
+    cuda_data_t* cuda;
+
     double align_kernel_time;
     double align_pre_kernel_time;
     double align_core_kernel_time;
@@ -261,9 +283,11 @@ typedef struct {
     double align_cuda_postprocess;
     double align_cuda_preprocess;
     double align_cuda_total_kernel;
-
+#endif
 
 } core_t;
+
+
 
 typedef struct {
     core_t* core;
@@ -296,5 +320,11 @@ void free_core(core_t* core);
 void free_db_tmp(db_t* db);
 void free_db(db_t* db);
 void init_opt(opt_t* opt);
+
+#ifdef HAVE_CUDA
+    void init_cuda(core_t* core);
+    void free_cuda(core_t* core);
+
+#endif
 
 #endif

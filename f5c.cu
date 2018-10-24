@@ -10,7 +10,88 @@
 #include "f5cmisc.cuh"
 #include "f5cmisc.h"
 
+void init_cuda(core_t* core){
 
+    core->cuda = (cuda_data_t*)malloc(sizeof(cuda_data_t)); 
+    MALLOC_CHK(core->cuda);
+
+    core->align_kernel_time=0;
+    core->align_pre_kernel_time=0;
+    core->align_core_kernel_time=0;
+    core->align_post_kernel_time=0;
+    core->align_cuda_malloc=0;
+    core->align_cuda_memcpy=0;
+    core->align_cuda_postprocess=0;
+    core->align_cuda_preprocess=0;
+
+#ifdef CUDA_PRE_MALLOC
+
+    int32_t n_bam_rec = core->opt.batch_size;
+    //cpu arrays
+    core->cuda->read_ptr_host = (int32_t*)malloc(sizeof(int32_t) * n_bam_rec);
+    MALLOC_CHK(core->cuda->read_ptr_host);
+    core->cuda->n_events_host = (int32_t*)malloc(sizeof(int32_t) * n_bam_rec);
+    MALLOC_CHK(core->cuda->n_events_host);
+    core->cuda->event_ptr_host = (int32_t*)malloc(sizeof(int32_t) * n_bam_rec);
+    MALLOC_CHK(core->cuda->event_ptr_host);
+
+    //cuda arrays
+    print_size("read_ptr array",n_bam_rec * sizeof(int32_t));
+    cudaMalloc((void**)&(core->cuda->read_ptr), n_bam_rec * sizeof(int32_t));
+    CUDA_CHK();
+    print_size("read_lens",n_bam_rec * sizeof(int32_t));
+    cudaMalloc((void**)&(core->cuda->read_len), n_bam_rec * sizeof(int32_t));
+    CUDA_CHK();
+    //n_events
+    print_size("n_events",n_bam_rec * sizeof(int32_t));
+    cudaMalloc((void**)&(core->cuda->n_events), n_bam_rec * sizeof(int32_t));
+    CUDA_CHK();
+    //event ptr
+    print_size("event ptr",n_bam_rec * sizeof(int32_t));
+    cudaMalloc((void**)&(core->cuda->event_ptr), n_bam_rec * sizeof(int32_t));
+    CUDA_CHK();
+    //scalings : already linear
+    print_size("Scalings",n_bam_rec * sizeof(scalings_t));
+    cudaMalloc((void**)&(core->cuda->scalings), n_bam_rec * sizeof(scalings_t));
+    CUDA_CHK();
+    cudaMalloc((void**)&(core->cuda->model),
+            NUM_KMER * sizeof(model_t));
+    CUDA_CHK();  
+
+    print_size("n_event_align_pairs",n_bam_rec * sizeof(int32_t));
+    cudaMalloc((void**)&(core->cuda->n_event_align_pairs), n_bam_rec * sizeof(int32_t));
+    CUDA_CHK();
+
+    //model : already linear //move to cuda_init
+    cudaMemcpy(core->cuda->model, core->model, NUM_KMER * sizeof(model_t),
+    cudaMemcpyHostToDevice);
+    CUDA_CHK();
+
+#endif
+
+    return;
+}
+
+void free_cuda(core_t* core){
+
+#ifdef CUDA_PRE_MALLOC
+    free(core->cuda->event_ptr_host);
+    free(core->cuda->n_events_host);
+    free(core->cuda->read_ptr_host);
+
+    cudaFree(core->cuda->read_ptr);
+    cudaFree(core->cuda->read_len);
+    cudaFree(core->cuda->n_events);
+    cudaFree(core->cuda->event_ptr);
+    cudaFree(core->cuda->model); //constant memory
+    cudaFree(core->cuda->scalings);
+    cudaFree(core->cuda->n_event_align_pairs);
+
+#endif
+
+    free(core->cuda);
+    return;
+}
 
 void align_cuda(core_t* core, db_t* db) {
     int32_t i;
@@ -35,9 +116,13 @@ void align_cuda(core_t* core, db_t* db) {
 
 realtime1 = realtime();
 
+#ifdef CUDA_PRE_MALLOC
+    int32_t* read_ptr_host = core->cuda->read_ptr_host;
+#else
     //get the total size and create the pointers
     int32_t* read_ptr_host = (int32_t*)malloc(sizeof(int32_t) * n_bam_rec);
     MALLOC_CHK(read_ptr_host);
+#endif
     sum_read_len = 0;
 
     //read sequences : needflattening
@@ -56,10 +141,15 @@ realtime1 = realtime();
     //now the events : need flattening
     //num events : need flattening
     //get the total size and create the pointers
+#ifdef CUDA_PRE_MALLOC
+    int32_t* n_events_host = core->cuda->n_events_host;
+    int32_t* event_ptr_host = core->cuda->event_ptr_host;
+#else
     int32_t* n_events_host = (int32_t*)malloc(sizeof(int32_t) * n_bam_rec);
     MALLOC_CHK(n_events_host);
     int32_t* event_ptr_host = (int32_t*)malloc(sizeof(int32_t) * n_bam_rec);
     MALLOC_CHK(event_ptr_host);
+#endif
 
     sum_n_events = 0;
     for (i = 0; i < n_bam_rec; i++) {
@@ -87,12 +177,20 @@ core->align_cuda_preprocess += (realtime() - realtime1);
 
     /** Start GPU mallocs**/
 realtime1 = realtime();
+
+#ifdef CUDA_PRE_MALLOC
+    read_ptr =core->cuda->read_ptr;
+    read_len=core->cuda->read_len;
+    n_events=core->cuda->n_events;
+    event_ptr=core->cuda->event_ptr;
+    scalings=core->cuda->scalings;
+    model_t* model = core->cuda->model;
+#else
+
     print_size("read_ptr array",n_bam_rec * sizeof(int32_t));
     cudaMalloc((void**)&read_ptr, n_bam_rec * sizeof(int32_t));
     CUDA_CHK();
-    print_size("read array",sum_read_len * sizeof(char));
-    cudaMalloc((void**)&read, sum_read_len * sizeof(char)); //with null char
-    CUDA_CHK();
+
     print_size("read_lens",n_bam_rec * sizeof(int32_t));
     cudaMalloc((void**)&read_len, n_bam_rec * sizeof(int32_t));
     CUDA_CHK();
@@ -104,12 +202,6 @@ realtime1 = realtime();
     print_size("event ptr",n_bam_rec * sizeof(int32_t));
     cudaMalloc((void**)&event_ptr, n_bam_rec * sizeof(int32_t));
     CUDA_CHK();
-    print_size("event table",sum_n_events * sizeof(event_t));
-    cudaMalloc((void**)&event_table, sum_n_events * sizeof(event_t));
-    CUDA_CHK();
-    model_t* model_kmer_cache;
-    cudaMalloc((void**)&model_kmer_cache, sum_read_len * sizeof(model_t)); 
-    CUDA_CHK();
     //scalings : already linear
     print_size("Scalings",n_bam_rec * sizeof(scalings_t));
     cudaMalloc((void**)&scalings, n_bam_rec * sizeof(scalings_t));
@@ -118,16 +210,33 @@ realtime1 = realtime();
     model_t* model;
     cudaMalloc((void**)&model,
             NUM_KMER * sizeof(model_t));
-    CUDA_CHK();   
+    CUDA_CHK();  
+#endif
+
+
+    print_size("read array",sum_read_len * sizeof(char));
+    cudaMalloc((void**)&read, sum_read_len * sizeof(char)); //with null char
+    CUDA_CHK();
+    print_size("event table",sum_n_events * sizeof(event_t));
+    cudaMalloc((void**)&event_table, sum_n_events * sizeof(event_t));
+    CUDA_CHK();
+    model_t* model_kmer_cache;
+    cudaMalloc((void**)&model_kmer_cache, sum_read_len * sizeof(model_t)); 
+    CUDA_CHK();
+ 
     /**allocate output arrays for cuda**/
     print_size("event align pairs",2 * sum_n_events *sizeof(AlignedPair));
     cudaMalloc((void**)&event_align_pairs,
             2 * sum_n_events *
                 sizeof(AlignedPair)); //todo : need better huristic
     CUDA_CHK();
+#ifdef CUDA_PRE_MALLOC
+    n_event_align_pairs=core->cuda->n_event_align_pairs;
+#else
     print_size("n_event_align_pairs",n_bam_rec * sizeof(int32_t));
     cudaMalloc((void**)&n_event_align_pairs, n_bam_rec * sizeof(int32_t));
     CUDA_CHK();
+#endif
     //scratch arrays
     size_t sum_n_bands = sum_n_events + sum_read_len; //todo : can be optimised 
     print_size("bands",sizeof(float) * sum_n_bands * ALN_BANDWIDTH);
@@ -164,10 +273,12 @@ realtime1 =realtime();
                cudaMemcpyHostToDevice);
     CUDA_CHK();
 
+#ifndef CUDA_PRE_MALLOC
 //model : already linear //move to cuda_init
     cudaMemcpy(model, core->model, NUM_KMER * sizeof(model_t),
             cudaMemcpyHostToDevice);
     CUDA_CHK();
+#endif
     //can be interleaved
     cudaMemcpy(scalings, db->scalings, sizeof(scalings_t) * n_bam_rec,
                cudaMemcpyHostToDevice);
@@ -274,20 +385,23 @@ realtime1 =  realtime();
 core->align_cuda_memcpy += (realtime() - realtime1);
 
 realtime1 =  realtime();
+#ifndef CUDA_PRE_MALLOC
     cudaFree(read_ptr);
-    cudaFree(read); //with null char
     cudaFree(read_len);
     cudaFree(n_events);
     cudaFree(event_ptr);
-    cudaFree(event_table);
     cudaFree(model); //constant memory
     cudaFree(scalings);
-    cudaFree(event_align_pairs);
     cudaFree(n_event_align_pairs);
+#endif
+    cudaFree(read); //with null char
+    cudaFree(event_table);
+    cudaFree(event_align_pairs);
     cudaFree(bands);
     cudaFree(trace);
     cudaFree(band_lower_left);
     cudaFree(model_kmer_cache);
+
 core->align_cuda_malloc += (realtime() - realtime1);    
     
     /** post work**/
@@ -300,12 +414,16 @@ realtime1 =  realtime();
     }
 
     //free the temp arrays on host
-    free(read_host);
+#ifndef CUDA_PRE_MALLOC
     free(read_ptr_host);
     free(n_events_host);
     free(event_ptr_host);
+#endif
+    free(read_host);
     free(event_table_host);
     free(event_align_pairs_host);
+
+
 core->align_cuda_postprocess += (realtime() - realtime1);
 
 }
