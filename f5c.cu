@@ -79,6 +79,7 @@ void free_cuda(core_t* core){
     free(core->cuda->n_events_host);
     free(core->cuda->read_ptr_host);
 
+    
     cudaFree(core->cuda->read_ptr);
     cudaFree(core->cuda->read_len);
     cudaFree(core->cuda->n_events);

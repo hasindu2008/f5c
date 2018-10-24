@@ -83,6 +83,11 @@ void free_core(core_t* core) {
     bam_hdr_destroy(core->m_hdr);
     hts_idx_destroy(core->m_bam_idx);
     sam_close(core->m_bam_fh);
+#ifdef HAVE_CUDA
+    if (!(core->opt.flag & F5C_DISABLE_CUDA)) {
+        free_cuda(core);
+    }
+#endif    
     free(core);
 }
 
