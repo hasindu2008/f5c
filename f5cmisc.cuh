@@ -5,7 +5,9 @@
 
 #define CUDA_DEBUG 1 //whether perform CUDA_device_synchronise or not
 
-#define CUDA_PRE_MALLOC 1
+#define CUDA_PRE_MALLOC 1 //whether static cuda/cpu arrays are preallocated
+#define CPU_GPU_PROC 1 //CUDA_PRE_MALLOC does not have effect with this
+#define GPU_MAX_READ_LEN 20000 //work only with CPU_GPU_PROC
 
 #define WARP_HACK 1 //whether the kernels are  performed in 1D with a warp hack (effective only  if specific TWODIM_ALIGN is not defined)
 

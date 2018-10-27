@@ -40,7 +40,7 @@
 #define IO_PROC_INTERLEAVE 1
 #define SECTIONAL_BENCHMARK 1   
 
-#define ALIGN_2D_ARRAY 1 //for CPU whether to use a 1D array or a 2D array
+//#define ALIGN_2D_ARRAY 1 //for CPU whether to use a 1D array or a 2D array
 
 #define CACHED_LOG 1 //if the log values of scalings and the model k-mers are cached
 //#define LOAD_SD_MEANSSTDV 1 //if the sd_mean and the sd_stdv is yo be loaded
@@ -230,6 +230,9 @@ typedef struct {
     int32_t* event_ptr_host;
     int32_t* n_events_host;
     int32_t* read_ptr_host;
+    int32_t* read_len_host;
+    scalings_t* scalings_host;
+    int32_t* n_event_align_pairs_host;
 
     int32_t* read_ptr; //index pointer for flattedned "reads"
     int32_t* read_len;
@@ -298,6 +301,9 @@ typedef struct {
 #ifdef WORK_STEAL
     void *all_pthread_args;
 #endif
+#ifdef HAVE_CUDA
+    int32_t *ultra_long_reads;
+#endif
 } pthread_arg_t;
 
 typedef struct {
@@ -315,6 +321,7 @@ core_t* init_core(const char* bamfilename, const char* fastafile,
 void process_db(core_t* dg, db_t* db);
 void pthread_db(core_t* core, db_t* db, void (*func)(core_t*,db_t*,int));
 void align_db(core_t* core, db_t* db);
+void align_single(core_t* core, db_t* db, int32_t i);
 void output_db(core_t* core, db_t* db);
 void free_core(core_t* core);
 void free_db_tmp(db_t* db);
