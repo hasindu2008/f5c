@@ -51,7 +51,7 @@ CFLAGS += $(HDF5_INC) $(HTS_INC)
 .PHONY: clean distclean format test
 
 $(BINARY): $(HTS_LIB) $(HDF5_LIB) $(OBJ)
-	$(CC) $(CFLAGS) $(HTS_LIB) $(HDF5_LIB) $(OBJ) $(LDFLAGS) -o $@
+	$(CC) $(CFLAGS) $(OBJ) $(HTS_LIB) $(HDF5_LIB) $(LDFLAGS) -o $@
 
 %.o: %.c $(DEPS)
 	$(CC) $(CFLAGS) $(CPPFLAGS) $(HDF5_INC) $(HTS_INC) $< -c 
