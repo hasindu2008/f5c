@@ -1,0 +1,7 @@
+[submodule "external/htslib"]
+	path = external/htslib
+	url = https://github.com/samtools/htslib.git
+[submodule "external/hdf5"]
+	path = external/hdf5
+	url = https://bitbucket.hdfgroup.org/scm/hdffv/hdf5.git
+	branch = 1.10/master
