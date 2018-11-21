@@ -4,6 +4,9 @@ LIBS = @LIBS@
 LDFLAGS = @LDFLAGS@
 CPPFLAGS = @CPPFLAGS@
 
+HDF5 = @hdf_git_install@
+HTS = @hts_git_install@
+
 ifeq "locallibhts-@locallibhts@" "locallibhts-yes"
 
 CPPFLAGS += -I./htslib
