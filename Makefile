@@ -1,6 +1,8 @@
 CC       = g++
 CFLAGS   = -g -rdynamic -Wall -O2 -std=c++11 
 
+include config.mk
+
 LDFLAGS += $(LIBS) -lpthread -lz -ldl
 
 SRC = main.c f5c.c events.c nanopolish_read_db.c model.c align.c meth.c hmm.c
@@ -63,14 +65,22 @@ gpucode.o: $(OBJ_CUDA)
 submodule:
 	git submodule update --recursive --init --remote
 
-$(BUILD_DIR)/lib/libhts.a: submodule
-	cd external/htslib && autoreconf && \
+autoconf:
+	@if [ ! -f external/htslib/configure ]; then \
+	    cd external/htslib && autoreconf; \
+	fi
+	@if [ ! -f external/hdf5/configure ]; then \
+	    cd external/hdf5 && autoreconf -i; \
+	fi
+
+$(BUILD_DIR)/lib/libhts.a: submodule autoconf
+	cd external/htslib && \
 	./configure --prefix=$(BUILD_DIR) --enable-bz2=no --enable-lzma=no --with-libdeflate=no --enable-libcurl=no  --enable-gcs=no --enable-s3=no && \
 	make -j8 && \
 	make install
 
-$(BUILD_DIR)/lib/libhdf5.a: submodule
-	cd external/hdf5 && autoreconf -i && \
+$(BUILD_DIR)/lib/libhdf5.a: submodule autoconf
+	cd external/hdf5 && \
 	./configure --prefix=$(BUILD_DIR) && \
 	make -j8 && \
 	make install
