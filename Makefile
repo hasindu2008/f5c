@@ -60,7 +60,7 @@ gpucode.o: $(OBJ_CUDA)
 	$(CC_CUDA) $(CFLAGS_CUDA) -dlink $^ -o $@
 
 %_cuda.o: %.cu $(DEPS_CUDA)
-	$(CC_CUDA) -x cu $(CFLAGS_CUDA) $(CPPFLAGS) -rdc=true -c $< -o $@
+	$(CC_CUDA) -x cu $(CFLAGS_CUDA) $(CPPFLAGS) $(HDF5_INC) $(HTS_INC) -rdc=true -c $< -o $@
 
 submodule:
 	git submodule update --recursive --init --remote
