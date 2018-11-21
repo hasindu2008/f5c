@@ -1,26 +1,7 @@
 #ifndef FAST5LITE_H
 #define FAST5LITE_H
 
-#ifndef HAVE_CONFIG_H
-#    define HAVE_CONFIG_H
-#    include "config.h"
-#endif
-
-#ifdef HAVE_HDF5_SERIAL_HDF5_H
-#    include <hdf5/serial/hdf5.h>
-#endif
-
-#ifdef HAVE_HDF5_H
-#    include <hdf5.h>
-#endif
-
-#ifdef HAVE_HDF5_HDF5_H
-#    include <hdf5/hdf5.h>
-#endif
-
-#ifdef HAVE___HDF5_INCLUDE_HDF5_H
-#    include <hdf5.h>
-#endif
+#include <hdf5.h>
 
 #include <errno.h>
 #include <math.h>

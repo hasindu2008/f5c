@@ -67,3 +67,5 @@ autom4te.cache
 /tmp/
 /htslib
 /hdf5
+
+build/
