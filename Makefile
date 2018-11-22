@@ -61,20 +61,20 @@ gpucode.o: $(OBJ_CUDA)
 	$(CC_CUDA) -x cu $(CFLAGS_CUDA) $(CPPFLAGS) $(HDF5_INC) $(HTS_INC) -rdc=true -c $< -o $@
 
 external/htslib/configure:
+	git submodule update --recursive --init --remote
 	cd external/htslib && autoreconf
 
 external/hdf5/configure:
+	git submodule update --recursive --init --remote
 	cd external/hdf5 && autoreconf -i
 
 $(BUILD_DIR)/lib/libhts.a: external/htslib/configure
-	git submodule update --recursive --init --remote
 	cd external/htslib && \
 	./configure --prefix=$(BUILD_DIR) --enable-bz2=no --enable-lzma=no --with-libdeflate=no --enable-libcurl=no  --enable-gcs=no --enable-s3=no && \
 	make -j8 && \
 	make install
 
 $(BUILD_DIR)/lib/libhdf5.a: external/hdf5/configure
-	git submodule update --recursive --init --remote
 	cd external/hdf5 && \
 	./configure --prefix=$(BUILD_DIR) && \
 	make -j8 && \
