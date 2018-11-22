@@ -48,7 +48,7 @@ endif
 
 CFLAGS += $(HDF5_INC) $(HTS_INC)
 
-.PHONY: clean distclean format test
+.PHONY: clean distclean format test autoconf
 
 $(BINARY): $(HTS_LIB) $(HDF5_LIB) $(OBJ)
 	$(CC) $(CFLAGS) $(OBJ) $(HTS_LIB) $(HDF5_LIB) $(LDFLAGS) -o $@
@@ -62,24 +62,21 @@ gpucode.o: $(OBJ_CUDA)
 %_cuda.o: %.cu $(DEPS_CUDA)
 	$(CC_CUDA) -x cu $(CFLAGS_CUDA) $(CPPFLAGS) $(HDF5_INC) $(HTS_INC) -rdc=true -c $< -o $@
 
-submodule:
+external/htslib/configure:
+	cd external/htslib && autoreconf
+
+external/hdf5/configure:
+	cd external/hdf5 && autoreconf -i
+
+$(BUILD_DIR)/lib/libhts.a: external/htslib/configure
 	git submodule update --recursive --init --remote
-
-autoconf:
-	@if [ ! -f external/htslib/configure ]; then \
-	    cd external/htslib && autoreconf; \
-	fi
-	@if [ ! -f external/hdf5/configure ]; then \
-	    cd external/hdf5 && autoreconf -i; \
-	fi
-
-$(BUILD_DIR)/lib/libhts.a: submodule autoconf
 	cd external/htslib && \
 	./configure --prefix=$(BUILD_DIR) --enable-bz2=no --enable-lzma=no --with-libdeflate=no --enable-libcurl=no  --enable-gcs=no --enable-s3=no && \
 	make -j8 && \
 	make install
 
-$(BUILD_DIR)/lib/libhdf5.a: submodule autoconf
+$(BUILD_DIR)/lib/libhdf5.a: external/hdf5/configure
+	git submodule update --recursive --init --remote
 	cd external/hdf5 && \
 	./configure --prefix=$(BUILD_DIR) && \
 	make -j8 && \
