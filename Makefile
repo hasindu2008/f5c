@@ -81,7 +81,7 @@ $(BUILD_DIR)/lib/libhdf5.a: external/hdf5/configure
 	make install
 
 clean: 
-	$(RM) -r f5c *.o *.out $(BUILD_DIR)
+	$(RM) -r $(BINARY) *.o *.out $(BUILD_DIR)
 
 # Delete all gitignored files (but not directories)
 distclean: clean
