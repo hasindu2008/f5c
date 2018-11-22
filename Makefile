@@ -30,7 +30,8 @@ ifeq ($(HDF5), install)
     HDF5_LIB = $(BUILD_DIR)/lib/libhdf5.a
     HDF5_INC = -I$(BUILD_DIR)/include
 else
-    HDF5_LIB = $(shell pkg-config --libs hdf5)
+    HDF5_LIB =
+    HDF5_SYS_LIB = $(shell pkg-config --libs hdf5)
     HDF5_INC = $(shell pkg-config --cflags-only-I hdf5)
 endif
 
@@ -38,7 +39,8 @@ ifeq ($(HTS), install)
     HTS_LIB = $(BUILD_DIR)/lib/libhts.a
     HTS_INC = -I$(BUILD_DIR)/include
 else
-    HTS_LIB = $(shell pkg-config --libs htslib)
+    HTS_LIB =
+    HTS_SYS_LIB = $(shell pkg-config --libs htslib)
     HTS_INC = $(shell pkg-config --cflags-only-I htslib)
 endif
 
@@ -47,7 +49,7 @@ CFLAGS += $(HDF5_INC) $(HTS_INC)
 .PHONY: clean distclean format test
 
 $(BINARY): $(HTS_LIB) $(HDF5_LIB) $(OBJ)
-	$(CC) $(CFLAGS) $(OBJ) $(HTS_LIB) $(HDF5_LIB) $(LDFLAGS) -o $@
+	$(CC) $(CFLAGS) $(OBJ) $(HTS_LIB) $(HDF5_LIB) $(HTS_SYS_LIB) $(HDF5_SYS_LIB) $(LDFLAGS) -o $@
 
 %.o: %.c $(DEPS)
 	$(CC) $(CFLAGS) $(CPPFLAGS) $(HDF5_INC) $(HTS_INC) $< -c 
