@@ -72,8 +72,8 @@ is installed.
 fi
 
 #disable git submodule based install
-hdf_git_install=noinstall
-hts_git_install=noinstall
+hdf_git_install=autoconf
+hts_git_install=autoconf
 
 locallibhts=no
 if test "$enable_systemhts" = yes; then

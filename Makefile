@@ -31,18 +31,22 @@ ifeq ($(HDF5), install)
     HDF5_INC = -I$(BUILD_DIR)/include
     LDFLAGS += -ldl
 else
+ifneq ($(HDF5), autoconf)
     HDF5_LIB =
     HDF5_SYS_LIB = $(shell pkg-config --libs hdf5)
     HDF5_INC = $(shell pkg-config --cflags-only-I hdf5)
+endif
 endif
 
 ifeq ($(HTS), install)
     HTS_LIB = $(BUILD_DIR)/lib/libhts.a
     HTS_INC = -I$(BUILD_DIR)/include
 else
+ifneq ($(HTS), autoconf)
     HTS_LIB =
     HTS_SYS_LIB = $(shell pkg-config --libs htslib)
     HTS_INC = $(shell pkg-config --cflags-only-I htslib)
+endif	
 endif
 
 CFLAGS += $(HDF5_INC) $(HTS_INC)
