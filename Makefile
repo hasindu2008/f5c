@@ -3,7 +3,7 @@ CFLAGS   = -g -rdynamic -Wall -O2 -std=c++11
 
 -include config.mk
 
-LDFLAGS += $(LIBS) -lpthread
+LDFLAGS += $(LIBS) -lpthread -lz
 
 SRC = main.c f5c.c events.c nanopolish_read_db.c model.c align.c meth.c hmm.c
 OBJ = $(SRC:.c=.o)
@@ -39,7 +39,6 @@ endif
 ifeq ($(HTS), install)
     HTS_LIB = $(BUILD_DIR)/lib/libhts.a
     HTS_INC = -I$(BUILD_DIR)/include
-    LDFLAGS += -lz
 else
     HTS_LIB =
     HTS_SYS_LIB = $(shell pkg-config --libs htslib)
