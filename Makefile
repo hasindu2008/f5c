@@ -3,7 +3,7 @@ CFLAGS   = -g -rdynamic -Wall -O2 -std=c++11
 
 -include config.mk
 
-LDFLAGS += $(LIBS) -lpthread -lz -ldl
+LDFLAGS += $(LIBS) -lpthread
 
 SRC = main.c f5c.c events.c nanopolish_read_db.c model.c align.c meth.c hmm.c
 OBJ = $(SRC:.c=.o)
@@ -29,6 +29,7 @@ endif
 ifeq ($(HDF5), install)
     HDF5_LIB = $(BUILD_DIR)/lib/libhdf5.a
     HDF5_INC = -I$(BUILD_DIR)/include
+    LDFLAGS += -ldl
 else
     HDF5_LIB =
     HDF5_SYS_LIB = $(shell pkg-config --libs hdf5)
@@ -38,6 +39,7 @@ endif
 ifeq ($(HTS), install)
     HTS_LIB = $(BUILD_DIR)/lib/libhts.a
     HTS_INC = -I$(BUILD_DIR)/include
+    LDFLAGS += -lz
 else
     HTS_LIB =
     HTS_SYS_LIB = $(shell pkg-config --libs htslib)
