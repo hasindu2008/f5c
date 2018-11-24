@@ -1,0 +1,72 @@
+# Compiled source #
+###################
+*.com
+*.class
+*.dll
+*.exe
+*.o
+*.so
+
+# Packages #
+############
+# it's better to unpack these files and commit the raw source
+# git has its own built in compression methods
+*.7z
+*.dmg
+*.gz
+*.iso
+*.jar
+*.rar
+*.tar
+*.zip
+
+# Logs and databases #
+######################
+*.log
+*.sql
+*.sqlite
+*.txt
+
+# OS generated files #
+######################
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# autotools #
+/aclocal.m4
+/config.h.in~
+/Makefile.in
+/config.status
+/stamp-h1
+/missing
+/install-sh
+/compile
+/depcomp
+.deps
+autom4te.cache
+/configure
+/config.h
+/config.h.in
+/config.mk
+
+#my
+/main
+/f5c
+/*.fast5
+*.fig
+/*.fa
+/*.fasta
+.png
+/*.tsv
+*.swp
+/tmp/
+/htslib
+/hdf5
+/.vscode
+build/
+test/chr22_meth_example/
