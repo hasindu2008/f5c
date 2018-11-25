@@ -21,8 +21,8 @@ for file in "${bamfile}" "${ref}" "${reads}"; do
 done
 
 if [[ "${#}" -eq 0 ]]; then
-	echo "${exepath}" -b "${bamfile}" -g "${ref}" -r "${reads}" -t 8 --secondary=yes --min-mapq=0 ">" ${testdir}/result_exact.txt
-    "${exepath}" -b "${bamfile}" -g "${ref}" -r "${reads}" -t 8 --secondary=yes --min-mapq=0  > ${testdir}/result_exact.txt
+	echo "${exepath}" -b "${bamfile}" -g "${ref}" -r "${reads}" -t 8  -K256 ">" ${testdir}/result_exact.txt
+    "${exepath}" -b "${bamfile}" -g "${ref}" -r "${reads}" -t 8  -K256 > ${testdir}/result_exact.txt
 	awk '{print $1,$2,$3,$4,$8,$9,$10}' ${testdir}/result.txt > ${testdir}/result_exact.txt
 	awk '{print $1,$2,$3,$4,$8,$9,$10}' ${testdir}/meth.exp > ${testdir}/meth_exact.txt
 	diff -q ${testdir}/meth_exact.txt ${testdir}/result_exact.txt  || die "diff ${testdir}/result_exact.txt ${testdir}/meth_exact.txt failed" 
@@ -43,15 +43,15 @@ if [[ "${#}" -eq 0 ]]; then
 elif [[ "${#}" -eq 1 ]]; then
     if [[ "${1}" == "valgrind" ]]; then
 
-        valgrind "${exepath}" -b "${bamfile}" -g "${ref}" -r "${reads}" --secondary=yes --min-mapq=0
+        valgrind "${exepath}" -b "${bamfile}" -g "${ref}" -r "${reads}" 
     elif [[ "${1}" == "gdb" ]]; then
-        gdb --args "${exepath}" -b "${bamfile}" -g "${ref}" -r "${reads}" --secondary=yes --min-mapq=0
+        gdb --args "${exepath}" -b "${bamfile}" -g "${ref}" -r "${reads}" 
     elif [[ "${1}" == "cpu" ]]; then
-        "${exepath}" -b "${bamfile}" -g "${ref}" -r "${reads}" -t 8 --secondary=yes --min-mapq=0 --disable-cuda=yes > result.txt	
+        "${exepath}" -b "${bamfile}" -g "${ref}" -r "${reads}" -t 8  --disable-cuda=yes > result.txt	
     elif [[ "${1}" == "cuda" ]]; then
-        "${exepath}" -b "${bamfile}" -g "${ref}" -r "${reads}" -t 8 --secondary=yes --min-mapq=0 --disable-cuda=no > result.txt		
+        "${exepath}" -b "${bamfile}" -g "${ref}" -r "${reads}" -t 8  --disable-cuda=no > result.txt		
     elif [[ "${1}" == "echo" ]]; then
-		"${exepath}" -b "${bamfile}" -g "${ref}" -r "${reads}" -t 8 --secondary=yes --min-mapq=0 ">" result.txt
+		"${exepath}" -b "${bamfile}" -g "${ref}" -r "${reads}" -t 8  ">" result.txt
 	else
         echo "wrong option"
 		exit 1
