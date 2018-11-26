@@ -1,5 +1,5 @@
 CC       = g++
-CFLAGS   = -g -rdynamic -Wall -O2 -std=c++11 
+CFLAGS   = -Wall -O2 -std=c++11 
 
 -include config.mk
 
@@ -15,7 +15,15 @@ HTS ?= install
 
 BUILD_DIR = $(shell pwd)/build
 
-ifneq ($(cuda),) # if cuda is undefined
+ifdef DEBUG
+    CFLAGS += -g -rdynamic
+endif
+
+ifdef ENABLE_PROFILE
+    CFLAGS += -pg
+endif
+
+ifdef cuda
     DEPS_CUDA = f5c.h fast5lite.h error.h f5cmisc.cuh
     SRC_CUDA = f5c.cu align.cu 
     OBJ_CUDA = $(SRC_CUDA:.cu=_cuda.o)
