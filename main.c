@@ -1,7 +1,7 @@
 #include "f5c.h"
 #include "f5cmisc.h"
 #include <assert.h>
-#ifdef __linux__
+#ifdef HAVE_EXECINFO_H
     #include <execinfo.h>
 #endif
 #include <getopt.h>
@@ -39,7 +39,7 @@ static struct option long_options[] = {
     {0, 0, 0, 0}};
 
 void sig_handler(int sig) {
-#ifdef __linux__    
+#ifdef HAVE_EXECINFO_H   
     void* array[100];
     size_t size = backtrace(array, 100);
     ERROR("I regret to inform that a segmentation fault occurred. But at least "
