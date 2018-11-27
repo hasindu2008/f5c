@@ -1,7 +1,9 @@
 #include "f5c.h"
 #include "f5cmisc.h"
 #include <assert.h>
-#include <execinfo.h>
+#ifdef __linux__
+    #include <execinfo.h>
+#endif
 #include <getopt.h>
 #include <signal.h>
 #include <stdint.h>
@@ -37,6 +39,7 @@ static struct option long_options[] = {
     {0, 0, 0, 0}};
 
 void sig_handler(int sig) {
+#ifdef __linux__    
     void* array[100];
     size_t size = backtrace(array, 100);
     ERROR("I regret to inform that a segmentation fault occurred. But at least "
@@ -48,6 +51,11 @@ void sig_handler(int sig) {
             __func__);
     backtrace_symbols_fd(&array[2], size - 1, STDERR_FILENO);
     fprintf(stderr, "\033[0m\n");
+#else
+    ERROR("I regret to inform that a segmentation fault occurred. But at least "
+          "it is better than a wrong answer%s",
+          ".");
+#endif
     exit(EXIT_FAILURE);
 }
 
