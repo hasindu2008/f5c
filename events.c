@@ -18,9 +18,12 @@
 #include "f5cmisc.h"
 #include "fast5lite.h"
 #include "nanopolish_read_db.h"
+
+#ifndef LIBC_QSORT
 #include "ksort.h"
 
 KSORT_INIT_GENERIC(float)
+#endif
 
 /**
   The following code taken from scrappie at https://github.com/nanoporetech/scrappie (c) 2016 Oxford Nanopore Technologies Ltd.
@@ -64,6 +67,13 @@ typedef struct {
     float* raw;
 } raw_table;
 
+#ifdef LIBC_QSORT
+int floatcmp(const void* x, const void* y) {
+    float d = *(float*)x - *(float*)y;
+    return d > 0 ? 1 : -1;
+}
+#endif
+
 /** Quantiles from n array
  *
  *	Using a relatively inefficent qsort resulting in O(n log n)
@@ -101,7 +111,11 @@ void quantilef(const float* x, size_t nx, float* p, size_t np) {
         return;
     }
     memcpy(space, x, nx * sizeof(float));
+#ifdef LIBC_QSORT
+    qsort(space, nx, sizeof(float), floatcmp);
+#else
     ks_mergesort(float, nx, (float *)space, 0);
+#endif
 
     // Extract quantiles
     for (unsigned int i = 0; i < np; i++) {
