@@ -57,6 +57,7 @@ autom4te.cache
 #my
 /main
 /f5c
+/f5c_static
 /*.fast5
 *.fig
 /*.fa

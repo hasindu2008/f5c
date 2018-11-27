@@ -25,7 +25,8 @@ ifdef cuda
     OBJ_CUDA = $(SRC_CUDA:.cu=_cuda.o)
     CC_CUDA = nvcc
     CFLAGS_CUDA = -g  -O2 -std=c++11 -lineinfo -DHAVE_CUDA=1 $(CUDA_ARCH)
-    LDFLAGS += -L/usr/local/cuda/lib64/ -lcudart -lcudadevrt
+    CUDALIB += -L/usr/local/cuda/lib64/ -lcudart -lcudadevrt
+    CUDALIB_STATIC += -L/usr/local/cuda/lib64/ -lcudart_static -lcudadevrt -lrt
     OBJ += gpucode.o $(OBJ_CUDA)
     CFLAGS += -DHAVE_CUDA=1
 endif
@@ -58,7 +59,11 @@ CFLAGS += $(HDF5_INC) $(HTS_INC)
 .PHONY: clean distclean format test
 
 $(BINARY): $(HTS_LIB) $(HDF5_LIB) $(OBJ)
-	$(CC) $(CFLAGS) $(OBJ) $(HTS_LIB) $(HDF5_LIB) $(HTS_SYS_LIB) $(HDF5_SYS_LIB) $(LDFLAGS) -o $@
+	$(CC) $(CFLAGS) $(OBJ) $(HTS_LIB) $(HDF5_LIB) $(HTS_SYS_LIB) $(HDF5_SYS_LIB) $(LDFLAGS) $(CUDALIB) -o $@
+
+$(BINARY)_static : $(HTS_LIB) $(HDF5_LIB) $(OBJ)
+	$(CC) -static $(CFLAGS) $(OBJ) $(HTS_LIB) $(HDF5_LIB) $(HTS_SYS_LIB) $(HDF5_SYS_LIB) $(CUDALIB_STATIC) $(LDFLAGS) -ldl -lsz -laec -o $@
+
 
 %.o: %.c $(DEPS) config.h
 	$(CC) $(CFLAGS) $(CPPFLAGS) $(HDF5_INC) $(HTS_INC) $< -c 
