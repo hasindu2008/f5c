@@ -356,6 +356,8 @@ int main(int argc, char* argv[]) {
                 __func__, core->align_cuda_memcpy);
             fprintf(stderr, "\n[%s] Alignment post process time: %.3f sec",
                 __func__, core->align_cuda_postprocess);
+            fprintf(stderr, "\n[%s] Ultralong cpu process time: %.3f sec",
+                __func__, core->extra_load_cpu);
         }
     #endif            
     fprintf(stderr, "\n[%s] Estimate scaling time: %.3f sec",

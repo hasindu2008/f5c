@@ -20,6 +20,7 @@ void init_cuda(core_t* core){
     core->align_core_kernel_time=0;
     core->align_post_kernel_time=0;
     core->align_cuda_malloc=0;
+    core->extra_load_cpu=0;
     core->align_cuda_memcpy=0;
     core->align_cuda_postprocess=0;
     core->align_cuda_preprocess=0;
@@ -552,9 +553,14 @@ void pthread_cudb(core_t* core, db_t* db, int32_t* ultra_long_reads, int32_t  n_
 }
 
 
-void align_cudb(core_t* core, db_t* db, int32_t* ultra_long_reads, int32_t  n_ultra_long_reads) {
-    
+void* align_cudb(void* voidargs){
 
+    pthread_arg_t* args = (pthread_arg_t*)voidargs;
+    db_t* db = args->db;
+    core_t* core = args->core;
+    int32_t* ultra_long_reads = args->ultra_long_reads;
+    int32_t n_ultra_long_reads = args->endi;
+    //fprintf(stderr,"ultra long guys : %d\n",n_ultra_long_reads);
     //fprintf(stderr, "cpu\n");
     if (core->opt.num_thread == 1) {
         int j;
@@ -574,10 +580,33 @@ void align_cudb(core_t* core, db_t* db, int32_t* ultra_long_reads, int32_t  n_ul
 
     fprintf(stderr,"%d reads (length>%d kb) processed on cpu\n",n_ultra_long_reads,GPU_MAX_READ_LEN/1000);
 
- 
+    return NULL;
 }
     
+pthread_t align_cudb_async(pthread_arg_t *pt_args,core_t* core, db_t* db, int32_t* ultra_long_reads, int32_t  n_ultra_long_reads) {
+    assert(pt_args==NULL);
+    pt_args = (pthread_arg_t *)malloc(sizeof(pthread_arg_t));
+    MALLOC_CHK(pt_args);
+    pt_args->core = core;
+    pt_args->db = db;
+    pt_args->starti = 0;
+    pt_args->endi = n_ultra_long_reads;
+    pt_args->ultra_long_reads=ultra_long_reads;
 
+    pthread_t tid;    
+    int ret = pthread_create(&tid, NULL, align_cudb,(void*)(pt_args));
+    NEG_CHK(ret);
+
+    return tid;
+}
+
+void align_cudb_async_join(pthread_arg_t *pt_args, pthread_t tid) {
+    int ret = pthread_join(tid, NULL);
+    NEG_CHK(ret);
+    free(pt_args);
+
+
+}
 
 void align_cuda(core_t* core, db_t* db) {
     int32_t i,j;
@@ -635,6 +664,11 @@ realtime1 = realtime();
         }
     }
     n_bam_rec_cuda = j;
+    
+
+    //can start processing on the ultra long reads on the CPU
+    pthread_arg_t *tmparg=NULL;
+    pthread_t tid =  align_cudb_async(tmparg,core, db, ultra_long_reads, n_ultra_long_reads);
     
 
     read_len_host = core->cuda->read_len_host;
@@ -888,16 +922,16 @@ realtime1 =  realtime();
         }
     }
 
-    align_cudb(core, db, ultra_long_reads, n_ultra_long_reads);
-
     //free the temp arrays on host
-
     free(read_host);
     free(event_table_host);
     free(event_align_pairs_host);
 
 core->align_cuda_postprocess += (realtime() - realtime1);
 
+realtime1 =  realtime(); 
+    align_cudb_async_join(tmparg,tid);  
+    core->extra_load_cpu += (realtime() - realtime1);
 }
 
 

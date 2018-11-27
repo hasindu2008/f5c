@@ -281,6 +281,7 @@ typedef struct {
     double align_pre_kernel_time;
     double align_core_kernel_time;
     double align_post_kernel_time;
+    double extra_load_cpu;
     double align_cuda_malloc;
     double align_cuda_memcpy;
     double align_cuda_postprocess;
