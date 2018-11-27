@@ -1,5 +1,5 @@
 CC       = g++
-CFLAGS   = -Wall -O2 -std=c++11 
+CFLAGS   = -g -rdynamic -Wall -O2 -std=c++11 
 
 -include config.mk
 
@@ -15,12 +15,8 @@ HTS ?= install
 
 BUILD_DIR = $(shell pwd)/build
 
-ifdef DEBUG
-    CFLAGS += -g -rdynamic
-endif
-
 ifdef ENABLE_PROFILE
-    CFLAGS += -pg
+    CFLAGS += -p
 endif
 
 ifdef cuda
