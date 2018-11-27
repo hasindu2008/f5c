@@ -931,7 +931,9 @@ core->align_cuda_postprocess += (realtime() - realtime1);
 
 realtime1 =  realtime(); 
     align_cudb_async_join(tmparg,tid);  
-    core->extra_load_cpu += (realtime() - realtime1);
+core->extra_load_cpu += (realtime() - realtime1);
+
+
 }
 
 
