@@ -15,7 +15,11 @@ HTS ?= install
 
 BUILD_DIR = $(shell pwd)/build
 
-ifneq ($(cuda),) # if cuda is undefined
+ifdef ENABLE_PROFILE
+    CFLAGS += -p
+endif
+
+ifdef cuda
     DEPS_CUDA = f5c.h fast5lite.h error.h f5cmisc.cuh
     SRC_CUDA = f5c.cu align.cu 
     OBJ_CUDA = $(SRC_CUDA:.cu=_cuda.o)
