@@ -114,7 +114,7 @@ void quantilef(const float* x, size_t nx, float* p, size_t np) {
 #ifdef LIBC_QSORT
     qsort(space, nx, sizeof(float), floatcmp);
 #else
-    ks_mergesort(float, nx, (float *)space, 0);
+    ks_mergesort(float, nx, space, 0);
 #endif
 
     // Extract quantiles
