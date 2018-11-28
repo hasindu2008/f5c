@@ -19,7 +19,7 @@
 #include "fast5lite.h"
 #include "nanopolish_read_db.h"
 
-#ifndef LIBC_QSORT
+#ifndef DISABLE_KSORT
 #include "ksort.h"
 
 KSORT_INIT_GENERIC(float)
@@ -67,7 +67,7 @@ typedef struct {
     float* raw;
 } raw_table;
 
-#ifdef LIBC_QSORT
+#ifdef DISABLE_KSORT
 int floatcmp(const void* x, const void* y) {
     float d = *(float*)x - *(float*)y;
     return d > 0 ? 1 : -1;
@@ -111,7 +111,7 @@ void quantilef(const float* x, size_t nx, float* p, size_t np) {
         return;
     }
     memcpy(space, x, nx * sizeof(float));
-#ifdef LIBC_QSORT
+#ifdef DISABLE_KSORT
     qsort(space, nx, sizeof(float), floatcmp);
 #else
     ks_mergesort(float, nx, space, 0);
@@ -144,9 +144,17 @@ void quantilef(const float* x, size_t nx, float* p, size_t np) {
  *	@return Median of array on success, NAN otherwise.
  **/
 float medianf(const float* x, size_t n) {
+#ifdef DISABLE_KSORT
     float p = 0.5;
     quantilef(x, n, &p, 1);
     return p;
+#else
+    float *copy = (float *)malloc(n * sizeof(float));
+    memcpy(copy, x, n * sizeof(float));
+    float m = ks_ksmall_float(n, copy, n / 2);
+    free(copy);
+    return m;
+#endif
 }
 
 /** Median Absolute Deviation of an array
