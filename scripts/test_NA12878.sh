@@ -6,7 +6,13 @@ die() {
 	exit 1
 }
 
-
+set_cpu_count() {
+    if command -v nproc > /dev/null; then
+        NCPU="$(nproc --all)"
+    else
+        NCPU=8
+    fi
+}
 
 handle_tests(){
 	numfailed=$(cat ${testdir}/floatdiff.txt | wc -l)
@@ -17,6 +23,7 @@ handle_tests(){
 	exit 1
 }
 
+
 exepath="./f5c"
 testdir="test/chr22_meth_example/"
 
@@ -26,14 +33,14 @@ bamfile=$testdir/"reads.sorted.bam"
 ref=$testdir/"humangenome.fa"
 reads=$testdir/"reads.fastq"
 
-
+set_cpu_count
 for file in "${bamfile}" "${ref}" "${reads}"; do
 	[[ -f "${file}" ]] || die "${file}: File does not exist"
 done
 
 if [[ "${#}" -eq 0 ]]; then
-	echo "${exepath}" -b "${bamfile}" -g "${ref}" -r "${reads}" -t 8  -K256 ">" ${testdir}/result.txt
-	"${exepath}" -b "${bamfile}" -g "${ref}" -r "${reads}" -t 8  -K256 > ${testdir}/result.txt
+	echo "${exepath}" -b "${bamfile}" -g "${ref}" -r "${reads}" -t "${NCPU}"  -K256 ">" ${testdir}/result.txt
+	"${exepath}" -b "${bamfile}" -g "${ref}" -r "${reads}" -t "${NCPU}"  -K256 > ${testdir}/result.txt
 	# grep -w "chr20" ${testdir}/result.txt | awk '{print $1,$2,$3,$4,$8,$9,$10}' > ${testdir}/result_exact.txt
 	# grep -w "chr20" ${testdir}/meth.exp | awk '{print $1,$2,$3,$4,$8,$9,$10}' > ${testdir}/meth_exact.txt
 	# diff -q ${testdir}/meth_exact.txt ${testdir}/result_exact.txt  || die "diff ${testdir}/result_exact.txt ${testdir}/meth_exact.txt failed" 
@@ -57,11 +64,11 @@ elif [[ "${#}" -eq 1 ]]; then
 	elif [[ "${1}" == "gdb" ]]; then
 		gdb --args "${exepath}" -b "${bamfile}" -g "${ref}" -r "${reads}"
 	elif [[ "${1}" == "cpu" ]]; then
-		"${exepath}" -b "${bamfile}" -g "${ref}" -r "${reads}" -t 8  --disable-cuda=yes > result.txt
+		"${exepath}" -b "${bamfile}" -g "${ref}" -r "${reads}" -t "${NCPU}"  --disable-cuda=yes > result.txt
 	elif [[ "${1}" == "cuda" ]]; then
-		"${exepath}" -b "${bamfile}" -g "${ref}" -r "${reads}" -t 8  --disable-cuda=no > result.txt
+		"${exepath}" -b "${bamfile}" -g "${ref}" -r "${reads}" -t "${NCPU}"  --disable-cuda=no > result.txt
 	elif [[ "${1}" == "echo" ]]; then
-		"${exepath}" -b "${bamfile}" -g "${ref}" -r "${reads}" -t 8  ">" result.txt
+		"${exepath}" -b "${bamfile}" -g "${ref}" -r "${reads}" -t "${NCPU}"  ">" result.txt
 	else
 		echo "wrong option"
 		exit 1
