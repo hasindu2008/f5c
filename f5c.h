@@ -8,6 +8,8 @@
 #include "fast5lite.h"
 #include "nanopolish_read_db.h"
 
+#define F5C_VERSION "0.0"
+
 //#define m_min_mapping_quality 30
 #define KMER_SIZE 6 //hard coded for now; todo : change to dynamic
 #define NUM_KMER 4096
@@ -55,6 +57,7 @@ typedef struct {
     int32_t batch_size;
     int32_t num_thread;
     int32_t cuda_block_size;
+    int8_t verbosity;
 } opt_t;
 
 // from scrappie

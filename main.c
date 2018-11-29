@@ -12,28 +12,27 @@
 #include <unistd.h>
 #include "logsum.h"
 
-//double realtime0 = 0;
 float flogsum_lookup[p7_LOGSUM_TBL]; //todo : get rid of global vars
 
 static struct option long_options[] = {
-    {"reads", required_argument, 0, 'r'},          //0
-    {"bam", required_argument, 0, 'b'},            //1
-    {"genome", required_argument, 0, 'g'},         //2
-    {"threads", required_argument, 0, 't'},        //3
-    {"batchsize", required_argument, 0, 'K'},      //4
-    {"print", no_argument, 0, 'p'},                //5
-    {"aaaaaa", no_argument, 0, 0},                 //6
+    {"reads", required_argument, 0, 'r'},          //0 fastq/fasta read file
+    {"bam", required_argument, 0, 'b'},            //1 sorted bam file
+    {"genome", required_argument, 0, 'g'},         //2 reference genome
+    {"threads", required_argument, 0, 't'},        //3 number of threads
+    {"batchsize", required_argument, 0, 'K'},      //4 batchsize - number of reads loaded at once
+    {"print", no_argument, 0, 'p'},                //5 prints raw signal (used for debugging)
+    {"verbose", no_argument, 0, 'v'},              //6 verbosity level
     {"help", no_argument, 0, 'h'},                 //7
     {"version", no_argument, 0, 'V'},              //8
-    {"min-mapq", required_argument, 0, 0},         //9
-    {"secondary", required_argument, 0, 0},        //10
-    {"kmer-model", required_argument, 0, 0},       //11
+    {"min-mapq", required_argument, 0, 0},         //9 consider only reads with MAPQ>=min-mapq 
+    {"secondary", required_argument, 0, 0},        //10 consider secondary alignments or not
+    {"kmer-model", required_argument, 0, 0},       //11 custom k-mer model file (used for debugging)
     {"skip-unreadable", required_argument, 0, 0},  //12
     {"print-events", required_argument, 0, 0},     //13
     {"print-banded-aln", required_argument, 0, 0}, //14
     {"print-scaling", required_argument, 0, 0},    //15
     {"print-raw", required_argument, 0, 0},        //16
-    {"disable-cuda", required_argument, 0, 0},     //17
+    {"disable-cuda", required_argument, 0, 0},     //17 disable running on CUDA (only if compiled for CUDA)
     {"cuda-block-size",required_argument, 0, 0},   //18
     {"debug-break",required_argument, 0, 0},   //19
     {0, 0, 0, 0}};
@@ -73,6 +72,7 @@ static inline int64_t mm_parse_num(const char* str) //taken from minimap2
     return (int64_t)(x + .499);
 }
 
+//parse yes or no arguments
 static inline void yes_or_no(opt_t* opt, uint64_t flag, int long_idx,
                              const char* arg,
                              int yes_to_set) //taken from minimap2
@@ -150,13 +150,15 @@ int main(int argc, char* argv[]) {
 
     signal(SIGSEGV, sig_handler);
 
-    const char* optstring = "r:b:g:t:K:hvp";
+    const char* optstring = "r:b:g:t:K:v:hVp";
     int longindex = 0;
     int32_t c = -1;
 
     char* bamfilename = NULL;
     char* fastafile = NULL;
     char* fastqfile = NULL;
+
+    FILE *fp_help = stderr;
 
     opt_t opt;
     init_opt(&opt);
@@ -185,7 +187,18 @@ int main(int argc, char* argv[]) {
                       opt.num_thread);
                 exit(EXIT_FAILURE);
             }
-        } else if (c == 0 && longindex == 9) {
+        }
+        else if (c=='v'){
+            opt.verbosity = atoi(optarg);
+        }
+        else if (c=='V'){
+            fprintf(stderr,"F5C %s\n",F5C_VERSION);
+        }
+        else if (c=='h'){
+            fp_help = stdout;
+        }
+
+        else if (c == 0 && longindex == 9) {
             opt.min_mapq =
                 atoi(optarg); //check whether this is between 0 and 60
         } else if (c == 0 && longindex == 10) { //consider secondary
