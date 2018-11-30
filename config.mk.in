@@ -4,8 +4,8 @@ LIBS = @LIBS@
 LDFLAGS = @LDFLAGS@
 CPPFLAGS = @CPPFLAGS@
 
-HDF5 = @hdf_git_install@
-HTS = @hts_git_install@
+HDF5 = @hdf_tar_install@
+HTS = @hts_tar_install@
 
 ifeq "locallibhts-@locallibhts@" "locallibhts-yes"
 
