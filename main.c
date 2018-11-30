@@ -12,31 +12,47 @@
 #include <unistd.h>
 #include "logsum.h"
 
+/* Input/processing/output interleave framework : 
+unless IO_PROC_NO_INTERLEAVE is set input, processing and output are interleaved
+main thread 
+1. allocates and loads a databatch
+2. create `pthread_processor` thread which will perform the processing 
+(note that `pthread_processor` is the process-controller that will spawn user specified number of processing threads)
+3. create the `pthread_post_processor` thread that will print the output and free the databatch one the `pthread_processor` is done
+4. allocates and load another databatch
+5. wait till the previous `pthread_processor` is done and perform 2
+6. wait till the previous `pthread_post_processor` is done and perform 3
+7. goto 4 untill all the input is processed
+*/
+
+
+//fast logsum data structure
 float flogsum_lookup[p7_LOGSUM_TBL]; //todo : get rid of global vars
 
 static struct option long_options[] = {
     {"reads", required_argument, 0, 'r'},          //0 fastq/fasta read file
     {"bam", required_argument, 0, 'b'},            //1 sorted bam file
     {"genome", required_argument, 0, 'g'},         //2 reference genome
-    {"threads", required_argument, 0, 't'},        //3 number of threads
-    {"batchsize", required_argument, 0, 'K'},      //4 batchsize - number of reads loaded at once
+    {"threads", required_argument, 0, 't'},        //3 number of threads [8]
+    {"batchsize", required_argument, 0, 'K'},      //4 batchsize - number of reads loaded at once [512]
     {"print", no_argument, 0, 'p'},                //5 prints raw signal (used for debugging)
-    {"verbose", no_argument, 0, 'v'},              //6 verbosity level
+    {"verbose", no_argument, 0, 'v'},              //6 verbosity level [1]
     {"help", no_argument, 0, 'h'},                 //7
     {"version", no_argument, 0, 'V'},              //8
-    {"min-mapq", required_argument, 0, 0},         //9 consider only reads with MAPQ>=min-mapq 
-    {"secondary", required_argument, 0, 0},        //10 consider secondary alignments or not
+    {"min-mapq", required_argument, 0, 0},         //9 consider only reads with MAPQ>=min-mapq [30] 
+    {"secondary", required_argument, 0, 0},        //10 consider secondary alignments or not [yes]
     {"kmer-model", required_argument, 0, 0},       //11 custom k-mer model file (used for debugging)
-    {"skip-unreadable", required_argument, 0, 0},  //12
-    {"print-events", required_argument, 0, 0},     //13
-    {"print-banded-aln", required_argument, 0, 0}, //14
-    {"print-scaling", required_argument, 0, 0},    //15
-    {"print-raw", required_argument, 0, 0},        //16
-    {"disable-cuda", required_argument, 0, 0},     //17 disable running on CUDA (only if compiled for CUDA)
-    {"cuda-block-size",required_argument, 0, 0},   //18
-    {"debug-break",required_argument, 0, 0},   //19
+    {"skip-unreadable", required_argument, 0, 0},  //12 skip any unreadable fast5 or terminate program [yes]
+    {"print-events", required_argument, 0, 0},     //13 prints the event table (used for debugging)
+    {"print-banded-aln", required_argument, 0, 0}, //14 prints the event alignment (used for debugging)
+    {"print-scaling", required_argument, 0, 0},    //15 prints the estimated scalings (used for debugging)
+    {"print-raw", required_argument, 0, 0},        //16 prints the raw signal (used for debugging)
+    {"disable-cuda", required_argument, 0, 0},     //17 disable running on CUDA [no] (only if compiled for CUDA)
+    {"cuda-block-size",required_argument, 0, 0},   //18 
+    {"debug-break",required_argument, 0, 0},       //19 break after processing the first batch (used for debugging)
     {0, 0, 0, 0}};
 
+//make the segmentation faults a bit cool
 void sig_handler(int sig) {
 #ifdef HAVE_EXECINFO_H   
     void* array[100];
@@ -99,44 +115,52 @@ static inline void yes_or_no(opt_t* opt, uint64_t flag, int long_idx,
 }
 
 
-
+//function that processes a databatch - for pthreads when I/O and processing are interleaved
 void* pthread_processor(void* voidargs) {
     pthread_arg2_t* args = (pthread_arg2_t*)voidargs;
     db_t* db = args->db;
     core_t* core = args->core;
     double realtime0=core->realtime0;
 
+    //process
     process_db(core, db);
 
     fprintf(stderr, "[%s::%.3f*%.2f] %d Entries processed\n", __func__,
                 realtime() - realtime0, cputime() / (realtime() - realtime0),
                 db->n_bam_rec);
 
-    //need to say that we processed stuff
+    //need to inform the output thread that we completed the processing
     pthread_mutex_lock(&args->mutex);
     pthread_cond_signal(&args->cond);
     pthread_mutex_unlock(&args->mutex); 
 
-    fprintf(stderr, "[%s::%.3f*%.2f] Signal sent!\n", __func__,
+    if(core->opt.verbosity > 1){
+        fprintf(stderr, "[%s::%.3f*%.2f] Signal sent!\n", __func__,
                 realtime() - realtime0, cputime() / (realtime() - realtime0));
+    }
 
     pthread_exit(0);
 }
 
 
+//function that prints the output and free - for pthreads when I/O and processing are interleaved
 void* pthread_post_processor(void* voidargs){
     pthread_arg2_t* args = (pthread_arg2_t*)voidargs;
     db_t* db = args->db;
     core_t* core = args->core;
     double realtime0=core->realtime0;
 
+    //wait until the processing thread has informed us
     pthread_mutex_lock(&args->mutex);
     pthread_cond_wait(&args->cond, &args->mutex);
     pthread_mutex_unlock(&args->mutex);
 
-    fprintf(stderr, "[%s::%.3f*%.2f] Signal got!\n", __func__,
+    if(core->opt.verbosity > 1){
+        fprintf(stderr, "[%s::%.3f*%.2f] Signal got!\n", __func__,
                 realtime() - realtime0, cputime() / (realtime() - realtime0));
+    }
 
+    //output and free
     output_db(core, db);
     free_db_tmp(db);
     free_db(db);    
@@ -159,10 +183,11 @@ int main(int argc, char* argv[]) {
     char* fastqfile = NULL;
 
     FILE *fp_help = stderr;
-
+    
     opt_t opt;
-    init_opt(&opt);
+    init_opt(&opt); //initialise options to defaults
 
+    //parse the user args
     while ((c = getopt_long(argc, argv, optstring, long_options, &longindex)) >=
            0) {
         if (c == 'r') {
@@ -193,17 +218,17 @@ int main(int argc, char* argv[]) {
         }
         else if (c=='V'){
             fprintf(stderr,"F5C %s\n",F5C_VERSION);
+            exit(EXIT_SUCCESS);
         }
         else if (c=='h'){
             fp_help = stdout;
         }
-
         else if (c == 0 && longindex == 9) {
             opt.min_mapq =
-                atoi(optarg); //check whether this is between 0 and 60
-        } else if (c == 0 && longindex == 10) { //consider secondary
+                atoi(optarg); //todo : check whether this is between 0 and 60
+        } else if (c == 0 && longindex == 10) { //consider secondary mappings or not
             yes_or_no(&opt, F5C_SECONDARY_YES, longindex, optarg, 1);
-        } else if (c == 0 && longindex == 11) {
+        } else if (c == 0 && longindex == 11) { //custom model file
             opt.model_file = optarg;
         } else if (c == 0 && longindex == 12) {
             yes_or_no(&opt, F5C_SKIP_UNREADABLE, longindex, optarg, 1);
@@ -230,53 +255,98 @@ int main(int argc, char* argv[]) {
 
     }
 
-    if (fastqfile == NULL || bamfilename == NULL || fastafile == NULL) {
+    if (fastqfile == NULL || bamfilename == NULL || fastafile == NULL || fp_help == stdout) {
         fprintf(
-            stderr,
+            fp_help,
             "Usage: %s [OPTIONS] -r reads.fa -b alignments.bam -g genome.fa\n",
             argv[0]);
+        fprintf(fp_help,"   -r FILE                 fastq/fasta read file\n");
+        fprintf(fp_help,"   -b FILE                 sorted bam file\n");
+        fprintf(fp_help,"   -g FILE                 reference genome\n");
+        fprintf(fp_help,"   -t INT                  number of threads [%d]\n",opt.num_thread);
+        fprintf(fp_help,"   -K INT                  batch size (number of reads loaded at once) [%d]\n",opt.batch_size);
+        fprintf(fp_help,"   -h                      help\n");
+        fprintf(fp_help,"   --min-mapq INT          minimum mapping quality [%d]\n",opt.min_mapq);
+        fprintf(fp_help,"   --secondary             consider secondary mappings or not [%s]\n",(opt.flag&F5C_SECONDARY_YES)?"yes":"no");
+        fprintf(fp_help,"   --skip-unreadable       skip any unreadable fast5 or terminate program [%s]\n",(opt.flag&F5C_SKIP_UNREADABLE?"yes":"no"));
+        fprintf(fp_help,"   --verbose INT           verbosity level [%d]\n",opt.verbosity);
+        fprintf(fp_help,"   --version               print version\n");
+#ifdef HAVE_CUDA
+        fprintf(fp_help,"   --disable-cuda          disable running on CUDA [no] (only if compiled for CUDA)\n");
+        fprintf(fp_help,"   --cuda-block-size\n");
+#endif	 
+
+
+        fprintf(fp_help,"debug options:\n");
+        fprintf(fp_help,"   --kmer-model FILE       custom k-mer model file (used for debugging)\n");
+        fprintf(fp_help,"   --print-events          prints the event table (used for debugging)\n");
+        fprintf(fp_help,"   --print-banded-aln      prints the event alignment (used for debugging)\n");
+        fprintf(fp_help,"   --print-scaling         prints the estimated scalings (used for debugging)\n");
+        fprintf(fp_help,"   --print-raw             prints the raw signal (used for debugging)\n"); 
+        fprintf(fp_help,"   --debug-break           break after processing the first batch (used for debugging)\n"); 
+
+        if(fp_help == stdout){
+            exit(EXIT_SUCCESS);
+        }    
         exit(EXIT_FAILURE);
     }
 
+    //initialise the core data structure
     core_t* core = init_core(bamfilename, fastafile, fastqfile, opt,realtime0);
 
     #ifdef ESL_LOG_SUM
         p7_FLogsumInit();
     #endif
 
- #ifndef IO_PROC_INTERLEAVE   
+
+ #ifdef IO_PROC_NO_INTERLEAVE   //If input, processing and output are not interleaved (serial mode)
+
+    //initialise a databatch
     db_t* db = init_db(core);
 
     int32_t status = db->capacity_bam_rec;
     while (status >= db->capacity_bam_rec) {
+
+        //load a databatch
         status = load_db(core, db);
 
         fprintf(stderr, "[%s::%.3f*%.2f] %d Entries loaded\n", __func__,
                 realtime() - realtime0, cputime() / (realtime() - realtime0),
                 status);
 
+        //process a databatch
         process_db(core, db);
 
         fprintf(stderr, "[%s::%.3f*%.2f] %d Entries processed\n", __func__,
                 realtime() - realtime0, cputime() / (realtime() - realtime0),
                 status);
+
+        //output print        
         output_db(core, db);
+
+        //free temporary 
         free_db_tmp(db);
+        
         if(opt.flag & F5C_DEBUG_BRK){
             break;
         }
     }
+
+    //free the databatch
     free_db(db);
 
-#else
+#else   //input, processing and output are interleaved (default)
+
     int32_t status = core->opt.batch_size;
     int8_t first_flag_p=0;
     int8_t first_flag_pp=0;
-    pthread_t tid_p;
-    pthread_t tid_pp;
+    pthread_t tid_p; //process thread
+    pthread_t tid_pp; //post-process thread
 
 
     while (status >= core->opt.batch_size) {
+
+        //init and load a databatch
         db_t* db = init_db(core);
         status = load_db(core, db);
 
@@ -284,63 +354,82 @@ int main(int argc, char* argv[]) {
                 realtime() - realtime0, cputime() / (realtime() - realtime0),
                 status);
 
-        if(first_flag_p){
+        if(first_flag_p){ //if not the first time of the "process" wait for the previous "process"
             int ret = pthread_join(tid_p, NULL);
-            fprintf(stderr, "[%s::%.3f*%.2f] Joined to thread %lu\n", __func__,
+            NEG_CHK(ret);
+            if(opt.verbosity>1){
+                fprintf(stderr, "[%s::%.3f*%.2f] Joined to thread %lu\n", __func__,
                 realtime() - realtime0, cputime() / (realtime() - realtime0),
                 tid_p);
-            NEG_CHK(ret);
+            }
         }
-        first_flag_p=1;
+        first_flag_p=1; 
 
+        //set up args 
         pthread_arg2_t *pt_arg = (pthread_arg2_t*)malloc(sizeof(pthread_arg2_t));
         pt_arg->core=core;
         pt_arg->db=db;
         pt_arg->cond = PTHREAD_COND_INITIALIZER;
         pt_arg->mutex = PTHREAD_MUTEX_INITIALIZER;
+
+        //process thread launch
         int ret = pthread_create(&tid_p, NULL, pthread_processor,
                                 (void*)(pt_arg));
         NEG_CHK(ret);
-        fprintf(stderr, "[%s::%.3f*%.2f] Spawned thread %lu\n", __func__,
+        if(opt.verbosity>1){
+            fprintf(stderr, "[%s::%.3f*%.2f] Spawned thread %lu\n", __func__,
                 realtime() - realtime0, cputime() / (realtime() - realtime0),
                 tid_p);
+        }
 
-        if(first_flag_pp){
+        if(first_flag_pp){ //if not the first time of the post-process wait for the previous post-process
             int ret = pthread_join(tid_pp, NULL);
-            fprintf(stderr, "[%s::%.3f*%.2f] Joined to thread %lu\n", __func__,
+            NEG_CHK(ret);
+            if(opt.verbosity>1){
+                fprintf(stderr, "[%s::%.3f*%.2f] Joined to thread %lu\n", __func__,
                 realtime() - realtime0, cputime() / (realtime() - realtime0),
                 tid_pp);
-            NEG_CHK(ret);
+            }
         }
         first_flag_pp=1;
 
-
+        //post-process thread launch (output and freeing thread)
         ret = pthread_create(&tid_pp, NULL, pthread_post_processor,
                                 (void*)(pt_arg));
         NEG_CHK(ret);
-        fprintf(stderr, "[%s::%.3f*%.2f] Spawned thread %lu\n", __func__,
+        if(opt.verbosity>1){
+            fprintf(stderr, "[%s::%.3f*%.2f] Spawned thread %lu\n", __func__,
                 realtime() - realtime0, cputime() / (realtime() - realtime0),
                 tid_pp);
+        }
 
         if(opt.flag & F5C_DEBUG_BRK){
             break;
         }
     }
+
+    //final round
     int ret = pthread_join(tid_p, NULL);
     NEG_CHK(ret);
-    fprintf(stderr, "[%s::%.3f*%.2f] Joined to thread %lu\n", __func__,
+    if(opt.verbosity>1){
+        fprintf(stderr, "[%s::%.3f*%.2f] Joined to thread %lu\n", __func__,
                 realtime() - realtime0, cputime() / (realtime() - realtime0),
                 tid_p);
+    }
     ret = pthread_join(tid_pp, NULL);
     NEG_CHK(ret);
+    if(opt.verbosity>1){
     fprintf(stderr, "[%s::%.3f*%.2f] Joined to thread %lu\n", __func__,
                 realtime() - realtime0, cputime() / (realtime() - realtime0),
                 tid_pp);
+    }
 
 
 #endif
 
 
+    // fprintf(stderr, "[post-run summary] total reads: %d, unparseable: %d, qc fail: %d, could not calibrate: %d, no alignment: %d, bad fast5: %d\n", 
+    //         g_total_reads, g_unparseable_reads, g_qc_fail_reads, g_failed_calibration_reads, g_failed_alignment_reads, g_bad_fast5_file);
     fprintf(stderr, "[%s] CMD:", __func__);
     for (int i = 0; i < argc; ++i) {
         fprintf(stderr, " %s", argv[i]);
@@ -380,17 +469,10 @@ int main(int argc, char* argv[]) {
 
 #endif
 
+    //free the core data structure
     free_core(core);
     fprintf(stderr, "\n[%s] Real time: %.3f sec; CPU time: %.3f sec\n",
             __func__, realtime() - realtime0, cputime());
-    // }
-
-    // else {
-    // fprintf(stderr,"Usage: %s [OPTIONS] -r reads.fa -b alignments.bam -g
-    // genome.fa\n",argv[0]);
-    // exit(EXIT_FAILURE);
-    // }
-
 
     return 0;
 }

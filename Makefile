@@ -1,5 +1,5 @@
 CC       = g++
-CFLAGS   = -g -rdynamic -Wall -O2 -std=c++11 
+CFLAGS   += -g -rdynamic -Wall -O2 -std=c++11 
 
 -include config.mk
 
