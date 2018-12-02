@@ -81,8 +81,10 @@ gpucode.o: $(OBJ_CUDA)
 %_cuda.o: %.cu $(DEPS_CUDA)
 	$(CC_CUDA) -x cu $(CFLAGS_CUDA) $(CPPFLAGS) $(HDF5_INC) $(HTS_INC) -rdc=true -c $< -o $@
 
-external/htslib:
-	mkdir -p external
+external:
+	mkdir -p $@
+
+external/htslib: external
 	@if command -v curl; then \
 		curl -o $@.tar.bz2 -L https://github.com/samtools/htslib/releases/download/$(HTS_VERSION)/htslib-$(HTS_VERSION).tar.bz2; \
 	else \
@@ -92,8 +94,7 @@ external/htslib:
 	mv external/htslib-$(HTS_VERSION) $@
 	$(RM) $@.tar.bz2
 
-external/hdf5:
-	mkdir -p external
+external/hdf5: external
 	@if command -v curl; then \
 		curl -o $@.tar.bz2 https://support.hdfgroup.org/ftp/HDF5/releases/hdf5-$(shell echo $(HDF5_VERSION) | awk -F. '{print $$1"."$$2}')/hdf5-$(HDF5_VERSION)/src/hdf5-$(HDF5_VERSION).tar.bz2; \
 	else \
