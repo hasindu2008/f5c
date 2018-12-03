@@ -1,5 +1,11 @@
 language: cpp
-compiler: g++
+os: linux
+dist: 
+    - trusty
+    - xenial
+compiler: 
+    - g++
+    - clang++ 
 before_install: sudo apt-get install libhdf5-dev zlib1g-dev -y
 script: autoreconf && ./scripts/install-hts.sh && ./configure && make && make test
 
