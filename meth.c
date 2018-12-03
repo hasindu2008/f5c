@@ -444,7 +444,7 @@ bool find_iter_by_ref_bounds(const AlignedSegment pairs,
     *start_iter = aligned_pair_lower_bound(pairs, 0, kv_size(pairs), ref_start);
     *stop_iter = aligned_pair_lower_bound(pairs, 0, kv_size(pairs), ref_stop);
 
-    if (*start_iter == kv_size(pairs) || *stop_iter == kv_size(pairs))
+    if ((size_t)*start_iter == kv_size(pairs) || (size_t)*stop_iter == kv_size(pairs))
         return false;
 
     // require at least one aligned reference base at or outside the boundary
@@ -454,7 +454,7 @@ bool find_iter_by_ref_bounds(const AlignedSegment pairs,
 
     bool right_bounded =
         kv_A(pairs, *stop_iter).ref_pos >= ref_stop ||
-        (*stop_iter != kv_size(pairs) && kv_A(pairs, *stop_iter + 1).ref_pos >= ref_start);
+        ((size_t)*stop_iter != kv_size(pairs) && kv_A(pairs, *stop_iter + 1).ref_pos >= ref_start);
 
     return left_bounded && right_bounded;
 }
