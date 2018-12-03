@@ -18,15 +18,15 @@ for file in "${bamdir}" "${fadir}" "${fastqdir}"; do
 done
 
 if [[ "${#}" -eq 0 ]]; then
-    #"${exepath}" -b "${bamdir}" -g "${fadir}" -r "${fastqdir}" 
-	echo "${exepath}" call-methylation -t 1 -r "$fastqdir" -b "${bamdir}" -g "${fadir}"
-    "${exepath}" call-methylation -t 1 -r "$fastqdir" -b "${bamdir}" -g "${fadir}"
+    #"${exepath}" call-methylation -b "${bamdir}" -g "${fadir}" -r "${fastqdir}" 
+	echo "${exepath}" call-methylation call-methylation -t 1 -r "$fastqdir" -b "${bamdir}" -g "${fadir}"
+    "${exepath}" call-methylation call-methylation -t 1 -r "$fastqdir" -b "${bamdir}" -g "${fadir}"
 
 elif [[ "${#}" -eq 1 ]]; then
     if [[ "${1}" == "valgrind" ]]; then
-        valgrind "${exepath}" -b "${bamdir}" -g "${fadir}" -r "${fastqdir}"
+        valgrind "${exepath}" call-methylation -b "${bamdir}" -g "${fadir}" -r "${fastqdir}"
     elif [[ "${1}" == "gdb" ]]; then
-        gdb --args "${exepath}" -b "${bamdir}" -g "${fadir}" -r "${fastqdir}"
+        gdb --args "${exepath}" call-methylation -b "${bamdir}" -g "${fadir}" -r "${fastqdir}"
     else
         echo "wrong option"
 		exit 1

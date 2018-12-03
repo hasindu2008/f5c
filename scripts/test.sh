@@ -19,7 +19,7 @@ for file in "${bamfile}" "${ref}" "${reads}"; do
 done
 
 if [[ "${#}" -eq 0 ]]; then
-    "${exepath}" -b "${bamfile}" -g "${ref}" -r "${reads}" --secondary=yes --min-mapq=0 > ${testdir}/result.txt
+    "${exepath}" call-methylation -b "${bamfile}" -g "${ref}" -r "${reads}" --secondary=yes --min-mapq=0 > ${testdir}/result.txt
 	awk '{print $1,$2,$3,$4,$8,$9,$10}' ${testdir}/result.txt > ${testdir}/result_exact.txt
 	awk '{print $1,$2,$3,$4,$8,$9,$10}' ${testdir}/meth.exp > ${testdir}/meth_exact.txt
 	diff -q ${testdir}/meth_exact.txt ${testdir}/result_exact.txt  || die "diff ${testdir}/result_exact.txt ${testdir}/meth_exact.txt failed" 
@@ -38,11 +38,11 @@ if [[ "${#}" -eq 0 ]]; then
 		' > ${testdir}/floatdiff.txt || die "${file}: Validation failed" 
 elif [[ "${#}" -eq 1 ]]; then
     if [[ "${1}" == "valgrind" ]]; then
-        valgrind "${exepath}" -b "${bamfile}" -g "${ref}" -r "${reads}" --secondary=yes --min-mapq=0
+        valgrind "${exepath}" call-methylation -b "${bamfile}" -g "${ref}" -r "${reads}" --secondary=yes --min-mapq=0
     elif [[ "${1}" == "gdb" ]]; then
-        gdb --args "${exepath}" -b "${bamfile}" -g "${ref}" -r "${reads}" --secondary=yes --min-mapq=0
+        gdb --args "${exepath}" call-methylation -b "${bamfile}" -g "${ref}" -r "${reads}" --secondary=yes --min-mapq=0
     elif [[ "${1}" == "echo" ]]; then 
-		echo "${exepath}" -b "${bamfile}" -g "${ref}" -r "${reads}" --secondary=yes --min-mapq=0 --print-scaling=yes ">" ${testdir}/result.txt
+		echo "${exepath}" call-methylation -b "${bamfile}" -g "${ref}" -r "${reads}" --secondary=yes --min-mapq=0 --print-scaling=yes ">" ${testdir}/result.txt
 	else
         echo "wrong option"
 		exit 1

@@ -56,12 +56,12 @@ done
 
 echo "Default test"
 make clean && make
-"${exepath}" -b "${bamfile}" -g "${ref}" -r "${reads}" -t "${NCPU}"  -K256 -v5 > ${testdir}/result.txt
+"${exepath}" call-methylation -b "${bamfile}" -g "${ref}" -r "${reads}" -t "${NCPU}"  -K256 -v5 > ${testdir}/result.txt
 evaluate
 
 echo "NO IO PROC INTERLEAVE test"
 make clean &&  CFLAGS+="-DIO_PROC_NO_INTERLEAVE=1" make
-"${exepath}" -b "${bamfile}" -g "${ref}" -r "${reads}" -t "${NCPU}"  -K256 -v5 > ${testdir}/result.txt
+"${exepath}" call-methylation -b "${bamfile}" -g "${ref}" -r "${reads}" -t "${NCPU}"  -K256 -v5 > ${testdir}/result.txt
 evaluate
 
 

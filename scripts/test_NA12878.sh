@@ -39,8 +39,8 @@ for file in "${bamfile}" "${ref}" "${reads}"; do
 done
 
 if [[ "${#}" -eq 0 ]]; then
-	echo "${exepath}" -b "${bamfile}" -g "${ref}" -r "${reads}" -t "${NCPU}"  -K256 ">" ${testdir}/result.txt
-	"${exepath}" -b "${bamfile}" -g "${ref}" -r "${reads}" -t "${NCPU}"  -K256 > ${testdir}/result.txt
+	echo "${exepath}" call-methylation -b "${bamfile}" -g "${ref}" -r "${reads}" -t "${NCPU}"  -K256 ">" ${testdir}/result.txt
+	"${exepath}" call-methylation -b "${bamfile}" -g "${ref}" -r "${reads}" -t "${NCPU}"  -K256 > ${testdir}/result.txt
 	# grep -w "chr20" ${testdir}/result.txt | awk '{print $1,$2,$3,$4,$8,$9,$10}' > ${testdir}/result_exact.txt
 	# grep -w "chr20" ${testdir}/meth.exp | awk '{print $1,$2,$3,$4,$8,$9,$10}' > ${testdir}/meth_exact.txt
 	# diff -q ${testdir}/meth_exact.txt ${testdir}/result_exact.txt  || die "diff ${testdir}/result_exact.txt ${testdir}/meth_exact.txt failed" 
@@ -60,15 +60,15 @@ if [[ "${#}" -eq 0 ]]; then
 
 elif [[ "${#}" -eq 1 ]]; then
 	if [[ "${1}" == "valgrind" ]]; then
-		valgrind "${exepath}" -b "${bamfile}" -g "${ref}" -r "${reads}"
+		valgrind "${exepath}" call-methylation -b "${bamfile}" -g "${ref}" -r "${reads}"
 	elif [[ "${1}" == "gdb" ]]; then
-		gdb --args "${exepath}" -b "${bamfile}" -g "${ref}" -r "${reads}"
+		gdb --args "${exepath}" call-methylation -b "${bamfile}" -g "${ref}" -r "${reads}"
 	elif [[ "${1}" == "cpu" ]]; then
-		"${exepath}" -b "${bamfile}" -g "${ref}" -r "${reads}" -t "${NCPU}"  --disable-cuda=yes > result.txt
+		"${exepath}" call-methylation -b "${bamfile}" -g "${ref}" -r "${reads}" -t "${NCPU}"  --disable-cuda=yes > result.txt
 	elif [[ "${1}" == "cuda" ]]; then
-		"${exepath}" -b "${bamfile}" -g "${ref}" -r "${reads}" -t "${NCPU}"  --disable-cuda=no > result.txt
+		"${exepath}" call-methylation -b "${bamfile}" -g "${ref}" -r "${reads}" -t "${NCPU}"  --disable-cuda=no > result.txt
 	elif [[ "${1}" == "echo" ]]; then
-		"${exepath}" -b "${bamfile}" -g "${ref}" -r "${reads}" -t "${NCPU}"  ">" result.txt
+		"${exepath}" call-methylation -b "${bamfile}" -g "${ref}" -r "${reads}" -t "${NCPU}"  ">" result.txt
 	else
 		echo "wrong option"
 		exit 1
