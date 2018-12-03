@@ -1,8 +1,5 @@
 language: cpp
 os: linux
-dist: 
-    - trusty
-    - xenial
 compiler: 
     - g++
     - clang++ 
