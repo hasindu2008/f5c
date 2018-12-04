@@ -10,17 +10,18 @@ f5c - a faster implementation of Nanopolish call-methylation
 .P
 .SH DESCRIPTION
 .P
-f5c does amazing things!
+An optimised re-implementation of the call-methylation module in Nanopolish. Given a set of basecalled Nanopore reads with signal level information, f5c detects the methylated cytosine bases.
 .P
 .SH COMMANDS
+.P
 \fBindex\fR
 .RS 4
-same as the \fINanopolish index\fR command
+Build an index mapping from basecalled reads to the signals measured by the sequencer. Same as the \fINanopolish index\fR command.
 .P
 .RE
 \fBcall-methylation\fR
 .RS 4
-same as the \fINanopolish call-methylation\fR command
+Classify nucleotides as methylated or not. Same as the \fINanopolish call-methylation\fR command.
 .P
 .RE
 .SH INDEX OPTIONS
