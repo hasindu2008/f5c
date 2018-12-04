@@ -70,4 +70,3 @@ autom4te.cache
 /hdf5
 /.vscode
 build/
-external/
