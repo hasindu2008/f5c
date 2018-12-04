@@ -81,34 +81,32 @@ gpucode.o: $(OBJ_CUDA)
 %_cuda.o: %.cu $(DEPS_CUDA)
 	$(CC_CUDA) -x cu $(CFLAGS_CUDA) $(CPPFLAGS) $(HDF5_INC) $(HTS_INC) -rdc=true -c $< -o $@
 
-$(BUILD_DIR)/htslib:
+$(BUILD_DIR)/lib/libhts.a:
+	mkdir -p $(BUILD_DIR)
 	@if command -v curl; then \
-		curl -o $@.tar.bz2 -L https://github.com/samtools/htslib/releases/download/$(HTS_VERSION)/htslib-$(HTS_VERSION).tar.bz2; \
+		curl -o $(BUILD_DIR)/htslib.tar.bz2 -L https://github.com/samtools/htslib/releases/download/$(HTS_VERSION)/htslib-$(HTS_VERSION).tar.bz2; \
 	else \
-		wget -O $@.tar.bz2 https://github.com/samtools/htslib/releases/download/$(HTS_VERSION)/htslib-$(HTS_VERSION).tar.bz2; \
+		wget -O $(BUILD_DIR)/htslib.tar.bz2 https://github.com/samtools/htslib/releases/download/$(HTS_VERSION)/htslib-$(HTS_VERSION).tar.bz2; \
 	fi
-	tar -xf $@.tar.bz2 -C $(BUILD_DIR)
-	mv $@-$(HTS_VERSION) $@
-	$(RM) $@.tar.bz2
-
-$(BUILD_DIR)/hdf5:
-	@if command -v curl; then \
-		curl -o $@.tar.bz2 https://support.hdfgroup.org/ftp/HDF5/releases/hdf5-$(shell echo $(HDF5_VERSION) | awk -F. '{print $$1"."$$2}')/hdf5-$(HDF5_VERSION)/src/hdf5-$(HDF5_VERSION).tar.bz2; \
-	else \
-		wget -O $@.tar.bz2 https://support.hdfgroup.org/ftp/HDF5/releases/hdf5-$(shell echo $(HDF5_VERSION) | awk -F. '{print $$1"."$$2}')/hdf5-$(HDF5_VERSION)/src/hdf5-$(HDF5_VERSION).tar.bz2; \
-	fi
-	tar -xf $@.tar.bz2 -C $(BUILD_DIR)
-	mv $@-$(HDF5_VERSION) $@
-	$(RM) $@.tar.bz2
-
-$(BUILD_DIR)/lib/libhts.a: $(BUILD_DIR)/htslib
-	cd $< && \
+	tar -xf $(BUILD_DIR)/htslib.tar.bz2 -C $(BUILD_DIR)
+	mv $(BUILD_DIR)/htslib-$(HTS_VERSION) $(BUILD_DIR)/htslib
+	$(RM) $(BUILD_DIR)/htslib.tar.bz2
+	cd $(BUILD_DIR)/htslib && \
 	./configure --prefix=$(BUILD_DIR) --enable-bz2=no --enable-lzma=no --with-libdeflate=no --enable-libcurl=no  --enable-gcs=no --enable-s3=no && \
 	make -j8 && \
 	make install
 
-$(BUILD_DIR)/lib/libhdf5.a: $(BUILD_DIR)/hdf5
-	cd $< && \
+$(BUILD_DIR)/lib/libhdf5.a:
+	mkdir -p $(BUILD_DIR)
+	@if command -v curl; then \
+		curl -o $(BUILD_DIR)/hdf5.tar.bz2 https://support.hdfgroup.org/ftp/HDF5/releases/hdf5-$(shell echo $(HDF5_VERSION) | awk -F. '{print $$1"."$$2}')/hdf5-$(HDF5_VERSION)/src/hdf5-$(HDF5_VERSION).tar.bz2; \
+	else \
+		wget -O $(BUILD_DIR)/hdf5.tar.bz2 https://support.hdfgroup.org/ftp/HDF5/releases/hdf5-$(shell echo $(HDF5_VERSION) | awk -F. '{print $$1"."$$2}')/hdf5-$(HDF5_VERSION)/src/hdf5-$(HDF5_VERSION).tar.bz2; \
+	fi
+	tar -xf $(BUILD_DIR)/hdf5.tar.bz2 -C $(BUILD_DIR)
+	mv $(BUILD_DIR)/hdf5-$(HDF5_VERSION) $(BUILD_DIR)/hdf5
+	$(RM) $(BUILD_DIR)/hdf5.tar.bz2
+	cd $(BUILD_DIR)/hdf5 && \
 	./configure --prefix=$(BUILD_DIR) && \
 	make -j8 && \
 	make install
