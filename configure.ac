@@ -71,9 +71,8 @@ is installed.
 ])
 fi
 
-#disable git submodule based install
-hdf_git_install=autoconf
-hts_git_install=autoconf
+hdf_tar_install=autoconf
+hts_tar_install=autoconf
 
 locallibhts=no
 if test "$enable_systemhts" = yes; then
@@ -137,8 +136,8 @@ fi
 
 AC_SUBST([locallibhts])
 AC_SUBST([locallibhdf5])
-AC_SUBST([hdf_git_install])
-AC_SUBST([hts_git_install])
+AC_SUBST([hdf_tar_install])
+AC_SUBST([hts_tar_install])
 
 
 
