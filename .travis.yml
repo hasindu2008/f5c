@@ -17,7 +17,7 @@ matrix:
       os: linux
       dist: xenial
       before_install: sudo apt-get install zlib1g-dev -y
-      script: ./scripts/bootstrap.sh && ./configure && make && make test
+      script: autoreconf && ./scripts/install-hdf5.sh 2> /dev/null &&./scripts/install-hts.sh && ./configure --enable-localhdf5 && make && make test
     - language: cpp
       compiler: g++
       os: linux
