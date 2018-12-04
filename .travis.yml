@@ -27,4 +27,9 @@ matrix:
     - language: cpp
       compiler: g++
       os: osx
+      before_install: brew install hdf5
+      script: autoreconf && ./scripts/install-hts.sh && ./configure && make && make test              
+    - language: cpp
+      compiler: g++
+      os: osx
       script: make && make test           
