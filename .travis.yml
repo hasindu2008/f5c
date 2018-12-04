@@ -12,3 +12,19 @@ matrix:
       dist: xenial
       before_install: sudo apt-get install libhdf5-dev zlib1g-dev -y
       script: autoreconf && ./scripts/install-hts.sh && ./configure && make && make test
+    - language: cpp
+      compiler: g++
+      os: linux
+      dist: xenial
+      before_install: sudo apt-get install zlib1g-dev -y
+      script: ./scripts/bootstrap.sh && ./configure && make && make test
+    - language: cpp
+      compiler: g++
+      os: linux
+      dist: xenial
+      before_install: sudo apt-get install zlib1g-dev -y
+      script: make && make test
+    - language: cpp
+      compiler: g++
+      os: osx
+      script: make && make test           
