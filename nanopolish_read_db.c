@@ -101,7 +101,7 @@ void ReadDB::load(const std::string& input_reads_filename) {
                 input_reads_filename.c_str());
         fprintf(
             stderr,
-            "Please run nanopolish index on your reads (see documentation)\n");
+            "Please run f5c (or nanopolish) index on your reads (see documentation)\n");
         exit(EXIT_FAILURE);
     }
 }

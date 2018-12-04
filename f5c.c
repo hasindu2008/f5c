@@ -978,5 +978,5 @@ void init_opt(opt_t* opt) {
 #endif
     opt->cuda_block_size=64;   
     opt->flag |= F5C_SKIP_UNREADABLE;
-    opt->flag |= F5C_SECONDARY_YES;
+    //opt->flag |= F5C_SECONDARY_YES;
 }

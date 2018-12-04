@@ -8,36 +8,38 @@
 #include "fast5lite.h"
 #include "nanopolish_read_db.h"
 
-//#define m_min_mapping_quality 30
+#define F5C_VERSION "0.0"
+
 #define KMER_SIZE 6 //hard coded for now; todo : change to dynamic
-#define NUM_KMER 4096
-#define NUM_KMER_METH 15625
+#define NUM_KMER 4096   //num k-mers for 6-mers DNA
+#define NUM_KMER_METH 15625 //number k-mers for 6-mers with methylated C
 //#define HAVE_CUDA 1 //if compile for CUDA or not
 #define ALN_BANDWIDTH 100 // the band size in banded_alignment
 
-//option flags
+//user option related flags
 #define F5C_PRINT_RAW 0x001     //print the raw signal to stdio
 #define F5C_SECONDARY_YES 0x002 //consider secondary reads
 #define F5C_SKIP_UNREADABLE                                                    \
     0x004 //Skip unreadable fast5 and continue rather than exiting
-#define F5C_PRINT_EVENTS 0x008
-#define F5C_PRINT_BANDED_ALN 0x010
-#define F5C_PRINT_SCALING 0x020
-#define F5C_DISABLE_CUDA 0x040
-#define F5C_DEBUG_BRK 0x080
+#define F5C_PRINT_EVENTS 0x008 //print the event table
+#define F5C_PRINT_BANDED_ALN 0x010 //print the event alignment
+#define F5C_PRINT_SCALING 0x020 //print the estimated scalings
+#define F5C_DISABLE_CUDA 0x040 //diable cuda (only when compile for cuda)
+#define F5C_DEBUG_BRK 0x080 //break after the first batch
 
 
-//flags for a read
+//flags for a read status
 #define FAILED_CALIBRATION 0x001 //if the calibration failed
-#define FAILED_ALIGNMENT 0x002
-#define FAILED_QUALITY_CHK  0x004
-//#define FAILED_FAST5  0x008
+#define FAILED_ALIGNMENT 0x002 //if the alignment failed
+#define FAILED_QUALITY_CHK  0x004 //if the quality check failed
+//#define FAILED_FAST5  0x008 //if the fast5 file was unreadable
 
 
 #define WORK_STEAL 1
 #define STEAL_THRESH 5
 
-#define IO_PROC_INTERLEAVE 1
+//set if input, processing and output are not to be interleaved (serial mode) - useful for debugging
+//#define IO_PROC_NO_INTERLEAVE 1 
 #define SECTIONAL_BENCHMARK 1   
 
 //#define ALIGN_2D_ARRAY 1 //for CPU whether to use a 1D array or a 2D array
@@ -48,6 +50,7 @@
 #define ESL_LOG_SUM 1 // the fast log sum for HMM
 
 
+//user options
 typedef struct {
     int32_t min_mapq;       //minimum mapq
     const char* model_file; //name of the model file
@@ -55,9 +58,10 @@ typedef struct {
     int32_t batch_size;
     int32_t num_thread;
     int32_t cuda_block_size;
+    int8_t verbosity;
 } opt_t;
 
-// from scrappie
+// events : from scrappie
 typedef struct {
     uint64_t start;
     float length; //cant be made int
@@ -67,7 +71,7 @@ typedef struct {
     int32_t state; //always -1 can be removed
 } event_t;
 
-// from scrappie
+// events : from scrappie
 typedef struct {
     size_t n;
     size_t start; //always 0
@@ -75,7 +79,7 @@ typedef struct {
     event_t* event;
 } event_table;
 
-//model
+//k-mer model
 typedef struct {
     //char kmer[KMER_SIZE + 1]; //KMER_SIZE+null character //can get rid of this
     float level_mean;
@@ -93,7 +97,7 @@ typedef struct {
 #endif
 } model_t;
 
-//taken from nanopolish
+//scalings : taken from nanopolish
 typedef struct {
     // direct parameters that must be set
     float scale;
@@ -112,7 +116,7 @@ typedef struct {
 
 } scalings_t;
 
-
+//from nanopolish
 typedef struct {
         int event_idx;
         int kmer_idx;
@@ -179,8 +183,7 @@ struct ScoredSite
 };
 
 
-
-
+// a data batch (dynamic data based on the reads)
 typedef struct {
     // region string
     //char* region;
@@ -225,6 +228,7 @@ typedef struct {
     
 } db_t;
 
+//cuda data structure
 #ifdef HAVE_CUDA 
     typedef struct{
     int32_t* event_ptr_host;
@@ -245,6 +249,7 @@ typedef struct {
     } cuda_data_t;
 #endif
 
+//core data structure (mostly static data throughout the program lifetime)
 typedef struct {
     // bam file related
     htsFile* m_bam_fh;
@@ -291,8 +296,7 @@ typedef struct {
 
 } core_t;
 
-
-
+//argument warpper for the multithreading framework
 typedef struct {
     core_t* core;
     db_t* db;

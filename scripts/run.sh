@@ -16,7 +16,7 @@ usage() {
 
 if [[ "${#}" -eq 0 ]]; then
     usage
-elif [[ ! -f "${exepath}" ]]; then
+elif [[ ! -f "${exepath}" call-methylation ]]; then
     #die "f5c must be compiled first"
     echo nothing > /dev/null
 fi
@@ -33,13 +33,13 @@ done
 
 cd "${tstdir}"
 if [[ "${#}" -eq 1 ]]; then
-    "${exepath}" -b "${bamdir}" -g "${fadir}" -r "${fastqdir}" -p
+    "${exepath}" call-methylation -b "${bamdir}" -g "${fadir}" -r "${fastqdir}" -p
 
 elif [[ "${#}" -eq 2 ]]; then
     if [[ "${2}" == "valgrind" ]]; then
-        valgrind "${exepath}" -b "${bamdir}" -g "${fadir}" -r "${fastqdir}"
+        valgrind "${exepath}" call-methylation -b "${bamdir}" -g "${fadir}" -r "${fastqdir}"
     elif [[ "${2}" == "gdb" ]]; then
-        gdb --args "${exepath}" -b "${bamdir}" -g "${fadir}" -r "${fastqdir}"
+        gdb --args "${exepath}" call-methylation -b "${bamdir}" -g "${fadir}" -r "${fastqdir}"
     else
         usage
     fi

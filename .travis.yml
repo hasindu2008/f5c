@@ -1,5 +1,37 @@
-language: cpp
-compiler: g++
-before_install: sudo apt-get install libhdf5-dev zlib1g-dev -y
-script: autoreconf && ./scripts/install-hts.sh && ./configure && make && make test
-
+matrix:
+  include:
+    - language: cpp
+      compiler: g++
+      os: linux
+      dist: trusty
+      before_install: sudo apt-get install libhdf5-dev zlib1g-dev -y
+      script: autoreconf && ./scripts/install-hts.sh && ./configure && make && make test
+    - language: cpp
+      compiler: 
+        - g++
+        - clang++    
+      os: linux
+      dist: xenial
+      before_install: sudo apt-get install libhdf5-dev zlib1g-dev -y
+      script: autoreconf && ./scripts/install-hts.sh && ./configure && make && make test
+    - language: cpp
+      compiler: g++
+      os: linux
+      dist: xenial
+      before_install: sudo apt-get install zlib1g-dev -y
+      script: autoreconf && ./scripts/install-hdf5.sh 2> /dev/null &&./scripts/install-hts.sh && ./configure --enable-localhdf5 && make && make test
+    - language: cpp
+      compiler: g++
+      os: linux
+      dist: xenial
+      before_install: sudo apt-get install zlib1g-dev -y
+      script: make && make test
+    - language: cpp
+      compiler: g++
+      os: osx
+      before_install: brew install hdf5
+      script: autoreconf && ./scripts/install-hts.sh && ./configure && make && make test              
+    - language: cpp
+      compiler: g++
+      os: osx
+      script: make && make test           

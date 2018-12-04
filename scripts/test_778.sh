@@ -21,13 +21,13 @@ for file in "${bamfile}" "${ref}" "${reads}"; do
 done
 
 if [[ "${#}" -eq 0 ]]; then
-    "${exepath}" -b "${bamfile}" -g "${ref}" -r "${reads}" --secondary=yes --min-mapq=0 > ${testdir}/result.txt
+    "${exepath}" call-methylation -b "${bamfile}" -g "${ref}" -r "${reads}" --secondary=yes --min-mapq=0 > ${testdir}/result.txt
 
 elif [[ "${#}" -eq 1 ]]; then
     if [[ "${1}" == "valgrind" ]]; then
-        valgrind "${exepath}" -b "${bamfile}" -g "${ref}" -r "${reads}" --secondary=yes --min-mapq=0
+        valgrind "${exepath}" call-methylation -b "${bamfile}" -g "${ref}" -r "${reads}" --secondary=yes --min-mapq=0
     elif [[ "${1}" == "gdb" ]]; then
-        gdb --args "${exepath}" -b "${bamfile}" -g "${ref}" -r "${reads}" --secondary=yes --min-mapq=0
+        gdb --args "${exepath}" call-methylation -b "${bamfile}" -g "${ref}" -r "${reads}" --secondary=yes --min-mapq=0
     else
         echo "wrong option"
 		exit 1
