@@ -9,7 +9,7 @@ LDFLAGS += $(LIBS) -lpthread -lz
 SRC = main.c meth_main.c f5c.c events.c nanopolish_read_db.c nanopolish_index.c model.c align.c meth.c hmm.c
 OBJ = $(SRC:.c=.o)
 BINARY = f5c
-DEPS = config.h  error.h  f5c.h  f5cmisc.h  fast5lite.h  logsum.h  matrix.h  model.h  nanopolish_read_db.h
+DEPS = config.h  error.h  f5c.h  f5cmisc.h  fast5lite.h  logsum.h  matrix.h  model.h  nanopolish_read_db.h ksort.h
 
 HDF5 ?= install
 HTS ?= install
