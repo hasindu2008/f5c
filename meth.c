@@ -61,10 +61,11 @@ AlignedSegmentVec get_aligned_segments(const bam1_t* record, int read_stride)
             ref_inc = 1;   
         } else if(cigar_op == BAM_CREF_SKIP) {
             // end the current segment and start a new one
-            AlignedSegment tmp;
-            kv_init(tmp);
-            kv_push(AlignedSegment, out, tmp);
-            ref_inc = 1;
+            fprintf(stderr, "Error: spliced alignments detected when loading read %s\n", bam_get_qname(record));
+            fprintf(stderr, "Please align the reads to the genome using a non-spliced aligner\n");
+            kv_destroy(kv_A(out, 0));
+            kv_destroy(out);
+            exit(EXIT_FAILURE);
         } else if(cigar_op == BAM_CINS) {
             read_inc = read_stride;
         } else if(cigar_op == BAM_CSOFT_CLIP) {
@@ -137,14 +138,8 @@ AlignedSegment get_event_alignment_record(const bam1_t* record,int32_t read_leng
 
     // copy read base-to-reference alignment
     AlignedSegmentVec alignments = get_aligned_segments(record, 1); 
-    if(kv_size(alignments) > 1) {
-        fprintf(stderr, "Error: spliced alignments detected when loading read %s\n", bam_get_qname(record));
-        fprintf(stderr, "Please align the reads to the genome using a non-spliced aligner\n");
-        exit(EXIT_FAILURE);
-    }
-    assert(kv_size(alignments));
+    assert(kv_size(alignments) <= 1);
     AlignedSegment seq_record=kv_A(alignments, 0);
-
 
     AlignedSegment aligned_events;
     kv_init(aligned_events);
@@ -187,6 +182,10 @@ AlignedSegment get_event_alignment_record(const bam1_t* record,int32_t read_leng
     // else {
     //     stride = 1;
     // }
+    for (size_t i = 0; i < kv_size(alignments); i++) {
+        kv_destroy(kv_A(alignments, i));
+    }
+    kv_destroy(alignments);
 
     return aligned_events;
 }
@@ -550,12 +549,12 @@ scalings_t scaling, model_t* cpgmodel,double events_per_base) {
     ref_seq = disambiguate(ref_seq); //todo : do this
 
     // Scan the sequence for CpGs
-    kvec_t(int) cpg_sites;
-    kv_init(cpg_sites);
     assert(ref_seq.size() != 0);
+    int *cpg_sites = (int *)calloc(ref_seq.size() - 1, sizeof(int));
+    size_t cpg_sites_size = 0;
     for (size_t i = 0; i < ref_seq.size() - 1; ++i) {
         if (ref_seq[i] == 'C' && ref_seq[i + 1] == 'G') {
-            kv_push(int, cpg_sites, i);
+            cpg_sites[cpg_sites_size++] = i;
         }
     }
 
@@ -564,11 +563,11 @@ scalings_t scaling, model_t* cpgmodel,double events_per_base) {
     std::vector<std::pair<int, int>> groups;
 
     size_t curr_idx = 0;
-    while (curr_idx < kv_size(cpg_sites)) {
+    while (curr_idx < cpg_sites_size) {
         // Find the endpoint of this group of sites
         size_t end_idx = curr_idx + 1;
-        while (end_idx < kv_size(cpg_sites)) {
-            if (kv_A(cpg_sites, end_idx) - kv_A(cpg_sites, end_idx - 1) > min_separation)
+        while (end_idx < cpg_sites_size) {
+            if (cpg_sites[end_idx] - cpg_sites[end_idx - 1] > min_separation)
                 break;
             end_idx += 1;
         }
@@ -581,9 +580,9 @@ scalings_t scaling, model_t* cpgmodel,double events_per_base) {
         size_t end_idx = groups[group_idx].second;
 
         // the coordinates on the reference substring for this group of sites
-        int sub_start_pos = kv_A(cpg_sites, start_idx) - min_separation;
-        int sub_end_pos = kv_A(cpg_sites, end_idx - 1) + min_separation;
-        int span = kv_A(cpg_sites, end_idx - 1) - kv_A(cpg_sites, start_idx);
+        int sub_start_pos = cpg_sites[start_idx] - min_separation;
+        int sub_end_pos = cpg_sites[end_idx - 1] + min_separation;
+        int span = cpg_sites[end_idx - 1] - cpg_sites[start_idx];
 
         // skip if too close to the start of the read alignment or
         // if the reference range is too large to efficiently call
@@ -647,19 +646,19 @@ scalings_t scaling, model_t* cpgmodel,double events_per_base) {
         //std::string contig = m_hdr->target_name[record->core.tid];
 
         // Aggregate score
-        int start_position = kv_A(cpg_sites, start_idx) + ref_start_pos;
+        int start_position = cpg_sites[start_idx] + ref_start_pos;
         auto iter = site_score_map->find(start_position);
         if (iter == site_score_map->end()) {
             // insert new score into the map
             ScoredSite ss;
             //ss.chromosome = contig;
             ss.start_position = start_position;
-            ss.end_position = kv_A(cpg_sites, end_idx - 1) + ref_start_pos;
+            ss.end_position = cpg_sites[end_idx - 1] + ref_start_pos;
             ss.n_cpg = end_idx - start_idx;
 
             // extract the CpG site(s) with a k-mers worth of surrounding context
-            size_t site_output_start = kv_A(cpg_sites, start_idx) - k + 1;
-            size_t site_output_end = kv_A(cpg_sites, end_idx - 1) + k;
+            size_t site_output_start = cpg_sites[start_idx] - k + 1;
+            size_t site_output_end = cpg_sites[end_idx - 1] + k;
             ss.sequence = ref_seq.substr(site_output_start,
                                          site_output_end - site_output_start);
 
@@ -674,5 +673,5 @@ scalings_t scaling, model_t* cpgmodel,double events_per_base) {
         iter->second.ll_methylated[strand_idx] = methylated_score;
         iter->second.strands_scored += 1;
     } // for group
-    kv_destroy(cpg_sites);
+    free(cpg_sites);
 }
