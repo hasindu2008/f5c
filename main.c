@@ -39,8 +39,8 @@ int print_usage(){
 
     fprintf(stderr,"Usage: f5c <command> [options]\n\n");
     fprintf(stderr,"command:\n");
-    fprintf(stderr,"         index               same as nanopolish index\n");
-    fprintf(stderr,"         call-methylation    same as nanopolish call-methylation\n\n");
+    fprintf(stderr,"         index               Build an index mapping from basecalled reads to the signals measured by the sequencer (same as nanopolish index)\n");
+    fprintf(stderr,"         call-methylation    Classify nucleotides as methylated or not (optimised version of nanopolish call-methylation)\n\n");
 
 
     exit(EXIT_FAILURE);
