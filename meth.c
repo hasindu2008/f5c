@@ -1,11 +1,10 @@
 #include <assert.h>
-#include <vector>
+#include <stdlib.h>
+#include <stdio.h>
 #include <algorithm>
-#include <iostream>
 
 #include "f5c.h"
 #include "f5cmisc.h"
-#include "kvec.h"
 
 #define METHYLATED_SYMBOL 'M'
 
@@ -13,17 +12,10 @@
 
 //following Code is adapted from Nanopolish 
 
-typedef kvec_t(AlignedPair) AlignedSegment;
-typedef kvec_t(AlignedSegment) AlignedSegmentVec;
-
-AlignedSegmentVec get_aligned_segments(const bam1_t* record, int read_stride)
+int32_t get_aligned_segments(const bam1_t* record, int read_stride, AlignedPair *segments, int32_t read_len)
 {
-    AlignedSegmentVec out;
-    kv_init(out);
     // Initialize first segment
-    AlignedSegment tmp;
-    kv_init(tmp);
-    kv_push(AlignedSegment, out, tmp);
+    int32_t segment_size = 0;
 
     // This code is derived from bam_fillmd1_core
     //uint8_t *ref = NULL;
@@ -63,8 +55,6 @@ AlignedSegmentVec get_aligned_segments(const bam1_t* record, int read_stride)
             // end the current segment and start a new one
             fprintf(stderr, "Error: spliced alignments detected when loading read %s\n", bam_get_qname(record));
             fprintf(stderr, "Please align the reads to the genome using a non-spliced aligner\n");
-            kv_destroy(kv_A(out, 0));
-            kv_destroy(out);
             exit(EXIT_FAILURE);
         } else if(cigar_op == BAM_CINS) {
             read_inc = read_stride;
@@ -84,7 +74,8 @@ AlignedSegmentVec get_aligned_segments(const bam1_t* record, int read_stride)
                     .ref_pos = ref_pos,
                     .read_pos = read_pos
                 };
-                kv_push(AlignedPair, kv_A(out, kv_size(out) - 1), p);
+                segments[segment_size++] = p;
+                assert(segment_size <= segment_size);
             }
 
             // increment
@@ -92,7 +83,7 @@ AlignedSegmentVec get_aligned_segments(const bam1_t* record, int read_stride)
             ref_pos += ref_inc;
         }
     }
-    return out;
+    return segment_size;
 }
 
 
@@ -130,64 +121,67 @@ inline int32_t flip_k_strand(int32_t read_length,int32_t k_idx, uint32_t k)
     return read_length - k_idx - k;
 }
 
-AlignedSegment get_event_alignment_record(const bam1_t* record,int32_t read_length, index_pair_t* base_to_event_map)
+int32_t get_event_alignment_record(const bam1_t* record,int32_t read_length, index_pair_t* base_to_event_map, AlignedPair **aligned_events_ptr)
 {
 
     uint8_t rc = bam_is_rev(record);
     //int8_t stride;
 
     // copy read base-to-reference alignment
-    AlignedSegmentVec alignments = get_aligned_segments(record, 1); 
-    assert(kv_size(alignments) <= 1);
-    AlignedSegment seq_record=kv_A(alignments, 0);
+    AlignedPair *seq_record = (AlignedPair *)malloc(read_length*sizeof(AlignedPair));
+    MALLOC_CHK(seq_record);
 
-    AlignedSegment aligned_events;
-    kv_init(aligned_events);
+    int32_t segments_size = get_aligned_segments(record, 1, seq_record,read_length);
+    assert(segments_size <= read_length && read_length >= 0);
+
+    *aligned_events_ptr = (AlignedPair *)malloc(segments_size* sizeof(AlignedPair));
+    AlignedPair *aligned_events = *aligned_events_ptr;
+    MALLOC_CHK(aligned_events);
+
+    int32_t aligned_events_size = 0;
     //this->sr = sr;
     int32_t k = KMER_SIZE;
     //size_t read_length = this->sr->read_sequence.length();
     
-    for(size_t i = 0; i < kv_size(seq_record); ++i) {
+    for(int32_t i = 0; i < segments_size; ++i) {
         // skip positions at the boundary
-        if(kv_A(seq_record, i).read_pos < k) {
+        if(seq_record[i].read_pos < k) {
             continue;
         }
 
-        if(kv_A(seq_record, i).read_pos + k >= read_length) {
+        if(seq_record[i].read_pos + k >= read_length) {
             continue;
         }
 
-        size_t kmer_pos_ref_strand = kv_A(seq_record, i).read_pos;
-        size_t kmer_pos_read_strand = rc ? flip_k_strand(read_length,kmer_pos_ref_strand, k) : kmer_pos_ref_strand;
-        size_t event_idx = get_closest_event_to(kmer_pos_read_strand, base_to_event_map, read_length-KMER_SIZE + 1);
+        int32_t kmer_pos_ref_strand = seq_record[i].read_pos;
+        int32_t kmer_pos_read_strand = rc ? flip_k_strand(read_length,kmer_pos_ref_strand, k) : kmer_pos_ref_strand;
+        int32_t event_idx = get_closest_event_to(kmer_pos_read_strand, base_to_event_map, read_length-KMER_SIZE + 1);
         AlignedPair p = {
-            .ref_pos = kv_A(seq_record, i).ref_pos,
+            .ref_pos = seq_record[i].ref_pos,
 	    .read_pos = (int)event_idx
-	};
-        kv_push(AlignedPair, aligned_events, p);
+	    };
+	    aligned_events[aligned_events_size++] = p;
+	    assert(aligned_events_size <= segments_size);
     }
     //this->rc = strand_idx == 0 ? seq_record.rc : !seq_record.rc;
     //this->strand = strand_idx;
 
-    if(kv_size(aligned_events)) {
+    if(aligned_events_size) {
         //stride = aligned_events.front().read_pos < aligned_events.back().read_pos ? 1 : -1;
 
         // check for a degenerate alignment and discard the events if so
-        if(kv_A(aligned_events, 0).read_pos == kv_A(aligned_events, kv_size(aligned_events) - 1).read_pos) {
-            kv_destroy(aligned_events);
-            AlignedSegment aligned_events;
-            kv_init(aligned_events);
+        if(aligned_events[0].read_pos == aligned_events[aligned_events_size - 1].read_pos) {
+            free(aligned_events);
+	    *aligned_events_ptr = NULL;
+	    aligned_events_size = 0;
         }
     } 
     // else {
     //     stride = 1;
     // }
-    for (size_t i = 0; i < kv_size(alignments); i++) {
-        kv_destroy(kv_A(alignments, i));
-    }
-    kv_destroy(alignments);
+    free(seq_record);
 
-    return aligned_events;
+    return aligned_events_size;
 }
 
 
@@ -425,48 +419,48 @@ std::string reverse_complement_meth(const std::string& str)
     return out;
 }
 
-int aligned_pair_lower_bound(AlignedSegment a, int low, int high, int v) {
+int aligned_pair_lower_bound(const AlignedPair *a, int low, int high, int v) {
     while (low < high) {
         int mid = low + (high - low) / 2;
-	if (kv_A(a, mid).ref_pos < v)
-            low = mid + 1;
-	else
-            high = mid;
-    }
+        if (a[mid].ref_pos < v)
+                low = mid + 1;
+        else
+                high = mid;
+        }
     return low;
 }
 
-bool find_iter_by_ref_bounds(const AlignedSegment pairs,
+bool find_iter_by_ref_bounds(const AlignedPair *pairs, size_t pairs_size,
                              int ref_start, int ref_stop,
                              int *start_iter,
                              int *stop_iter) {
-    *start_iter = aligned_pair_lower_bound(pairs, 0, kv_size(pairs), ref_start);
-    *stop_iter = aligned_pair_lower_bound(pairs, 0, kv_size(pairs), ref_stop);
+    *start_iter = aligned_pair_lower_bound(pairs, 0, pairs_size, ref_start);
+    *stop_iter = aligned_pair_lower_bound(pairs, 0, pairs_size, ref_stop);
 
-    if ((size_t)*start_iter == kv_size(pairs) || (size_t)*stop_iter == kv_size(pairs))
+    if ((size_t)*start_iter == pairs_size || (size_t)*stop_iter == pairs_size)
         return false;
 
     // require at least one aligned reference base at or outside the boundary
     bool left_bounded =
-        kv_A(pairs, *start_iter).ref_pos <= ref_start ||
-        (*start_iter != 0 && kv_A(pairs, *start_iter - 1).ref_pos <= ref_start);
+        pairs[*start_iter].ref_pos <= ref_start ||
+        (*start_iter != 0 && pairs[*start_iter - 1].ref_pos <= ref_start);
 
     bool right_bounded =
-        kv_A(pairs, *stop_iter).ref_pos >= ref_stop ||
-        ((size_t)*stop_iter != kv_size(pairs) && kv_A(pairs, *stop_iter + 1).ref_pos >= ref_start);
+        pairs[*stop_iter].ref_pos >= ref_stop ||
+        ((size_t)*stop_iter != pairs_size && pairs[*stop_iter + 1].ref_pos >= ref_start);
 
     return left_bounded && right_bounded;
 }
 
-bool find_by_ref_bounds(const AlignedSegment pairs, int ref_start,
+bool find_by_ref_bounds(const AlignedPair *pairs, size_t pairs_size, int ref_start,
                         int ref_stop, int& read_start, int& read_stop) {
     int start_i;
     int stop_i;
-    bool bounded = find_iter_by_ref_bounds(pairs, ref_start, ref_stop,
+    bool bounded = find_iter_by_ref_bounds(pairs, pairs_size, ref_start, ref_stop,
                                            &start_i, &stop_i);
     if (bounded) {
-        read_start = kv_A(pairs, start_i).read_pos;
-        read_stop = kv_A(pairs, stop_i).read_pos;
+        read_start = pairs[start_i].read_pos;
+        read_stop = pairs[stop_i].read_pos;
         return true;
     }
     return false;
@@ -551,6 +545,7 @@ scalings_t scaling, model_t* cpgmodel,double events_per_base) {
     // Scan the sequence for CpGs
     assert(ref_seq.size() != 0);
     int *cpg_sites = (int *)calloc(ref_seq.size() - 1, sizeof(int));
+    MALLOC_CHK(cpg_sites);
     size_t cpg_sites_size = 0;
     for (size_t i = 0; i < ref_seq.size() - 1; ++i) {
         if (ref_seq[i] == 'C' && ref_seq[i + 1] == 'G') {
@@ -560,7 +555,9 @@ scalings_t scaling, model_t* cpgmodel,double events_per_base) {
 
     // Batch the CpGs together into groups that are separated by some minimum distance
     int min_separation = 10;
-    std::vector<std::pair<int, int>> groups;
+    std::pair<int, int> *groups = (std::pair<int, int> *)calloc(cpg_sites_size, sizeof(std::pair<int, int>));
+    MALLOC_CHK(groups);
+    size_t group_size = 0;
 
     size_t curr_idx = 0;
     while (curr_idx < cpg_sites_size) {
@@ -571,11 +568,11 @@ scalings_t scaling, model_t* cpgmodel,double events_per_base) {
                 break;
             end_idx += 1;
         }
-        groups.push_back(std::make_pair(curr_idx, end_idx));
+	groups[group_size++] = std::make_pair(curr_idx, end_idx);
         curr_idx = end_idx;
     }
 
-    for (size_t group_idx = 0; group_idx < groups.size(); ++group_idx) {
+    for (size_t group_idx = 0; group_idx < group_size; ++group_idx) {
         size_t start_idx = groups[group_idx].first;
         size_t end_idx = groups[group_idx].second;
 
@@ -598,15 +595,19 @@ scalings_t scaling, model_t* cpgmodel,double events_per_base) {
         int calling_start = sub_start_pos + ref_start_pos;
         int calling_end = sub_end_pos + ref_start_pos;
 
-        AlignedSegment event_align_record = get_event_alignment_record(record,read_length, base_to_event_map);
+        AlignedPair *event_align_record = NULL;
+        int32_t event_align_record_size = get_event_alignment_record(record, read_length, base_to_event_map, &event_align_record);
 
 
         // using the reference-to-event map, look up the event indices for this segment
         int e1, e2;
         bool bounded = find_by_ref_bounds(
-            event_align_record, calling_start, calling_end, e1,
+             event_align_record, event_align_record_size, calling_start, calling_end, e1,
             e2);
-	kv_destroy(event_align_record);
+
+        if (event_align_record_size) {
+            free(event_align_record);
+        }
 
         double ratio = fabs(e2 - e1) / (calling_start - calling_end);
 
@@ -673,5 +674,6 @@ scalings_t scaling, model_t* cpgmodel,double events_per_base) {
         iter->second.ll_methylated[strand_idx] = methylated_score;
         iter->second.strands_scored += 1;
     } // for group
+    free(groups);
     free(cpg_sites);
 }
