@@ -41,7 +41,7 @@ endif
 ifeq ($(HDF5), install)
     HDF5_LIB = $(BUILD_DIR)/lib/libhdf5.a
     HDF5_INC = -I$(BUILD_DIR)/include
-    LDFLAGS += -ldl $(HDF5_LIB)
+    LDFLAGS += $(HDF5_LIB) -ldl
 else
 ifneq ($(HDF5), autoconf)
     HDF5_LIB =
@@ -72,13 +72,13 @@ $(BINARY): $(HTS_LIB) $(HDF5_LIB) $(OBJ) $(BUILD_DIR)/gpucode.o $(OBJ_CUDA)
 	$(CXX) $(CFLAGS) $(OBJ) $(BUILD_DIR)/gpucode.o $(OBJ_CUDA) $(LDFLAGS) $(CUDALIB) -o $@
 
 $(BINARY)_static: $(HTS_LIB) $(HDF5_LIB) $(OBJ) $(BUILD_DIR)/gpucode.o $(OBJ_CUDA)
-	$(CXX) -static $(CFLAGS) $(OBJ) $(BUILD_DIR)/gpucode.o $(OBJ_CUDA) $(CUDALIB_STATIC) $(LDFLAGS) -ldl -lsz -laec $^ -o $@
+	$(CXX) -static $(CFLAGS) $(OBJ) $(BUILD_DIR)/gpucode.o $(OBJ_CUDA) $(CUDALIB_STATIC) $(LDFLAGS) -lsz -laec $^ -o $@
 else
 $(BINARY): $(HTS_LIB) $(HDF5_LIB) $(OBJ)
 	$(CXX) $(CFLAGS) $(OBJ) $(LDFLAGS) $(CUDALIB) -o $@
 
 $(BINARY)_static: $(HTS_LIB) $(HDF5_LIB) $(OBJ)
-	$(CXX) -static $(CFLAGS) $(OBJ) $(CUDALIB_STATIC) $(LDFLAGS) -ldl -lsz -laec $^ -o $@
+	$(CXX) -static $(CFLAGS) $(OBJ) $(CUDALIB_STATIC) $(LDFLAGS) -lsz -laec $^ -o $@
 endif
 
 $(OBJ): $(BUILD_DIR)/%.o: $(SOURCE_DIR)/%.c $(SOURCE_DIR)/config.h
@@ -112,7 +112,7 @@ $(BUILD_DIR)/lib/libhts.a:
 	make -j8 && \
 	make install
 
-$(BUILD_DIR)/lib/libhdf5.a: $(BUILD_DIR)
+$(BUILD_DIR)/lib/libhdf5.a:
 	@mkdir -p $(BUILD_DIR)
 	@if command -v curl; then \
 		curl -o $(BUILD_DIR)/hdf5.tar.bz2 https://support.hdfgroup.org/ftp/HDF5/releases/hdf5-$(shell echo $(HDF5_VERSION) | awk -F. '{print $$1"."$$2}')/hdf5-$(HDF5_VERSION)/src/hdf5-$(HDF5_VERSION).tar.bz2; \
