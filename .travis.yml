@@ -34,4 +34,18 @@ matrix:
     - language: cpp
       compiler: g++
       os: osx
-      script: make && make test           
+      script: make && make test
+    - language: cpp
+      os: linux
+      dist: trusty
+      before_install: 
+        - sudo apt-get install libhdf5-dev zlib1g-dev -y
+        - wget http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1404/x86_64/cuda-repo-ubuntu1404_7.0-28_amd64.deb
+        - sudo dpkg -i cuda-repo-ubuntu1404_7.0-28_amd64.deb
+        - sudo apt-get update -qq
+        - sudo apt-get install -y cuda-drivers cuda-core-7-0 cuda-cudart-dev-7-0
+        - sudo apt-get clean
+        - CUDA_HOME=/usr/local/cuda/
+        - PATH=${CUDA_HOME}/bin:${PATH} 
+      script: autoreconf && ./scripts/install-hts.sh && ./configure && make cuda=1 
+           
