@@ -126,17 +126,17 @@ static inline float log_probability_match_r9(scalings_t scaling,
     float gp_mean =
         scaling.scale * models[kmer_rank].level_mean + scaling.shift;
     float gp_stdv = models[kmer_rank].level_stdv * 1; //scaling.var = 1;
-    // float gp_stdv = 0;
-    // float gp_log_stdv = models[kmer_rank].level_log_stdv + scaling.log_var;
-    // if(models[kmer_rank].level_stdv <0.01 ){
-    // 	fprintf(stderr,"very small std dev %f\n",models[kmer_rank].level_stdv);
-    // }
-    #ifdef CACHED_LOG
-        float gp_log_stdv = models[kmer_rank].level_log_stdv;
-    #else
-        float gp_log_stdv =
+// float gp_stdv = 0;
+// float gp_log_stdv = models[kmer_rank].level_log_stdv + scaling.log_var;
+// if(models[kmer_rank].level_stdv <0.01 ){
+// 	fprintf(stderr,"very small std dev %f\n",models[kmer_rank].level_stdv);
+// }
+#ifdef CACHED_LOG
+    float gp_log_stdv = models[kmer_rank].level_log_stdv;
+#else
+    float gp_log_stdv =
         log(models[kmer_rank].level_stdv); // scaling.log_var = log(1)=0;
-    #endif
+#endif
 
     float lp = log_normal_pdf(scaledLevel, gp_mean, gp_stdv, gp_log_stdv);
     return lp;
@@ -157,13 +157,12 @@ static inline float log_probability_match_r9(scalings_t scaling,
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
 
-
 #ifdef ALIGN_2D_ARRAY
-    #define BAND_ARRAY(r, c) ( bands[(r)][(c)] )
-    #define TRACE_ARRAY(r, c) ( trace[(r)][(c)] )
-#else    
-    #define BAND_ARRAY(r, c) ( bands[((r)*(ALN_BANDWIDTH)+(c))] )
-    #define TRACE_ARRAY(r, c) ( trace[((r)*(ALN_BANDWIDTH)+(c))] )
+#    define BAND_ARRAY(r, c) (bands[(r)][(c)])
+#    define TRACE_ARRAY(r, c) (trace[(r)][(c)])
+#else
+#    define BAND_ARRAY(r, c) (bands[((r) * (ALN_BANDWIDTH) + (c))])
+#    define TRACE_ARRAY(r, c) (trace[((r) * (ALN_BANDWIDTH) + (c))])
 #endif
 
 int32_t align(AlignedPair* out_2, char* sequence, int32_t sequence_len,
@@ -231,19 +230,19 @@ int32_t align(AlignedPair* out_2, char* sequence, int32_t sequence_len,
     float* bands = (float*)malloc(sizeof(float) * n_bands * bandwidth);
     MALLOC_CHK(bands);
     uint8_t* trace = (uint8_t*)malloc(sizeof(uint8_t) * n_bands * bandwidth);
-    MALLOC_CHK(trace);    
+    MALLOC_CHK(trace);
 #endif
     for (size_t i = 0; i < n_bands; i++) {
-    #ifdef ALIGN_2D_ARRAY    
+#ifdef ALIGN_2D_ARRAY
         bands[i] = (float*)malloc(sizeof(float) * bandwidth);
         MALLOC_CHK(bands[i]);
         trace[i] = (uint8_t*)malloc(sizeof(uint8_t) * bandwidth);
         MALLOC_CHK(trace[i]);
-    #endif
+#endif
 
         for (int j = 0; j < bandwidth; j++) {
-            BAND_ARRAY(i,j) = -INFINITY;
-            TRACE_ARRAY(i,j) = 0;
+            BAND_ARRAY(i, j) = -INFINITY;
+            TRACE_ARRAY(i, j) = 0;
         }
     }
 
@@ -262,7 +261,7 @@ int32_t align(AlignedPair* out_2, char* sequence, int32_t sequence_len,
     //std::vector<EventKmerPair> band_lower_left(n_);
     //<<<<<<<<<<<<<<<<<New Replacement over
 
-    // initialize range of first two 
+    // initialize range of first two
     band_lower_left[0].event_idx = half_bandwidth - 1;
     band_lower_left[0].kmer_idx = -1 - half_bandwidth;
     band_lower_left[1] = move_down(band_lower_left[0]);
@@ -270,14 +269,14 @@ int32_t align(AlignedPair* out_2, char* sequence, int32_t sequence_len,
     int start_cell_offset = band_kmer_to_offset(0, -1);
     assert(is_offset_valid(start_cell_offset));
     assert(band_event_to_offset(0, -1) == start_cell_offset);
-    BAND_ARRAY(0,start_cell_offset) = 0.0f;
+    BAND_ARRAY(0, start_cell_offset) = 0.0f;
 
     // band 1: first event is trimmed
     int first_trim_offset = band_event_to_offset(1, 0);
     assert(kmer_at_offset(1, first_trim_offset) == -1);
     assert(is_offset_valid(first_trim_offset));
-    BAND_ARRAY(1,first_trim_offset) = lp_trim;
-    TRACE_ARRAY(1,first_trim_offset) = FROM_U;
+    BAND_ARRAY(1, first_trim_offset) = lp_trim;
+    TRACE_ARRAY(1, first_trim_offset) = FROM_U;
 
     int fills = 0;
 #ifdef DEBUG_ADAPTIVE
@@ -290,8 +289,8 @@ int32_t align(AlignedPair* out_2, char* sequence, int32_t sequence_len,
         // Determine placement of this band according to Suzuki's adaptive algorithm
         // When both ll and ur are out-of-band (ob) we alternate movements
         // otherwise we decide based on scores
-        float ll = BAND_ARRAY(band_idx - 1,0);
-        float ur = BAND_ARRAY(band_idx - 1,bandwidth - 1);
+        float ll = BAND_ARRAY(band_idx - 1, 0);
+        float ur = BAND_ARRAY(band_idx - 1, bandwidth - 1);
         bool ll_ob = ll == -INFINITY;
         bool ur_ob = ur == -INFINITY;
 
@@ -314,10 +313,10 @@ int32_t align(AlignedPair* out_2, char* sequence, int32_t sequence_len,
         if (is_offset_valid(trim_offset)) {
             size_t event_idx = event_at_offset(band_idx, trim_offset);
             if (event_idx >= 0 && event_idx < n_events) {
-                BAND_ARRAY(band_idx,trim_offset) = lp_trim * (event_idx + 1);
-                TRACE_ARRAY(band_idx,trim_offset) = FROM_U;
+                BAND_ARRAY(band_idx, trim_offset) = lp_trim * (event_idx + 1);
+                TRACE_ARRAY(band_idx, trim_offset) = FROM_U;
             } else {
-                BAND_ARRAY(band_idx,trim_offset) = -INFINITY;
+                BAND_ARRAY(band_idx, trim_offset) = -INFINITY;
             }
         }
 
@@ -355,13 +354,13 @@ int32_t align(AlignedPair* out_2, char* sequence, int32_t sequence_len,
 #endif
 
             float up = is_offset_valid(offset_up)
-                           ? BAND_ARRAY(band_idx - 1,offset_up)
+                           ? BAND_ARRAY(band_idx - 1, offset_up)
                            : -INFINITY;
             float left = is_offset_valid(offset_left)
-                             ? BAND_ARRAY(band_idx - 1,offset_left)
+                             ? BAND_ARRAY(band_idx - 1, offset_left)
                              : -INFINITY;
             float diag = is_offset_valid(offset_diag)
-                             ? BAND_ARRAY(band_idx - 2,offset_diag)
+                             ? BAND_ARRAY(band_idx - 2, offset_diag)
                              : -INFINITY;
 
             float lp_emission =
@@ -392,8 +391,8 @@ int32_t align(AlignedPair* out_2, char* sequence, int32_t sequence_len,
                     band_idx, offset, event_idx, kmer_idx, max_score, from,
                     lp_emission);
 #endif
-            BAND_ARRAY(band_idx,offset) = max_score;
-            TRACE_ARRAY(band_idx,offset) = from;
+            BAND_ARRAY(band_idx, offset) = max_score;
+            TRACE_ARRAY(band_idx, offset) = from;
             fills += 1;
         }
     }
@@ -425,7 +424,7 @@ int32_t align(AlignedPair* out_2, char* sequence, int32_t sequence_len,
         int offset = band_event_to_offset(band_idx, event_idx);
         if (is_offset_valid(offset)) {
             float s =
-                BAND_ARRAY(band_idx,offset) + (n_events - event_idx) * lp_trim;
+                BAND_ARRAY(band_idx, offset) + (n_events - event_idx) * lp_trim;
             if (s > max_score) {
                 max_score = s;
                 curr_event_idx = event_idx;
@@ -472,7 +471,7 @@ int32_t align(AlignedPair* out_2, char* sequence, int32_t sequence_len,
         int offset = band_event_to_offset(band_idx, curr_event_idx);
         assert(band_kmer_to_offset(band_idx, curr_kmer_idx) == offset);
 
-        uint8_t from = TRACE_ARRAY(band_idx,offset);
+        uint8_t from = TRACE_ARRAY(band_idx, offset);
         if (from == FROM_D) {
             curr_kmer_idx -= 1;
             curr_event_idx -= 1;
@@ -532,7 +531,7 @@ int32_t align(AlignedPair* out_2, char* sequence, int32_t sequence_len,
     }
 
     free(kmer_ranks);
-#ifdef ALIGN_2D_ARRAY    
+#ifdef ALIGN_2D_ARRAY
     for (size_t i = 0; i < n_bands; i++) {
         free(bands[i]);
         free(trace[i]);
@@ -547,9 +546,9 @@ int32_t align(AlignedPair* out_2, char* sequence, int32_t sequence_len,
     return outIndex;
 }
 
-int32_t postalign(event_alignment_t* alignment, index_pair_t* base_to_event_map,double* events_per_base,
-                  char* sequence, int32_t n_kmers, AlignedPair* event_alignment,
-                  int32_t n_events) {
+int32_t postalign(event_alignment_t* alignment, index_pair_t* base_to_event_map,
+                  double* events_per_base, char* sequence, int32_t n_kmers,
+                  AlignedPair* event_alignment, int32_t n_events) {
     /* transform alignment into the base-to-event map*/
     // create base-to-event map
     // index_pair_t* base_to_event_map =
@@ -745,7 +744,7 @@ bool recalibrate_model(model_t* pore_model, event_table et,
         scallings->scale = scale;
         //scallings->drift=drift;
         scallings->var = var;
-#ifdef CACHED_LOG        
+#ifdef CACHED_LOG
         scallings->log_var = log(var);
 #endif
 

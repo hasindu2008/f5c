@@ -10,10 +10,11 @@
 #define MAX_EVENT_TO_BP_RATIO 20
 
 // Flags to modify the behaviour of the HMM
-enum HMMAlignmentFlags
-{
-    HAF_ALLOW_PRE_CLIP = 1, // allow events to go unmatched before the aligning region
-    HAF_ALLOW_POST_CLIP = 2 // allow events to go unmatched after the aligning region
+enum HMMAlignmentFlags {
+    HAF_ALLOW_PRE_CLIP =
+        1, // allow events to go unmatched before the aligning region
+    HAF_ALLOW_POST_CLIP =
+        2 // allow events to go unmatched after the aligning region
 };
 
 event_table getevents(size_t nsample, float* rawptr);
@@ -25,22 +26,25 @@ scalings_t estimate_scalings_using_mom(char* sequence, int32_t sequence_len,
 int32_t align(AlignedPair* out_2, char* sequence, int32_t sequence_len,
               event_table events, model_t* models, scalings_t scaling,
               float sample_rate);
-int32_t postalign(event_alignment_t* alignment, index_pair_t* base_to_event_map, double* events_per_base,
-                  char* sequence, int32_t n_kmers, AlignedPair* event_alignment,
-                  int32_t n_events);
+int32_t postalign(event_alignment_t* alignment, index_pair_t* base_to_event_map,
+                  double* events_per_base, char* sequence, int32_t n_kmers,
+                  AlignedPair* event_alignment, int32_t n_events);
 bool recalibrate_model(model_t* pore_model, event_table et,
                        scalings_t* scallings,
                        const event_alignment_t* alignment_output,
                        int32_t num_alignments, bool scale_var);
 
-float profile_hmm_score(const char *m_seq,const char *m_rc_seq, event_t* event, scalings_t scaling,  model_t* cpgmodel, uint32_t event_start_idx,
-    uint32_t event_stop_idx,
-    uint8_t strand,
-    int8_t event_stride,
-    uint8_t rc,double events_per_base,uint32_t hmm_flags 
-);
-void calculate_methylation_for_read(std::map<int, ScoredSite>* site_score_map, char* ref, bam1_t* record, int32_t read_length, event_t* event, index_pair_t* base_to_event_map,
-scalings_t scaling, model_t* cpgmodel,double events_per_base);
+float profile_hmm_score(const char* m_seq, const char* m_rc_seq, event_t* event,
+                        scalings_t scaling, model_t* cpgmodel,
+                        uint32_t event_start_idx, uint32_t event_stop_idx,
+                        uint8_t strand, int8_t event_stride, uint8_t rc,
+                        double events_per_base, uint32_t hmm_flags);
+void calculate_methylation_for_read(std::map<int, ScoredSite>* site_score_map,
+                                    char* ref, bam1_t* record,
+                                    int32_t read_length, event_t* event,
+                                    index_pair_t* base_to_event_map,
+                                    scalings_t scaling, model_t* cpgmodel,
+                                    double events_per_base);
 
 #ifdef HAVE_CUDA
 void align_cuda(core_t* core, db_t* db);
@@ -64,8 +68,7 @@ static inline double cputime(void) {
 
 // Prints to the provided buffer a nice number of bytes (KB, MB, GB, etc)
 //from https://www.mbeckler.org/blog/?p=114
-static inline void print_size(const char* name, uint64_t bytes)
-{
+static inline void print_size(const char* name, uint64_t bytes) {
     const char* suffixes[7];
     suffixes[0] = "B";
     suffixes[1] = "KB";
@@ -76,8 +79,7 @@ static inline void print_size(const char* name, uint64_t bytes)
     suffixes[6] = "EB";
     uint64_t s = 0; // which suffix to use
     double count = bytes;
-    while (count >= 1024 && s < 7)
-    {
+    while (count >= 1024 && s < 7) {
         s++;
         count /= 1024;
     }
@@ -86,6 +88,5 @@ static inline void print_size(const char* name, uint64_t bytes)
     else
         fprintf(stderr, "%s : %.1f %s\n", name, count, suffixes[s]);
 }
-
 
 #endif

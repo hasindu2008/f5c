@@ -1,6 +1,6 @@
 //
 // logsum -- a port of Sean Eddy's fast table-driven log sum
-// This code was originally part of HMMER. This version is used with 
+// This code was originally part of HMMER. This version is used with
 // Sean Eddy's permission as public domain code.
 //
 
@@ -15,13 +15,13 @@
  * p7_LOGSUM_SCALE} should be on the order of the machine FLT_EPSILON,
  * typically 1.2e-7.
  */
-#define p7_LOGSUM_TBL   16000
+#define p7_LOGSUM_TBL 16000
 #define p7_LOGSUM_SCALE 1000.f
-#define ESL_MAX(a,b)    (((a)>(b))?(a):(b))
-#define ESL_MIN(a,b)    (((a)<(b))?(a):(b))
-#define eslINFINITY     INFINITY
+#define ESL_MAX(a, b) (((a) > (b)) ? (a) : (b))
+#define ESL_MIN(a, b) (((a) < (b)) ? (a) : (b))
+#define eslINFINITY INFINITY
 
- /* Synopsis:  Initialize the p7_Logsum() function.
+/* Synopsis:  Initialize the p7_Logsum() function.
  *
  * Purpose:   Initialize the lookup table for <p7_FLogsum()>. 
  *            This function must be called once before any
@@ -32,19 +32,17 @@
  *
  * Returns:   <eslOK> on success.
  */
-static inline int p7_FLogsumInit(void)
-{
-
-	//   static int firsttime = TRUE;
-	//   if (!firsttime) return 1;
-	//   firsttime = FALSE;
+static inline int p7_FLogsumInit(void) {
+    //   static int firsttime = TRUE;
+    //   if (!firsttime) return 1;
+    //   firsttime = FALSE;
 
     extern float flogsum_lookup[p7_LOGSUM_TBL];
-	int i;
-	for (i = 0; i < p7_LOGSUM_TBL; i++) {
-	  flogsum_lookup[i] = log(1. + exp((double) -i / p7_LOGSUM_SCALE));
-	}
-	return 1;
+    int i;
+    for (i = 0; i < p7_LOGSUM_TBL; i++) {
+        flogsum_lookup[i] = log(1. + exp((double)-i / p7_LOGSUM_SCALE));
+    }
+    return 1;
 }
 
 /* Function:  p7_FLogsum()
@@ -58,16 +56,18 @@ static inline int p7_FLogsumInit(void)
  *
  * Note:      This function is a critical optimization target, because
  *            it's in the inner loop of generic Forward() algorithms.*/
-static inline float p7_FLogsum(float a, float b){
+static inline float p7_FLogsum(float a, float b) {
+    extern float flogsum_lookup
+        [p7_LOGSUM_TBL]; /* p7_LOGSUM_TBL=16000: (A-B) = 0..16 nats, steps of 0.001 */
 
-  extern float flogsum_lookup[p7_LOGSUM_TBL]; /* p7_LOGSUM_TBL=16000: (A-B) = 0..16 nats, steps of 0.001 */
+    const float max = ESL_MAX(a, b);
+    const float min = ESL_MIN(a, b);
 
-  const float max = ESL_MAX(a, b);
-  const float min = ESL_MIN(a, b);
+    //return (min == -eslINFINITY || (max-min) >= 15.7f) ? max : max + log(1.0 + exp(min-max));  /* SRE: While debugging SSE impl. Remember to remove! */
 
-  //return (min == -eslINFINITY || (max-min) >= 15.7f) ? max : max + log(1.0 + exp(min-max));  /* SRE: While debugging SSE impl. Remember to remove! */
-  
-  return (min == -eslINFINITY || (max-min) >= 15.7f) ? max : max + flogsum_lookup[(int)((max-min)*p7_LOGSUM_SCALE)];
-} 
+    return (min == -eslINFINITY || (max - min) >= 15.7f)
+               ? max
+               : max + flogsum_lookup[(int)((max - min) * p7_LOGSUM_SCALE)];
+}
 
 #endif
