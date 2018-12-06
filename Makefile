@@ -129,3 +129,6 @@ clean:
 distclean: clean
 	git clean -f -X; rm -rf ./autom4te.cache
 	$(RM) -r $(BUILD_DIR)
+
+test: $(BINARY)
+	./scripts/test.sh

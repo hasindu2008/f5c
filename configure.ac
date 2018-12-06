@@ -4,8 +4,8 @@
 AC_PREREQ([2.69])
 AC_INIT([f5c], [1.0], [hasindu@unsw.edu.au])
 #AM_INIT_AUTOMAKE([foreign])
-AC_CONFIG_SRCDIR([f5c.c])
-AC_CONFIG_HEADERS([config.h])
+AC_CONFIG_SRCDIR([src/f5c.c])
+AC_CONFIG_HEADERS([src/config.h])
 
 dnl Variant of AC_MSG_ERROR that ensures subsequent make(1) invocations fail
 dnl until the configuration error is resolved and configure is run again.
