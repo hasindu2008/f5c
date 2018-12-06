@@ -45,7 +45,7 @@ matrix:
         - sudo apt-get update -qq
         - sudo apt-get install -y cuda-drivers cuda-core-7-0 cuda-cudart-dev-7-0
         - sudo apt-get clean
+        - sudo ln -s /usr/local/cuda-7.0/ /usr/local/cuda
         - CUDA_HOME=/usr/local/cuda/
         - PATH=${CUDA_HOME}/bin:${PATH} 
       script: autoreconf && ./scripts/install-hts.sh && ./configure && make cuda=1 
-           
