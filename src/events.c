@@ -20,7 +20,7 @@
 #include "nanopolish_read_db.h"
 
 #ifndef DISABLE_KSORT
-#    include "ksort.h"
+#include "ksort.h"
 
 KSORT_INIT_GENERIC(float)
 #endif
@@ -149,7 +149,7 @@ float medianf(const float* x, size_t n) {
     quantilef(x, n, &p, 1);
     return p;
 #else
-    float* copy = (float*)malloc(n * sizeof(float));
+    float *copy = (float *)malloc(n * sizeof(float));
     memcpy(copy, x, n * sizeof(float));
     float m = ks_ksmall_float(n, copy, n / 2);
     free(copy);

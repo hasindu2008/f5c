@@ -99,8 +99,9 @@ void ReadDB::load(const std::string& input_reads_filename) {
         fprintf(stderr,
                 "error: could not load the index files for input file %s\n",
                 input_reads_filename.c_str());
-        fprintf(stderr, "Please run f5c (or nanopolish) index on your reads "
-                        "(see documentation)\n");
+        fprintf(
+            stderr,
+            "Please run f5c (or nanopolish) index on your reads (see documentation)\n");
         exit(EXIT_FAILURE);
     }
 }

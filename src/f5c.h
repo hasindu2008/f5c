@@ -10,8 +10,8 @@
 
 #define F5C_VERSION "0.0"
 
-#define KMER_SIZE 6         //hard coded for now; todo : change to dynamic
-#define NUM_KMER 4096       //num k-mers for 6-mers DNA
+#define KMER_SIZE 6 //hard coded for now; todo : change to dynamic
+#define NUM_KMER 4096   //num k-mers for 6-mers DNA
 #define NUM_KMER_METH 15625 //number k-mers for 6-mers with methylated C
 //#define HAVE_CUDA 1 //if compile for CUDA or not
 #define ALN_BANDWIDTH 100 // the band size in banded_alignment
@@ -21,32 +21,34 @@
 #define F5C_SECONDARY_YES 0x002 //consider secondary reads
 #define F5C_SKIP_UNREADABLE                                                    \
     0x004 //Skip unreadable fast5 and continue rather than exiting
-#define F5C_PRINT_EVENTS 0x008     //print the event table
+#define F5C_PRINT_EVENTS 0x008 //print the event table
 #define F5C_PRINT_BANDED_ALN 0x010 //print the event alignment
-#define F5C_PRINT_SCALING 0x020    //print the estimated scalings
-#define F5C_DISABLE_CUDA 0x040     //diable cuda (only when compile for cuda)
-#define F5C_DEBUG_BRK 0x080        //break after the first batch
+#define F5C_PRINT_SCALING 0x020 //print the estimated scalings
+#define F5C_DISABLE_CUDA 0x040 //diable cuda (only when compile for cuda)
+#define F5C_DEBUG_BRK 0x080 //break after the first batch
+
 
 //flags for a read status
 #define FAILED_CALIBRATION 0x001 //if the calibration failed
-#define FAILED_ALIGNMENT 0x002   //if the alignment failed
-#define FAILED_QUALITY_CHK 0x004 //if the quality check failed
+#define FAILED_ALIGNMENT 0x002 //if the alignment failed
+#define FAILED_QUALITY_CHK  0x004 //if the quality check failed
 //#define FAILED_FAST5  0x008 //if the fast5 file was unreadable
+
 
 #define WORK_STEAL 1
 #define STEAL_THRESH 5
 
 //set if input, processing and output are not to be interleaved (serial mode) - useful for debugging
-//#define IO_PROC_NO_INTERLEAVE 1
-#define SECTIONAL_BENCHMARK 1
+//#define IO_PROC_NO_INTERLEAVE 1 
+#define SECTIONAL_BENCHMARK 1   
 
 //#define ALIGN_2D_ARRAY 1 //for CPU whether to use a 1D array or a 2D array
 
-#define CACHED_LOG                                                             \
-    1 //if the log values of scalings and the model k-mers are cached
+#define CACHED_LOG 1 //if the log values of scalings and the model k-mers are cached
 //#define LOAD_SD_MEANSSTDV 1 //if the sd_mean and the sd_stdv is yo be loaded
 
 #define ESL_LOG_SUM 1 // the fast log sum for HMM
+
 
 //user options
 typedef struct {
@@ -106,7 +108,7 @@ typedef struct {
     //float var_sd;
 
     // derived parameters that are cached for efficiency
-#ifdef CACHED_LOG
+#ifdef CACHED_LOG    
     float log_var;
 #endif
     //float scaled_var;
@@ -116,8 +118,8 @@ typedef struct {
 
 //from nanopolish
 typedef struct {
-    int event_idx;
-    int kmer_idx;
+        int event_idx;
+        int kmer_idx;
 } EventKmerPair;
 
 //from nanopolish
@@ -131,6 +133,7 @@ typedef struct {
     int32_t start;
     int32_t stop; // inclusive
 } index_pair_t;
+
 
 //from nanopolish
 typedef struct {
@@ -151,9 +154,11 @@ typedef struct {
 } event_alignment_t;
 
 //from nanopolish
-struct ScoredSite {
+struct ScoredSite
+{
     //toto : clean up unused
-    ScoredSite() {
+    ScoredSite() 
+    { 
         ll_unmethylated[0] = 0;
         ll_unmethylated[1] = 0;
         ll_methylated[0] = 0;
@@ -173,10 +178,10 @@ struct ScoredSite {
     int strands_scored;
 
     //
-    static bool sort_by_position(const ScoredSite& a, const ScoredSite& b) {
-        return a.start_position < b.start_position;
-    }
+    static bool sort_by_position(const ScoredSite& a, const ScoredSite& b) { return a.start_position < b.start_position; }
+
 };
+
 
 // a data batch (dynamic data based on the reads)
 typedef struct {
@@ -219,13 +224,13 @@ typedef struct {
     int32_t* read_stat_flag;
 
     //extreme ugly hack till converted to C
-    std::map<int, ScoredSite>** site_score_map;
-
+    std::map<int, ScoredSite> **site_score_map;
+    
 } db_t;
 
 //cuda data structure
-#ifdef HAVE_CUDA
-typedef struct {
+#ifdef HAVE_CUDA 
+    typedef struct{
     int32_t* event_ptr_host;
     int32_t* n_events_host;
     int32_t* read_ptr_host;
@@ -239,9 +244,9 @@ typedef struct {
     int32_t* event_ptr;
     scalings_t* scalings;
     int32_t* n_event_align_pairs;
-    model_t* model;
+    model_t *model;
 
-} cuda_data_t;
+    } cuda_data_t;
 #endif
 
 //core data structure (mostly static data throughout the program lifetime)
@@ -271,8 +276,8 @@ typedef struct {
     double align_time;
     double est_scale_time;
     double meth_time;
-
-#ifdef HAVE_CUDA
+    
+#ifdef HAVE_CUDA   
 
     //cuda structures
     cuda_data_t* cuda;
@@ -297,12 +302,12 @@ typedef struct {
     db_t* db;
     int32_t starti;
     int32_t endi;
-    void (*func)(core_t*, db_t*, int);
+    void (*func)(core_t*,db_t*,int);
 #ifdef WORK_STEAL
-    void* all_pthread_args;
+    void *all_pthread_args;
 #endif
 #ifdef HAVE_CUDA
-    int32_t* ultra_long_reads;
+    int32_t *ultra_long_reads;
 #endif
 } pthread_arg_t;
 
@@ -317,9 +322,9 @@ typedef struct {
 db_t* init_db(core_t* core);
 int32_t load_db(core_t* dg, db_t* db);
 core_t* init_core(const char* bamfilename, const char* fastafile,
-                  const char* fastqfile, opt_t opt, double realtime0);
+                  const char* fastqfile, opt_t opt,double realtime0);
 void process_db(core_t* dg, db_t* db);
-void pthread_db(core_t* core, db_t* db, void (*func)(core_t*, db_t*, int));
+void pthread_db(core_t* core, db_t* db, void (*func)(core_t*,db_t*,int));
 void align_db(core_t* core, db_t* db);
 void align_single(core_t* core, db_t* db, int32_t i);
 void output_db(core_t* core, db_t* db);
@@ -329,8 +334,8 @@ void free_db(db_t* db);
 void init_opt(opt_t* opt);
 
 #ifdef HAVE_CUDA
-void init_cuda(core_t* core);
-void free_cuda(core_t* core);
+    void init_cuda(core_t* core);
+    void free_cuda(core_t* core);
 
 #endif
 

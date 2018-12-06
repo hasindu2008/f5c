@@ -201,11 +201,13 @@ static inline int32_t fast5_read(hid_t hdf5_file, fast5_t* f5) {
     return 0;
 }
 
+
+
+
 //todo : make to C
 #include <string>
-static inline std::string
-fast5_get_fixed_string_attribute(hid_t hdf5_file, const std::string& group_name,
-                                 const std::string& attribute_name) {
+static inline std::string fast5_get_fixed_string_attribute(hid_t hdf5_file, const std::string& group_name, const std::string& attribute_name)
+{
     size_t storage_size;
     char* buffer;
     hid_t group, attribute, attribute_type;
@@ -215,13 +217,13 @@ fast5_get_fixed_string_attribute(hid_t hdf5_file, const std::string& group_name,
     // according to http://hdf-forum.184993.n3.nabble.com/check-if-dataset-exists-td194725.html
     // we should use H5Lexists to check for the existence of a group/dataset using an arbitrary path
     ret = H5Lexists(hdf5_file, group_name.c_str(), H5P_DEFAULT);
-    if (ret <= 0) {
+    if(ret <= 0) {
         return "";
     }
 
     // Open the group /Raw/Reads/Read_nnn
     group = H5Gopen(hdf5_file, group_name.c_str(), H5P_DEFAULT);
-    if (group < 0) {
+    if(group < 0) {
 #ifdef DEBUG_FAST5_IO
         fprintf(stderr, "could not open group %s\n", group_name.c_str());
 #endif
@@ -230,26 +232,24 @@ fast5_get_fixed_string_attribute(hid_t hdf5_file, const std::string& group_name,
 
     // Ensure attribute exists
     ret = H5Aexists(group, attribute_name.c_str());
-    if (ret <= 0) {
+    if(ret <= 0) {
         goto close_group;
     }
 
     // Open the attribute
     attribute = H5Aopen(group, attribute_name.c_str(), H5P_DEFAULT);
-    if (attribute < 0) {
+    if(attribute < 0) {
 #ifdef DEBUG_FAST5_IO
-        fprintf(stderr, "could not open attribute: %s\n",
-                attribute_name.c_str());
+        fprintf(stderr, "could not open attribute: %s\n", attribute_name.c_str());
 #endif
         goto close_attr;
     }
 
     // Get data type and check it is a fixed-length string
     attribute_type = H5Aget_type(attribute);
-    if (H5Tis_variable_str(attribute_type)) {
+    if(H5Tis_variable_str(attribute_type)) {
 #ifdef DEBUG_FAST5_IO
-        fprintf(stderr,
-                "variable length string detected -- ignoring attribute\n");
+        fprintf(stderr, "variable length string detected -- ignoring attribute\n");
 #endif
         goto close_type;
     }
@@ -260,7 +260,7 @@ fast5_get_fixed_string_attribute(hid_t hdf5_file, const std::string& group_name,
 
     // finally read the attribute
     ret = H5Aread(attribute, attribute_type, buffer);
-    if (ret >= 0) {
+    if(ret >= 0) {
         out = buffer;
     }
 
@@ -276,10 +276,13 @@ close_group:
     return out;
 }
 
-//from nanopolish_fast5_io.cpp
-static inline std::string fast5_get_read_id(hid_t hdf5_file) {
-    std::string out = "";
 
+//from nanopolish_fast5_io.cpp
+static inline std::string fast5_get_read_id(hid_t hdf5_file)
+{
+
+    std::string out = "";
+    
     // Get the path to the raw read group
     // retrieve the size of the read name
     ssize_t size = H5Lget_name_by_idx(hdf5_file, RAW_ROOT, H5_INDEX_NAME,
@@ -300,11 +303,11 @@ static inline std::string fast5_get_read_id(hid_t hdf5_file) {
         return out;
     }
 
-    std::string raw_read_group = std::string(RAW_ROOT) + read_name;
+    std::string raw_read_group= std::string(RAW_ROOT) + read_name;
     free(read_name);
 
-    return fast5_get_fixed_string_attribute(hdf5_file, raw_read_group,
-                                            "read_id");
+
+    return fast5_get_fixed_string_attribute(hdf5_file, raw_read_group, "read_id");
 }
 
 #endif
