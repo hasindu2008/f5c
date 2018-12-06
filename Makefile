@@ -119,7 +119,7 @@ clean:
 # Delete all gitignored files (but not directories)
 distclean: clean
 	git clean -f -X 
-	$(RM) -r ./autom4te.cache $(BUILD_DIR)
+	$(RM) -r ./autom4te.cache
 
 
 test: $(BINARY)
