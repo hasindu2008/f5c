@@ -1,9 +1,10 @@
+#include <assert.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <algorithm>
+
 #include "f5c.h"
 #include "f5cmisc.h"
-#include <assert.h>
-#include <vector>
-#include <algorithm>
-#include <iostream>
 
 #define METHYLATED_SYMBOL 'M'
 
@@ -11,13 +12,10 @@
 
 //following Code is adapted from Nanopolish 
 
-typedef std::vector<AlignedPair> AlignedSegment;
-
-std::vector<AlignedSegment> get_aligned_segments(const bam1_t* record, int read_stride)
+int32_t get_aligned_segments(const bam1_t* record, int read_stride, AlignedPair *segments, int32_t read_len)
 {
-    std::vector<AlignedSegment> out;
     // Initialize first segment
-    out.push_back(AlignedSegment());
+    int32_t segment_size = 0;
 
     // This code is derived from bam_fillmd1_core
     //uint8_t *ref = NULL;
@@ -55,8 +53,9 @@ std::vector<AlignedSegment> get_aligned_segments(const bam1_t* record, int read_
             ref_inc = 1;   
         } else if(cigar_op == BAM_CREF_SKIP) {
             // end the current segment and start a new one
-            out.push_back(AlignedSegment());
-            ref_inc = 1;
+            fprintf(stderr, "Error: spliced alignments detected when loading read %s\n", bam_get_qname(record));
+            fprintf(stderr, "Please align the reads to the genome using a non-spliced aligner\n");
+            exit(EXIT_FAILURE);
         } else if(cigar_op == BAM_CINS) {
             read_inc = read_stride;
         } else if(cigar_op == BAM_CSOFT_CLIP) {
@@ -71,7 +70,12 @@ std::vector<AlignedSegment> get_aligned_segments(const bam1_t* record, int read_
         // Iterate over the pairs of aligned bases
         for(int j = 0; j < cigar_len; ++j) {
             if(is_aligned) {
-                out.back().push_back({ref_pos, read_pos});
+                AlignedPair p = {
+                    .ref_pos = ref_pos,
+                    .read_pos = read_pos
+                };
+                segments[segment_size++] = p;
+                assert(segment_size <= segment_size);
             }
 
             // increment
@@ -79,7 +83,7 @@ std::vector<AlignedSegment> get_aligned_segments(const bam1_t* record, int read_
             ref_pos += ref_inc;
         }
     }
-    return out;
+    return segment_size;
 }
 
 
@@ -117,29 +121,29 @@ inline int32_t flip_k_strand(int32_t read_length,int32_t k_idx, uint32_t k)
     return read_length - k_idx - k;
 }
 
-std::vector<AlignedPair> get_event_alignment_record(const bam1_t* record,int32_t read_length, index_pair_t* base_to_event_map)
+int32_t get_event_alignment_record(const bam1_t* record,int32_t read_length, index_pair_t* base_to_event_map, AlignedPair **aligned_events_ptr)
 {
 
     uint8_t rc = bam_is_rev(record);
     //int8_t stride;
 
     // copy read base-to-reference alignment
-    std::vector<AlignedSegment> alignments = get_aligned_segments(record,1);
-    if(alignments.size() > 1) {
-        fprintf(stderr, "Error: spliced alignments detected when loading read %s\n", bam_get_qname(record));
-        fprintf(stderr, "Please align the reads to the genome using a non-spliced aligner\n");
-        exit(EXIT_FAILURE);
-    }
-    assert(!alignments.empty());
-    std::vector<AlignedPair> seq_record=alignments[0];
+    AlignedPair *seq_record = (AlignedPair *)malloc(read_length*sizeof(AlignedPair));
+    MALLOC_CHK(seq_record);
 
+    int32_t segments_size = get_aligned_segments(record, 1, seq_record,read_length);
+    assert(segments_size <= read_length && read_length >= 0);
 
-    std::vector<AlignedPair>  aligned_events;
+    *aligned_events_ptr = (AlignedPair *)malloc(segments_size* sizeof(AlignedPair));
+    AlignedPair *aligned_events = *aligned_events_ptr;
+    MALLOC_CHK(aligned_events);
+
+    int32_t aligned_events_size = 0;
     //this->sr = sr;
     int32_t k = KMER_SIZE;
     //size_t read_length = this->sr->read_sequence.length();
     
-    for(size_t i = 0; i < seq_record.size(); ++i) {
+    for(int32_t i = 0; i < segments_size; ++i) {
         // skip positions at the boundary
         if(seq_record[i].read_pos < k) {
             continue;
@@ -149,27 +153,35 @@ std::vector<AlignedPair> get_event_alignment_record(const bam1_t* record,int32_t
             continue;
         }
 
-        size_t kmer_pos_ref_strand = seq_record[i].read_pos;
-        size_t kmer_pos_read_strand = rc ? flip_k_strand(read_length,kmer_pos_ref_strand, k) : kmer_pos_ref_strand;
-        size_t event_idx = get_closest_event_to(kmer_pos_read_strand, base_to_event_map, read_length-KMER_SIZE + 1);
-        aligned_events.push_back( { seq_record[i].ref_pos, (int)event_idx });
+        int32_t kmer_pos_ref_strand = seq_record[i].read_pos;
+        int32_t kmer_pos_read_strand = rc ? flip_k_strand(read_length,kmer_pos_ref_strand, k) : kmer_pos_ref_strand;
+        int32_t event_idx = get_closest_event_to(kmer_pos_read_strand, base_to_event_map, read_length-KMER_SIZE + 1);
+        AlignedPair p = {
+            .ref_pos = seq_record[i].ref_pos,
+	    .read_pos = (int)event_idx
+	    };
+	    aligned_events[aligned_events_size++] = p;
+	    assert(aligned_events_size <= segments_size);
     }
     //this->rc = strand_idx == 0 ? seq_record.rc : !seq_record.rc;
     //this->strand = strand_idx;
 
-    if(!aligned_events.empty()) {
+    if(aligned_events_size) {
         //stride = aligned_events.front().read_pos < aligned_events.back().read_pos ? 1 : -1;
 
         // check for a degenerate alignment and discard the events if so
-        if(aligned_events.front().read_pos == aligned_events.back().read_pos) {
-            aligned_events.clear();
+        if(aligned_events[0].read_pos == aligned_events[aligned_events_size - 1].read_pos) {
+            free(aligned_events);
+	    *aligned_events_ptr = NULL;
+	    aligned_events_size = 0;
         }
     } 
     // else {
     //     stride = 1;
     // }
+    free(seq_record);
 
-    return aligned_events;
+    return aligned_events_size;
 }
 
 
@@ -407,53 +419,51 @@ std::string reverse_complement_meth(const std::string& str)
     return out;
 }
 
-//typedef std::vector<AlignedPair>::iterator AlignedPairIter;
-typedef std::vector<AlignedPair>::const_iterator AlignedPairConstIter;
+int aligned_pair_lower_bound(const AlignedPair *a, int low, int high, int v) {
+    while (low < high) {
+        int mid = low + (high - low) / 2;
+        if (a[mid].ref_pos < v)
+                low = mid + 1;
+        else
+                high = mid;
+        }
+    return low;
+}
 
-struct AlignedPairRefLBComp
-{
-    bool operator()(const AlignedPair& o, int v) { return o.ref_pos < v; }
-};
-
-
-bool find_iter_by_ref_bounds(const std::vector<AlignedPair>& pairs,
+bool find_iter_by_ref_bounds(const AlignedPair *pairs, size_t pairs_size,
                              int ref_start, int ref_stop,
-                             AlignedPairConstIter& start_iter,
-                             AlignedPairConstIter& stop_iter) {
-    AlignedPairRefLBComp lb_comp;
-    start_iter =
-        std::lower_bound(pairs.begin(), pairs.end(), ref_start, lb_comp);
+                             int *start_iter,
+                             int *stop_iter) {
+    *start_iter = aligned_pair_lower_bound(pairs, 0, pairs_size, ref_start);
+    *stop_iter = aligned_pair_lower_bound(pairs, 0, pairs_size, ref_stop);
 
-    stop_iter = std::lower_bound(pairs.begin(), pairs.end(), ref_stop, lb_comp);
-
-    if (start_iter == pairs.end() || stop_iter == pairs.end())
+    if ((size_t)*start_iter == pairs_size || (size_t)*stop_iter == pairs_size)
         return false;
 
     // require at least one aligned reference base at or outside the boundary
     bool left_bounded =
-        start_iter->ref_pos <= ref_start ||
-        (start_iter != pairs.begin() && (start_iter - 1)->ref_pos <= ref_start);
+        pairs[*start_iter].ref_pos <= ref_start ||
+        (*start_iter != 0 && pairs[*start_iter - 1].ref_pos <= ref_start);
 
     bool right_bounded =
-        stop_iter->ref_pos >= ref_stop ||
-        (stop_iter != pairs.end() && (stop_iter + 1)->ref_pos >= ref_start);
+        pairs[*stop_iter].ref_pos >= ref_stop ||
+        ((size_t)*stop_iter != pairs_size && pairs[*stop_iter + 1].ref_pos >= ref_start);
 
     return left_bounded && right_bounded;
 }
 
-bool find_by_ref_bounds(const std::vector<AlignedPair>& pairs, int ref_start,
+bool find_by_ref_bounds(const AlignedPair *pairs, size_t pairs_size, int ref_start,
                         int ref_stop, int& read_start, int& read_stop) {
-    AlignedPairConstIter start_iter;
-    AlignedPairConstIter stop_iter;
-    bool bounded = find_iter_by_ref_bounds(pairs, ref_start, ref_stop,
-                                           start_iter, stop_iter);
+    int start_i;
+    int stop_i;
+    bool bounded = find_iter_by_ref_bounds(pairs, pairs_size, ref_start, ref_stop,
+                                           &start_i, &stop_i);
     if (bounded) {
-        read_start = start_iter->read_pos;
-        read_stop = stop_iter->read_pos;
+        read_start = pairs[start_i].read_pos;
+        read_stop = pairs[stop_i].read_pos;
         return true;
-    } else {
-        return false;
     }
+    return false;
 }
 
 
@@ -518,11 +528,6 @@ scalings_t scaling, model_t* cpgmodel,double events_per_base) {
    // std::vector<AlignedPair> seq_align_record=get_sequence_alignment(record);
     // EventAlignmentRecord event_align_record(&sr, strand_idx, seq_align_record);
 
-    std::vector<double> site_scores;
-    std::vector<int> site_starts;
-    std::vector<int> site_ends;
-    std::vector<int> site_count;
-
     // std::string contig = hdr->target_name[record->core.tid];
     int ref_start_pos = record->core.pos;
     //int ref_end_pos =  bam_endpos(record);
@@ -538,32 +543,36 @@ scalings_t scaling, model_t* cpgmodel,double events_per_base) {
     ref_seq = disambiguate(ref_seq); //todo : do this
 
     // Scan the sequence for CpGs
-    std::vector<int> cpg_sites;
     assert(ref_seq.size() != 0);
+    int *cpg_sites = (int *)calloc(ref_seq.size() - 1, sizeof(int));
+    MALLOC_CHK(cpg_sites);
+    size_t cpg_sites_size = 0;
     for (size_t i = 0; i < ref_seq.size() - 1; ++i) {
         if (ref_seq[i] == 'C' && ref_seq[i + 1] == 'G') {
-            cpg_sites.push_back(i);
+            cpg_sites[cpg_sites_size++] = i;
         }
     }
 
     // Batch the CpGs together into groups that are separated by some minimum distance
     int min_separation = 10;
-    std::vector<std::pair<int, int>> groups;
+    std::pair<int, int> *groups = (std::pair<int, int> *)calloc(cpg_sites_size, sizeof(std::pair<int, int>));
+    MALLOC_CHK(groups);
+    size_t group_size = 0;
 
     size_t curr_idx = 0;
-    while (curr_idx < cpg_sites.size()) {
+    while (curr_idx < cpg_sites_size) {
         // Find the endpoint of this group of sites
         size_t end_idx = curr_idx + 1;
-        while (end_idx < cpg_sites.size()) {
+        while (end_idx < cpg_sites_size) {
             if (cpg_sites[end_idx] - cpg_sites[end_idx - 1] > min_separation)
                 break;
             end_idx += 1;
         }
-        groups.push_back(std::make_pair(curr_idx, end_idx));
+	groups[group_size++] = std::make_pair(curr_idx, end_idx);
         curr_idx = end_idx;
     }
 
-    for (size_t group_idx = 0; group_idx < groups.size(); ++group_idx) {
+    for (size_t group_idx = 0; group_idx < group_size; ++group_idx) {
         size_t start_idx = groups[group_idx].first;
         size_t end_idx = groups[group_idx].second;
 
@@ -586,14 +595,19 @@ scalings_t scaling, model_t* cpgmodel,double events_per_base) {
         int calling_start = sub_start_pos + ref_start_pos;
         int calling_end = sub_end_pos + ref_start_pos;
 
-        std::vector<AlignedPair> event_align_record= get_event_alignment_record(record,read_length, base_to_event_map);
+        AlignedPair *event_align_record = NULL;
+        int32_t event_align_record_size = get_event_alignment_record(record, read_length, base_to_event_map, &event_align_record);
 
 
         // using the reference-to-event map, look up the event indices for this segment
         int e1, e2;
         bool bounded = find_by_ref_bounds(
-            event_align_record, calling_start, calling_end, e1,
+             event_align_record, event_align_record_size, calling_start, calling_end, e1,
             e2);
+
+        if (event_align_record_size) {
+            free(event_align_record);
+        }
 
         double ratio = fabs(e2 - e1) / (calling_start - calling_end);
 
@@ -653,16 +667,13 @@ scalings_t scaling, model_t* cpgmodel,double events_per_base) {
             iter =
                 site_score_map->insert(std::make_pair(start_position, ss)).first;
         }
-
         // set strand-specific score
         // upon output below the strand scores will be summed
         int strand_idx=0;
         iter->second.ll_unmethylated[strand_idx] = unmethylated_score;
         iter->second.ll_methylated[strand_idx] = methylated_score;
         iter->second.strands_scored += 1;
-
-
     } // for group
-
-
+    free(groups);
+    free(cpg_sites);
 }
