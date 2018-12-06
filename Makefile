@@ -81,7 +81,7 @@ $(BINARY)_static: $(HTS_LIB) $(HDF5_LIB) $(OBJ)
 	$(CXX) -static $(CFLAGS) $(OBJ) $(CUDALIB_STATIC) $(LDFLAGS) -lsz -laec $^ -o $@
 endif
 
-$(OBJ): $(BUILD_DIR)/%.o: $(SOURCE_DIR)/%.c $(SOURCE_DIR)/config.h
+$(OBJ): $(BUILD_DIR)/%.o: $(SOURCE_DIR)/%.c $(DEPS) $(SOURCE_DIR)/config.h
 	@mkdir -p $(BUILD_DIR)
 	$(CXX) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
 
@@ -93,7 +93,7 @@ $(BUILD_DIR)/gpucode.o: $(OBJ_CUDA)
 	@mkdir -p $(BUILD_DIR)
 	$(CC_CUDA) $(CFLAGS_CUDA) -dlink $^ -o $@
 
-$(OBJ_CUDA): $(BUILD_DIR)/%_cuda.o: $(SOURCE_DIR)/%.cu
+$(OBJ_CUDA): $(BUILD_DIR)/%_cuda.o: $(SOURCE_DIR)/%.cu $(DEPS_CUDA)
 	@mkdir -p $(BUILD_DIR)
 	$(CC_CUDA) -x cu $(CFLAGS_CUDA) $(CPPFLAGS) $(HDF5_INC) $(HTS_INC) -rdc=true -c $< -o $@
 
