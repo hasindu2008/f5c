@@ -30,12 +30,11 @@ ifdef cuda
 		$(SOURCE_DIR)/fast5lite.h \
 		$(SOURCE_DIR)/error.h \
 		$(SOURCE_DIR)/f5cmisc.cuh
-    OBJ_CUDA = $(patsubst $(SOURCE_DIR)/%.cu,$(BUILD_DIR)/%_cuda.o,$(SRC))
+    OBJ_CUDA = $(patsubst $(SOURCE_DIR)/%.cu,$(BUILD_DIR)/%_cuda.o,$(SRC_CUDA))
     CC_CUDA = nvcc
-    CFLAGS_CUDA = -g  -O2 -std=c++11 -lineinfo -DHAVE_CUDA=1 $(CUDA_ARCH)
+    CFLAGS_CUDA = -g -O2 -std=c++11 -lineinfo -DHAVE_CUDA=1 $(CUDA_ARCH)
     CUDALIB += -L/usr/local/cuda/lib64/ -lcudart -lcudadevrt
     CUDALIB_STATIC += -L/usr/local/cuda/lib64/ -lcudart_static -lcudadevrt -lrt
-    OBJ += $(BUILD_DIR)/gpucode.o $(OBJ_CUDA)
     CFLAGS += -DHAVE_CUDA=1
 endif
 
@@ -66,11 +65,19 @@ CFLAGS += $(HDF5_INC) $(HTS_INC)
 
 .PHONY: clean distclean format test
 
+ifdef cuda
+$(BINARY): $(HTS_LIB) $(HDF5_LIB) $(OBJ) $(BUILD_DIR)/gpucode.o $(OBJ_CUDA)
+	$(CXX) $(CFLAGS) $(OBJ) $(BUILD_DIR)/gpucode.o $(OBJ_CUDA) $(HTS_LIB) $(HDF5_LIB) $(HTS_SYS_LIB) $(HDF5_SYS_LIB) $(LDFLAGS) $(CUDALIB) -o $@
+
+$(BINARY)_static : $(HTS_LIB) $(HDF5_LIB) $(OBJ) $(BUILD_DIR)/gpucode.o $(OBJ_CUDA)
+	$(CXX) -static $(CFLAGS) $(OBJ) $(BUILD_DIR)/gpucode.o $(OBJ_CUDA) $(HTS_LIB) $(HDF5_LIB) $(HTS_SYS_LIB) $(HDF5_SYS_LIB) $(CUDALIB_STATIC) $(LDFLAGS) -ldl -lsz -laec $^ -o $@
+else
 $(BINARY): $(HTS_LIB) $(HDF5_LIB) $(OBJ)
 	$(CXX) $(CFLAGS) $(OBJ) $(HTS_LIB) $(HDF5_LIB) $(HTS_SYS_LIB) $(HDF5_SYS_LIB) $(LDFLAGS) $(CUDALIB) -o $@
 
 $(BINARY)_static : $(HTS_LIB) $(HDF5_LIB) $(OBJ)
 	$(CXX) -static $(CFLAGS) $(OBJ) $(HTS_LIB) $(HDF5_LIB) $(HTS_SYS_LIB) $(HDF5_SYS_LIB) $(CUDALIB_STATIC) $(LDFLAGS) -ldl -lsz -laec $^ -o $@
+endif
 
 $(OBJ): $(BUILD_DIR)/%.o: $(SOURCE_DIR)/%.c $(SOURCE_DIR)/config.h
 	$(CXX) $(CFLAGS) -c $< -o $@
@@ -83,7 +90,7 @@ $(BUILD_DIR)/gpucode.o: $(OBJ_CUDA)
 	$(CC_CUDA) $(CFLAGS_CUDA) -dlink $^ -o $@
 
 $(OBJ_CUDA): $(BUILD_DIR)/%_cuda.o: $(SOURCE_DIR)/%.cu
-	$(CC_CUDA) -x cu $(CFLAGS_CUDA) $(CFLAGS) -rdc=true -c $< -o $@
+	$(CC_CUDA) -x cu $(CFLAGS_CUDA) $(HDF5_INC) $(HTS_INC) -rdc=true -c $< -o $@
 
 $(BUILD_DIR)/lib/libhts.a:
 	mkdir -p $(BUILD_DIR)
