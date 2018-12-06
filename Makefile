@@ -133,7 +133,7 @@ clean:
 distclean: clean
 	git clean -f -X; rm -rf ./autom4te.cache
 	$(RM) -r $(BUILD_DIR)
-	$(RM) config.h
+	$(RM) $(SOURCE_DIR)/config.h
 
 test: $(BINARY)
 	./scripts/test.sh
