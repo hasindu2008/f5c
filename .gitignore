@@ -69,5 +69,4 @@ autom4te.cache
 /htslib
 /hdf5
 /.vscode
-build/
 src/config.h
