@@ -32,16 +32,16 @@ ifdef cuda
 		$(SOURCE_DIR)/f5cmisc.cuh
     OBJ_CUDA = $(patsubst $(SOURCE_DIR)/%.cu,$(BUILD_DIR)/%_cuda.o,$(SRC_CUDA))
     CC_CUDA = nvcc
-    CFLAGS_CUDA = -g -O2 -std=c++11 -lineinfo -DHAVE_CUDA=1 $(CUDA_ARCH)
+    CFLAGS_CUDA = -g -O2 -std=c++11 -lineinfo $(CUDA_ARCH)
     CUDALIB += -L/usr/local/cuda/lib64/ -lcudart -lcudadevrt
     CUDALIB_STATIC += -L/usr/local/cuda/lib64/ -lcudart_static -lcudadevrt -lrt
-    CFLAGS += -DHAVE_CUDA=1
+    CPPFLAGS += -DHAVE_CUDA=1
 endif
 
 ifeq ($(HDF5), install)
     HDF5_LIB = $(BUILD_DIR)/lib/libhdf5.a
     HDF5_INC = -I$(BUILD_DIR)/include
-    LDFLAGS += -ldl
+    LDFLAGS += -ldl $(HDF5_LIB)
 else
 ifneq ($(HDF5), autoconf)
     HDF5_LIB =
@@ -53,6 +53,7 @@ endif
 ifeq ($(HTS), install)
     HTS_LIB = $(BUILD_DIR)/lib/libhts.a
     HTS_INC = -I$(BUILD_DIR)/include
+    LDFLAGS += $(HTS_LIB)
 else
 ifneq ($(HTS), autoconf)
     HTS_LIB =
@@ -62,21 +63,21 @@ endif
 endif
 
 CPPFLAGS += $(HDF5_INC) $(HTS_INC)
-LDFLAGS += $(HTS_LIB) $(HTS_SYS_LIB) $(HDF5_LIB) $(HDF5_SYS_LIB)
+LDFLAGS += $(HTS_SYS_LIB) $(HDF5_SYS_LIB)
 
-.PHONY: clean distclean format test
+.PHONY: clean distclean test
 
 ifdef cuda
 $(BINARY): $(HTS_LIB) $(HDF5_LIB) $(OBJ) $(BUILD_DIR)/gpucode.o $(OBJ_CUDA)
 	$(CXX) $(CFLAGS) $(OBJ) $(BUILD_DIR)/gpucode.o $(OBJ_CUDA) $(LDFLAGS) $(CUDALIB) -o $@
 
-$(BINARY)_static : $(HTS_LIB) $(HDF5_LIB) $(OBJ) $(BUILD_DIR)/gpucode.o $(OBJ_CUDA)
+$(BINARY)_static: $(HTS_LIB) $(HDF5_LIB) $(OBJ) $(BUILD_DIR)/gpucode.o $(OBJ_CUDA)
 	$(CXX) -static $(CFLAGS) $(OBJ) $(BUILD_DIR)/gpucode.o $(OBJ_CUDA) $(CUDALIB_STATIC) $(LDFLAGS) -ldl -lsz -laec $^ -o $@
 else
 $(BINARY): $(HTS_LIB) $(HDF5_LIB) $(OBJ)
 	$(CXX) $(CFLAGS) $(OBJ) $(LDFLAGS) $(CUDALIB) -o $@
 
-$(BINARY)_static : $(HTS_LIB) $(HDF5_LIB) $(OBJ)
+$(BINARY)_static: $(HTS_LIB) $(HDF5_LIB) $(OBJ)
 	$(CXX) -static $(CFLAGS) $(OBJ) $(CUDALIB_STATIC) $(LDFLAGS) -ldl -lsz -laec $^ -o $@
 endif
 
