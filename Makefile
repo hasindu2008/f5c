@@ -80,6 +80,7 @@ $(BINARY)_static : $(HTS_LIB) $(HDF5_LIB) $(OBJ)
 endif
 
 $(OBJ): $(BUILD_DIR)/%.o: $(SOURCE_DIR)/%.c $(SOURCE_DIR)/config.h
+	@mkdir -p $(BUILD_DIR)
 	$(CXX) $(CFLAGS) -c $< -o $@
 
 $(SOURCE_DIR)/config.h:
@@ -87,13 +88,15 @@ $(SOURCE_DIR)/config.h:
 	echo "#define HAVE_HDF5_H 1" >> $@
 
 $(BUILD_DIR)/gpucode.o: $(OBJ_CUDA)
+	@mkdir -p $(BUILD_DIR)
 	$(CC_CUDA) $(CFLAGS_CUDA) -dlink $^ -o $@
 
 $(OBJ_CUDA): $(BUILD_DIR)/%_cuda.o: $(SOURCE_DIR)/%.cu
+	@mkdir -p $(BUILD_DIR)
 	$(CC_CUDA) -x cu $(CFLAGS_CUDA) $(HDF5_INC) $(HTS_INC) -rdc=true -c $< -o $@
 
 $(BUILD_DIR)/lib/libhts.a:
-	mkdir -p $(BUILD_DIR)
+	@mkdir -p $(BUILD_DIR)
 	@if command -v curl; then \
 		curl -o $(BUILD_DIR)/htslib.tar.bz2 -L https://github.com/samtools/htslib/releases/download/$(HTS_VERSION)/htslib-$(HTS_VERSION).tar.bz2; \
 	else \
@@ -107,8 +110,8 @@ $(BUILD_DIR)/lib/libhts.a:
 	make -j8 && \
 	make install
 
-$(BUILD_DIR)/lib/libhdf5.a:
-	mkdir -p $(BUILD_DIR)
+$(BUILD_DIR)/lib/libhdf5.a: $(BUILD_DIR)
+	@mkdir -p $(BUILD_DIR)
 	@if command -v curl; then \
 		curl -o $(BUILD_DIR)/hdf5.tar.bz2 https://support.hdfgroup.org/ftp/HDF5/releases/hdf5-$(shell echo $(HDF5_VERSION) | awk -F. '{print $$1"."$$2}')/hdf5-$(HDF5_VERSION)/src/hdf5-$(HDF5_VERSION).tar.bz2; \
 	else \
@@ -123,12 +126,13 @@ $(BUILD_DIR)/lib/libhdf5.a:
 	make install
 
 clean: 
-	$(RM) -r $(BINARY)* $(BUILD_DIR)/*.o $(BUILD_DIR)/*.out $(SOURCE_DIR)/config.h
+	$(RM) -r $(BINARY)* $(BUILD_DIR)/*.o $(BUILD_DIR)/*.out
 
 # Delete all gitignored files (but not directories)
 distclean: clean
 	git clean -f -X; rm -rf ./autom4te.cache
 	$(RM) -r $(BUILD_DIR)
+	$(RM) config.h
 
 test: $(BINARY)
 	./scripts/test.sh
