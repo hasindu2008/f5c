@@ -6,8 +6,8 @@ CFLAGS   += -g -rdynamic -Wall -O2 -std=c++11
 
 LDFLAGS += $(LIBS) -lpthread -lz
 
-SOURCE_DIR = $(shell pwd)/src
-BUILD_DIR = $(shell pwd)/build
+SOURCE_DIR = src
+BUILD_DIR = build
 
 SRC = $(wildcard $(SOURCE_DIR)/*.c)
 DEPS = $(wildcard $(SOURCE_DIR)/*.h)
@@ -108,7 +108,7 @@ $(BUILD_DIR)/lib/libhts.a:
 	mv $(BUILD_DIR)/htslib-$(HTS_VERSION) $(BUILD_DIR)/htslib
 	$(RM) $(BUILD_DIR)/htslib.tar.bz2
 	cd $(BUILD_DIR)/htslib && \
-	./configure --prefix=$(BUILD_DIR) --enable-bz2=no --enable-lzma=no --with-libdeflate=no --enable-libcurl=no  --enable-gcs=no --enable-s3=no && \
+	./configure --prefix=$(shell pwd)/$(BUILD_DIR) --enable-bz2=no --enable-lzma=no --with-libdeflate=no --enable-libcurl=no  --enable-gcs=no --enable-s3=no && \
 	make -j8 && \
 	make install
 
@@ -123,7 +123,7 @@ $(BUILD_DIR)/lib/libhdf5.a:
 	mv $(BUILD_DIR)/hdf5-$(HDF5_VERSION) $(BUILD_DIR)/hdf5
 	$(RM) $(BUILD_DIR)/hdf5.tar.bz2
 	cd $(BUILD_DIR)/hdf5 && \
-	./configure --prefix=$(BUILD_DIR) && \
+	./configure --prefix=$(shell pwd)/$(BUILD_DIR) && \
 	make -j8 && \
 	make install
 
