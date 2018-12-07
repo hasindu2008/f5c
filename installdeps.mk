@@ -1,4 +1,3 @@
-
 HDF5 ?= install
 HTS ?= install
 
@@ -35,8 +34,3 @@ endif
 
 CPPFLAGS += $(HDF5_INC) $(HTS_INC)
 LDFLAGS += $(HTS_SYS_LIB) $(HDF5_SYS_LIB)
-
-
-
-
-
