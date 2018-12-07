@@ -76,7 +76,7 @@ $(BUILD_DIR)/align.o: src/align.c src/f5c.h
 	$(CXX) $(CFLAGS) $(CPPFLAGS) $< -c -o $@
 
 $(BUILD_DIR)/meth.o: src/meth.c src/f5c.h src/f5cmisc.h
-	$(CXX) $(CFLAGS)$(CPPFLAGS) $< -c -o $@
+	$(CXX) $(CFLAGS) $(CPPFLAGS) $< -c -o $@
 
 $(BUILD_DIR)/hmm.o: src/hmm.c src/f5c.h src/f5cmisc.h src/matrix.h src/logsum.h
 	$(CXX) $(CFLAGS) $(CPPFLAGS) $< -c -o $@
@@ -129,7 +129,7 @@ clean:
 # Delete all gitignored files (but not directories)
 distclean: clean
 	git clean -f -X 
-	rm -rf $(BUILD_DIR)/*
+	rm -rf $(BUILD_DIR)/* autom4te.cache
 
 dist: distclean
 	mkdir -p f5c-$(VERSION)
