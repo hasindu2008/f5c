@@ -20,7 +20,7 @@ OBJ = $(BUILD_DIR)/main.o \
       $(BUILD_DIR)/hmm.o
 
 PREFIX = /usr/local
-VERSION = 1.0
+VERSION = `git describe --tags`
 
 ifdef cuda
     DEPS_CUDA = src/f5c.h src/fast5lite.h src/error.h src/f5cmisc.cuh
