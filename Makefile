@@ -7,8 +7,6 @@ CFLAGS   += -g -rdynamic -Wall -O2 -std=c++11
 LDFLAGS += $(LIBS) -lpthread -lz
 BUILD_DIR = build
 
-# SRC = src/main.c src/meth_main.c src/f5c.c src/events.c src/nanopolish_read_db.c \
-#       src/nanopolish_index.c src/model.c src/align.c src/meth.c src/hmm.c
 BINARY = f5c
 OBJ = $(BUILD_DIR)/main.o \
       $(BUILD_DIR)/meth_main.o \
@@ -20,28 +18,16 @@ OBJ = $(BUILD_DIR)/main.o \
       $(BUILD_DIR)/align.o \
       $(BUILD_DIR)/meth.o \
       $(BUILD_DIR)/hmm.o
-DEPS = src/config.h \
-       src/error.h \
-       src/f5c.h \
-       src/f5cmisc.h \
-       src/fast5lite.h \
-       src/logsum.h \
-       src/matrix.h \
-       src/model.h \
-       src/nanopolish_read_db.h \
-       src/ksort.h
 
 PREFIX = /usr/local
 VERSION = 1.0
 
 ifdef cuda
     DEPS_CUDA = src/f5c.h src/fast5lite.h src/error.h src/f5cmisc.cuh
-    #SRC_CUDA = f5c.cu align.cu 
     OBJ_CUDA = $(BUILD_DIR)/f5c_cuda.o $(BUILD_DIR)/align_cuda.o
     CC_CUDA = nvcc
     CFLAGS_CUDA += -g  -O2 -std=c++11 -lineinfo $(CUDA_ARCH)
-	CUDALIB += -L/usr/local/cuda/lib64/ -lcudart -lcudadevrt
-    #CUDALIB_STATIC += -L/usr/local/cuda/lib64/ -lcudart_static -lcudadevrt -lrt
+	CUDALIB = -L/usr/local/cuda/lib64/ -lcudart_static -lrt -ldl
     OBJ += $(BUILD_DIR)/gpucode.o $(OBJ_CUDA)
     CPPFLAGS += -DHAVE_CUDA=1
 endif
