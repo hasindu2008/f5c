@@ -135,8 +135,9 @@ dist: distclean
 	mkdir -p f5c-$(VERSION)
 	autoreconf
 	cp -r README.md LICENSE Dockerfile Makefile configure.ac config.mk.in \
-		installdeps.mk src docs build scripts/install-hdf5.sh \
-		scripts/install-hts.sh .dockerignore configure f5c-$(VERSION)
+		installdeps.mk src docs build .dockerignore configure f5c-$(VERSION)
+	mkdir -p f5c-$(VERSION)/scripts
+	cp scripts/install-hdf5.sh scripts/install-hts.sh f5c-$(VERSION)/scripts
 	tar -cf f5c-$(VERSION).tar f5c-$(VERSION)
 	gzip f5c-$(VERSION).tar
 	rm -rf f5c-$(VERSION)
