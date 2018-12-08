@@ -10,7 +10,7 @@ First the reads have to be indexed using `f5c index` (or `nanopolish index` - f5
 
 ## Quick start
 
-If you are a Linux user and want to quickly try out download the compiled binaries from the [latest release](/releases/latest). For example:
+If you are a Linux user and want to quickly try out download the compiled binaries from the [latest release](https://github.com/hasindu2008/f5c/releases). For example:
 ```
 wget "https://github.com/hasindu2008/f5c/releases/download/v0.0-alpha/f5c-v0.0-alpha-binaries.tar.gz" && tar xvf f5c-v0.0-alpha-binaries.tar.gz && cd f5c-v0.0-alpha/
 ./f5c_x86_64_linux        # CPU version
@@ -21,7 +21,7 @@ Binaries should work on most Linux distributions and the only dependency is `zli
 
 ## Building
 
-Users are recommended to build from the  [latest release](/releases/latest) tar ball. You need a compiler that supports C++11. Quick example for Ubuntu :
+Users are recommended to build from the  [latest release](https://github.com/hasindu2008/f5c/releases) tar ball. You need a compiler that supports C++11. Quick example for Ubuntu :
 ```
 sudo apt-get install libhdf5-dev zlib1g-dev   #install HDF5 and zlib development library
 wget "https://github.com/hasindu2008/f5c/releases/download/v0.0-alpha/f5c-v0.0-alpha-release.tar.gz" && tar xvf f5c-v0.0-alpha-release.tar.gz && cd f5c-v0.0-alpha/
@@ -38,7 +38,7 @@ On Arch Linux: sudo pacman -S hdf5
 On OS X : brew install hdf5
 ```
 
-If you cannot install HDF5 system wide, you can build it locally by skipping `scripts/install-hts.sh` and `./configure ` .However, building HDF5 takes ages.
+If you cannot install HDF5 system wide, you can build it locally by skipping `scripts/install-hts.sh` and `./configure`. However, building HDF5 takes ages.
 
 Building from the Github repository additionally requires `autoreconf` which can be installed on ubuntu using `sudo apt-get install autoconf`.
 Other building options are detailed [here](building.md).

@@ -1,4 +1,4 @@
-#Building f5c
+# Building f5c
 
 While we have tried hard to avoid the dependency hell, three dependencies (zlib, HDF5 and HTS) could not be avoided.
 
