@@ -3,6 +3,7 @@ HTS ?= install
 
 HTS_VERSION = 1.9
 HDF5_VERSION = 1.10.4
+HDF5_MAJOR_MINOR=`echo $(HDF5_VERSION) | sed -E 's/\.[0-9]+$$//'`
 
 ifdef ENABLE_PROFILE
     CFLAGS += -p

@@ -96,11 +96,10 @@ $(BUILD_DIR)/lib/libhts.a:
 	make install
 
 $(BUILD_DIR)/lib/libhdf5.a:
-	HDF5_MAJOR_MINOR=`echo $(HDF5_VERSION) | sed -E 's/\.[0-9]+$$//'`
-	@if command -v curl; then \
-		curl -o $(BUILD_DIR)/hdf5.tar.bz2 https://support.hdfgroup.org/ftp/HDF5/releases/hdf5-$${HDF5_MAJOR_MINOR}/hdf5-$(HDF5_VERSION)/src/hdf5-$(HDF5_VERSION).tar.bz2; \
+	if command -v curl; then \
+		curl -o $(BUILD_DIR)/hdf5.tar.bz2 https://support.hdfgroup.org/ftp/HDF5/releases/hdf5-$(HDF5_MAJOR_MINOR)/hdf5-$(HDF5_VERSION)/src/hdf5-$(HDF5_VERSION).tar.bz2; \
 	else \
-		wget -O $(BUILD_DIR)/hdf5.tar.bz2 https://support.hdfgroup.org/ftp/HDF5/releases/hdf5-$${HDF5_MAJOR_MINOR}/hdf5-$(HDF5_VERSION)/src/hdf5-$(HDF5_VERSION).tar.bz2; \
+		wget -O $(BUILD_DIR)/hdf5.tar.bz2 https://support.hdfgroup.org/ftp/HDF5/releases/hdf5-$(HDF5_MAJOR_MINOR)/hdf5-$(HDF5_VERSION)/src/hdf5-$(HDF5_VERSION).tar.bz2; \
 	fi
 	tar -xf $(BUILD_DIR)/hdf5.tar.bz2 -C $(BUILD_DIR)
 	mv $(BUILD_DIR)/hdf5-$(HDF5_VERSION) $(BUILD_DIR)/hdf5
