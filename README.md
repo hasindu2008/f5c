@@ -40,7 +40,7 @@ On OS X : brew install hdf5
 
 If you cannot install HDF5 system wide, you can build it locally by skipping `scripts/install-hts.sh` and `./configure`. However, building HDF5 takes ages.
 
-Building from the Github repository additionally requires `autoreconf` which can be installed on ubuntu using `sudo apt-get install autoconf`.
+Building from the Github repository additionally requires `autoreconf` which can be installed on ubuntu using `sudo apt-get install autoconf automake`.
 Other building options are detailed [here](building.md).
 
 
