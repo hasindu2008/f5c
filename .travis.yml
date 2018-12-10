@@ -2,7 +2,7 @@ language: cpp
 compiler: g++
 
 env:
-  - CUDA_HOME=/usr/local/cuda PATH=${CUDA_HOME}/bin:${PATH} VERSION=$(git describe --tags)
+  - CUDA_HOME=/usr/local/cuda PATH=${CUDA_HOME}/bin:${PATH}
 
 jobs:
   addons:
@@ -69,12 +69,12 @@ jobs:
         - sudo apt-get clean
         - sudo ln -s /usr/local/cuda-6.5/ ${CUDA_HOME}
       script:
-        - mkdir -p f5c-${VERSION}-bin
-        - make cuda=1 && mv f5c f5c-${VERSION}-bin/f5c_x86_64_linux_cuda && make clean
-        - make && mv f5c f5c-${VERSION}-bin/f5c_x86_64_linux
-        - tar -cf f5c-${VERSION}-bin.tar f5c-${VERSION}-bin
-        - gzip f5c-${VERSION}-bin.tar
-        - rm -rf f5c-${VERSION}-bin
+        - mkdir -p f5c-${TRAVIS_TAG}-bin
+        - make cuda=1 && mv f5c f5c-${TRAVIS_TAG}-bin/f5c_x86_64_linux_cuda && make clean
+        - make && mv f5c f5c-${TRAVIS_TAG}-bin/f5c_x86_64_linux
+        - tar -cf f5c-${TRAVIS_TAG}-bin.tar f5c-${TRAVIS_TAG}-bin
+        - gzip f5c-${TRAVIS_TAG}-bin.tar
+        - rm -rf f5c-${TRAVIS_TAG}-bin
       deploy:
         provider: releases
         api_key:
