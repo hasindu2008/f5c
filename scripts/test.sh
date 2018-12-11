@@ -117,7 +117,7 @@ if [ -z $mode ]; then
 		grep -w "chr20" ${testdir}/result.txt | awk '{print $1$2$3$4$8$9$10"\t"$5"\t"$6"\t"$7}' > ${testdir}/result_float.txt
 		grep -w "chr20" ${testdir}/meth.exp | awk '{print $1$2$3$4$8$9$10"\t"$5"\t"$6"\t"$7}'  > ${testdir}/meth_float.txt
 
-		join ${testdir}/result_float.txt ${testdir}/meth_float.txt -a 1 -a 2 | awk -v thresh=0.1 '
+		join -a 1 -a 2 ${testdir}/result_float.txt ${testdir}/meth_float.txt | awk -v thresh=0.1 '
 		function abs(x){return (((x) < 0.0) ? -(x) : (x))}
 		BEGIN{status=0}
 		{
@@ -136,7 +136,7 @@ if [ -z $mode ]; then
 		awk '{print $1$2$3$4$8$9$10"\t"$5"\t"$6"\t"$7}' ${testdir}/result.txt > ${testdir}/result_float.txt
 		awk '{print $1$2$3$4$8$9$10"\t"$5"\t"$6"\t"$7}' ${testdir}/meth.exp > ${testdir}/meth_float.txt	
 
-		join ${testdir}/result_float.txt ${testdir}/meth_float.txt -a 1 -a 2 | awk -v thresh=0.1 '
+		join -a 1 -a 2 ${testdir}/result_float.txt ${testdir}/meth_float.txt | awk -v thresh=0.1 '
 		function abs(x){return (((x) < 0.0) ? -(x) : (x))} 
 		BEGIN{status=0} 
 		{
