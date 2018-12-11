@@ -56,14 +56,27 @@ done
 
 echo "Default test"
 make clean && make
-"${exepath}" call-methylation -b "${bamfile}" -g "${ref}" -r "${reads}" -t "${NCPU}"  -K256 -v5 > ${testdir}/result.txt
+"${exepath}" call-methylation -b "${bamfile}" -g "${ref}" -r "${reads}" -t "${NCPU}"  -K1024 -v5 > ${testdir}/result.txt
+evaluate
+
+echo "sectional benchmark"
+"${exepath}" call-methylation -b "${bamfile}" -g "${ref}" -r "${reads}" -t "${NCPU}"  -K1024 -v5 --profile=yes > ${testdir}/result.txt
 evaluate
 
 echo "NO IO PROC INTERLEAVE test"
 make clean &&  CFLAGS+="-DIO_PROC_NO_INTERLEAVE=1" make
+"${exepath}" call-methylation -b "${bamfile}" -g "${ref}" -r "${reads}" -t "${NCPU}"  -K1024 -v5 > ${testdir}/result.txt
+evaluate
+
+echo "CUDA test"
+make clean && make cuda=1
 "${exepath}" call-methylation -b "${bamfile}" -g "${ref}" -r "${reads}" -t "${NCPU}"  -K256 -v5 > ${testdir}/result.txt
 evaluate
 
+echo "CUDA test : cuda disabled"
+make clean && make cuda=1
+"${exepath}" call-methylation -b "${bamfile}" -g "${ref}" -r "${reads}" -t "${NCPU}"  -K256 -v5 --disable-cuda=yes > ${testdir}/result.txt
+evaluate
 
 
 exit 0

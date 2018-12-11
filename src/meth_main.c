@@ -47,6 +47,7 @@ static struct option long_options[] = {
     {"disable-cuda", required_argument, 0, 0},     //17 disable running on CUDA [no] (only if compiled for CUDA)
     {"cuda-block-size",required_argument, 0, 0},   //18 
     {"debug-break",required_argument, 0, 0},       //19 break after processing the first batch (used for debugging)
+    {"profile-cpu",required_argument, 0, 0},       //20 perform section by section (used for profiling - for CPU only)
     {0, 0, 0, 0}};
 
 
@@ -227,6 +228,8 @@ int meth_main(int argc, char* argv[]) {
             opt.cuda_block_size = atoi(optarg); //todo : warnining for cpu only mode, check limits
         }else if(c == 0 && longindex == 19){
             yes_or_no(&opt, F5C_DEBUG_BRK, longindex, optarg, 1);
+        }else if(c == 0 && longindex == 20){ //sectional benchmark todo : warning for gpu mode
+            yes_or_no(&opt, F5C_SEC_PROF, longindex, optarg, 1);
         }
 
     }
@@ -235,30 +238,31 @@ int meth_main(int argc, char* argv[]) {
         fprintf(
             fp_help,
             "Usage: f5c call-methylation [OPTIONS] -r reads.fa -b alignments.bam -g genome.fa\n");
-        fprintf(fp_help,"   -r FILE                 fastq/fasta read file\n");
-        fprintf(fp_help,"   -b FILE                 sorted bam file\n");
-        fprintf(fp_help,"   -g FILE                 reference genome\n");
-        fprintf(fp_help,"   -t INT                  number of threads [%d]\n",opt.num_thread);
-        fprintf(fp_help,"   -K INT                  batch size (number of reads loaded at once) [%d]\n",opt.batch_size);
-        fprintf(fp_help,"   -h                      help\n");
-        fprintf(fp_help,"   --min-mapq INT          minimum mapping quality [%d]\n",opt.min_mapq);
-        fprintf(fp_help,"   --secondary             consider secondary mappings or not [%s]\n",(opt.flag&F5C_SECONDARY_YES)?"yes":"no");
-        fprintf(fp_help,"   --skip-unreadable       skip any unreadable fast5 or terminate program [%s]\n",(opt.flag&F5C_SKIP_UNREADABLE?"yes":"no"));
-        fprintf(fp_help,"   --verbose INT           verbosity level [%d]\n",opt.verbosity);
-        fprintf(fp_help,"   --version               print version\n");
-#ifdef HAVE_CUDA
-        fprintf(fp_help,"   --disable-cuda          disable running on CUDA [no] (only if compiled for CUDA)\n");
+        fprintf(fp_help,"   -r FILE                    fastq/fasta read file\n");
+        fprintf(fp_help,"   -b FILE                    sorted bam file\n");
+        fprintf(fp_help,"   -g FILE                    reference genome\n");
+        fprintf(fp_help,"   -t INT                     number of threads [%d]\n",opt.num_thread);
+        fprintf(fp_help,"   -K INT                     batch size (number of reads loaded at once) [%d]\n",opt.batch_size);
+        fprintf(fp_help,"   -h                         help\n");
+        fprintf(fp_help,"   --min-mapq INT             minimum mapping quality [%d]\n",opt.min_mapq);
+        fprintf(fp_help,"   --secondary=yes|no         consider secondary mappings or not [%s]\n",(opt.flag&F5C_SECONDARY_YES)?"yes":"no");
+        fprintf(fp_help,"   --skip-unreadable=yes|no   skip any unreadable fast5 or terminate program [%s]\n",(opt.flag&F5C_SKIP_UNREADABLE?"yes":"no"));
+        fprintf(fp_help,"   --verbose INT              verbosity level [%d]\n",opt.verbosity);
+        fprintf(fp_help,"   --version                  print version\n");
+#ifdef HAVE_CUDA   
+        fprintf(fp_help,"   --disable-cuda             disable running on CUDA [no] (only if compiled for CUDA)\n");
         fprintf(fp_help,"   --cuda-block-size\n");
 #endif	 
 
 
         fprintf(fp_help,"debug options:\n");
-        fprintf(fp_help,"   --kmer-model FILE       custom k-mer model file (used for debugging)\n");
-        fprintf(fp_help,"   --print-events          prints the event table (used for debugging)\n");
-        fprintf(fp_help,"   --print-banded-aln      prints the event alignment (used for debugging)\n");
-        fprintf(fp_help,"   --print-scaling         prints the estimated scalings (used for debugging)\n");
-        fprintf(fp_help,"   --print-raw             prints the raw signal (used for debugging)\n"); 
-        fprintf(fp_help,"   --debug-break           break after processing the first batch (used for debugging)\n"); 
+        fprintf(fp_help,"   --kmer-model FILE          custom k-mer model file (used for debugging)\n");
+        fprintf(fp_help,"   --print-events=yes|no      prints the event table (used for debugging)\n");
+        fprintf(fp_help,"   --print-banded-aln=yes|no  prints the event alignment (used for debugging)\n");
+        fprintf(fp_help,"   --print-scaling=yes|no     prints the estimated scalings (used for debugging)\n");
+        fprintf(fp_help,"   --print-raw=yes|no         prints the raw signal (used for debugging)\n"); 
+        fprintf(fp_help,"   --debug-break=yes|no       break after processing the first batch (used for debugging)\n"); 
+        fprintf(fp_help,"   --profile=yes|no           process section by section (used for profiling on CPU)\n"); 
 
         if(fp_help == stdout){
             exit(EXIT_SUCCESS);
@@ -407,39 +411,39 @@ int meth_main(int argc, char* argv[]) {
     //         g_total_reads, g_unparseable_reads, g_qc_fail_reads, g_failed_calibration_reads, g_failed_alignment_reads, g_bad_fast5_file);
 
 
-#ifdef SECTIONAL_BENCHMARK 
-    fprintf(stderr, "\n[%s] Events time: %.3f sec",
-            __func__, core->event_time);
-    fprintf(stderr, "\n[%s] Alignment time: %.3f sec",
-            __func__, core->align_time);
-    #ifdef HAVE_CUDA
-        if (!(core->opt.flag & F5C_DISABLE_CUDA)) {
-            fprintf(stderr, "\n[%s] Alignment kernel only time: %.3f sec",
-                __func__, core->align_kernel_time);
-            fprintf(stderr, "\n[%s] Alignment pre kernel only time: %.3f sec",
-                __func__, core->align_pre_kernel_time);
-            fprintf(stderr, "\n[%s] Alignment core kernel only time: %.3f sec",
-                __func__, core->align_core_kernel_time);
-            fprintf(stderr, "\n[%s] Alignment post kernel only time: %.3f sec",
-                __func__, core->align_post_kernel_time);
-            fprintf(stderr, "\n[%s] Alignment preprocess time: %.3f sec",
-                __func__, core->align_cuda_preprocess);
-            fprintf(stderr, "\n[%s] Alignment malloc time: %.3f sec",
-                __func__, core->align_cuda_malloc);
-            fprintf(stderr, "\n[%s] Alignment data move time: %.3f sec",
-                __func__, core->align_cuda_memcpy);
-            fprintf(stderr, "\n[%s] Alignment post process time: %.3f sec",
-                __func__, core->align_cuda_postprocess);
-            fprintf(stderr, "\n[%s] Alignment (ultra-long) extra CPU process time: %.3f sec",
-                __func__, core->extra_load_cpu);
-        }
-    #endif            
-    fprintf(stderr, "\n[%s] Estimate scaling time: %.3f sec",
-            __func__, core->est_scale_time);    
-    fprintf(stderr, "\n[%s] Call methylation time: %.3f sec",
-            __func__, core->meth_time);    
+    if((core->opt.flag&F5C_SEC_PROF) || (!(core->opt.flag & F5C_DISABLE_CUDA))){
+        fprintf(stderr, "\n[%s] Events time: %.3f sec",
+                __func__, core->event_time);
+        fprintf(stderr, "\n[%s] Alignment time: %.3f sec",
+                __func__, core->align_time);
+        #ifdef HAVE_CUDA
+            if (!(core->opt.flag & F5C_DISABLE_CUDA)) {
+                fprintf(stderr, "\n[%s] Alignment kernel only time: %.3f sec",
+                    __func__, core->align_kernel_time);
+                fprintf(stderr, "\n[%s] Alignment pre kernel only time: %.3f sec",
+                    __func__, core->align_pre_kernel_time);
+                fprintf(stderr, "\n[%s] Alignment core kernel only time: %.3f sec",
+                    __func__, core->align_core_kernel_time);
+                fprintf(stderr, "\n[%s] Alignment post kernel only time: %.3f sec",
+                    __func__, core->align_post_kernel_time);
+                fprintf(stderr, "\n[%s] Alignment preprocess time: %.3f sec",
+                    __func__, core->align_cuda_preprocess);
+                fprintf(stderr, "\n[%s] Alignment malloc time: %.3f sec",
+                    __func__, core->align_cuda_malloc);
+                fprintf(stderr, "\n[%s] Alignment data move time: %.3f sec",
+                    __func__, core->align_cuda_memcpy);
+                fprintf(stderr, "\n[%s] Alignment post process time: %.3f sec",
+                    __func__, core->align_cuda_postprocess);
+                fprintf(stderr, "\n[%s] Alignment (ultra-long) extra CPU process time: %.3f sec",
+                    __func__, core->extra_load_cpu);
+            }
+        #endif            
+        fprintf(stderr, "\n[%s] Estimate scaling time: %.3f sec",
+                __func__, core->est_scale_time);    
+        fprintf(stderr, "\n[%s] Call methylation time: %.3f sec",
+                __func__, core->meth_time);    
 
-#endif
+    }
 
     //free the core data structure
     free_core(core);

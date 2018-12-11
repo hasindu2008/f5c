@@ -759,7 +759,7 @@ db->scalings[i], core->cpgmodel,db->events_per_base[i]);
 
 void process_db(core_t* core, db_t* db) {
     
-#ifdef SECTIONAL_BENCHMARK
+if((core->opt.flag&F5C_SEC_PROF) || (!(core->opt.flag & F5C_DISABLE_CUDA))){
 
     double realtime0=core->realtime0;
     int32_t i;
@@ -804,7 +804,8 @@ void process_db(core_t* core, db_t* db) {
             realtime() - realtime0, cputime() / (realtime() - realtime0));   
 
 
-#else
+}
+else{
     if (core->opt.num_thread == 1) {
         int32_t i=0;
         for (i = 0; i < db->n_bam_rec; i++) {
@@ -816,7 +817,7 @@ void process_db(core_t* core, db_t* db) {
         pthread_db(core,db,process_single);    
     }
 
-#endif
+}
     
     return;
 }

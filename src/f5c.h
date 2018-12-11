@@ -24,8 +24,9 @@
 #define F5C_PRINT_EVENTS 0x008 //print the event table
 #define F5C_PRINT_BANDED_ALN 0x010 //print the event alignment
 #define F5C_PRINT_SCALING 0x020 //print the estimated scalings
-#define F5C_DISABLE_CUDA 0x040 //diable cuda (only when compile for cuda)
+#define F5C_DISABLE_CUDA 0x040 //disable cuda (only when compile for cuda)
 #define F5C_DEBUG_BRK 0x080 //break after the first batch
+#define F5C_SEC_PROF 0x100 //profile section by section (only effective on the CPU mode)
 
 
 //flags for a read status
@@ -40,6 +41,7 @@
 
 //set if input, processing and output are not to be interleaved (serial mode) - useful for debugging
 //#define IO_PROC_NO_INTERLEAVE 1 
+
 #define SECTIONAL_BENCHMARK 1   
 
 //#define ALIGN_2D_ARRAY 1 //for CPU whether to use a 1D array or a 2D array
