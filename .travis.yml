@@ -69,16 +69,17 @@ jobs:
         - sudo apt-get clean
         - sudo ln -s /usr/local/cuda-6.5/ ${CUDA_HOME}
       script:
-        - make cuda=1 && mv ./f5c ./f5c_x86_64_linux_cuda && make clean
-        - make && mv ./f5c ./f5c_x86_64_linux
+        - mkdir -p f5c-${TRAVIS_TAG}-bin
+        - make cuda=1 && mv f5c f5c-${TRAVIS_TAG}-bin/f5c_x86_64_linux_cuda && make clean
+        - make && mv f5c f5c-${TRAVIS_TAG}-bin/f5c_x86_64_linux
+        - tar -zcf f5c-${TRAVIS_TAG}-bin.tar.gz f5c-${TRAVIS_TAG}-bin
+        - rm -rf f5c-${TRAVIS_TAG}-bin
       deploy:
         provider: releases
         api_key:
           secure: KT3XFGJDQaN4EIbjRqAxnNFcG3fpkSFKct32bupVdlTMbzoI2c9oPyYKmUESyJODZML2BAwKV1knXrzhU/8o+vEDmTFdQ5fRNNHP8kcx6RVIZMSsJ+rF2DDl7sitr0rndyPbT97ACbsSZSdRiWK8MKo6YeMUJNkhuBOjXISFl4uiNezK0HeFCepQdWwB8W7De/1kgNQa9ZL6O7deiB+6DDZOVF/jr/YvIxCjytGwhFW6E5/EDHVmTt+9aXRXVgffzq9Ltt5oS30uYfWNJfAsk+81XEnuZ7GUGSyN4N77Xk2cI1LD3E8m1kMHksd34tn0A97nT4CPPI+WoUootzLDh29fUmSDPXbqwCGFDk8FTVUSAuwxZQQAESJrFv9fVl1vWTh3Bj8NkzXAHgmTtaBCxeIUhN+pBX3d7QQMYGpUHGGdIENGpfVi9vnnAYSsYs1foJtfuhw534ejju4laZ0bXVUE0w5AAKEw8H1xA+lS413ugKwAXEX6naFAD6NkZaX3ISSVeewIqtIW6UFCNqt/U++OY9vcwzFDbUq/wEjZtNRLzXzHzaObomRsOKqldje3FxH9p1QIPZXWgLBx8FhdFG6P+Nilhifq7Dcgx1dybKGTWOOurXrPKVgC9bLtXe/49LVMk5TirYtj2gXmlofi1SD52T9HpZVWH9haJ+Rnjso=
         file_glob: true
-        file:
-          - f5c*
-          - f5c-*.tar.gz
+        file: f5c-*.tar.gz
         skip_cleanup: true
         on:
           branch: master
