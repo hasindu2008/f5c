@@ -72,8 +72,7 @@ jobs:
         - mkdir -p f5c-${TRAVIS_TAG}-bin
         - make cuda=1 && mv f5c f5c-${TRAVIS_TAG}-bin/f5c_x86_64_linux_cuda && make clean
         - make && mv f5c f5c-${TRAVIS_TAG}-bin/f5c_x86_64_linux
-        - tar -cf f5c-${TRAVIS_TAG}-bin.tar f5c-${TRAVIS_TAG}-bin
-        - gzip f5c-${TRAVIS_TAG}-bin.tar
+        - tar -zcf f5c-${TRAVIS_TAG}-bin.tar.gz f5c-${TRAVIS_TAG}-bin
         - rm -rf f5c-${TRAVIS_TAG}-bin
       deploy:
         provider: releases
