@@ -22,7 +22,7 @@ repository_tree: gh-pages
 
 # Build settings
 markdown: kramdown
-theme: jekyll-text-theme
+remote_theme: kitian616/jekyll-text-theme
 plugins:
   - jekyll-feed
   - jekyll-sitemap
