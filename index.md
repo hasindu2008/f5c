@@ -15,4 +15,4 @@ First the reads have to be indexed using `f5c index` (or `nanopolish index` -
 almost the same as from nanopolish except a few differences due to floating
 point approximations.
 
-[Latest release](https://github.com/swaywm/sway/releases/latest)
+[Latest release](https://github.com/hasindu2008/f5c/releases/latest)

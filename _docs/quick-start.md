@@ -2,7 +2,7 @@
 title: Quick Start
 ---
 If you are a Linux user and want to quickly try out download the compiled
-binaries from the [latest release](https://github.com/swaywm/sway/releases/latest).
+binaries from the [latest release](https://github.com/hasindu2008/f5c/releases/latest).
 Note that currently the binary only runs on *x86_64* platform.
 
 For example:
