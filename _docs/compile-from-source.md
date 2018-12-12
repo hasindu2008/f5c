@@ -3,13 +3,17 @@ title: Compile from source
 ---
 Instead of using the pre-compiled binary, you can build the binary from source.
 
-f5c depends on the following libraries:
-- zlib
-- htslib
-- hdf5
+While we have tried hard to avoid the dependency hell, three dependencies
+(zlib, HDF5 and htslib) could not be avoided:
+- zlib (`zlib1g-dev` on Debian/Ubuntu, `zlib-devel` on Fedora/CentOS, `zlib` on Arch Linux)
+- htslib (`libhts1` on Debian/Ubuntu, and install `htslib` from AUR if you are on Arch Linux)
+- hdf5 (`libhdf5-dev` on Debian/Ubuntu, `hdf5-devel` on Fedora/CentOS, `hdf5` on Arch Linux)
 
 ## Build from tar release
 f5c provides a minimal tar ball for users to build a binary on their computer.
+
+Download the [latest release](https://github.com/hasindu2008/f5c/releases/latest)
+from GitHub, then extract and `cd` to the working directory.
 ```sh
 scripts/install-hts.sh  # download and compile the htslib
 ./configure
@@ -20,19 +24,14 @@ make
 
 #### Method 1 (recommended)
 
-Dependencies : Install the HDF5 (and zlib development libraries)
-```sh
-On Debian/Ubuntu : sudo apt-get install libhdf5-dev zlib1g-dev
-On Fedora/CentOS : sudo dnf/yum install hdf5-devel zlib-devel
-On Arch Linux: sudo pacman -S hdf5
-On OS X : brew install hdf5
-```
+Install HDF5 (and zlib development libraries) listed at the [top](http://127.0.0.1:4000/docs/compile-from-source).
+This compiles only htslib locally and uses the system-wide HDF5 installation.
 
 Now build f5c
 ```sh
 git clone https://github.com/hasindug/f5c
 cd f5c
-autoreconf #not required if a release
+autoreconf
 scripts/install-hts.sh
 ./configure
 make
@@ -40,31 +39,26 @@ make
 
 #### Method 2 (time consuming)
 
-Dependencies : Install the HDF5 and zlib development libraries
-```
-On Debian/Ubuntu : sudo apt-get install zlib1g-dev
-On Fedora/CentOS : sudo dnf/yum install zlib-devel
-```
+This compiles all the libraries locally and statically link them with the
+binary, which could take up to half an hour. Make sure you have zlib installed
+on your computer.
 
 Now build f5c
 ```sh
 git clone https://github.com/hasindug/f5c
 cd f5c
-autoreconf #optional
-scripts/install-hts.sh #optional
-scripts/install-hdf5.sh #optional
-./configure --enable-localhdf5 #optional
 make
 ```
 
 #### Method 3 (not recommended)
 
-Dependencies : Install HDF5 and hts
-```sh
-On Debian/Ubuntu : sudo apt-get install libhdf5-dev zlib1g-dev libhts1
-```
+This method is not recommended as the pre-compiled htslib on Debian/Ubuntu is
+not up to date and f5c depends on a newer version of htslib. Building on Arch
+Linux should be fine though.
 
-Now build f5c
+First install HDF5 and htslib using your package manager.
+
+Then build f5c
 ```sh
 git clone https://github.com/hasindug/f5c
 cd f5c

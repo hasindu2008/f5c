@@ -2,8 +2,6 @@
 layout: article
 ---
 
-# f5c
-
 **f5c** is an optimised re-implementation of the call-methylation module in
 [Nanopolish](https://github.com/jts/nanopolish). Given a set of basecalled
 Nanopore reads and the raw signals, f5c detects the methylated cytosine bases.
