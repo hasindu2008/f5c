@@ -1,0 +1,17 @@
+header:
+  - title:      Docs
+    url:        /docs/quick-start
+  - title:      About
+    url:        /about/
+
+docs:
+  - title:      Installation
+    children:
+      - title:  Quick Start
+        url:    /docs/quick-start
+      - title:  Compile From Source
+        url:    /docs/compile-from-source
+  - title:      Performance
+    children:
+      - title:  Comparison with Nanopolish
+        url:    /docs/comparison-with-nanopolish
