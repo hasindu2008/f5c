@@ -91,8 +91,8 @@ do
 		   ref=${testdir}/humangenome.fa
 		   reads=${testdir}/reads.fastq
 		   testset_url="http://genome.cse.unsw.edu.au/tmp/f5c_na12878_test.tgz"
-		   fallback_url="https://ndownloader.figshare.com/files/13327931?private_link=5dd2077f1041412a9518";;
-		d) download_test_set "http://genome.cse.unsw.edu.au/tmp/f5c_na12878_test.tgz" "https://ndownloader.figshare.com/files/13327931?private_link=5dd2077f1041412a9518"
+		   fallback_url="https://ndownloader.figshare.com/files/13784792?private_link=5dd2077f1041412a9518";;
+		d) download_test_set "http://genome.cse.unsw.edu.au/tmp/f5c_na12878_test.tgz" "https://ndownloader.figshare.com/files/13784792?private_link=5dd2077f1041412a9518"
 		   exit 0;;
 		h) help_msg
 		   exit 0;;
