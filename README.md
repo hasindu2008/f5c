@@ -12,7 +12,9 @@ First the reads have to be indexed using `f5c index` (or `nanopolish index` - f5
 
 If you are a Linux user and want to quickly try out download the compiled binaries from the [latest release](https://github.com/hasindu2008/f5c/releases). For example:
 ```sh
-wget "https://github.com/hasindu2008/f5c/releases/download/v0.0-alpha/f5c-v0.0-alpha-binaries.tar.gz" && tar xvf f5c-v0.0-alpha-binaries.tar.gz && cd f5c-v0.0-alpha/
+wget "https://github.com/hasindu2008/f5c/releases/download/v0.0-alpha/f5c-v0.0-alpha-binaries.tar.gz"
+tar xvf f5c-v0.0-alpha-binaries.tar.gz
+cd f5c-v0.0-alpha/
 ./f5c_x86_64_linux        # CPU version
 ./f5c_x86_64_linux_cuda   # cuda supported version
 ```
