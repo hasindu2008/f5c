@@ -23,7 +23,7 @@ PREFIX = /usr/local
 VERSION = `git describe --tags`
 
 ifdef cuda
-    CUDA_ROOT ?= `find /usr/local -maxdepth 1 -name "cuda-*" -type d`
+    CUDA_ROOT ?= /usr/local/cuda
     CUDA_OBJ = $(BUILD_DIR)/f5c_cuda.o $(BUILD_DIR)/align_cuda.o
     NVCC = nvcc
     CFLAGS_CUDA += -g -O2 -std=c++11 -lineinfo $(CUDA_ARCH)
