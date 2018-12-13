@@ -11,6 +11,14 @@ docs:
         url:    /docs/quick-start
       - title:  Compile From Source
         url:    /docs/compile-from-source
+      - title:  Docker
+        url:    /docs/docker
+  - title:      Usage
+    children:
+      - title:  Commands and options
+        url:    /docs/commands
+      - title:  Examples
+        url:    /docs/example-usage
   - title:      Performance
     children:
       - title:  Comparison with Nanopolish

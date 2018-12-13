@@ -18,6 +18,7 @@ from GitHub, then extract and `cd` to the working directory.
 scripts/install-hts.sh  # download and compile the htslib
 ./configure
 make
+make install
 ```
 
 ## Build from git source
@@ -35,6 +36,7 @@ autoreconf
 scripts/install-hts.sh
 ./configure
 make
+make install
 ```
 
 #### Method 2 (time consuming)
@@ -48,6 +50,7 @@ Now build f5c
 git clone https://github.com/hasindug/f5c
 cd f5c
 make
+make install
 ```
 
 #### Method 3 (not recommended)
@@ -65,6 +68,7 @@ cd f5c
 autoreconf
 ./configure --enable-systemhts
 make
+make install
 ```
 
 ## NVIDIA CUDA Support
