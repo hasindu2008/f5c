@@ -578,7 +578,7 @@ void* align_cudb(void* voidargs){
         
     }
 
-    fprintf(stderr,"%d reads (length>%d kb) processed on cpu\n",n_ultra_long_reads,GPU_MAX_READ_LEN/1000);
+    fprintf(stderr,"%d reads (length>%d kb) processed on cpu\n",n_ultra_long_reads,(core->opt.cuda_max_readlen)/1000);
 
     return NULL;
 }
@@ -653,7 +653,7 @@ realtime1 = realtime();
 
     //read sequences : needflattening
     for (i = 0,j=0; i < n_bam_rec; i++) {
-        if(db->read_len[i]<GPU_MAX_READ_LEN){
+        if(db->read_len[i]<(core->opt.cuda_max_readlen)){
             read_ptr_host[j] = sum_read_len;
             sum_read_len += (db->read_len[i] + 1); //with null term
             j++;
@@ -679,7 +679,7 @@ realtime1 = realtime();
     read_host = (char*)malloc(sizeof(char) * sum_read_len);
     MALLOC_CHK(read_host);
     for (i = 0,j=0; i < n_bam_rec; i++) {
-        if(db->read_len[i]<GPU_MAX_READ_LEN){
+        if(db->read_len[i]<(core->opt.cuda_max_readlen)){
             int32_t idx = read_ptr_host[j];
             strcpy(&read_host[idx], db->read[i]);
             read_len_host[j]=db->read_len[i];
@@ -698,7 +698,7 @@ realtime1 = realtime();
 
     sum_n_events = 0;
     for (i = 0,j=0; i < n_bam_rec; i++) {
-        if(db->read_len[i]<GPU_MAX_READ_LEN){
+        if(db->read_len[i]<(core->opt.cuda_max_readlen)){
             n_events_host[j] = db->et[i].n;
             event_ptr_host[j] = sum_n_events;
             sum_n_events += db->et[i].n;
@@ -712,7 +712,7 @@ realtime1 = realtime();
         (event_t*)malloc(sizeof(event_t) * sum_n_events);
     MALLOC_CHK(event_table_host);
     for (i = 0,j=0; i < n_bam_rec; i++) {
-        if(db->read_len[i]<GPU_MAX_READ_LEN){
+        if(db->read_len[i]<(core->opt.cuda_max_readlen)){
             int32_t idx = event_ptr_host[j];
             memcpy(&event_table_host[idx], db->et[i].event,
                 sizeof(event_t) * db->et[i].n);
@@ -913,7 +913,7 @@ core->align_cuda_malloc += (realtime() - realtime1);
 realtime1 =  realtime();
     //copy back
     for (i = 0,j=0; i < n_bam_rec; i++) {
-        if(db->read_len[i]<GPU_MAX_READ_LEN){
+        if(db->read_len[i]<(core->opt.cuda_max_readlen)){
             int32_t idx = event_ptr_host[j];
             db->n_event_align_pairs[i]=n_event_align_pairs_host[j];
             memcpy(db->event_align_pairs[i], &event_align_pairs_host[idx * 2],

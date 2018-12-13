@@ -40,9 +40,7 @@
 #define STEAL_THRESH 5
 
 //set if input, processing and output are not to be interleaved (serial mode) - useful for debugging
-//#define IO_PROC_NO_INTERLEAVE 1 
-
-#define SECTIONAL_BENCHMARK 1   
+//#define IO_PROC_NO_INTERLEAVE 1    
 
 //#define ALIGN_2D_ARRAY 1 //for CPU whether to use a 1D array or a 2D array
 
@@ -59,8 +57,10 @@ typedef struct {
     uint32_t flag;
     int32_t batch_size;
     int32_t num_thread;
-    int32_t cuda_block_size;
     int8_t verbosity;
+
+    int32_t cuda_block_size;
+    int32_t cuda_max_readlen;
 } opt_t;
 
 // events : from scrappie
