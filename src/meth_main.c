@@ -231,8 +231,9 @@ int meth_main(int argc, char* argv[]) {
             yes_or_no(&opt, F5C_DEBUG_BRK, longindex, optarg, 1);
         }else if(c == 0 && longindex == 20){ //sectional benchmark todo : warning for gpu mode
             yes_or_no(&opt, F5C_SEC_PROF, longindex, optarg, 1);
+        }else if(c == 0 && longindex == 21){ //cuda todo : warning for cpu mode, error check
+            opt.cuda_max_readlen = atoi(optarg);
         }
-
     }
 
     if (fastqfile == NULL || bamfilename == NULL || fastafile == NULL || fp_help == stdout) {
