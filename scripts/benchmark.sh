@@ -70,12 +70,12 @@ done
 t=8
 while [ $t -le $threads ]
 do
-	/usr/bin/time -v ${f5c_path} call-methylation -b ${bamfile} -g ${ref} -r ${reads} -t $t --secondary=yes --min-mapq=0 --print-scaling=yes -K$batchsize --disable_cuda=$disable_cuda > result.txt 2> f5c_$t.log
+	/usr/bin/time -v ${f5c_path} call-methylation -b ${bamfile} -g ${ref} -r ${reads} -t $t --secondary=yes --min-mapq=0 --print-scaling=yes -K$batchsize --disable_cuda=$disable_cuda > /dev/null 2> f5c_$t.log
 	if [ $clean_cache = true ]
 	then
 		sync; echo 3 | sudo tee /proc/sys/vm/drop_caches
 	fi
-	/usr/bin/time -v ${nanopolish_path} call-methylation -b ${bamfile} -g ${ref} -r ${reads} -t $t -K$batchsize > result.txt 2> nano_$t.log
+	/usr/bin/time -v ${nanopolish_path} call-methylation -b ${bamfile} -g ${ref} -r ${reads} -t $t -K$batchsize > /dev/null 2> nano_$t.log
 	if [ $clean_cache = true ]
 	then
 		sync; echo 3 | sudo tee /proc/sys/vm/drop_caches
