@@ -102,8 +102,7 @@ do
 	esac
 done
 shift $(($OPTIND - 1))
-# get only the first item in args
-mode=$(echo "$*" | awk '{print $1}')
+mode=$1
 
 download_test_set $testset_url $fallback_url
 

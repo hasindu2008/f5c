@@ -19,6 +19,8 @@ fi
 # terminate script
 die() {
 	echo "test.sh: $1" >&2
+	echo
+	help_msg
 	exit 1
 }
 
@@ -58,8 +60,10 @@ do
 done
 
 shift $(($OPTIND - 1))
-f5c_path=$(echo "$*" | awk '{print $1}')
-nanopolish_path=$(echo "$*" | awk '{print $2}')
+[ -z $1 ] && die "Specify f5c path."
+[ -z $2 ] && die "Specify nanopolish path."
+f5c_path=$1
+nanopolish_path=$2
 
 for file in ${bamfile} ${ref} ${reads}
 do
