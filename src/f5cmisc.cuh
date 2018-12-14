@@ -6,7 +6,8 @@
 #define CUDA_DEBUG 1 //whether perform CUDA_device_synchronise or not
 
 #define CUDA_PRE_MALLOC 1 //whether static cuda/cpu arrays are preallocated
-#define CPU_GPU_PROC 1 //CUDA_PRE_MALLOC does not have effect with this
+#define CPU_GPU_PROC 1 //CUDA_PRE_MALLOC should be always 1 if this is set
+#define CUDA_PRE_MALLOC2 1 //only effective with CPU_GPU_PROC (whether big dynamic loops are statically preallocated)
 #define WARP_HACK 1 //whether the kernels are  performed in 1D with a warp hack (effective only  if specific TWODIM_ALIGN is not defined)
 
 //align-core-kernel options
@@ -19,7 +20,7 @@
 #define BLOCK_LEN_NUMBAND 16    //the block size along the x axis (BANDWDITH)
 #define BLOCK_LEN_READS2 16 // //the block size along y axis (the number of reads)
 
-
+#define AVG_EVENTS_PER_KMER 5
 
 /* check whether the last CUDA function or CUDA kernel launch is erroneous and if yes an error message will be printed
 and then the program will be aborted*/
@@ -65,29 +66,41 @@ static inline int32_t cuda_exists() {
     //check cuda devices
     int32_t nDevices;
     cudaGetDeviceCount(&nDevices);
+    CUDA_CHK();
     if (nDevices == 0) {
-        fprintf(stderr, "No CUDA device found. Use the CPU version\n");
+        fprintf(stderr, "No CUDA device found. Run with --disable-cuda=yes to run on the CPU\n");
         exit(1);
     }
 
     return nDevices;
 }
 
+// static inline uint64_t cuda_freemem(int32_t devicenum) {
+//     cudaDeviceProp prop;
+//     cudaGetDeviceProperties(&prop, devicenum);
+//     fprintf(stderr, "Device name: %s\n", prop.name);
+//     uint64_t golabalmem = prop.totalGlobalMem;
+//     fprintf(stderr, "Total global memory: %lf GB\n",
+//             (golabalmem / double(1024 * 1024 * 1024)));
+//     uint64_t freemem, total;
+//     cudaMemGetInfo(&freemem, &total);
+//     fprintf(stderr, "%lf GB free of total %lf GB\n",
+//             freemem / double(1024 * 1024 * 1024),
+//             total / double(1024 * 1024 * 1024));
+
+//     return freemem;
+// }
+
 static inline uint64_t cuda_freemem(int32_t devicenum) {
-    cudaDeviceProp prop;
-    cudaGetDeviceProperties(&prop, devicenum);
-    fprintf(stderr, "Device name: %s\n", prop.name);
-    uint64_t golabalmem = prop.totalGlobalMem;
-    fprintf(stderr, "Total global memory: %lf GB\n",
-            (golabalmem / double(1024 * 1024 * 1024)));
+
     uint64_t freemem, total;
-    cudaMemGetInfo(&freemem, &total);
-    fprintf(stderr, "%lf GB free of total %lf GB\n",
+    cudaMemGetInfo(&freemem, &total); 
+    CUDA_CHK();
+    fprintf(stderr, "%lf GB free of total %lf GB global memory\n",
             freemem / double(1024 * 1024 * 1024),
             total / double(1024 * 1024 * 1024));
 
     return freemem;
 }
-
 
 #endif

@@ -240,13 +240,25 @@ typedef struct {
     scalings_t* scalings_host;
     int32_t* n_event_align_pairs_host;
 
+    char* read;        //flattened reads sequences
     int32_t* read_ptr; //index pointer for flattedned "reads"
     int32_t* read_len;
+    int64_t sum_read_len;
     int32_t* n_events;
+    event_t* event_table;
     int32_t* event_ptr;
+    int64_t sum_n_events;
     scalings_t* scalings;
+    AlignedPair* event_align_pairs;
     int32_t* n_event_align_pairs;
-    model_t *model;
+    float *bands;
+    uint8_t *trace;
+    EventKmerPair* band_lower_left;
+    model_t* model_kmer_cache;
+    model_t* model;
+
+    //dynamic arrays
+    uint64_t max_sum_read_len;
 
     } cuda_data_t;
 #endif

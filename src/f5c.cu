@@ -12,6 +12,17 @@
 
 void init_cuda(core_t* core){
 
+
+    cuda_exists();
+    int32_t cuda_device_num = 0;
+
+    cudaDeviceProp prop;
+    cudaGetDeviceProperties(&prop, cuda_device_num);
+    CUDA_CHK();
+    fprintf(stderr, "Running on device id %d -  %s\n", cuda_device_num,prop.name);
+
+
+
     core->cuda = (cuda_data_t*)malloc(sizeof(cuda_data_t)); 
     MALLOC_CHK(core->cuda);
 
@@ -75,7 +86,66 @@ void init_cuda(core_t* core){
     cudaMemcpyHostToDevice);
     CUDA_CHK();
 
+#ifdef CUDA_PRE_MALLOC2
+    // //dynamic arrays
+    //compute the maximum
+    uint64_t free_mem = cuda_freemem(cuda_device_num);
+
+    uint64_t factor =  1 * sizeof(char) + //read_capacity
+                    AVG_EVENTS_PER_KMER * sizeof(event_t) + //event_table_capacity
+                    1 * sizeof(model_t) + //model_kmer_cache_capacity
+                    (AVG_EVENTS_PER_KMER * 2) * sizeof(AlignedPair) +  //event_align_pairs_capacity
+                    (AVG_EVENTS_PER_KMER + 1) * ALN_BANDWIDTH * sizeof(float) + //bands_capacity
+                    (AVG_EVENTS_PER_KMER + 1) * ALN_BANDWIDTH * sizeof(uint8_t)  + //trace_capacity
+                    (AVG_EVENTS_PER_KMER + 1) * sizeof(EventKmerPair) ; //band_lower_left_capacity
     
+    uint64_t sum_read_len = 0;
+    if(prop.integrated==1){ //for tegra we have to reserve some space for RAM
+        sum_read_len= (free_mem - 2*(factor+1))*0.8/ factor;
+    }
+    else{
+        sum_read_len= (free_mem - 2*(factor+1))/ factor;
+    }
+
+    core->cuda->max_sum_read_len = sum_read_len;
+    uint64_t sum_n_events = sum_read_len * AVG_EVENTS_PER_KMER;
+
+    uint64_t read_capacity = sum_read_len * sizeof(char); 
+    uint64_t event_table_capacity = sum_n_events * sizeof(event_t); 
+    uint64_t model_kmer_cache_capacity= sum_read_len * sizeof(model_t); 
+    uint64_t event_align_pairs_capacity= sum_n_events * 2 * sizeof(AlignedPair); 
+    uint64_t bands_capacity = (sum_n_events + sum_read_len) * ALN_BANDWIDTH * sizeof(float) ; 
+    uint64_t trace_capacity = (sum_n_events + sum_read_len) * ALN_BANDWIDTH * sizeof(uint8_t) ; 
+    uint64_t band_lower_left_capacity = (sum_n_events + sum_read_len) * sizeof(EventKmerPair); 
+    
+    print_size("read_capacity",read_capacity);
+    print_size("event_table_capacity",event_table_capacity);
+    print_size("model_kmer_cache_capacity",model_kmer_cache_capacity);
+    print_size("event_align_pairs_capacity",event_align_pairs_capacity);
+    print_size("bands_capacity",bands_capacity);
+    print_size("trace_capacity",trace_capacity);
+    print_size("band_lower_left_capacity",band_lower_left_capacity);
+    
+    //input arrays
+    cudaMalloc((void**)&(core->cuda->read), read_capacity); //with null char
+    CUDA_CHK();
+    cudaMalloc((void**)&(core->cuda->event_table), event_table_capacity);
+    CUDA_CHK();
+    cudaMalloc((void**)&(core->cuda->model_kmer_cache), model_kmer_cache_capacity); 
+    CUDA_CHK();
+ 
+    /**allocate output arrays for cuda**/
+    cudaMalloc((void**)&(core->cuda->event_align_pairs),event_align_pairs_capacity); //todo : need better huristic
+    CUDA_CHK();
+
+    //scratch arrays
+    cudaMalloc((void**)&(core->cuda->bands), bands_capacity);
+    CUDA_CHK();
+    cudaMalloc((void**)&(core->cuda->trace), trace_capacity);
+    CUDA_CHK();
+    cudaMalloc((void**)&(core->cuda->band_lower_left), band_lower_left_capacity);
+    CUDA_CHK();       
+#endif
 
 #endif
 
@@ -100,6 +170,15 @@ void free_cuda(core_t* core){
     cudaFree(core->cuda->scalings);
     cudaFree(core->cuda->n_event_align_pairs);
 
+#ifdef CUDA_PRE_MALLOC2
+    cudaFree(core->cuda->read);
+    cudaFree(core->cuda->event_table);
+    cudaFree(core->cuda->model_kmer_cache);
+    cudaFree(core->cuda->event_align_pairs);
+    cudaFree(core->cuda->bands);
+    cudaFree(core->cuda->trace);
+    cudaFree(core->cuda->band_lower_left);
+#endif
 #endif
 
     free(core->cuda);
@@ -736,14 +815,32 @@ realtime1 = realtime();
     event_ptr=core->cuda->event_ptr;
     scalings=core->cuda->scalings;
     model = core->cuda->model;
+    n_event_align_pairs=core->cuda->n_event_align_pairs;
 
+#ifdef CUDA_PRE_MALLOC2
 
+    assert(sum_read_len <= core->cuda->max_sum_read_len);
+    assert(sum_n_events <= (core->cuda->max_sum_read_len) * AVG_EVENTS_PER_KMER);
+
+    read=(core->cuda->read);
+    event_table=(core->cuda->event_table);
+    model_kmer_cache=(core->cuda->model_kmer_cache);
+    event_align_pairs=(core->cuda->event_align_pairs);
+    bands=(core->cuda->bands);
+    trace=(core->cuda->trace);
+    band_lower_left=(core->cuda->band_lower_left);
+
+    cudaMemset(trace,0,sizeof(uint8_t) * (sum_n_events + sum_read_len) * ALN_BANDWIDTH); //initialise the trace array to 0
+    CUDA_CHK();
+    
+#else    
     print_size("read array",sum_read_len * sizeof(char));
     cudaMalloc((void**)&read, sum_read_len * sizeof(char)); //with null char
     CUDA_CHK();
     print_size("event table",sum_n_events * sizeof(event_t));
     cudaMalloc((void**)&event_table, sum_n_events * sizeof(event_t));
     CUDA_CHK();
+    print_size("model kmer cache",sum_read_len * sizeof(model_t));
     cudaMalloc((void**)&model_kmer_cache, sum_read_len * sizeof(model_t)); 
     CUDA_CHK();
  
@@ -753,7 +850,7 @@ realtime1 = realtime();
             2 * sum_n_events *
                 sizeof(AlignedPair)); //todo : need better huristic
     CUDA_CHK();
-    n_event_align_pairs=core->cuda->n_event_align_pairs;
+
 
     //scratch arrays
     size_t sum_n_bands = sum_n_events + sum_read_len; //todo : can be optimised 
@@ -764,9 +861,14 @@ realtime1 = realtime();
     cudaMalloc((void**)&trace, sizeof(uint8_t) * sum_n_bands * ALN_BANDWIDTH);
     CUDA_CHK();
     cudaMemset(trace,0,sizeof(uint8_t) * sum_n_bands * ALN_BANDWIDTH); //initialise the trace array to 0
+    CUDA_CHK();   
     print_size("band_lower_left",sizeof(EventKmerPair)* sum_n_bands);
     cudaMalloc((void**)&band_lower_left, sizeof(EventKmerPair)* sum_n_bands);
-    CUDA_CHK();   
+    CUDA_CHK();  
+
+#endif
+
+
 core->align_cuda_malloc += (realtime() - realtime1);
 
     /* cuda mem copys*/
@@ -899,6 +1001,7 @@ core->align_cuda_memcpy += (realtime() - realtime1);
 
 realtime1 =  realtime();
 
+#ifndef CUDA_PRE_MALLOC2
     cudaFree(read); //with null char
     cudaFree(event_table);
     cudaFree(event_align_pairs);
@@ -906,6 +1009,7 @@ realtime1 =  realtime();
     cudaFree(trace);
     cudaFree(band_lower_left);
     cudaFree(model_kmer_cache);
+#endif
 
 core->align_cuda_malloc += (realtime() - realtime1);    
     
