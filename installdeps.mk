@@ -3,7 +3,7 @@ HTS ?= install
 
 HTS_VERSION = 1.9
 HDF5_VERSION = 1.10.4
-HDF5_MAJOR_MINOR=`echo $(HDF5_VERSION) | sed -E 's/\.[0-9]+$$//'`
+HDF5_MAJOR_MINOR != echo $(HDF5_VERSION) | sed -E 's/\.[0-9]+$$//'
 
 ifdef ENABLE_PROFILE
     CFLAGS += -p
@@ -16,8 +16,8 @@ ifeq ($(HDF5), install)
 else
 ifneq ($(HDF5), autoconf)
     HDF5_LIB =
-    HDF5_SYS_LIB = $(shell pkg-config --libs hdf5)
-    HDF5_INC = $(shell pkg-config --cflags-only-I hdf5)
+    HDF5_SYS_LIB != pkg-config --libs hdf5
+    HDF5_INC != pkg-config --cflags-only-I hdf5
 endif
 endif
 
@@ -28,8 +28,8 @@ ifeq ($(HTS), install)
 else
 ifneq ($(HTS), autoconf)
     HTS_LIB =
-    HTS_SYS_LIB = $(shell pkg-config --libs htslib)
-    HTS_INC = $(shell pkg-config --cflags-only-I htslib)
+    HTS_SYS_LIB != pkg-config --libs htslib
+    HTS_INC != pkg-config --cflags-only-I htslib
 endif	
 endif
 

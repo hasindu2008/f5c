@@ -20,14 +20,18 @@ OBJ = $(BUILD_DIR)/main.o \
       $(BUILD_DIR)/hmm.o
 
 PREFIX = /usr/local
-VERSION = `git describe --tags`
+VERSION != git describe --tags
 
 ifdef cuda
+    LONG_BIT != getconf LONG_BIT
+    ifeq ($(LONG_BIT), 32)
+        LONG_BIT =
+    endif
     CUDA_ROOT ?= /usr/local/cuda
     CUDA_OBJ = $(BUILD_DIR)/f5c_cuda.o $(BUILD_DIR)/align_cuda.o
     NVCC = nvcc
     CFLAGS_CUDA += -g -O2 -std=c++11 -lineinfo $(CUDA_ARCH)
-    CUDALIB = -L$(CUDA_ROOT)/lib64/ -lcudart_static -lrt -ldl
+    CUDALIB = -L$(CUDA_ROOT)/lib$(LONG_BIT)/ -lcudart_static -lrt -ldl
     OBJ += $(BUILD_DIR)/gpucode.o $(CUDA_OBJ)
     CPPFLAGS += -DHAVE_CUDA=1
 endif
