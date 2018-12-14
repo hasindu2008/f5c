@@ -48,6 +48,7 @@ static struct option long_options[] = {
     {"cuda-block-size",required_argument, 0, 0},   //18 
     {"debug-break",required_argument, 0, 0},       //19 break after processing the first batch (used for debugging)
     {"profile-cpu",required_argument, 0, 0},       //20 perform section by section (used for profiling - for CPU only)
+    {"cuda-max-readlen",required_argument, 0, 0},  //21 reads <= cuda-max-readlen on GPU, rest on CPU (only if compiled for CUDA)
     {0, 0, 0, 0}};
 
 
@@ -230,8 +231,9 @@ int meth_main(int argc, char* argv[]) {
             yes_or_no(&opt, F5C_DEBUG_BRK, longindex, optarg, 1);
         }else if(c == 0 && longindex == 20){ //sectional benchmark todo : warning for gpu mode
             yes_or_no(&opt, F5C_SEC_PROF, longindex, optarg, 1);
+        }else if(c == 0 && longindex == 21){ //cuda todo : warning for cpu mode, error check
+            opt.cuda_max_readlen = atoi(optarg);
         }
-
     }
 
     if (fastqfile == NULL || bamfilename == NULL || fastafile == NULL || fp_help == stdout) {
@@ -250,8 +252,9 @@ int meth_main(int argc, char* argv[]) {
         fprintf(fp_help,"   --verbose INT              verbosity level [%d]\n",opt.verbosity);
         fprintf(fp_help,"   --version                  print version\n");
 #ifdef HAVE_CUDA   
-        fprintf(fp_help,"   --disable-cuda             disable running on CUDA [no] (only if compiled for CUDA)\n");
+        fprintf(fp_help,"   --disable-cuda=yes|no      disable running on CUDA [%s] (only if compiled for CUDA)\n",(opt.flag&F5C_DISABLE_CUDA?"yes":"no"));
         fprintf(fp_help,"   --cuda-block-size\n");
+        fprintf(fp_help,"   --cuda-max-readlen         if read_len<=cuda-max-readlen process on GPU else on CPU [%d]\n",opt.cuda_max_readlen);
 #endif	 
 
 

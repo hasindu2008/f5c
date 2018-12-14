@@ -39,6 +39,7 @@ download_test_set() {
 	mkdir -p test
 	tar_path=test/data.tgz
 	wget -O $tar_path $1 || wget -O $tar_path $2 || rm -rf $tar_path ${testdir}
+	echo "Extracting. Please wait."
 	tar -xf $tar_path -C test || rm -rf $tar_path ${testdir}
 	rm -f $tar_path
 }

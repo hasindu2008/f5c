@@ -977,7 +977,10 @@ void init_opt(opt_t* opt) {
 #ifndef HAVE_CUDA
     opt->flag |= F5C_DISABLE_CUDA;
 #endif
-    opt->cuda_block_size=64;   
+
     opt->flag |= F5C_SKIP_UNREADABLE;
     //opt->flag |= F5C_SECONDARY_YES;
+
+    opt->cuda_block_size=64;   
+    opt->cuda_max_readlen=20000; //effective only if  CPU_GPU_PROC  is set
 }
