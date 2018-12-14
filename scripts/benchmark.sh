@@ -81,7 +81,7 @@ do
 	then
 		sync; echo 3 | sudo tee /proc/sys/vm/drop_caches
 	fi
-	cmd=/usr/bin/time -v ${nanopolish_path} call-methylation -b ${bamfile} -g ${ref} -r ${reads} -t $t -K$batchsize > /dev/null 2> nano_$t.log
+	cmd="/usr/bin/time -v ${nanopolish_path} call-methylation -b ${bamfile} -g ${ref} -r ${reads} -t $t -K$batchsize > /dev/null 2> nano_$t.log"
 	echo $cmd
 	eval $cmd
 	if [ $clean_cache = true ]
