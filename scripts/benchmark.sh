@@ -7,8 +7,9 @@ testdir=test/chr22_meth_example/
 bamfile=$testdir/reads.sorted.bam
 ref=$testdir/humangenome.fa
 reads=$testdir/reads.fastq
-batchsize=4096
+batchsize=512
 disable_cuda=yes
+thread_loop=true
 if command -v nproc > /dev/null
 then
 	threads=$(nproc --all)
@@ -24,6 +25,10 @@ die() {
 	exit 1
 }
 
+clear_fscache() {
+	sync; echo 3 | tee /proc/sys/vm/drop_caches
+}
+
 help_msg() {
 	echo "Benchmark script for f5c."
 	echo "Usage: f5c_dir/script/benchmark.sh [-c] [-b bam file] [-g reference genome] [-r fastq/fasta read] [f5c path] [nanopolish path]"
@@ -35,10 +40,11 @@ help_msg() {
 	echo "-K [n]               Same as f5c -K."
 	echo "-C                   Same as f5c --disable-cuda=no."
 	echo "-t [n]               Maximum number of threads. Minimum is 8."
+	echo "-T                   Disable benchmarking over an increasing number of threads."
 	echo "-h                   Show this help message."
 }
 
-while getopts b:g:r:t:K:ch opt
+while getopts b:g:r:t:K:chT opt
 do
 	case $opt in
 		b) bamfile="$OPTARG";;
@@ -49,6 +55,7 @@ do
 			die "Thread size must be >= 8"
 		   fi
 		   threads="$OPTARG";;
+		T) thread_loop=false;;
 		K) batchsize="$OPTARG";;
 		c) clean_cache=true;;
 		C) disable_cuda=no;;
@@ -72,21 +79,24 @@ done
 
 # run benchmark
 t=8
-while [ $t -le $threads ]
-do
-	cmd="/usr/bin/time -v ${f5c_path} call-methylation -b ${bamfile} -g ${ref} -r ${reads} -t $t --secondary=yes --min-mapq=0 --print-scaling=yes -K$batchsize --disable_cuda=$disable_cuda > /dev/null 2> f5c_$t.log"
-	echo $cmd
-	eval $cmd
-	if [ $clean_cache = true ]
-	then
-		sync; echo 3 | sudo tee /proc/sys/vm/drop_caches
-	fi
-	cmd="/usr/bin/time -v ${nanopolish_path} call-methylation -b ${bamfile} -g ${ref} -r ${reads} -t $t -K$batchsize > /dev/null 2> nano_$t.log"
-	echo $cmd
-	eval $cmd
-	if [ $clean_cache = true ]
-	then
-		sync; echo 3 | sudo tee /proc/sys/vm/drop_caches
-	fi
-	t=$(( t + 8 ))
-done
+rm -f *_benchmark.log
+
+if [ thread_loop = true ]
+then
+	while [ $t -le $threads ]
+	do
+		cmd="/usr/bin/time -v ${f5c_path} call-methylation -b ${bamfile} -g ${ref} -r ${reads} -t $t --secondary=yes --min-mapq=0 --print-scaling=yes -K$batchsize --disable_cuda=$disable_cuda > /dev/null 2>> f5c_benchmark.log"
+		echo $cmd
+		eval $cmd
+		[ $clean_cache = true ] && clear_fscache
+		cmd="/usr/bin/time -v ${nanopolish_path} call-methylation -b ${bamfile} -g ${ref} -r ${reads} -t $t -K$batchsize > /dev/null 2>> nano_benchmark.log"
+		echo $cmd
+		eval $cmd
+		[ $clean_cache = true ] && clear_fscache
+		t=$(( t + 8 ))
+	done
+else
+		/usr/bin/time -v ${f5c_path} call-methylation -b ${bamfile} -g ${ref} -r ${reads} -t $t --secondary=yes --min-mapq=0 --print-scaling=yes -K$batchsize --disable_cuda=$disable_cuda > /dev/null 2>> f5c_benchmark.log
+		[ $clean_cache = true ] && clear_fscache
+		/usr/bin/time -v ${nanopolish_path} call-methylation -b ${bamfile} -g ${ref} -r ${reads} -t $t -K$batchsize > /dev/null 2>> nano_benchmark.log
+fi
