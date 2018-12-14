@@ -1,42 +1,84 @@
-#!/usr/bin/env bash
+#!/bin/sh
 
+set -e
+
+clean_cache=false
+testdir=test/chr22_meth_example/
+bamfile=$testdir/reads.sorted.bam
+ref=$testdir/humangenome.fa
+reads=$testdir/reads.fastq
+batchsize=4096
+disable_cuda=yes
+if command -v nproc > /dev/null
+then
+	threads=$(nproc --all)
+else
+	threads=8
+fi
+
+# terminate script
 die() {
-    local msg="${1}"
-    echo "run.sh: ${msg}" >&2
-    exit 1
+	echo "test.sh: $1" >&2
+	exit 1
 }
 
-set -x
+help_msg() {
+	echo "Benchmark script for f5c."
+	echo "Usage: f5c_dir/script/benchmark.sh [-c] [-b bam file] [-g reference genome] [-r fastq/fasta read] [f5c path] [nanopolish path]"
+	echo
+	echo "-c                   Clean file system cache between every f5c and nanopolish call."
+	echo "-b [bam file]        Same as f5c -b."
+	echo "-r [read file]       Same as f5c -r."
+	echo "-g [ref genome]      Same as f5c -g."
+	echo "-K [n]               Same as f5c -K."
+	echo "-C                   Same as f5c --disable-cuda=no."
+	echo "-t [n]               Maximum number of threads. Minimum is 8."
+	echo "-h                   Show this help message."
+}
 
-#export LD_PRELOAD=/home/hasindu/installs/gperftools/.libs/libtcmalloc.so
-
-f5cpath="./f5c"
-nanopath="/home/hasindu/hasindu2008.git/nanopolish_bench/nanopolish"
-testdir="test/chr22_meth_example/"
-
-test -d $testdir || die "$testdir does not exist"
-
-bamfile=$testdir/"reads.sorted.bam"
-ref=$testdir/"humangenome.fa"
-reads=$testdir/"reads.fastq"
-
-
-for file in "${bamfile}" "${ref}" "${reads}"; do
-    [[ -f "${file}" ]] || die "${file}: File does not exist"
+while getopts b:g:r:t:K:ch opt
+do
+	case $opt in
+		b) bamfile="$OPTARG";;
+		g) ref="$OPTARG";;
+		r) reads="$OPTARG";;
+		t) if [ "$OPTARG" -lt 8 ]
+		   then
+			die "Thread size must be >= 8"
+		   fi
+		   threads="$OPTARG";;
+		K) batchsize="$OPTARG";;
+		c) clean_cache=true;;
+		C) disable_cuda=no;;
+		h) help_msg
+		   exit 0;;
+		?) printf "Usage: %s [-c] [-h] [f5c path] [nanopolish path]" $0
+		   exit 2;;
+	esac
 done
 
-t=64
-/usr/bin/time -v "${f5cpath}" -b "${bamfile}" -g "${ref}" -r "${reads}" -t $t --secondary=yes --min-mapq=0 --print-scaling=yes -K4096 > /dev/null
+shift $(($OPTIND - 1))
+f5c_path=$(echo "$*" | awk '{print $1}')
+nanopolish_path=$(echo "$*" | awk '{print $2}')
 
-
-for t in 8 16 24 32 48 64
+for file in ${bamfile} ${ref} ${reads}
 do
-     /usr/bin/time -v "${f5cpath}" -b "${bamfile}" -g "${ref}" -r "${reads}" -t $t --secondary=yes --min-mapq=0 --print-scaling=yes -K4096 > result.txt 2> f5c_$t.log
+	[ -f ${file} ] || die "${file} not found."
 done
 
-t=64
-/usr/bin/time -v "${nanopath}" call-methylation -b "${bamfile}" -g "${ref}" -r "${reads}" -t $t  -K4096 > /dev/null
-for t in 8 16 24 32 48 64
+# run benchmark
+t=0
+while [ $t -le $threads ]
 do
-    /usr/bin/time -v "${nanopath}" call-methylation -b "${bamfile}" -g "${ref}" -r "${reads}" -t $t  -K4096 > result.txt 2> nano_$t.log
+	/usr/bin/time -v ${f5c_path} -b ${bamfile} -g ${ref} -r ${reads} -t $t --secondary=yes --min-mapq=0 --print-scaling=yes -K$batchsize --disable_cuda=$disable_cuda > result.txt 2> f5c_$t.log
+	if [ $clean_cache = true ]
+	then
+		sync; echo 3 | sudo tee /proc/sys/vm/drop_caches
+	fi
+	/usr/bin/time -v ${nanopolish_path} call-methylation -b ${bamfile} -g ${ref} -r ${reads} -t $t -K$batchsize > result.txt 2> nano_$t.log
+	if [ $clean_cache = true ]
+	then
+		sync; echo 3 | sudo tee /proc/sys/vm/drop_caches
+	fi
+	t=$(( t + 8 ))
 done

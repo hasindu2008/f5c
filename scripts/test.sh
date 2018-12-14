@@ -72,7 +72,8 @@ help_msg() {
 	echo
 	echo "-c                   Uses chr22_meth_example test set."
 	echo "-b [bam file]        Same as f5c -b."
-	echo "-r [ref genome]      Same as f5c -r."
+	echo "-r [read file]       Same as f5c -r."
+	echo "-g [ref genome]      Same as f5c -g."
 	echo "-t [n]               Number of threads."
 	echo "-d                   Download chr22_meth_example data set and exit."
 	echo "-h                   Show this help message."
