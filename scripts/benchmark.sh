@@ -81,7 +81,7 @@ done
 t=8
 rm -f *_benchmark.log
 
-if [ thread_loop = true ]
+if [ $thread_loop = true ]
 then
 	while [ $t -le $threads ]
 	do
@@ -96,7 +96,7 @@ then
 		t=$(( t + 8 ))
 	done
 else
-		/usr/bin/time -v ${f5c_path} call-methylation -b ${bamfile} -g ${ref} -r ${reads} -t $t --secondary=yes --min-mapq=0 --print-scaling=yes -K$batchsize --disable_cuda=$disable_cuda > /dev/null 2>> f5c_benchmark.log
-		[ $clean_cache = true ] && clear_fscache
-		/usr/bin/time -v ${nanopolish_path} call-methylation -b ${bamfile} -g ${ref} -r ${reads} -t $t -K$batchsize > /dev/null 2>> nano_benchmark.log
+	/usr/bin/time -v ${f5c_path} call-methylation -b ${bamfile} -g ${ref} -r ${reads} -t $t --secondary=yes --min-mapq=0 --print-scaling=yes -K$batchsize --disable_cuda=$disable_cuda > /dev/null 2>> f5c_benchmark.log
+	[ $clean_cache = true ] && clear_fscache
+	/usr/bin/time -v ${nanopolish_path} call-methylation -b ${bamfile} -g ${ref} -r ${reads} -t $t -K$batchsize > /dev/null 2>> nano_benchmark.log
 fi
