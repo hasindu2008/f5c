@@ -670,6 +670,8 @@ __global__ void align_kernel_post(AlignedPair* event_align_pairs,
             }
         }
 
+    
+#ifndef REVERSAL_ON_CPU
         //>>>>>>>>New replacement begin
         // std::reverse(out.begin(), out.end());
         int c;
@@ -694,14 +696,21 @@ __global__ void align_kernel_post(AlignedPair* event_align_pairs,
         // }
         //<<<<<<<<<New replacement over
 
-        // QC results
-        double avg_log_emission = sum_emission / n_aligned_events;
-        //fprintf(stderr,"sum_emission %f, n_aligned_events %f, avg_log_emission %f\n",sum_emission,n_aligned_events,avg_log_emission);
         //>>>>>>>>>>>>>New replacement begin
         bool spanned = out_2[0].ref_pos == 0 &&
                     out_2[outIndex - 1].ref_pos == int(n_kmers - 1);
+
+        //assert(spanned==spanned_before_rev);            
         // bool spanned = out.front().ref_pos == 0 && out.back().ref_pos == n_kmers - 1;
-        //<<<<<<<<<<<<<New replacement over
+        //<<<<<<<<<<<<<New replacement over        
+#else
+        bool spanned = out_2[outIndex - 1].ref_pos == 0 &&
+                    out_2[0].ref_pos == int(n_kmers - 1);
+#endif
+        // QC results
+        double avg_log_emission = sum_emission / n_aligned_events;
+        //fprintf(stderr,"sum_emission %f, n_aligned_events %f, avg_log_emission %f\n",sum_emission,n_aligned_events,avg_log_emission);
+
         //bool failed = false;
         if (avg_log_emission < min_average_log_emission || !spanned ||
             max_gap > max_gap_threshold) {

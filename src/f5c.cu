@@ -1050,9 +1050,22 @@ realtime1 =  realtime();
         if(if_on_gpu(core, db, i) && if_gpu_mem_free(core, db, i,sum_read_len,sum_n_events)){
             int32_t idx = event_ptr_host[j];
             db->n_event_align_pairs[i]=n_event_align_pairs_host[j];
+    #ifdef REVERSAL_ON_CPU
+            int c;
+            int end = db->n_event_align_pairs[i] - 1;
+            AlignedPair* out_2= db->event_align_pairs[i];
+            AlignedPair* in_2= &event_align_pairs_host[idx * 2];
+            for (c = 0; c < db->n_event_align_pairs[i] ; c++) {
+                out_2[c].ref_pos = in_2[end].ref_pos;
+                out_2[c].read_pos = in_2[end].read_pos;
+                end--;
+            }          
+    #else        
             memcpy(db->event_align_pairs[i], &event_align_pairs_host[idx * 2],
                 sizeof(AlignedPair) * db->n_event_align_pairs[i]);
-                j++;
+    #endif                
+            j++;
+
         }
     }
 

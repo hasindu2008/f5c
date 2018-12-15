@@ -31,6 +31,8 @@
 //the free memory as we have to reserve some space for RAM as well
 //TEGRA_MEM_FACTOR is the factor of the free memory allocated for the gpu
 
+#define REVERSAL_ON_CPU 1
+
 /* check whether the last CUDA function or CUDA kernel launch is erroneous and if yes an error message will be printed
 and then the program will be aborted*/
 #define CUDA_CHK()                                                             \
