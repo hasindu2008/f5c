@@ -20,7 +20,16 @@
 #define BLOCK_LEN_NUMBAND 16    //the block size along the x axis (BANDWDITH)
 #define BLOCK_LEN_READS2 16 // //the block size along y axis (the number of reads)
 
-#define AVG_EVENTS_PER_KMER 5
+#define AVG_EVENTS_PER_KMER 2.5f // the average number of events per base/k-mer
+//AVG_EVENTS_PER_KMER is used to pre-allocate arrays on GPU that depends on the number of events
+
+//if avverage events per base of a read < AVG_EVENTS_PER_KMER_GPU_THRESH process on GPU
+//else go for the CPU
+#define AVG_EVENTS_PER_KMER_GPU_THRESH 5.0f
+
+#define TEGRA_MEM_FACTOR 0.8f //in tegra we cannot grab all 
+//the free memory as we have to reserve some space for RAM as well
+//TEGRA_MEM_FACTOR is the factor of the free memory allocated for the gpu
 
 /* check whether the last CUDA function or CUDA kernel launch is erroneous and if yes an error message will be printed
 and then the program will be aborted*/

@@ -101,7 +101,7 @@ void init_cuda(core_t* core){
     
     uint64_t sum_read_len = 0;
     if(prop.integrated==1){ //for tegra we have to reserve some space for RAM
-        sum_read_len= (free_mem - 2*(factor+1))*0.8/ factor;
+        sum_read_len= (free_mem - 2*(factor+1))*TEGRA_MEM_FACTOR/ factor;
     }
     else{
         sum_read_len= (free_mem - 2*(factor+1))/ factor;
@@ -684,7 +684,33 @@ void align_cudb_async_join(pthread_arg_t *pt_args, pthread_t tid) {
     NEG_CHK(ret);
     free(pt_args);
 
+}
 
+//check if we have run out of space in the pre-allocated gpu arrays
+static inline int8_t if_gpu_mem_free(core_t* core, db_t* db, int32_t i,int64_t sum_read_len,int64_t sum_n_events){
+#ifndef CUDA_PRE_MALLOC2
+    return 1;
+#else
+    if((sum_read_len+(db->read_len[i] + 1) <= core->cuda->max_sum_read_len) && 
+       (sum_n_events+db->et[i].n <= (core->cuda->max_sum_read_len) * AVG_EVENTS_PER_KMER) ){
+        return 1;
+    }
+    else{
+        return 0;
+    }
+#endif
+}
+
+//if a suitable candidate to be run on GPU
+//ultra-long reads as well as the reads with too many average events per base
+//are done of CPU
+static inline int8_t if_on_gpu(core_t* core, db_t* db, int32_t i){
+    if(db->read_len[i]<(core->opt.cuda_max_readlen) && (db->et[i].n)/(float)(db->read_len[i]) < AVG_EVENTS_PER_KMER_GPU_THRESH ){
+        return 1;
+    }
+    else{
+        return 0;
+    }
 }
 
 void align_cuda(core_t* core, db_t* db) {
@@ -693,7 +719,7 @@ void align_cuda(core_t* core, db_t* db) {
     int32_t n_bam_rec_cuda;
     double realtime1;
     int32_t n_ultra_long_reads=0;
-    int32_t ultra_long_reads[n_bam_rec];
+    int32_t ultra_long_reads[n_bam_rec]; //not only ultra-long reads, but also ones with large number of average events per base
 
     //cpu temp pointers
     int32_t* read_ptr_host;
@@ -732,7 +758,7 @@ realtime1 = realtime();
 
     //read sequences : needflattening
     for (i = 0,j=0; i < n_bam_rec; i++) {
-        if(db->read_len[i]<(core->opt.cuda_max_readlen)){
+        if(if_on_gpu(core, db, i) && if_gpu_mem_free(core, db, i,sum_read_len,sum_n_events)){
             read_ptr_host[j] = sum_read_len;
             sum_read_len += (db->read_len[i] + 1); //with null term
             j++;
@@ -758,7 +784,7 @@ realtime1 = realtime();
     read_host = (char*)malloc(sizeof(char) * sum_read_len);
     MALLOC_CHK(read_host);
     for (i = 0,j=0; i < n_bam_rec; i++) {
-        if(db->read_len[i]<(core->opt.cuda_max_readlen)){
+        if(if_on_gpu(core, db, i) && if_gpu_mem_free(core, db, i,sum_read_len,sum_n_events)){
             int32_t idx = read_ptr_host[j];
             strcpy(&read_host[idx], db->read[i]);
             read_len_host[j]=db->read_len[i];
@@ -777,7 +803,7 @@ realtime1 = realtime();
 
     sum_n_events = 0;
     for (i = 0,j=0; i < n_bam_rec; i++) {
-        if(db->read_len[i]<(core->opt.cuda_max_readlen)){
+        if(if_on_gpu(core, db, i) && if_gpu_mem_free(core, db, i,sum_read_len,sum_n_events)){
             n_events_host[j] = db->et[i].n;
             event_ptr_host[j] = sum_n_events;
             sum_n_events += db->et[i].n;
@@ -791,7 +817,7 @@ realtime1 = realtime();
         (event_t*)malloc(sizeof(event_t) * sum_n_events);
     MALLOC_CHK(event_table_host);
     for (i = 0,j=0; i < n_bam_rec; i++) {
-        if(db->read_len[i]<(core->opt.cuda_max_readlen)){
+        if(if_on_gpu(core, db, i) && if_gpu_mem_free(core, db, i,sum_read_len,sum_n_events)){
             int32_t idx = event_ptr_host[j];
             memcpy(&event_table_host[idx], db->et[i].event,
                 sizeof(event_t) * db->et[i].n);
@@ -821,6 +847,10 @@ realtime1 = realtime();
 
     assert(sum_read_len <= core->cuda->max_sum_read_len);
     assert(sum_n_events <= (core->cuda->max_sum_read_len) * AVG_EVENTS_PER_KMER);
+    fprintf(stderr,"%d %d\n", sum_read_len,sum_n_events);
+    fprintf(stderr,"%.2f %% of readarrays and %.2f %% of eventarrays were utilised\n",
+        sum_read_len/(float)(core->cuda->max_sum_read_len)*100 ,
+        sum_n_events/(float)((core->cuda->max_sum_read_len)*AVG_EVENTS_PER_KMER)*100);
 
     read=(core->cuda->read);
     event_table=(core->cuda->event_table);
@@ -981,7 +1011,7 @@ core->align_post_kernel_time += (realtime() - realtime1);
             "nvidia-xconfig to generate a xorg.conf file and do as above.\n\n");
     }
     if (code != cudaSuccess) {
-        fprintf(stderr, "Cuda error: %s \n in file : %s line number : %lu\n",
+        fprintf(stderr, "Cuda error: %s \n in file : %s line number : %d\n",
                 cudaGetErrorString(code), __FILE__, __LINE__);
         exit(-1);
     }        
@@ -1017,7 +1047,7 @@ core->align_cuda_malloc += (realtime() - realtime1);
 realtime1 =  realtime();
     //copy back
     for (i = 0,j=0; i < n_bam_rec; i++) {
-        if(db->read_len[i]<(core->opt.cuda_max_readlen)){
+        if(if_on_gpu(core, db, i) && if_gpu_mem_free(core, db, i,sum_read_len,sum_n_events)){
             int32_t idx = event_ptr_host[j];
             db->n_event_align_pairs[i]=n_event_align_pairs_host[j];
             memcpy(db->event_align_pairs[i], &event_align_pairs_host[idx * 2],

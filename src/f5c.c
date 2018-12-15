@@ -412,6 +412,10 @@ void event_single(core_t* core,db_t* db, int32_t i) {
     }
     db->et[i] = getevents(db->f5[i]->nsample, rawptr);
 
+    // if(db->et[i].n/(float)db->read_len[i] > 20){
+    //     fprintf(stderr,"%s\tevents_per_base\t%f\tread_len\t%d\n",bam_get_qname(db->bam_rec[i]), db->et[i].n/(float)db->read_len[i],db->read_len[i]);
+    // }
+
     //get the scalings
     db->scalings[i] = estimate_scalings_using_mom(
         db->read[i], db->read_len[i], core->model, db->et[i]);        
