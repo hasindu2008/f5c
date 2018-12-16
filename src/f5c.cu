@@ -634,6 +634,7 @@ void pthread_cudb(core_t* core, db_t* db, int32_t* ultra_long_reads, int32_t  n_
 
 void* align_cudb(void* voidargs){
 
+    double realtime1 = realtime();
     pthread_arg_t* args = (pthread_arg_t*)voidargs;
     db_t* db = args->db;
     core_t* core = args->core;
@@ -657,7 +658,9 @@ void* align_cudb(void* voidargs){
         
     }
 
-    fprintf(stderr,"%d reads (length>%d kb) processed on cpu\n",n_ultra_long_reads,(core->opt.cuda_max_readlen)/1000);
+    fprintf(stderr, "[%s::%.3f*%.2f] %d reads (length>%d kb) processed on cpu\n", __func__,
+    realtime() - realtime1, cputime() / (realtime() - realtime1),n_ultra_long_reads,(core->opt.cuda_max_readlen)/1000);
+
 
     return NULL;
 }
@@ -1079,7 +1082,8 @@ core->align_cuda_postprocess += (realtime() - realtime1);
 realtime1 =  realtime(); 
     align_cudb_async_join(tmparg,tid);  
 core->extra_load_cpu += (realtime() - realtime1);
-
+fprintf(stderr, "[%s::%.3f*%.2f] CPU extra processing done\n", __func__,
+realtime() - realtime1, cputime() / (realtime() - realtime1));
 
 }
 
