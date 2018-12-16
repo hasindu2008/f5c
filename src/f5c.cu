@@ -91,7 +91,7 @@ void init_cuda(core_t* core){
     //compute the maximum
     uint64_t free_mem = cuda_freemem(cuda_device_num);
 
-    uint64_t factor =  1 * sizeof(char) + //read_capacity
+    float factor =  1 * sizeof(char) + //read_capacity
                     AVG_EVENTS_PER_KMER * sizeof(event_t) + //event_table_capacity
                     1 * sizeof(model_t) + //model_kmer_cache_capacity
                     (AVG_EVENTS_PER_KMER * 2) * sizeof(AlignedPair) +  //event_align_pairs_capacity
@@ -101,10 +101,10 @@ void init_cuda(core_t* core){
     
     uint64_t sum_read_len = 0;
     if(prop.integrated==1){ //for tegra we have to reserve some space for RAM
-        sum_read_len= (free_mem - 2*(factor+1))*TEGRA_MEM_FACTOR/ factor;
+        sum_read_len= floor(free_mem*TEGRA_MEM_FACTOR/factor);
     }
     else{
-        sum_read_len= (free_mem - 2*(factor+1))/ factor;
+        sum_read_len= floor(free_mem*0.99/factor);
     }
 
     core->cuda->max_sum_read_len = sum_read_len;
@@ -538,7 +538,7 @@ static inline int32_t steal_work(pthread_arg_t* all_args, int32_t n_threads)
 	for (i = 0; i < n_threads; ++i){
         pthread_arg_t args = all_args[i];
         //fprintf(stderr,"endi : %d, starti : %d\n",args.endi,args.starti);
-		if (args.endi-args.starti > STEAL_THRESH) {
+		if (args.endi-args.starti > STEAL_THRESH_CUDA) {
             //fprintf(stderr,"gap : %d\n",args.endi-args.starti);
             c_i = i;
             break;

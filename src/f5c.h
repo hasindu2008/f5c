@@ -38,6 +38,7 @@
 
 #define WORK_STEAL 1
 #define STEAL_THRESH 5
+#define STEAL_THRESH_CUDA 1
 
 //set if input, processing and output are not to be interleaved (serial mode) - useful for debugging
 //#define IO_PROC_NO_INTERLEAVE 1    
