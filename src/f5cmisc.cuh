@@ -27,6 +27,8 @@
 //else go for the CPU
 #define AVG_EVENTS_PER_KMER_GPU_THRESH 5.0f
 
+#define AVG_EVENTS_PER_KMER_MAX 10.0f
+
 #define TEGRA_MEM_FACTOR 0.8f //in tegra we cannot grab all 
 //the free memory as we have to reserve some space for RAM as well
 //TEGRA_MEM_FACTOR is the factor of the free memory allocated for the gpu

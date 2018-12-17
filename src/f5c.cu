@@ -772,8 +772,13 @@ realtime1 = realtime();
             j++;
         }
         else{
-            ultra_long_reads[n_ultra_long_reads]=i;
-            n_ultra_long_reads++;
+            if ((db->et[i].n)/(float)(db->read_len[i]) < AVG_EVENTS_PER_KMER_MAX){
+                ultra_long_reads[n_ultra_long_reads]=i;
+                n_ultra_long_reads++;
+            }
+            else{//todo : add stats and make this better
+                db->n_event_align_pairs[i]=0;
+            }
             if(db->read_len[i]>=(core->opt.cuda_max_readlen * db->sum_bases/(float)db->n_bam_rec)){
                 stat_n_ultra_long_reads++;
                 fprintf(stderr,"readlen>=%.0fkbases\t%d\n",(core->opt.cuda_max_readlen * db->sum_bases/(float)db->n_bam_rec)/1000,db->read_len[i]);
