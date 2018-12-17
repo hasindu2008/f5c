@@ -74,8 +74,9 @@ help_msg() {
 	echo
 	echo "-c                   Uses chr22_meth_example test set."
 	echo "-b [bam file]        Same as f5c -b."
-	echo "-r [ref genome]      Same as f5c -r."
 	echo "-K [n]               Same as f5c -K."
+	echo "-r [read file]       Same as f5c -r."
+	echo "-g [ref genome]      Same as f5c -g."
 	echo "-t [n]               Number of threads."
 	echo "-d                   Download chr22_meth_example data set and exit."
 	echo "-h                   Show this help message."
@@ -105,8 +106,7 @@ do
 	esac
 done
 shift $(($OPTIND - 1))
-# get only the first item in args
-mode=$(echo "$*" | awk '{print $1}')
+mode=$1
 
 download_test_set $testset_url $fallback_url
 
