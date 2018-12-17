@@ -96,7 +96,7 @@ rm -f *_benchmark.log
 
 t=8
 
-if [ $thread_loop = true ]
+if [ $thread_loop = false ]
 then
 	t=$threads
 fi
