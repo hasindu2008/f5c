@@ -74,7 +74,7 @@ do
 		F) nano_output="$OPTARG";;
 		h) help_msg
 		   exit 0;;
-		?) printf "Usage: %s [-c] [-h] [f5c path] [nanopolish path]" $0
+		?) printf "Usage: %s [-c] [-h] [f5c path] [nanopolish path]\n" $0
 		   exit 2;;
 	esac
 done
