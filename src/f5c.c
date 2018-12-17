@@ -160,14 +160,15 @@ db_t* init_db(core_t* core) {
     return db;
 }
 
-int32_t load_db(core_t* core, db_t* db) {
+ret_status_t load_db(core_t* core, db_t* db) {
     // get bams
     bam1_t* record;
     int32_t result = 0;
     db->n_bam_rec = 0;
     db->sum_bases = 0;
+    ret_status_t status={0,0};
     int32_t i = 0;
-    while (db->n_bam_rec < db->capacity_bam_rec) {
+    while (db->n_bam_rec < db->capacity_bam_rec && status.num_bases<core->opt.batch_size_bases) {
         i=db->n_bam_rec;
         record = db->bam_rec[i];
         result = sam_itr_next(core->m_bam_fh, core->itr, record);
@@ -213,6 +214,8 @@ int32_t load_db(core_t* core, db_t* db) {
                     }
                     
                     db->n_bam_rec++;
+                    //todo : make efficient (redudantly accessed below)
+                    status.num_bases += core->readbb->get_read_sequence(qname).size();
                 
                 } else {
                     if (core->opt.flag & F5C_SKIP_UNREADABLE) {
@@ -267,8 +270,10 @@ int32_t load_db(core_t* core, db_t* db) {
         db->read_stat_flag[i] = 0; //reset the flag
     }
     // fprintf(stderr,"%s:: %d fast5 read\n",__func__,db->n_bam_rec);
-    fprintf(stderr,"Average read len %f\n",db->sum_bases/(float)db->n_bam_rec);
-    return db->n_bam_rec;
+    fprintf(stderr,"Average read len %.0f\n",db->sum_bases/(float)db->n_bam_rec);
+    status.num_reads=db->n_bam_rec;
+    assert(status.num_bases==db->sum_bases);
+    return status;
 }
 
 #ifdef WORK_STEAL
@@ -979,6 +984,7 @@ void init_opt(opt_t* opt) {
     memset(opt, 0, sizeof(opt_t));
     opt->min_mapq = 30;
     opt->batch_size = 512;
+    opt->batch_size_bases = 2*1000*1000;
     opt->num_thread = 8;
 #ifndef HAVE_CUDA
     opt->flag |= F5C_DISABLE_CUDA;
@@ -988,5 +994,5 @@ void init_opt(opt_t* opt) {
     //opt->flag |= F5C_SECONDARY_YES;
 
     opt->cuda_block_size=64;   
-    opt->cuda_max_readlen=20000; //effective only if  CPU_GPU_PROC  is set
+    opt->cuda_max_readlen=3.0f; //effective only if  CPU_GPU_PROC  is set
 }

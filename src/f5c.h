@@ -57,11 +57,13 @@ typedef struct {
     const char* model_file; //name of the model file
     uint32_t flag;
     int32_t batch_size;
+    int64_t batch_size_bases;
+
     int32_t num_thread;
     int8_t verbosity;
 
     int32_t cuda_block_size;
-    int32_t cuda_max_readlen;
+    float cuda_max_readlen;
 } opt_t;
 
 // events : from scrappie
@@ -337,8 +339,14 @@ typedef struct {
     pthread_mutex_t mutex;
 } pthread_arg2_t;
 
+
+typedef struct {
+    int32_t num_reads;
+    int64_t num_bases;
+} ret_status_t;
+
 db_t* init_db(core_t* core);
-int32_t load_db(core_t* dg, db_t* db);
+ret_status_t load_db(core_t* dg, db_t* db);
 core_t* init_core(const char* bamfilename, const char* fastafile,
                   const char* fastqfile, opt_t opt,double realtime0);
 void process_db(core_t* dg, db_t* db);

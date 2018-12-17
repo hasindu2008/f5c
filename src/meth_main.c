@@ -32,7 +32,7 @@ static struct option long_options[] = {
     {"genome", required_argument, 0, 'g'},         //2 reference genome
     {"threads", required_argument, 0, 't'},        //3 number of threads [8]
     {"batchsize", required_argument, 0, 'K'},      //4 batchsize - number of reads loaded at once [512]
-    {"print", no_argument, 0, 'p'},                //5 prints raw signal (used for debugging)
+    {"batchsize-bases", no_argument, 0, 'B'},      //5 batchsize - number of bases loaded at once
     {"verbose", no_argument, 0, 'v'},              //6 verbosity level [1]
     {"help", no_argument, 0, 'h'},                 //7
     {"version", no_argument, 0, 'V'},              //8
@@ -103,9 +103,9 @@ void* pthread_processor(void* voidargs) {
     //process
     process_db(core, db);
 
-    fprintf(stderr, "[%s::%.3f*%.2f] %d Entries processed\n", __func__,
+    fprintf(stderr, "[%s::%.3f*%.2f] %d Entries (%.1fM bases) processed\n", __func__,
                 realtime() - realtime0, cputime() / (realtime() - realtime0),
-                db->n_bam_rec);
+                db->n_bam_rec,db->sum_bases/(1000.0*1000.0));
 
     //need to inform the output thread that we completed the processing
     pthread_mutex_lock(&args->mutex);
@@ -152,7 +152,7 @@ int meth_main(int argc, char* argv[]) {
 
     //signal(SIGSEGV, sig_handler);
 
-    const char* optstring = "r:b:g:t:K:v:hVp";
+    const char* optstring = "r:b:g:t:B:K:v:hV";
     int longindex = 0;
     int32_t c = -1;
 
@@ -174,8 +174,9 @@ int meth_main(int argc, char* argv[]) {
             bamfilename = optarg;
         } else if (c == 'g') {
             fastafile = optarg;
-        } else if (c == 'p') {
-            opt.flag |= F5C_PRINT_RAW;
+        } else if (c == 'B') {
+            opt.batch_size_bases = mm_parse_num(optarg); 
+            fprintf(stderr,"numbases max : %ld\n",opt.batch_size_bases/(1000*1000));
         } else if (c == 'K') {
             opt.batch_size = atoi(optarg);
             if (opt.batch_size < 1) {
@@ -232,7 +233,7 @@ int meth_main(int argc, char* argv[]) {
         }else if(c == 0 && longindex == 20){ //sectional benchmark todo : warning for gpu mode
             yes_or_no(&opt, F5C_SEC_PROF, longindex, optarg, 1);
         }else if(c == 0 && longindex == 21){ //cuda todo : warning for cpu mode, error check
-            opt.cuda_max_readlen = atoi(optarg);
+            opt.cuda_max_readlen = atof(optarg);
         }
     }
 
@@ -245,6 +246,7 @@ int meth_main(int argc, char* argv[]) {
         fprintf(fp_help,"   -g FILE                    reference genome\n");
         fprintf(fp_help,"   -t INT                     number of threads [%d]\n",opt.num_thread);
         fprintf(fp_help,"   -K INT                     batch size (number of reads loaded at once) [%d]\n",opt.batch_size);
+        fprintf(fp_help,"   -B INT[K/M/G]              batch size (number of bases loaded at once) [%ldM]\n",opt.batch_size_bases/(1000*1000));
         fprintf(fp_help,"   -h                         help\n");
         fprintf(fp_help,"   --min-mapq INT             minimum mapping quality [%d]\n",opt.min_mapq);
         fprintf(fp_help,"   --secondary=yes|no         consider secondary mappings or not [%s]\n",(opt.flag&F5C_SECONDARY_YES)?"yes":"no");
@@ -254,7 +256,7 @@ int meth_main(int argc, char* argv[]) {
 #ifdef HAVE_CUDA   
         fprintf(fp_help,"   --disable-cuda=yes|no      disable running on CUDA [%s] (only if compiled for CUDA)\n",(opt.flag&F5C_DISABLE_CUDA?"yes":"no"));
         fprintf(fp_help,"   --cuda-block-size\n");
-        fprintf(fp_help,"   --cuda-max-readlen         if read_len<=cuda-max-readlen process on GPU else on CPU [%d]\n",opt.cuda_max_readlen);
+        fprintf(fp_help,"   --cuda-max-readlen         if read_len<=cuda-max-readlen*batch_mean process on GPU else on CPU [%1.f]\n",opt.cuda_max_readlen);
 #endif	 
 
 
@@ -286,22 +288,22 @@ int meth_main(int argc, char* argv[]) {
     //initialise a databatch
     db_t* db = init_db(core);
 
-    int32_t status = db->capacity_bam_rec;
-    while (status >= db->capacity_bam_rec) {
+    ret_status_t status = {core->opt.batch_size,core->opt.batch_size_bases};
+    while (status.num_reads >= core->opt.batch_size || status.num_bases>=core->opt.batch_size_bases) {
 
         //load a databatch
         status = load_db(core, db);
 
-        fprintf(stderr, "[%s::%.3f*%.2f] %d Entries loaded\n", __func__,
+        fprintf(stderr, "[%s::%.3f*%.2f] %d Entries (%.1fM bases) loaded\n", __func__,
                 realtime() - realtime0, cputime() / (realtime() - realtime0),
-                status);
+                status.num_reads,status.num_bases/(1000.0*1000.0));
 
         //process a databatch
         process_db(core, db);
 
-        fprintf(stderr, "[%s::%.3f*%.2f] %d Entries processed\n", __func__,
+        fprintf(stderr, "[%s::%.3f*%.2f] %d Entries (%.1fM bases) processed\n", __func__,
                 realtime() - realtime0, cputime() / (realtime() - realtime0),
-                status);
+                status.num_reads,status.num_bases/(1000.0*1000.0));
 
         //output print        
         output_db(core, db);
@@ -319,22 +321,22 @@ int meth_main(int argc, char* argv[]) {
 
 #else   //input, processing and output are interleaved (default)
 
-    int32_t status = core->opt.batch_size;
+    ret_status_t status = {core->opt.batch_size,core->opt.batch_size_bases};
     int8_t first_flag_p=0;
     int8_t first_flag_pp=0;
     pthread_t tid_p; //process thread
     pthread_t tid_pp; //post-process thread
 
 
-    while (status >= core->opt.batch_size) {
+    while (status.num_reads >= core->opt.batch_size || status.num_bases>=core->opt.batch_size_bases) {
 
         //init and load a databatch
         db_t* db = init_db(core);
         status = load_db(core, db);
 
-        fprintf(stderr, "[%s::%.3f*%.2f] %d Entries loaded\n", __func__,
+        fprintf(stderr, "[%s::%.3f*%.2f] %d Entries (%.1fM bases) loaded\n", __func__,
                 realtime() - realtime0, cputime() / (realtime() - realtime0),
-                status);
+                status.num_reads,status.num_bases/(1000.0*1000.0));
 
         if(first_flag_p){ //if not the first time of the "process" wait for the previous "process"
             int ret = pthread_join(tid_p, NULL);
