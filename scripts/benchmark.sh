@@ -1,42 +1,110 @@
-#!/usr/bin/env bash
+#!/bin/sh
 
+set -e
+
+clean_cache=false
+testdir=test/chr22_meth_example
+bamfile=$testdir/reads.sorted.bam
+ref=$testdir/humangenome.fa
+reads=$testdir/reads.fastq
+batchsize=512
+disable_cuda=yes
+thread_loop=true
+if command -v nproc > /dev/null
+then
+	threads=$(nproc --all)
+else
+	threads=8
+fi
+
+# terminate script
 die() {
-    local msg="${1}"
-    echo "run.sh: ${msg}" >&2
-    exit 1
+	echo "test.sh: $1" >&2
+	echo
+	help_msg
+	exit 1
 }
 
-set -x
+clear_fscache() {
+	sync; echo 3 | tee /proc/sys/vm/drop_caches
+}
 
-#export LD_PRELOAD=/home/hasindu/installs/gperftools/.libs/libtcmalloc.so
+run() {
+	echo $1
+	eval $1
+	[ $clean_cache = true ] && clear_fscache
+	return 0
+}
 
-f5cpath="./f5c"
-nanopath="/home/hasindu/hasindu2008.git/nanopolish_bench/nanopolish"
-testdir="test/chr22_meth_example/"
+help_msg() {
+	echo "Benchmark script for f5c."
+	echo "Usage: f5c_dir/script/benchmark.sh [-c] [-b bam file] [-g reference genome] [-r fastq/fasta read] [f5c path] [nanopolish path]"
+	echo
+	echo "-c                   Clean file system cache between every f5c and nanopolish call."
+	echo "-b [bam file]        Same as f5c -b."
+	echo "-r [read file]       Same as f5c -r."
+	echo "-g [ref genome]      Same as f5c -g."
+	echo "-K [n]               Same as f5c -K."
+	echo "-C                   Same as f5c --disable-cuda=no."
+	echo "-t [n]               Maximum number of threads. Minimum is 8."
+	echo "-T                   Disable benchmarking over an increasing number of threads."
+	echo "-h                   Show this help message."
+}
 
-test -d $testdir || die "$testdir does not exist"
-
-bamfile=$testdir/"reads.sorted.bam"
-ref=$testdir/"humangenome.fa"
-reads=$testdir/"reads.fastq"
-
-
-for file in "${bamfile}" "${ref}" "${reads}"; do
-    [[ -f "${file}" ]] || die "${file}: File does not exist"
-done
-
-t=64
-/usr/bin/time -v "${f5cpath}" -b "${bamfile}" -g "${ref}" -r "${reads}" -t $t --secondary=yes --min-mapq=0 --print-scaling=yes -K4096 > /dev/null
-
-
-for t in 8 16 24 32 48 64
+while getopts b:g:r:t:K:chT opt
 do
-     /usr/bin/time -v "${f5cpath}" -b "${bamfile}" -g "${ref}" -r "${reads}" -t $t --secondary=yes --min-mapq=0 --print-scaling=yes -K4096 > result.txt 2> f5c_$t.log
+	case $opt in
+		b) bamfile="$OPTARG";;
+		g) ref="$OPTARG";;
+		r) reads="$OPTARG";;
+		t) if [ "$OPTARG" -lt 8 ]
+		   then
+			die "Thread size must be >= 8"
+		   fi
+		   threads="$OPTARG";;
+		T) thread_loop=false;;
+		K) batchsize="$OPTARG";;
+		c) clean_cache=true;;
+		C) disable_cuda=no;;
+		h) help_msg
+		   exit 0;;
+		?) printf "Usage: %s [-c] [-h] [f5c path] [nanopolish path]" $0
+		   exit 2;;
+	esac
 done
 
-t=64
-/usr/bin/time -v "${nanopath}" call-methylation -b "${bamfile}" -g "${ref}" -r "${reads}" -t $t  -K4096 > /dev/null
-for t in 8 16 24 32 48 64
+shift $(($OPTIND - 1))
+[ -z $1 ] && die "Specify f5c path."
+[ -z $2 ] && die "Specify nanopolish path."
+f5c_path=$1
+nanopolish_path=$2
+
+for file in ${bamfile} ${ref} ${reads}
 do
-    /usr/bin/time -v "${nanopath}" call-methylation -b "${bamfile}" -g "${ref}" -r "${reads}" -t $t  -K4096 > result.txt 2> nano_$t.log
+	[ -f ${file} ] || die "${file} not found."
 done
+
+rm -f *_benchmark.log
+
+[ $clean_cache = true ] && clear_fscache
+
+t=8
+# run benchmark
+if [ $thread_loop = true ]
+then
+	while [ $t -le $threads ]
+	do
+		run "/usr/bin/time -v ${f5c_path} call-methylation -b ${bamfile} -g ${ref} -r ${reads} -t $t --secondary=yes --min-mapq=0 --print-scaling=yes -K $batchsize --disable_cuda=$disable_cuda > /dev/null 2>> f5c_benchmark.log"
+		run "/usr/bin/time -v ${nanopolish_path} call-methylation -b ${bamfile} -g ${ref} -r ${reads} -t $t -K $batchsize > /dev/null 2>> nano_benchmark.log"
+		t=$(( t + 8 ))
+	done
+else
+	run "/usr/bin/time -v ${f5c_path} call-methylation -b ${bamfile} -g ${ref} -r ${reads} -t $threads --secondary=yes --min-mapq=0 --print-scaling=yes -K $batchsize --disable_cuda=$disable_cuda > /dev/null 2>> f5c_benchmark.log"
+	run "/usr/bin/time -v ${nanopolish_path} call-methylation -b ${bamfile} -g ${ref} -r ${reads} -t $threads -K $batchsize > /dev/null 2>> nano_benchmark.log"
+fi
+
+echo "f5c time"
+grep "Elapsed (wall clock) time (h:mm:ss or m:ss):" f5c_benchmark.log | cut -d ' ' -f 8 |tr ':' \\t |  awk '{if(NF==1) print; else{ if(NF==2) print(($1*60)+$2); else print(($1*3600)+($2*60)+$3)}}' | tr '\n' '\t'
+echo
+echo "nanopolish time"
+grep "Elapsed (wall clock) time (h:mm:ss or m:ss):" nano_benchmark.log | cut -d ' ' -f 8 |tr ':' \\t |  awk '{if(NF==1) print; else{ if(NF==2) print(($1*60)+$2); else print(($1*3600)+($2*60)+$3)}}' | tr '\n' '\t'
