@@ -228,6 +228,9 @@ typedef struct {
 
     //extreme ugly hack till converted to C
     std::map<int, ScoredSite> **site_score_map;
+
+    //stats
+    int64_t sum_bases;
     
 } db_t;
 

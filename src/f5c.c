@@ -165,6 +165,7 @@ int32_t load_db(core_t* core, db_t* db) {
     bam1_t* record;
     int32_t result = 0;
     db->n_bam_rec = 0;
+    db->sum_bases = 0;
     int32_t i = 0;
     while (db->n_bam_rec < db->capacity_bam_rec) {
         i=db->n_bam_rec;
@@ -261,11 +262,12 @@ int32_t load_db(core_t* core, db_t* db) {
                           1); // is +1 needed? do errorcheck
         strcpy(db->read[i], core->readbb->get_read_sequence(qname).c_str());
         db->read_len[i] = strlen(db->read[i]);
+        db->sum_bases += db->read_len[i];
 
         db->read_stat_flag[i] = 0; //reset the flag
     }
     // fprintf(stderr,"%s:: %d fast5 read\n",__func__,db->n_bam_rec);
-
+    fprintf(stderr,"Average read len %f\n",db->sum_bases/(float)db->n_bam_rec);
     return db->n_bam_rec;
 }
 
