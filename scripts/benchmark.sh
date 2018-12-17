@@ -3,7 +3,7 @@
 set -e
 
 clean_cache=false
-testdir=test/chr22_meth_example/
+testdir=test/chr22_meth_example
 bamfile=$testdir/reads.sorted.bam
 ref=$testdir/humangenome.fa
 reads=$testdir/reads.fastq
@@ -33,6 +33,7 @@ run() {
 	echo $1
 	eval $1
 	[ $clean_cache = true ] && clear_fscache
+	return 0
 }
 
 help_msg() {
@@ -93,13 +94,13 @@ if [ $thread_loop = true ]
 then
 	while [ $t -le $threads ]
 	do
-		run "/usr/bin/time -v ${f5c_path} call-methylation -b ${bamfile} -g ${ref} -r ${reads} -t $t --secondary=yes --min-mapq=0 --print-scaling=yes -K$batchsize --disable_cuda=$disable_cuda > /dev/null 2>> f5c_benchmark.log"
-		run "/usr/bin/time -v ${nanopolish_path} call-methylation -b ${bamfile} -g ${ref} -r ${reads} -t $t -K$batchsize > /dev/null 2>> nano_benchmark.log"
+		run "/usr/bin/time -v ${f5c_path} call-methylation -b ${bamfile} -g ${ref} -r ${reads} -t $t --secondary=yes --min-mapq=0 --print-scaling=yes -K $batchsize --disable_cuda=$disable_cuda > /dev/null 2>> f5c_benchmark.log"
+		run "/usr/bin/time -v ${nanopolish_path} call-methylation -b ${bamfile} -g ${ref} -r ${reads} -t $t -K $batchsize > /dev/null 2>> nano_benchmark.log"
 		t=$(( t + 8 ))
 	done
 else
-	run "/usr/bin/time -v ${f5c_path} call-methylation -b ${bamfile} -g ${ref} -r ${reads} -t $threads --secondary=yes --min-mapq=0 --print-scaling=yes -K$batchsize --disable_cuda=$disable_cuda > /dev/null 2>> f5c_benchmark.log"
-	run "/usr/bin/time -v ${nanopolish_path} call-methylation -b ${bamfile} -g ${ref} -r ${reads} -t $threads -K$batchsize > /dev/null 2>> nano_benchmark.log"
+	run "/usr/bin/time -v ${f5c_path} call-methylation -b ${bamfile} -g ${ref} -r ${reads} -t $threads --secondary=yes --min-mapq=0 --print-scaling=yes -K $batchsize --disable_cuda=$disable_cuda > /dev/null 2>> f5c_benchmark.log"
+	run "/usr/bin/time -v ${nanopolish_path} call-methylation -b ${bamfile} -g ${ref} -r ${reads} -t $threads -K $batchsize > /dev/null 2>> nano_benchmark.log"
 fi
 
 echo "f5c time"
