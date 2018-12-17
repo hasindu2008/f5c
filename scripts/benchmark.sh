@@ -103,7 +103,7 @@ fi
 # run benchmark
 while [ $t -le $threads ]
 do
-	run "/usr/bin/time -v ${f5c_path} call-methylation -b ${bamfile} -g ${ref} -r ${reads} -t $t --secondary=yes --min-mapq=0 --print-scaling=yes -K $batchsize --disable_cuda=$disable_cuda > $f5c_output 2>> f5c_benchmark.log"
+	run "/usr/bin/time -v ${f5c_path} call-methylation -b ${bamfile} -g ${ref} -r ${reads} -t $t --secondary=yes --min-mapq=0 -K $batchsize --disable_cuda=$disable_cuda > $f5c_output 2>> f5c_benchmark.log"
 	run "/usr/bin/time -v ${nanopolish_path} call-methylation -b ${bamfile} -g ${ref} -r ${reads} -t $t -K $batchsize > $nano_output 2>> nano_benchmark.log"
 	t=$(( t + 8 ))
 done
