@@ -105,5 +105,6 @@ fi
 
 echo "f5c time"
 grep "Elapsed (wall clock) time (h:mm:ss or m:ss):" f5c_benchmark.log | cut -d ' ' -f 8 |tr ':' \\t |  awk '{if(NF==1) print; else{ if(NF==2) print(($1*60)+$2); else print(($1*3600)+($2*60)+$3)}}' | tr '\n' '\t'
+echo
 echo "nanopolish time"
 grep "Elapsed (wall clock) time (h:mm:ss or m:ss):" nano_benchmark.log | cut -d ' ' -f 8 |tr ':' \\t |  awk '{if(NF==1) print; else{ if(NF==2) print(($1*60)+$2); else print(($1*3600)+($2*60)+$3)}}' | tr '\n' '\t'
