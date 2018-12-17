@@ -29,6 +29,12 @@ clear_fscache() {
 	sync; echo 3 | tee /proc/sys/vm/drop_caches
 }
 
+run() {
+	echo $1
+	eval $1
+	[ $clean_cache = true ] && clear_fscache
+}
+
 help_msg() {
 	echo "Benchmark script for f5c."
 	echo "Usage: f5c_dir/script/benchmark.sh [-c] [-b bam file] [-g reference genome] [-r fastq/fasta read] [f5c path] [nanopolish path]"
@@ -87,20 +93,13 @@ if [ $thread_loop = true ]
 then
 	while [ $t -le $threads ]
 	do
-		cmd="/usr/bin/time -v ${f5c_path} call-methylation -b ${bamfile} -g ${ref} -r ${reads} -t $t --secondary=yes --min-mapq=0 --print-scaling=yes -K$batchsize --disable_cuda=$disable_cuda > /dev/null 2>> f5c_benchmark.log"
-		echo $cmd
-		eval $cmd
-		[ $clean_cache = true ] && clear_fscache
-		cmd="/usr/bin/time -v ${nanopolish_path} call-methylation -b ${bamfile} -g ${ref} -r ${reads} -t $t -K$batchsize > /dev/null 2>> nano_benchmark.log"
-		echo $cmd
-		eval $cmd
-		[ $clean_cache = true ] && clear_fscache
+		run "/usr/bin/time -v ${f5c_path} call-methylation -b ${bamfile} -g ${ref} -r ${reads} -t $t --secondary=yes --min-mapq=0 --print-scaling=yes -K$batchsize --disable_cuda=$disable_cuda > /dev/null 2>> f5c_benchmark.log"
+		run "/usr/bin/time -v ${nanopolish_path} call-methylation -b ${bamfile} -g ${ref} -r ${reads} -t $t -K$batchsize > /dev/null 2>> nano_benchmark.log"
 		t=$(( t + 8 ))
 	done
 else
-	/usr/bin/time -v ${f5c_path} call-methylation -b ${bamfile} -g ${ref} -r ${reads} -t $t --secondary=yes --min-mapq=0 --print-scaling=yes -K$batchsize --disable_cuda=$disable_cuda > /dev/null 2>> f5c_benchmark.log
-	[ $clean_cache = true ] && clear_fscache
-	/usr/bin/time -v ${nanopolish_path} call-methylation -b ${bamfile} -g ${ref} -r ${reads} -t $t -K$batchsize > /dev/null 2>> nano_benchmark.log
+	run "/usr/bin/time -v ${f5c_path} call-methylation -b ${bamfile} -g ${ref} -r ${reads} -t $t --secondary=yes --min-mapq=0 --print-scaling=yes -K$batchsize --disable_cuda=$disable_cuda > /dev/null 2>> f5c_benchmark.log"
+	run "/usr/bin/time -v ${nanopolish_path} call-methylation -b ${bamfile} -g ${ref} -r ${reads} -t $t -K$batchsize > /dev/null 2>> nano_benchmark.log"
 fi
 
 echo "f5c time"
