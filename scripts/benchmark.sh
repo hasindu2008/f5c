@@ -77,10 +77,12 @@ do
 	[ -f ${file} ] || die "${file} not found."
 done
 
-# run benchmark
-t=8
 rm -f *_benchmark.log
 
+[ $clean_cache = true ] && clear_fscache
+
+t=8
+# run benchmark
 if [ $thread_loop = true ]
 then
 	while [ $t -le $threads ]
