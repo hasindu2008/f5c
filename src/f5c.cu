@@ -86,7 +86,7 @@ void init_cuda(core_t* core){
     cudaMemcpyHostToDevice);
     CUDA_CHK();
 
-#ifdef CUDA_PRE_MALLOC2
+#ifndef CUDA_DYNAMIC_MALLOC
     // //dynamic arrays
     //compute the maximum
     uint64_t free_mem = cuda_freemem(cuda_device_num);
@@ -126,6 +126,7 @@ void init_cuda(core_t* core){
     print_size("trace_capacity",trace_capacity);
     print_size("band_lower_left_capacity",band_lower_left_capacity);
     
+
     //input arrays
     cudaMalloc((void**)&(core->cuda->read), read_capacity); //with null char
     CUDA_CHK();
@@ -173,7 +174,7 @@ void free_cuda(core_t* core){
     cudaFree(core->cuda->scalings);
     cudaFree(core->cuda->n_event_align_pairs);
 
-#ifdef CUDA_PRE_MALLOC2
+#ifndef CUDA_DYNAMIC_MALLOC
     cudaFree(core->cuda->read);
     cudaFree(core->cuda->event_table);
     cudaFree(core->cuda->model_kmer_cache);
@@ -694,7 +695,7 @@ void align_cudb_async_join(pthread_arg_t *pt_args, pthread_t tid) {
 
 //check if we have run out of space in the pre-allocated gpu arrays
 static inline int8_t if_gpu_mem_free(core_t* core, db_t* db, int32_t i,int64_t sum_read_len,int64_t sum_n_events){
-#ifndef CUDA_PRE_MALLOC2
+#ifdef CUDA_DYNAMIC_MALLOC
     return 1;
 #else
     if((sum_read_len+(db->read_len[i] + 1) <= core->cuda->max_sum_read_len) && 
@@ -873,7 +874,7 @@ realtime1 = realtime();
     model = core->cuda->model;
     n_event_align_pairs=core->cuda->n_event_align_pairs;
 
-#ifdef CUDA_PRE_MALLOC2
+#ifndef CUDA_DYNAMIC_MALLOC
 
     assert(sum_read_len <= core->cuda->max_sum_read_len);
     assert(sum_n_events <= floor(core->cuda->max_sum_read_len * AVG_EVENTS_PER_KMER));
@@ -1061,7 +1062,7 @@ core->align_cuda_memcpy += (realtime() - realtime1);
 
 realtime1 =  realtime();
 
-#ifndef CUDA_PRE_MALLOC2
+#ifdef CUDA_DYNAMIC_MALLOC
     cudaFree(read); //with null char
     cudaFree(event_table);
     cudaFree(event_align_pairs);

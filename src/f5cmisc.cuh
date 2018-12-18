@@ -7,7 +7,7 @@
 
 #define CUDA_PRE_MALLOC 1 //whether static cuda/cpu arrays are preallocated
 #define CPU_GPU_PROC 1 //CUDA_PRE_MALLOC should be always 1 if this is set
-#define CUDA_PRE_MALLOC2 1 //only effective with CPU_GPU_PROC (whether big dynamic loops are statically preallocated)
+//#define CUDA_DYNAMIC_MALLOC 1 //only effective with CPU_GPU_PROC (whether big dynamic loops are statically preallocated)
 #define WARP_HACK 1 //whether the kernels are  performed in 1D with a warp hack (effective only  if specific TWODIM_ALIGN is not defined)
 
 //align-core-kernel options
@@ -29,7 +29,7 @@
 
 #define AVG_EVENTS_PER_KMER_MAX 10.0f
 
-#define TEGRA_MEM_FACTOR 0.8f //in tegra we cannot grab all 
+#define TEGRA_MEM_FACTOR 0.7f //in tegra we cannot grab all 
 //the free memory as we have to reserve some space for RAM as well
 //TEGRA_MEM_FACTOR is the factor of the free memory allocated for the gpu
 

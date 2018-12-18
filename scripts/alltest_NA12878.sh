@@ -79,4 +79,9 @@ make clean && make cuda=1
 evaluate
 
 
+echo "CUDA test : cuda disabled"
+make clean && CFLAGS_CUDA+="-DCUDA_DYNAMIC_MALLOC=1" make cuda=1
+"${exepath}" call-methylation -b "${bamfile}" -g "${ref}" -r "${reads}" -t "${NCPU}"  -K256 -v5 --disable-cuda=yes > ${testdir}/result.txt
+evaluate
+
 exit 0
