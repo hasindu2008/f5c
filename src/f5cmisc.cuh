@@ -4,7 +4,6 @@
 #include <stdint.h>
 
 #define CUDA_DEBUG 1 //whether perform CUDA_device_synchronise or not
-
 #define CUDA_PRE_MALLOC 1 //whether static cuda/cpu arrays are preallocated
 #define CPU_GPU_PROC 1 //CUDA_PRE_MALLOC should be always 1 if this is set
 //#define CUDA_DYNAMIC_MALLOC 1 //only effective with CPU_GPU_PROC (whether big dynamic loops are statically preallocated)
@@ -27,11 +26,13 @@
 //else go for the CPU
 #define AVG_EVENTS_PER_KMER_GPU_THRESH 5.0f
 
-#define AVG_EVENTS_PER_KMER_MAX 10.0f
+#define AVG_EVENTS_PER_KMER_MAX 15.0f
 
-#define TEGRA_MEM_FACTOR 0.7f //in tegra we cannot grab all 
+#define TEGRA_MEM_FACTOR 0.8f //in tegra we cannot grab all 
 //the free memory as we have to reserve some space for RAM as well
 //TEGRA_MEM_FACTOR is the factor of the free memory allocated for the gpu
+
+#define MEM_FACTOR 0.9f
 
 #define REVERSAL_ON_CPU 1
 

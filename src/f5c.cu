@@ -91,7 +91,7 @@ void init_cuda(core_t* core){
     //compute the maximum
     uint64_t free_mem = cuda_freemem(cuda_device_num);
 
-    float factor =  1 * sizeof(char) + //read_capacity
+    double factor =  1 * sizeof(char) + //read_capacity
                     AVG_EVENTS_PER_KMER * sizeof(event_t) + //event_table_capacity
                     1 * sizeof(model_t) + //model_kmer_cache_capacity
                     (AVG_EVENTS_PER_KMER * 2) * sizeof(AlignedPair) +  //event_align_pairs_capacity
@@ -104,7 +104,7 @@ void init_cuda(core_t* core){
         sum_read_len= floor(free_mem*TEGRA_MEM_FACTOR/factor);
     }
     else{
-        sum_read_len= floor(free_mem*0.99/factor);
+        sum_read_len= floor(free_mem*MEM_FACTOR/factor);
     }
 
     core->cuda->max_sum_read_len = sum_read_len;
@@ -118,6 +118,9 @@ void init_cuda(core_t* core){
     uint64_t trace_capacity = (sum_n_events + sum_read_len) * ALN_BANDWIDTH * sizeof(uint8_t) ; 
     uint64_t band_lower_left_capacity = (sum_n_events + sum_read_len) * sizeof(EventKmerPair); 
     
+    assert(read_capacity + event_table_capacity + model_kmer_cache_capacity + event_align_pairs_capacity
+    + bands_capacity + trace_capacity + band_lower_left_capacity <= free_mem);
+
     print_size("read_capacity",read_capacity);
     print_size("event_table_capacity",event_table_capacity);
     print_size("model_kmer_cache_capacity",model_kmer_cache_capacity);
