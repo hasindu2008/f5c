@@ -108,7 +108,7 @@ void init_cuda(core_t* core){
     }
 
     core->cuda->max_sum_read_len = sum_read_len;
-    uint64_t sum_n_events = sum_read_len * AVG_EVENTS_PER_KMER;
+    uint64_t sum_n_events = floor(sum_read_len * AVG_EVENTS_PER_KMER);
 
     uint64_t read_capacity = sum_read_len * sizeof(char); 
     uint64_t event_table_capacity = sum_n_events * sizeof(event_t); 
@@ -146,7 +146,7 @@ void init_cuda(core_t* core){
     cudaMalloc((void**)&(core->cuda->band_lower_left), band_lower_left_capacity);
     CUDA_CHK();  
 
-    fprintf(stderr,"Max sum bases GPU %luM\n",core->cuda->max_sum_read_len/(1000*1000));
+    fprintf(stderr,"Max sum bases GPU %.1fM\n",core->cuda->max_sum_read_len/(1000.0*1000.0));
 
 #endif
 
@@ -698,7 +698,7 @@ static inline int8_t if_gpu_mem_free(core_t* core, db_t* db, int32_t i,int64_t s
     return 1;
 #else
     if((sum_read_len+(db->read_len[i] + 1) <= core->cuda->max_sum_read_len) && 
-       (sum_n_events+db->et[i].n <= (core->cuda->max_sum_read_len) * AVG_EVENTS_PER_KMER) ){
+       (sum_n_events+db->et[i].n <= floor(core->cuda->max_sum_read_len * AVG_EVENTS_PER_KMER)) ){
         return 1;
     }
     else{
@@ -725,9 +725,11 @@ void align_cuda(core_t* core, db_t* db) {
     int32_t n_bam_rec_cuda;
     double realtime1;
     int32_t n_ultra_long_reads=0;
-    int32_t stat_n_ultra_long_reads=0;
-    int32_t stat_n_too_many_events=0;
-    int32_t sum_bases_cpu=0;
+
+    int32_t stat_n_ultra_long_reads=0; //number of ultralong reads processed on CPU
+    int32_t stat_n_too_many_events=0;  //number of reads with high avg events per base that are processed on CPU
+    int32_t stat_n_gpu_mem_out=0;      //number of reads run on CPU due to the GPU memory running out 
+    int32_t sum_bases_cpu=0;           //The total sum of bases run on GPU 
 
     int32_t ultra_long_reads[n_bam_rec]; //not only ultra-long reads, but also ones with large number of average events per base
 
@@ -765,12 +767,13 @@ realtime1 = realtime();
     read_ptr_host = core->cuda->read_ptr_host;
 
     sum_read_len = 0;
-
+    sum_n_events = 0;
     //read sequences : needflattening
     for (i = 0,j=0; i < n_bam_rec; i++) {
         if(if_on_gpu(core, db, i) && if_gpu_mem_free(core, db, i,sum_read_len,sum_n_events)){
             read_ptr_host[j] = sum_read_len;
             sum_read_len += (db->read_len[i] + 1); //with null term
+            sum_n_events += db->et[i].n;
             j++;
         }
         else{
@@ -785,8 +788,11 @@ realtime1 = realtime();
                 else if ((db->et[i].n)/(float)(db->read_len[i]) >= AVG_EVENTS_PER_KMER_GPU_THRESH){
                     stat_n_too_many_events++;
                 }
+                else{
+                    stat_n_gpu_mem_out++;
+                }
             }
-            else{//todo : add stats and make this better
+            else{//todo : add stats and make this better (too many avg events per base, even for the CPU)
                 db->n_event_align_pairs[i]=0;
             }
 
@@ -874,7 +880,7 @@ realtime1 = realtime();
     //fprintf(stderr,"%d %d\n", sum_read_len,sum_n_events);
     fprintf(stderr,"%.2f %% of readarrays and %.2f %% of eventarrays were utilised\n",
         sum_read_len/(float)(core->cuda->max_sum_read_len)*100 ,
-        sum_n_events/(float)((core->cuda->max_sum_read_len)*AVG_EVENTS_PER_KMER)*100);
+        sum_n_events/(float)floor((core->cuda->max_sum_read_len)*AVG_EVENTS_PER_KMER)*100);
 
     read=(core->cuda->read);
     event_table=(core->cuda->event_table);
@@ -1103,8 +1109,8 @@ core->align_cuda_postprocess += (realtime() - realtime1);
 realtime1 =  realtime(); 
     align_cudb_async_join(tmparg,tid);  
 core->extra_load_cpu += (realtime() - realtime1);
-fprintf(stderr, "[%s::%.3f*%.2f] CPU extra processing done (>=%.0fkbases:%d,>=%.1fevents:%d)\n", __func__,
-realtime() - realtime1, cputime() / (realtime() - realtime1),((core->opt.cuda_max_readlen * db->sum_bases/(float)db->n_bam_rec))/1000,stat_n_ultra_long_reads, AVG_EVENTS_PER_KMER_GPU_THRESH,stat_n_too_many_events);
+fprintf(stderr, "[%s::%.3f*%.2f] CPU extra processing done (>=%.0fkbases:%d|>=%.1fevents:%d|gpu_mem_out:%d)\n", __func__,
+realtime() - realtime1, cputime() / (realtime() - realtime1),((core->opt.cuda_max_readlen * db->sum_bases/(float)db->n_bam_rec))/1000,stat_n_ultra_long_reads, AVG_EVENTS_PER_KMER_GPU_THRESH,stat_n_too_many_events,stat_n_gpu_mem_out);
 fprintf(stderr,"CPU load %.1fM bases, GPU load %.1fM bases\n",(float)sum_bases_cpu/(1000*1000),(float)sum_read_len/(1000*1000));
 
 }
