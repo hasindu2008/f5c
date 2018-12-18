@@ -698,7 +698,7 @@ static inline int8_t if_gpu_mem_free(core_t* core, db_t* db, int32_t i,int64_t s
 #ifdef CUDA_DYNAMIC_MALLOC
     return 1;
 #else
-    if((sum_read_len+(db->read_len[i] + 1) <= core->cuda->max_sum_read_len) && 
+    if((sum_read_len+(db->read_len[i] + 1) <= (int64_t)core->cuda->max_sum_read_len) && 
        (sum_n_events+db->et[i].n <= floor(core->cuda->max_sum_read_len * AVG_EVENTS_PER_KMER)) ){
         return 1;
     }

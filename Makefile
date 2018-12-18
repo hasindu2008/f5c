@@ -26,7 +26,7 @@ ifdef cuda
     DEPS_CUDA = src/f5c.h src/fast5lite.h src/error.h src/f5cmisc.cuh
     OBJ_CUDA = $(BUILD_DIR)/f5c_cuda.o $(BUILD_DIR)/align_cuda.o
     CC_CUDA = nvcc
-    CFLAGS_CUDA += -g  -O2 -std=c++11 -lineinfo $(CUDA_ARCH)
+    CFLAGS_CUDA += -g  -O2 -std=c++11 -lineinfo $(CUDA_ARCH) -Xcompiler -Wall
 	CUDALIB = -L/usr/local/cuda/lib64/ -lcudart_static -lrt -ldl
     OBJ += $(BUILD_DIR)/gpucode.o $(OBJ_CUDA)
     CPPFLAGS += -DHAVE_CUDA=1
