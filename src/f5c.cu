@@ -817,6 +817,8 @@ realtime1 = realtime();
     //form the temporary flattened array on host
     read_host = (char*)malloc(sizeof(char) * sum_read_len);
     MALLOC_CHK(read_host);
+    sum_read_len = 0;
+    sum_n_events = 0;
     for (i = 0,j=0; i < n_bam_rec; i++) {
         if(if_on_gpu(core, db, i) && if_gpu_mem_free(core, db, i,sum_read_len,sum_n_events)){
             int32_t idx = read_ptr_host[j];
@@ -824,6 +826,8 @@ realtime1 = realtime();
             read_len_host[j]=db->read_len[i];
             scalings_host[j]=db->scalings[i];
             j++;
+            sum_read_len += (db->read_len[i] + 1); //with null term
+            sum_n_events += db->et[i].n;
         }
 
     }
@@ -835,6 +839,7 @@ realtime1 = realtime();
     n_events_host = core->cuda->n_events_host;
     event_ptr_host = core->cuda->event_ptr_host;
 
+    sum_read_len = 0;
     sum_n_events = 0;
     for (i = 0,j=0; i < n_bam_rec; i++) {
         if(if_on_gpu(core, db, i) && if_gpu_mem_free(core, db, i,sum_read_len,sum_n_events)){
@@ -842,6 +847,7 @@ realtime1 = realtime();
             event_ptr_host[j] = sum_n_events;
             sum_n_events += db->et[i].n;
             j++;
+            sum_read_len += (db->read_len[i] + 1); //with null term
         }
     }
 
@@ -850,12 +856,16 @@ realtime1 = realtime();
     event_table_host =
         (event_t*)malloc(sizeof(event_t) * sum_n_events);
     MALLOC_CHK(event_table_host);
+    sum_read_len = 0;
+    sum_n_events = 0;
     for (i = 0,j=0; i < n_bam_rec; i++) {
         if(if_on_gpu(core, db, i) && if_gpu_mem_free(core, db, i,sum_read_len,sum_n_events)){
             int32_t idx = event_ptr_host[j];
             memcpy(&event_table_host[idx], db->et[i].event,
                 sizeof(event_t) * db->et[i].n);
                 j++;
+            sum_read_len += (db->read_len[i] + 1); //with null term
+            sum_n_events += db->et[i].n;
             }
     }
 
@@ -1080,6 +1090,8 @@ core->align_cuda_malloc += (realtime() - realtime1);
     /** post work**/
 realtime1 =  realtime();
     //copy back
+    sum_read_len = 0;
+    sum_n_events = 0;
     for (i = 0,j=0; i < n_bam_rec; i++) {
         if(if_on_gpu(core, db, i) && if_gpu_mem_free(core, db, i,sum_read_len,sum_n_events)){
             int32_t idx = event_ptr_host[j];
@@ -1099,6 +1111,8 @@ realtime1 =  realtime();
                 sizeof(AlignedPair) * db->n_event_align_pairs[i]);
     #endif                
             j++;
+            sum_read_len += (db->read_len[i] + 1); //with null term
+            sum_n_events += db->et[i].n;
 
         }
     }
