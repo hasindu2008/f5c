@@ -876,7 +876,7 @@ realtime1 = realtime();
 #ifdef CUDA_PRE_MALLOC2
 
     assert(sum_read_len <= core->cuda->max_sum_read_len);
-    assert(sum_n_events <= (core->cuda->max_sum_read_len) * AVG_EVENTS_PER_KMER);
+    assert(sum_n_events <= floor(core->cuda->max_sum_read_len * AVG_EVENTS_PER_KMER));
     //fprintf(stderr,"%d %d\n", sum_read_len,sum_n_events);
     fprintf(stderr,"%.2f %% of readarrays and %.2f %% of eventarrays were utilised\n",
         sum_read_len/(float)(core->cuda->max_sum_read_len)*100 ,
