@@ -55,7 +55,7 @@ help_msg() {
 	echo "-h                   Show this help message."
 }
 
-while getopts b:g:r:t:K:f:F:chT opt
+while getopts b:g:r:t:K:f:F:cChT opt
 do
 	case $opt in
 		b) bamfile="$OPTARG";;
