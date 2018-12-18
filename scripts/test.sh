@@ -10,6 +10,7 @@ testdir=test/ecoli_2kb_region
 bamfile=${testdir}/reads.sorted.bam
 ref=${testdir}/draft.fa
 reads=${testdir}/reads.fasta
+batchsize=256
 if command -v nproc > /dev/null; then
 	threads=$(nproc --all)
 else
@@ -73,6 +74,7 @@ help_msg() {
 	echo
 	echo "-c                   Uses chr22_meth_example test set."
 	echo "-b [bam file]        Same as f5c -b."
+	echo "-K [n]               Same as f5c -K."
 	echo "-r [read file]       Same as f5c -r."
 	echo "-g [ref genome]      Same as f5c -g."
 	echo "-t [n]               Number of threads."
@@ -81,7 +83,7 @@ help_msg() {
 }
 
 # parse options
-while getopts b:g:r:t:cdh opt
+while getopts b:g:r:t:K:cdh opt
 do
 	case $opt in
 		b) bamfile="$OPTARG";;
@@ -94,6 +96,7 @@ do
 		   reads=${testdir}/reads.fastq
 		   testset_url="http://genome.cse.unsw.edu.au/tmp/f5c_na12878_test.tgz"
 		   fallback_url="https://ndownloader.figshare.com/files/13784792?private_link=5dd2077f1041412a9518";;
+		K) batchsize="$OPTARG";;
 		d) download_test_set "http://genome.cse.unsw.edu.au/tmp/f5c_na12878_test.tgz" "https://ndownloader.figshare.com/files/13784792?private_link=5dd2077f1041412a9518"
 		   exit 0;;
 		h) help_msg
@@ -114,7 +117,7 @@ done
 
 if [ -z $mode ]; then
 	if [ $testdir = test/chr22_meth_example ]; then
-		${exepath} call-methylation -b ${bamfile} -g ${ref} -r ${reads} -t ${threads}  -K256 > ${testdir}/result.txt
+		${exepath} call-methylation -b ${bamfile} -g ${ref} -r ${reads} -t ${threads} -K $batchsize > ${testdir}/result.txt
 		grep -w "chr20" ${testdir}/result.txt | awk '{print $1$2$3$4$8$9$10"\t"$5"\t"$6"\t"$7}' > ${testdir}/result_float.txt
 		grep -w "chr20" ${testdir}/meth.exp | awk '{print $1$2$3$4$8$9$10"\t"$5"\t"$6"\t"$7}'  > ${testdir}/meth_float.txt
 
@@ -132,7 +135,7 @@ if [ -z $mode ]; then
 		${exepath} call-methylation -b ${bamfile} -g ${ref} -r ${reads} --secondary=yes --min-mapq=0 > ${testdir}/result.txt
 		awk '{print $1,$2,$3,$4,$8,$9,$10}' ${testdir}/result.txt > ${testdir}/result_exact.txt
 		awk '{print $1,$2,$3,$4,$8,$9,$10}' ${testdir}/meth.exp > ${testdir}/meth_exact.txt
-		diff -q ${testdir}/meth_exact.txt ${testdir}/result_exact.txt  || die "diff ${testdir}/result_exact.txt ${testdir}/meth_exact.txt failed" 
+		diff -q ${testdir}/meth_exact.txt ${testdir}/result_exact.txt || die "diff ${testdir}/result_exact.txt ${testdir}/meth_exact.txt failed" 
 
 		awk '{print $1$2$3$4$8$9$10"\t"$5"\t"$6"\t"$7}' ${testdir}/result.txt > ${testdir}/result_float.txt
 		awk '{print $1$2$3$4$8$9$10"\t"$5"\t"$6"\t"$7}' ${testdir}/meth.exp > ${testdir}/meth_float.txt	
