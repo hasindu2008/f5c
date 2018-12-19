@@ -8,6 +8,7 @@ bamfile=$testdir/reads.sorted.bam
 ref=$testdir/humangenome.fa
 reads=$testdir/reads.fastq
 batchsize=512
+bases=100M
 disable_cuda=yes
 thread_loop=true
 if command -v nproc > /dev/null
@@ -47,6 +48,7 @@ help_msg() {
 	echo "-r [read file]       Same as f5c -r."
 	echo "-g [ref genome]      Same as f5c -g."
 	echo "-K [n]               Same as f5c -K."
+	echo "-B [n]K/M/G          Same as f5c -B."
 	echo "-C                   Same as f5c --disable-cuda=no."
 	echo "-f [file]            File to save f5c output. (/dev/null)"
 	echo "-F [file]            File to save nanopolish output. (/dev/null)"
@@ -55,7 +57,7 @@ help_msg() {
 	echo "-h                   Show this help message."
 }
 
-while getopts b:g:r:t:K:f:F:cChT opt
+while getopts b:g:r:t:K:f:F:B:cChT opt
 do
 	case $opt in
 		b) bamfile="$OPTARG";;
@@ -68,8 +70,10 @@ do
 		   threads="$OPTARG";;
 		T) thread_loop=false;;
 		K) batchsize="$OPTARG";;
+		B) bases="$OPTARG";;
 		c) clean_cache=true;;
-		C) disable_cuda=no;;
+		C) disable_cuda=no
+		   bases=2M;;
 		f) f5c_output="$OPTARG";;
 		F) nano_output="$OPTARG";;
 		h) help_msg
@@ -103,7 +107,7 @@ fi
 # run benchmark
 while [ $t -le $threads ]
 do
-	run "/usr/bin/time -v ${f5c_path} call-methylation -b ${bamfile} -g ${ref} -r ${reads} -t $t --secondary=yes --min-mapq=0 -K $batchsize --disable_cuda=$disable_cuda > $f5c_output 2>> f5c_benchmark.log"
+	run "/usr/bin/time -v ${f5c_path} call-methylation -b ${bamfile} -g ${ref} -r ${reads} -t $t --secondary=yes --min-mapq=0 -K $batchsize --disable-cuda=$disable_cuda -B $bases > $f5c_output 2>> f5c_benchmark.log"
 	run "/usr/bin/time -v ${nanopolish_path} call-methylation -b ${bamfile} -g ${ref} -r ${reads} -t $t -K $batchsize > $nano_output 2>> nano_benchmark.log"
 	t=$(( t + 8 ))
 done
