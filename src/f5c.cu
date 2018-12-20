@@ -665,6 +665,7 @@ void* align_cudb(void* voidargs){
         
     }
 
+
     fprintf(stderr, "[%s::%.3f*%.2f] %d reads processed on cpu\n", __func__,
     realtime() - realtime1, cputime() / (realtime() - realtime1),n_ultra_long_reads);
 
@@ -720,6 +721,82 @@ static inline int8_t if_on_gpu(core_t* core, db_t* db, int32_t i){
     }
     else{
         return 0;
+    }
+}
+
+void load_balance(core_t *core, db_t *db, double cpu_process_time,double gpu_process_time,
+    int32_t stat_n_gpu_mem_out, int32_t stat_n_too_many_events, int32_t stat_n_ultra_long_reads, 
+    float read_array_usage, float event_array_usage){
+
+    fprintf(stderr,"[%s] Processing time on CPU %fsec, processing time on GPU %fsec\n",__func__,cpu_process_time,gpu_process_time);
+    double factor = (cpu_process_time-gpu_process_time)/(cpu_process_time+gpu_process_time);
+    fprintf(stderr,"[%s] factor %f\n",__func__,factor);
+    float thresh_factor=0.2;
+    float thresh_reads=0.05;
+    float thresh=0.2;
+
+    if(factor>thresh_factor){ //cpu too much time
+        fprintf(stderr,"[%s] CPU too much time\n",__func__);
+
+        if(stat_n_gpu_mem_out > db->n_bam_rec * thresh_reads){ //gpu run out of memory
+            fprintf(stderr,"[%s] Looks like the loaded dataset is too much for the GPU.\n",__func__);
+            
+            //are the GPU arrays balanced? give a warning
+            if(read_array_usage>99 && event_array_usage<100-thresh*100){ //read array full
+                fprintf(stderr,"[%s] GPU read array usage too high.\n",__func__);
+                if(stat_n_ultra_long_reads> db->n_bam_rec * thresh_reads){ //array fileld sue to ultra long reads
+                    fprintf(stderr,"[%s] Consider decreasing cuda-max-readlen\n",__func__);
+                }
+                else{
+                    fprintf(stderr,"[%s] Consider decreasing AVG_EVENTS_PER_KMER\n",__func__);
+                }
+            }
+            else if(event_array_usage>99 && read_array_usage<100-thresh*100){ //event array full
+                fprintf(stderr,"[%s] GPU event array usage too high.\n",__func__);
+                if(stat_n_too_many_events > db->n_bam_rec * thresh_reads){//array filled mainly due to reads with too many events
+                    fprintf(stderr,"[%s] Consider decreasing AVG_EVENTS_PER_KMER_GPU_THRESH\n",__func__);
+                }
+                else{ //array filled AVG_EVENTS_PER_KMER being not enough
+                    fprintf(stderr,"[%s] Consider increasing AVG_EVENTS_PER_KMER\n",__func__);
+                }                
+            }
+            else{//else reduce the batch size
+                fprintf(stderr,"[%s] Consider reducing batchsize-bases\n",__func__);
+            }
+
+            
+        }
+        else{ //slow CPU?
+            if(stat_n_ultra_long_reads> db->n_bam_rec * thresh_reads){ 
+                    fprintf(stderr,"[%s] Consider increasing cuda-max-readlen\n",__func__);
+            }
+            else if(stat_n_too_many_events > db->n_bam_rec * thresh_reads){//array filled mainly due to reads with too many events
+                    fprintf(stderr,"[%s] Consider decreasing AVG_EVENTS_PER_KMER_GPU_THRESH\n",__func__);
+            }
+            else{
+                fprintf(stderr, "[%s] Your CPU seem to be slower than the GPU. Increase AVG_EVENTS_PER_KMER_GPU_THRESH or cuda-max-readlen\n",__func__);
+            }
+        }
+    }
+    else if(factor<-thresh_factor){ //gpu too much time
+        fprintf(stderr,"[%s] GPU too much time\n",__func__);
+    }
+    else{
+        if(event_array_usage<100-thresh*100 && read_array_usage<100-thresh*100){
+            fprintf(stderr,"[%s] GPU arrays are not fully utilised\n",__func__);
+            if(db->n_bam_rec>=core->opt.batch_size){
+                fprintf(stderr,"[%s] Increase the batchsize (-K option)\n",__func__);
+            }
+            else if(db->sum_bases >= core->opt.batch_size_bases){
+                fprintf(stderr,"[%s] Increase the batchsize (-B option)\n",__func__);
+            }
+            else{
+                fprintf(stderr,"[%s] wtf how come?\n",__func__);
+            }
+        }
+        else{
+            fprintf(stderr,"[%s] No load balancing required\n",__func__);
+        }
     }
 }
 
@@ -808,7 +885,8 @@ realtime1 = realtime();
     //can start processing on the ultra long reads on the CPU
     pthread_arg_t *tmparg=NULL;
     pthread_t tid =  align_cudb_async(tmparg,core, db, ultra_long_reads, n_ultra_long_reads);
-    
+
+    double realtime_process_start=realtime();    
 
     read_len_host = core->cuda->read_len_host;
     scalings_host = core->cuda->scalings_host;
@@ -1124,12 +1202,21 @@ realtime1 =  realtime();
 
 core->align_cuda_postprocess += (realtime() - realtime1);
 
+    double gpu_process_time = realtime()-realtime_process_start;
+
 realtime1 =  realtime(); 
     align_cudb_async_join(tmparg,tid);  
 core->extra_load_cpu += (realtime() - realtime1);
-fprintf(stderr, "[%s::%.3f*%.2f] CPU extra processing done (>=%.0fkbases:%d|>=%.1fevents:%d|gpu_mem_out:%d)\n", __func__,
-realtime() - realtime1, cputime() / (realtime() - realtime1),((core->opt.cuda_max_readlen * db->sum_bases/(float)db->n_bam_rec))/1000,stat_n_ultra_long_reads, AVG_EVENTS_PER_KMER_GPU_THRESH,stat_n_too_many_events,stat_n_gpu_mem_out);
-fprintf(stderr,"CPU load %.1fM bases, GPU load %.1fM bases\n",(float)sum_bases_cpu/(1000*1000),(float)sum_read_len/(1000*1000));
+
+    double cpu_process_time = realtime()-realtime_process_start;
+
+    fprintf(stderr, "[%s::%.3f*%.2f] CPU extra processing done (>=%.0fkbases:%d|>=%.1fevents:%d|gpu_mem_out:%d)\n", __func__,
+    realtime() - realtime1, cputime() / (realtime() - realtime1),((core->opt.cuda_max_readlen * db->sum_bases/(float)db->n_bam_rec))/1000,stat_n_ultra_long_reads, AVG_EVENTS_PER_KMER_GPU_THRESH,stat_n_too_many_events,stat_n_gpu_mem_out);
+    fprintf(stderr,"CPU load %.1fM bases, GPU load %.1fM bases\n",(float)sum_bases_cpu/(1000*1000),(float)sum_read_len/(1000*1000));
+
+    load_balance(core,db,cpu_process_time,gpu_process_time,stat_n_gpu_mem_out,stat_n_too_many_events, stat_n_ultra_long_reads,
+        sum_read_len/(float)(core->cuda->max_sum_read_len)*100 ,
+        sum_n_events/(float)floor((core->cuda->max_sum_read_len)*AVG_EVENTS_PER_KMER)*100);
 
 }
 
