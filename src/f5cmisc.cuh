@@ -42,7 +42,6 @@ and then the program will be aborted*/
     { gpu_assert(__FILE__, __LINE__); }
 
 
-
 __global__ void 
 //__launch_bounds__(MY_KERNEL_MAX_THREADS, MY_KERNEL_MIN_BLOCKS)
 align_kernel_core_2d_shm(int32_t* read_len, int32_t* read_ptr,
@@ -70,8 +69,8 @@ __global__ void align_kernel_post(AlignedPair* event_align_pairs,
 static inline void gpu_assert(const char* file, uint64_t line) {
     cudaError_t code = cudaGetLastError();
     if (code != cudaSuccess) {
-        fprintf(stderr, "Cuda error: %s \n in file : %s line number : %lu\n",
-                cudaGetErrorString(code), file, line);
+        fprintf(stderr, "[%s::ERROR]\033[1;31m Cuda error: %s \n in file : %s line number : %lu\033[0m\n",
+                __func__, cudaGetErrorString(code), file, line);
         exit(-1);
     }
 }
@@ -80,9 +79,13 @@ static inline int32_t cuda_exists() {
     //check cuda devices
     int32_t nDevices;
     cudaGetDeviceCount(&nDevices);
-    CUDA_CHK();
-    if (nDevices == 0) {
-        fprintf(stderr, "No CUDA device found. Run with --disable-cuda=yes to run on the CPU\n");
+    cudaError_t code = cudaGetLastError();
+    if (code != cudaSuccess) {
+        fprintf(stderr, "[%s::ERROR]\033[1;31m Cuda error: %s \n in file : %s line number : %d\033[0m\n",
+                __func__, cudaGetErrorString(code), __FILE__, __LINE__);
+    }
+    if (nDevices <= 0) {
+        fprintf(stderr, "[%s::ERROR]\033[1;31m No CUDA capable device found. Run with --disable-cuda=yes to run on the CPU\033[0m\n",__func__);
         exit(1);
     }
 
@@ -110,7 +113,7 @@ static inline uint64_t cuda_freemem(int32_t devicenum) {
     uint64_t freemem, total;
     cudaMemGetInfo(&freemem, &total); 
     CUDA_CHK();
-    fprintf(stderr, "%lf GB free of total %lf GB global memory\n",
+    fprintf(stderr, "[%s] %.2f GB free of total %.2f GB global memory\n",__func__,
             freemem / double(1024 * 1024 * 1024),
             total / double(1024 * 1024 * 1024));
 

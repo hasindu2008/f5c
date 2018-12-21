@@ -62,10 +62,15 @@ typedef struct {
     int32_t num_thread;
     int8_t verbosity;
 
+
+    //todo : these are required only for HAVE_CUDA
     int32_t cuda_block_size;
     float cuda_max_readlen;
     float cuda_avg_events_per_kmer;
     float cuda_max_avg_events_per_kmer;
+    int32_t cuda_dev_id;
+    float cuda_mem_frac;
+   
 } opt_t;
 
 // events : from scrappie

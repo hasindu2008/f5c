@@ -32,8 +32,8 @@ static struct option long_options[] = {
     {"genome", required_argument, 0, 'g'},         //2 reference genome
     {"threads", required_argument, 0, 't'},        //3 number of threads [8]
     {"batchsize", required_argument, 0, 'K'},      //4 batchsize - number of reads loaded at once [512]
-    {"batchsize-bases", no_argument, 0, 'B'},      //5 batchsize - number of bases loaded at once
-    {"verbose", no_argument, 0, 'v'},              //6 verbosity level [1]
+    {"max-bases", required_argument, 0, 'B'},      //5 batchsize - number of bases loaded at once
+    {"verbose", required_argument, 0, 'v'},        //6 verbosity level [1]
     {"help", no_argument, 0, 'h'},                 //7
     {"version", no_argument, 0, 'V'},              //8
     {"min-mapq", required_argument, 0, 0},         //9 consider only reads with MAPQ>=min-mapq [30] 
@@ -51,6 +51,8 @@ static struct option long_options[] = {
     {"cuda-max-lf",required_argument, 0, 0},       //21 reads <= cuda-max-lf*avg_readlen on GPU, rest on CPU (only if compiled for CUDA)
     {"cuda-avg-epk",required_argument, 0, 0},      //22 average number of events per kmer - for allocating GPU arrays (only if compiled for CUDA)
     {"cuda-max-epk",required_argument, 0, 0},      //23 reads <= cuda_max_epk on GPU, rest on CPU (only if compiled for CUDA)
+    {"cuda-dev-id",required_argument, 0, 0},       //24 cuda device ID to run on (only if compiled for CUDA)
+    {"cuda-mem-frac",required_argument, 0, 0},     //25 fraction of the free GPU memory to use (only if compiled for CUDA)
     {0, 0, 0, 0}};
 
 
@@ -178,7 +180,7 @@ int meth_main(int argc, char* argv[]) {
             fastafile = optarg;
         } else if (c == 'B') {
             opt.batch_size_bases = mm_parse_num(optarg); 
-            fprintf(stderr,"numbases max : %ld\n",opt.batch_size_bases/(1000*1000));
+            //fprintf(stderr,"numbases max : %ld\n",opt.batch_size_bases/(1000*1000));
         } else if (c == 'K') {
             opt.batch_size = atoi(optarg);
             if (opt.batch_size < 1) {
@@ -240,6 +242,10 @@ int meth_main(int argc, char* argv[]) {
             opt.cuda_avg_events_per_kmer = atof(optarg);
         }else if(c == 0 && longindex == 23){ //cuda todo : warning for cpu mode, error check
             opt.cuda_max_avg_events_per_kmer = atof(optarg);
+        }else if(c == 0 && longindex == 24){ 
+            opt.cuda_dev_id = atoi(optarg);
+        } else if(c == 0 && longindex == 25){ //todo : warning for CPU mode, warning for dynamic malloc mode
+            opt.cuda_mem_frac = atof(optarg);
         }           
     }
 
@@ -251,8 +257,8 @@ int meth_main(int argc, char* argv[]) {
         fprintf(fp_help,"   -b FILE                    sorted bam file\n");
         fprintf(fp_help,"   -g FILE                    reference genome\n");
         fprintf(fp_help,"   -t INT                     number of threads [%d]\n",opt.num_thread);
-        fprintf(fp_help,"   -K INT                     batch size (number of reads loaded at once) [%d]\n",opt.batch_size);
-        fprintf(fp_help,"   -B INT[K/M/G]              batch size (number of bases loaded at once) [%ldM]\n",opt.batch_size_bases/(1000*1000));
+        fprintf(fp_help,"   -K INT                     batch size (max number of reads loaded at once) [%d]\n",opt.batch_size);
+        fprintf(fp_help,"   -B FLOAT[K/M/G]            max number of bases loaded at once [%.1fM]\n",opt.batch_size_bases/(float)(1000*1000));
         fprintf(fp_help,"   -h                         help\n");
         fprintf(fp_help,"   --min-mapq INT             minimum mapping quality [%d]\n",opt.min_mapq);
         fprintf(fp_help,"   --secondary=yes|no         consider secondary mappings or not [%s]\n",(opt.flag&F5C_SECONDARY_YES)?"yes":"no");
@@ -261,7 +267,7 @@ int meth_main(int argc, char* argv[]) {
         fprintf(fp_help,"   --version                  print version\n");
 #ifdef HAVE_CUDA   
         fprintf(fp_help,"   --disable-cuda=yes|no      disable running on CUDA [%s]\n",(opt.flag&F5C_DISABLE_CUDA?"yes":"no"));
-        fprintf(fp_help,"   --cuda-block-size\n");
+        fprintf(fp_help,"   - cuda-dev-id INT          CUDA device ID to run kernels on [%d]\n",opt.cuda_dev_id);
         fprintf(fp_help,"   --cuda-max-lf FLOAT        reads with length <= cuda-max-lf*avg_readlen on GPU, rest on CPU [%.1f]\n",opt.cuda_max_readlen);
         fprintf(fp_help,"   --cuda-avg-epk FLOAT       average number of events per kmer - for allocating GPU arrays [%.1f]\n",opt.cuda_avg_events_per_kmer);
         fprintf(fp_help,"   --cuda-max-epk FLOAT       reads with events per kmer <= cuda_max_epk on GPU, rest on CPU [%.1f]\n",opt.cuda_max_avg_events_per_kmer);
@@ -269,14 +275,17 @@ int meth_main(int argc, char* argv[]) {
 
 
         fprintf(fp_help,"debug options:\n");
-        fprintf(fp_help,"   --kmer-model FILE          custom k-mer model file (used for debugging)\n");
-        fprintf(fp_help,"   --print-events=yes|no      prints the event table (used for debugging)\n");
-        fprintf(fp_help,"   --print-banded-aln=yes|no  prints the event alignment (used for debugging)\n");
-        fprintf(fp_help,"   --print-scaling=yes|no     prints the estimated scalings (used for debugging)\n");
-        fprintf(fp_help,"   --print-raw=yes|no         prints the raw signal (used for debugging)\n"); 
-        fprintf(fp_help,"   --debug-break=yes|no       break after processing the first batch (used for debugging)\n"); 
+        fprintf(fp_help,"   --kmer-model FILE          custom k-mer model file\n");
+        fprintf(fp_help,"   --print-events=yes|no      prints the event table\n");
+        fprintf(fp_help,"   --print-banded-aln=yes|no  prints the event alignment\n");
+        fprintf(fp_help,"   --print-scaling=yes|no     prints the estimated scalings\n");
+        fprintf(fp_help,"   --print-raw=yes|no         prints the raw signal\n"); 
+        fprintf(fp_help,"   --debug-break=yes|no       break after processing the first batch\n"); 
         fprintf(fp_help,"   --profile=yes|no           process section by section (used for profiling on CPU)\n"); 
-
+#ifdef HAVE_CUDA  
+        fprintf(fp_help,"   - cuda-mem-frac FLOAT      Fraction of free GPU memory to allocate [0.9 (0.7) for tegra)]\n");
+        fprintf(fp_help,"   --cuda-block-size\n");
+#endif
         if(fp_help == stdout){
             exit(EXIT_SUCCESS);
         }    

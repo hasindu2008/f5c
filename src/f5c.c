@@ -270,7 +270,7 @@ ret_status_t load_db(core_t* core, db_t* db) {
         db->read_stat_flag[i] = 0; //reset the flag
     }
     // fprintf(stderr,"%s:: %d fast5 read\n",__func__,db->n_bam_rec);
-    fprintf(stderr,"Average read len %.0f\n",db->sum_bases/(float)db->n_bam_rec);
+    STDERR("Average read len %.0f",db->sum_bases/(float)db->n_bam_rec);
     status.num_reads=db->n_bam_rec;
     assert(status.num_bases==db->sum_bases);
     return status;
@@ -610,7 +610,7 @@ void align_single(core_t* core, db_t* db, int32_t i) {
 void align_db(core_t* core, db_t* db) {
 #ifdef HAVE_CUDA
     if (!(core->opt.flag & F5C_DISABLE_CUDA)) {
-        fprintf(stderr, "cuda\n");
+        STDERR("%s","Performing on cuda");
         align_cuda(core, db);
     }
 #endif
@@ -994,6 +994,7 @@ void init_opt(opt_t* opt) {
     //opt->flag |= F5C_SECONDARY_YES;
 
     opt->cuda_block_size=64;   
+    opt->cuda_dev_id=0;
 
     //effective only if  CPU_GPU_PROC  is set 
     opt->cuda_max_readlen=3.0f; 

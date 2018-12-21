@@ -7,6 +7,9 @@
 #define ERR "[%s::ERROR]\033[1;31m "
 #define CEND "\033[0m\n"
 
+#define STDERR(arg, ...)                                                      \
+    fprintf(stderr, "[%s] " arg "\n", __func__,                        \
+            __VA_ARGS__)
 #define WARNING(arg, ...)                                                      \
     fprintf(stderr, "[%s::WARNING]\033[1;33m " arg "\033[0m\n", __func__,      \
             __VA_ARGS__)
