@@ -995,6 +995,7 @@ void init_opt(opt_t* opt) {
 
     opt->cuda_block_size=64;   
     opt->cuda_dev_id=0;
+    opt->cuda_mem_frac=1.0f; //later set by cuda_init()
 
     //effective only if  CPU_GPU_PROC  is set 
     opt->cuda_max_readlen=3.0f; 

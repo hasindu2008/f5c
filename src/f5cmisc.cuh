@@ -11,7 +11,7 @@
 
 //align-core-kernel options
 
-#define BLOCK_LEN_READS 1 //the block size along y axis (the number of reads)
+#define BLOCK_LEN_READS 1 //the block size along y axis (the number of reads) - never change this as you might end up with wrong answers
 #define BLOCK_LEN_BANDWIDTH 128 //the block size along the x axis, should be >= ALN_BANDWIDTH
 #define ALIGN_KERNEL_FLOAT 1 //(for 2d kernel only)
 
@@ -28,11 +28,11 @@
 
 #define AVG_EVENTS_PER_KMER_MAX 15.0f //if average events per base of a read >AVG_EVENTS_PER_KMER_MAX do not process
 
-#define TEGRA_MEM_FACTOR 0.8f //in tegra we cannot grab all 
+#define TEGRA_MEM_FACTOR 0.7f //in tegra we cannot grab all  (can be overriden by user options)
 //the free memory as we have to reserve some space for RAM as well
 //TEGRA_MEM_FACTOR is the factor of the free memory allocated for the gpu
 
-#define MEM_FACTOR 0.9f //for non-tegra GPU. how much factor of the free memory to allocate
+#define MEM_FACTOR 0.9f //for non-tegra GPU. how much factor of the free memory to allocate (can be overriden by user options)
 
 #define REVERSAL_ON_CPU 1 //reversal of the backtracked array is performed on the CPU instead of the GPU
 
