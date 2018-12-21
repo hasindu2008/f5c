@@ -19,22 +19,22 @@
 #define BLOCK_LEN_NUMBAND 16    //the block size along the x axis (BANDWDITH)
 #define BLOCK_LEN_READS2 16 // //the block size along y axis (the number of reads)
 
-#define AVG_EVENTS_PER_KMER 2.0f // the average number of events per base/k-mer
+#define AVG_EVENTS_PER_KMER (core->opt.cuda_avg_events_per_kmer) // the average number of events per base/k-mer
 //AVG_EVENTS_PER_KMER is used to pre-allocate arrays on GPU that depends on the number of events
 
-//if avverage events per base of a read < AVG_EVENTS_PER_KMER_GPU_THRESH process on GPU
+//if average events per base of a read < AVG_EVENTS_PER_KMER_GPU_THRESH process on GPU
 //else go for the CPU
-#define AVG_EVENTS_PER_KMER_GPU_THRESH 5.0f
+#define AVG_EVENTS_PER_KMER_GPU_THRESH (core->opt.cuda_max_avg_events_per_kmer)
 
-#define AVG_EVENTS_PER_KMER_MAX 15.0f
+#define AVG_EVENTS_PER_KMER_MAX 15.0f //if average events per base of a read >AVG_EVENTS_PER_KMER_MAX do not process
 
 #define TEGRA_MEM_FACTOR 0.8f //in tegra we cannot grab all 
 //the free memory as we have to reserve some space for RAM as well
 //TEGRA_MEM_FACTOR is the factor of the free memory allocated for the gpu
 
-#define MEM_FACTOR 0.9f
+#define MEM_FACTOR 0.9f //for non-tegra GPU. how much factor of the free memory to allocate
 
-#define REVERSAL_ON_CPU 1
+#define REVERSAL_ON_CPU 1 //reversal of the backtracked array is performed on the CPU instead of the GPU
 
 /* check whether the last CUDA function or CUDA kernel launch is erroneous and if yes an error message will be printed
 and then the program will be aborted*/

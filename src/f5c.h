@@ -64,6 +64,8 @@ typedef struct {
 
     int32_t cuda_block_size;
     float cuda_max_readlen;
+    float cuda_avg_events_per_kmer;
+    float cuda_max_avg_events_per_kmer;
 } opt_t;
 
 // events : from scrappie
@@ -328,6 +330,7 @@ typedef struct {
 #endif
 #ifdef HAVE_CUDA
     int32_t *ultra_long_reads;
+    double ret1;
 #endif
 } pthread_arg_t;
 

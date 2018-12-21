@@ -21,7 +21,10 @@ void init_cuda(core_t* core){
     CUDA_CHK();
     fprintf(stderr, "Running on device id %d -  %s\n", cuda_device_num,prop.name);
 
-
+    //fprintf(stderr,"AVG_EVENTS_PER_KMER %f\n",AVG_EVENTS_PER_KMER);
+    //fprintf(stderr,"AVG_EVENTS_PER_KMER %f\n",AVG_EVENTS_PER_KMER_GPU_THRESH);
+    //fprintf(stderr,"readfac %f\n",core->opt.cuda_max_readlen);
+    assert(AVG_EVENTS_PER_KMER>0 && AVG_EVENTS_PER_KMER>0);
 
     core->cuda = (cuda_data_t*)malloc(sizeof(cuda_data_t)); 
     MALLOC_CHK(core->cuda);
@@ -666,16 +669,20 @@ void* align_cudb(void* voidargs){
     }
 
 
+    args->ret1 = realtime() - realtime1;
     fprintf(stderr, "[%s::%.3f*%.2f] %d reads processed on cpu\n", __func__,
     realtime() - realtime1, cputime() / (realtime() - realtime1),n_ultra_long_reads);
+    
 
 
     return NULL;
 }
     
-pthread_t align_cudb_async(pthread_arg_t *pt_args,core_t* core, db_t* db, int32_t* ultra_long_reads, int32_t  n_ultra_long_reads) {
-    assert(pt_args==NULL);
-    pt_args = (pthread_arg_t *)malloc(sizeof(pthread_arg_t));
+pthread_t align_cudb_async(pthread_arg_t **pt_args_ptr,core_t* core, db_t* db, int32_t* ultra_long_reads, int32_t  n_ultra_long_reads) {
+    
+    assert(*pt_args_ptr==NULL);
+    *pt_args_ptr = (pthread_arg_t *)malloc(sizeof(pthread_arg_t));
+    pthread_arg_t *pt_args=*pt_args_ptr;
     MALLOC_CHK(pt_args);
     pt_args->core = core;
     pt_args->db = db;
@@ -690,10 +697,13 @@ pthread_t align_cudb_async(pthread_arg_t *pt_args,core_t* core, db_t* db, int32_
     return tid;
 }
 
-void align_cudb_async_join(pthread_arg_t *pt_args, pthread_t tid) {
+double align_cudb_async_join(pthread_arg_t *pt_args, pthread_t tid) {
     int ret = pthread_join(tid, NULL);
     NEG_CHK(ret);
+    assert(pt_args);
+    double time_cpu = pt_args->ret1;
     free(pt_args);
+    return time_cpu;
 
 }
 
@@ -745,53 +755,55 @@ void load_balance(core_t *core, db_t *db, double cpu_process_time,double gpu_pro
             if(read_array_usage>99 && event_array_usage<100-thresh*100){ //read array full
                 fprintf(stderr,"[%s] GPU read array usage too high.\n",__func__);
                 if(stat_n_ultra_long_reads> db->n_bam_rec * thresh_reads){ //array fileld sue to ultra long reads
-                    fprintf(stderr,"[%s] Consider decreasing cuda-max-readlen\n",__func__);
+                    INFO("%s","GPU read arrays ran out due to ultra long reads. Consider decreasing cuda-max-lf");
                 }
                 else{
-                    fprintf(stderr,"[%s] Consider decreasing AVG_EVENTS_PER_KMER\n",__func__);
+                    INFO("%s", "GPU read arrays ran out due to too much being allocated for event arrays. Consider decreasing cuda-avg-epk");
                 }
             }
             else if(event_array_usage>99 && read_array_usage<100-thresh*100){ //event array full
                 fprintf(stderr,"[%s] GPU event array usage too high.\n",__func__);
                 if(stat_n_too_many_events > db->n_bam_rec * thresh_reads){//array filled mainly due to reads with too many events
-                    fprintf(stderr,"[%s] Consider decreasing AVG_EVENTS_PER_KMER_GPU_THRESH\n",__func__);
+                    INFO("%s","GPU event arrays ran out due to over segmented reads. Consider decreasing cuda-max-epk");
                 }
                 else{ //array filled AVG_EVENTS_PER_KMER being not enough
-                    fprintf(stderr,"[%s] Consider increasing AVG_EVENTS_PER_KMER\n",__func__);
+                    INFO("%s","GPU event arrays ran out due to not enough being allocated for events. Consider increasing cuda-avg-epk");
                 }                
             }
             else{//else reduce the batch size
-                fprintf(stderr,"[%s] Consider reducing batchsize-bases\n",__func__);
+                INFO("%s","GPU arrays ran out. Consider reducing batchsize-bases (-B option)");
             }
 
             
         }
         else{ //slow CPU?
-            if(stat_n_ultra_long_reads> db->n_bam_rec * thresh_reads){ 
-                    fprintf(stderr,"[%s] Consider increasing cuda-max-readlen\n",__func__);
-            }
-            else if(stat_n_too_many_events > db->n_bam_rec * thresh_reads){//array filled mainly due to reads with too many events
-                    fprintf(stderr,"[%s] Consider decreasing AVG_EVENTS_PER_KMER_GPU_THRESH\n",__func__);
+            if(stat_n_ultra_long_reads< db->n_bam_rec * thresh_reads && stat_n_too_many_events < db->n_bam_rec * thresh_reads){
+                INFO("%s", "CPU got too much work. Consider increasing cuda-max-epk or cuda-max-lf");
             }
             else{
-                fprintf(stderr, "[%s] Your CPU seem to be slower than the GPU. Increase AVG_EVENTS_PER_KMER_GPU_THRESH or cuda-max-readlen\n",__func__);
+                if(stat_n_ultra_long_reads< db->n_bam_rec * thresh_reads){ 
+                        INFO("%s", "CPU got too much work. Consider increasing cuda-max-lf");
+                }
+                else if(stat_n_too_many_events < db->n_bam_rec * thresh_reads){
+                        INFO("%s", "CPU got too much work. Consider increasing cuda-max-epk");
+                }                
             }
         }
     }
     else if(factor<-thresh_factor){ //gpu too much time
-        fprintf(stderr,"[%s] GPU too much time\n",__func__);
+        INFO("%s", "GPU got too much work. Consider decreasing cuda-max-epk or cuda-max-lf");
     }
     else{
         if(event_array_usage<100-thresh*100 && read_array_usage<100-thresh*100){
             fprintf(stderr,"[%s] GPU arrays are not fully utilised\n",__func__);
             if(db->n_bam_rec>=core->opt.batch_size){
-                fprintf(stderr,"[%s] Increase the batchsize (-K option)\n",__func__);
+                INFO("%s", "GPU arrays are not fully utilised. Increase the batchsize (-K option)");
             }
             else if(db->sum_bases >= core->opt.batch_size_bases){
-                fprintf(stderr,"[%s] Increase the batchsize (-B option)\n",__func__);
+                INFO("%s", "GPU arrays are not fully utilised. Increase the batchsize_bases (-B option)");
             }
             else{
-                fprintf(stderr,"[%s] wtf how come?\n",__func__);
+                fprintf(stderr,"[%s] Probably the last batch\n",__func__);
             }
         }
         else{
@@ -884,7 +896,7 @@ realtime1 = realtime();
 
     //can start processing on the ultra long reads on the CPU
     pthread_arg_t *tmparg=NULL;
-    pthread_t tid =  align_cudb_async(tmparg,core, db, ultra_long_reads, n_ultra_long_reads);
+    pthread_t tid =  align_cudb_async(&tmparg,core, db, ultra_long_reads, n_ultra_long_reads);
 
     double realtime_process_start=realtime();    
 
@@ -1205,10 +1217,8 @@ core->align_cuda_postprocess += (realtime() - realtime1);
     double gpu_process_time = realtime()-realtime_process_start;
 
 realtime1 =  realtime(); 
-    align_cudb_async_join(tmparg,tid);  
+    double cpu_process_time = align_cudb_async_join(tmparg,tid);  
 core->extra_load_cpu += (realtime() - realtime1);
-
-    double cpu_process_time = realtime()-realtime_process_start;
 
     fprintf(stderr, "[%s::%.3f*%.2f] CPU extra processing done (>=%.0fkbases:%d|>=%.1fevents:%d|gpu_mem_out:%d)\n", __func__,
     realtime() - realtime1, cputime() / (realtime() - realtime1),((core->opt.cuda_max_readlen * db->sum_bases/(float)db->n_bam_rec))/1000,stat_n_ultra_long_reads, AVG_EVENTS_PER_KMER_GPU_THRESH,stat_n_too_many_events,stat_n_gpu_mem_out);

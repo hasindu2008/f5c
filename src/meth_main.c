@@ -48,7 +48,9 @@ static struct option long_options[] = {
     {"cuda-block-size",required_argument, 0, 0},   //18 
     {"debug-break",required_argument, 0, 0},       //19 break after processing the first batch (used for debugging)
     {"profile-cpu",required_argument, 0, 0},       //20 perform section by section (used for profiling - for CPU only)
-    {"cuda-max-readlen",required_argument, 0, 0},  //21 reads <= cuda-max-readlen on GPU, rest on CPU (only if compiled for CUDA)
+    {"cuda-max-lf",required_argument, 0, 0},       //21 reads <= cuda-max-lf*avg_readlen on GPU, rest on CPU (only if compiled for CUDA)
+    {"cuda-avg-epk",required_argument, 0, 0},      //22 average number of events per kmer - for allocating GPU arrays (only if compiled for CUDA)
+    {"cuda-max-epk",required_argument, 0, 0},      //23 reads <= cuda_max_epk on GPU, rest on CPU (only if compiled for CUDA)
     {0, 0, 0, 0}};
 
 
@@ -234,7 +236,11 @@ int meth_main(int argc, char* argv[]) {
             yes_or_no(&opt, F5C_SEC_PROF, longindex, optarg, 1);
         }else if(c == 0 && longindex == 21){ //cuda todo : warning for cpu mode, error check
             opt.cuda_max_readlen = atof(optarg);
-        }
+        }else if(c == 0 && longindex == 22){ //cuda todo : warning for cpu mode, warning for dynamic cuda malloc mode, error check
+            opt.cuda_avg_events_per_kmer = atof(optarg);
+        }else if(c == 0 && longindex == 23){ //cuda todo : warning for cpu mode, error check
+            opt.cuda_max_avg_events_per_kmer = atof(optarg);
+        }           
     }
 
     if (fastqfile == NULL || bamfilename == NULL || fastafile == NULL || fp_help == stdout) {
@@ -254,9 +260,11 @@ int meth_main(int argc, char* argv[]) {
         fprintf(fp_help,"   --verbose INT              verbosity level [%d]\n",opt.verbosity);
         fprintf(fp_help,"   --version                  print version\n");
 #ifdef HAVE_CUDA   
-        fprintf(fp_help,"   --disable-cuda=yes|no      disable running on CUDA [%s] (only if compiled for CUDA)\n",(opt.flag&F5C_DISABLE_CUDA?"yes":"no"));
+        fprintf(fp_help,"   --disable-cuda=yes|no      disable running on CUDA [%s]\n",(opt.flag&F5C_DISABLE_CUDA?"yes":"no"));
         fprintf(fp_help,"   --cuda-block-size\n");
-        fprintf(fp_help,"   --cuda-max-readlen         if read_len<=cuda-max-readlen*batch_mean process on GPU else on CPU [%1.f]\n",opt.cuda_max_readlen);
+        fprintf(fp_help,"   --cuda-max-lf FLOAT        reads with length <= cuda-max-lf*avg_readlen on GPU, rest on CPU [%.1f]\n",opt.cuda_max_readlen);
+        fprintf(fp_help,"   --cuda-avg-epk FLOAT       average number of events per kmer - for allocating GPU arrays [%.1f]\n",opt.cuda_avg_events_per_kmer);
+        fprintf(fp_help,"   --cuda-max-epk FLOAT       reads with events per kmer <= cuda_max_epk on GPU, rest on CPU [%.1f]\n",opt.cuda_max_avg_events_per_kmer);
 #endif	 
 
 

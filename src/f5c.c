@@ -994,5 +994,9 @@ void init_opt(opt_t* opt) {
     //opt->flag |= F5C_SECONDARY_YES;
 
     opt->cuda_block_size=64;   
-    opt->cuda_max_readlen=3.0f; //effective only if  CPU_GPU_PROC  is set
+
+    //effective only if  CPU_GPU_PROC  is set 
+    opt->cuda_max_readlen=3.0f; 
+    opt->cuda_avg_events_per_kmer=2.0f; //only if CUDA_DYNAMIC_MALLOC is unset
+    opt->cuda_max_avg_events_per_kmer=5.0f;
 }
