@@ -14,7 +14,7 @@ unless IO_PROC_NO_INTERLEAVE is set input, processing and output are interleaved
 main thread 
 1. allocates and loads a databatch
 2. create `pthread_processor` thread which will perform the processing 
-(note that `pthread_processor` is the process-controller that will spawn user specified number of processing threads)
+(note that `pthread_processor` is the process-controller that will spawn user specified number of processing threads - see below)
 3. create the `pthread_post_processor` thread that will print the output and free the databatch one the `pthread_processor` is done
 4. allocates and load another databatch
 5. wait till the previous `pthread_processor` is done and perform 2
@@ -22,6 +22,29 @@ main thread
 7. goto 4 untill all the input is processed
 */
 
+/* Multithreaded framework for processing
+
+
+*/
+
+
+/* CUDA acceleration
+
+
+*/
+
+/*
+TODO : 
+debug-break should take a number (loop count)
+--print-* options should take a filename
+a step controller if one requires to perform only upto a certain step such as alignment, ignoring the reset
+*/
+
+/*
+LIMITATIONS : 
+Does not support multi strand reads (2D and 1D^2 reads) at the moment
+Only works for DNA at the moment
+*/
 
 //fast logsum data structure
 float flogsum_lookup[p7_LOGSUM_TBL]; //todo : get rid of global vars
@@ -70,10 +93,10 @@ static inline int64_t mm_parse_num(const char* str) //taken from minimap2
     return (int64_t)(x + .499);
 }
 
-//parse yes or no arguments
+//parse yes or no arguments : taken from minimap2
 static inline void yes_or_no(opt_t* opt, uint64_t flag, int long_idx,
                              const char* arg,
-                             int yes_to_set) //taken from minimap2
+                             int yes_to_set) 
 {
     if (yes_to_set) {
         if (strcmp(arg, "yes") == 0 || strcmp(arg, "y") == 0) {
@@ -170,8 +193,7 @@ int meth_main(int argc, char* argv[]) {
     init_opt(&opt); //initialise options to defaults
 
     //parse the user args
-    while ((c = getopt_long(argc, argv, optstring, long_options, &longindex)) >=
-           0) {
+    while ((c = getopt_long(argc, argv, optstring, long_options, &longindex)) >= 0) {
         if (c == 'r') {
             fastqfile = optarg;
         } else if (c == 'b') {
@@ -180,19 +202,20 @@ int meth_main(int argc, char* argv[]) {
             fastafile = optarg;
         } else if (c == 'B') {
             opt.batch_size_bases = mm_parse_num(optarg); 
-            //fprintf(stderr,"numbases max : %ld\n",opt.batch_size_bases/(1000*1000));
+            if(opt.batch_size_bases<=0){
+                ERROR("%s","Maximum number of bases should be larger than 0.");
+                exit(EXIT_FAILURE);
+            }
         } else if (c == 'K') {
             opt.batch_size = atoi(optarg);
             if (opt.batch_size < 1) {
-                ERROR("Batch size should larger than 0. You entered %d",
-                      opt.batch_size);
+                ERROR("Batch size should larger than 0. You entered %d",opt.batch_size);
                 exit(EXIT_FAILURE);
             }
         } else if (c == 't') {
             opt.num_thread = atoi(optarg);
             if (opt.num_thread < 1) {
-                ERROR("Number of threads should larger than 0. You entered %d",
-                      opt.num_thread);
+                ERROR("Number of threads should larger than 0. You entered %d", opt.num_thread);
                 exit(EXIT_FAILURE);
             }
         }
@@ -207,8 +230,7 @@ int meth_main(int argc, char* argv[]) {
             fp_help = stdout;
         }
         else if (c == 0 && longindex == 9) {
-            opt.min_mapq =
-                atoi(optarg); //todo : check whether this is between 0 and 60
+            opt.min_mapq = atoi(optarg); //todo : check whether this is between 0 and 60
         } else if (c == 0 && longindex == 10) { //consider secondary mappings or not
             yes_or_no(&opt, F5C_SECONDARY_YES, longindex, optarg, 1);
         } else if (c == 0 && longindex == 11) { //custom model file
@@ -227,8 +249,7 @@ int meth_main(int argc, char* argv[]) {
 #ifdef HAVE_CUDA
             yes_or_no(&opt, F5C_DISABLE_CUDA, longindex, optarg, 1);
 #else
-            WARNING("%s",
-                    "disable-cuda has no effect when compiled for the CPU");
+            WARNING("%s", "disable-cuda has no effect when compiled for the CPU");
 #endif
         } else if(c == 0 && longindex == 18){
             opt.cuda_block_size = atoi(optarg); //todo : warnining for cpu only mode, check limits

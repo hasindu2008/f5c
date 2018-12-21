@@ -151,13 +151,13 @@ __global__ void align_kernel_pre_2d(char* read,
     if (i < n_bam_rec) {
         char* sequence = &read[read_ptr[i]];
         int32_t sequence_len = read_len[i];
-        int32_t n_event = n_events[i];
+        //int32_t n_event = n_events[i];
         model_t* model_kmer_cache = &model_kmer_caches[read_ptr[i]];
         float *bands = &bands1[(read_ptr[i]+event_ptr[i])*ALN_BANDWIDTH];
         uint8_t *trace = &trace1[(read_ptr[i]+event_ptr[i])*ALN_BANDWIDTH];
         EventKmerPair* band_lower_left = &band_lower_left1[read_ptr[i]+event_ptr[i]];    
 
-        int32_t n_events = n_event;
+        //int32_t n_events = n_event;
         int32_t n_kmers = sequence_len - KMER_SIZE + 1;
         //fprintf(stderr,"n_kmers : %d\n",n_kmers);
 
@@ -178,9 +178,9 @@ __global__ void align_kernel_pre_2d(char* read,
         #endif
 
         // dp matrix
-        int32_t n_rows = n_events + 1;
-        int32_t n_cols = n_kmers + 1;
-        int32_t n_bands = n_rows + n_cols;
+        //int32_t n_rows = n_events + 1;
+        //int32_t n_cols = n_kmers + 1;
+        //int32_t n_bands = n_rows + n_cols;
 
         // Initialize
         // Precompute k-mer ranks to avoid doing this in the inner loop

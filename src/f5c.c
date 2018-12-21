@@ -8,6 +8,12 @@
 #include "f5c.h"
 #include "f5cmisc.h"
 
+
+/*
+todo : 
+Error counter for skip unreadable
+*/
+
 core_t* init_core(const char* bamfilename, const char* fastafile,
                   const char* fastqfile, opt_t opt,double realtime0) {
     core_t* core = (core_t*)malloc(sizeof(core_t));
@@ -37,11 +43,9 @@ core_t* init_core(const char* bamfilename, const char* fastafile,
     core->readbb->load(fastqfile);
 
     //model
-    core->model = (model_t*)malloc(
-        sizeof(model_t) * NUM_KMER); //4096 is 4^6 which os hardcoded now
+    core->model = (model_t*)malloc(sizeof(model_t) * NUM_KMER); //4096 is 4^6 which is hardcoded now
     MALLOC_CHK(core->model);
-    core->cpgmodel = (model_t*)malloc(
-        sizeof(model_t) * NUM_KMER_METH); //15625 is 4^6 which os hardcoded now
+    core->cpgmodel = (model_t*)malloc(sizeof(model_t) * NUM_KMER_METH); //15625 is 4^6 which os hardcoded now
     MALLOC_CHK(core->cpgmodel);
 
     //load the model from files
@@ -177,9 +181,7 @@ ret_status_t load_db(core_t* core, db_t* db) {
             break;
         } else {
             if ((record->core.flag & BAM_FUNMAP) == 0 &&
-                record->core.qual >=
-                    core->opt
-                        .min_mapq) { // remove secondraies? //need to use the user parameter
+                record->core.qual >= core->opt.min_mapq) { 
                 // printf("%s\t%d\n",bam_get_qname(db->bam_rec[db->n_bam_rec]),result);
                 
                 if(!(core->opt.flag & F5C_SECONDARY_YES)){
@@ -236,8 +238,7 @@ ret_status_t load_db(core_t* core, db_t* db) {
     }
     // fprintf(stderr,"%s:: %d queries read\n",__func__,db->n_bam_rec);
 
-    // get ref sequences (can make efficient by taking the the start and end of
-    // the sorted bam)
+    // get ref sequences (todo can make efficient by taking the the start and end of the sorted bam)
     for (i = 0; i < db->n_bam_rec; i++) {
         bam1_t* record = db->bam_rec[i];
         char* ref_name = core->m_hdr->target_name[record->core.tid];
@@ -248,9 +249,7 @@ ret_status_t load_db(core_t* core, db_t* db) {
 
         // Extract the reference sequence for this region
         int32_t fetched_len = 0;
-        char* refseq =
-            faidx_fetch_seq(core->fai, ref_name, ref_start_pos, ref_end_pos,
-                            &fetched_len); // error handle?
+        char* refseq = faidx_fetch_seq(core->fai, ref_name, ref_start_pos, ref_end_pos, &fetched_len); // todo : error handle?
         db->fasta_cache[i] = refseq;
         // printf("seq : %s\n",db->fasta_cache[i]);
 
@@ -261,8 +260,7 @@ ret_status_t load_db(core_t* core, db_t* db) {
 
         //get the read in ascci
         db->read[i] =
-            (char*)malloc(core->readbb->get_read_sequence(qname).size() +
-                          1); // is +1 needed? do errorcheck
+            (char*)malloc(core->readbb->get_read_sequence(qname).size() + 1); // todo : is +1 needed? do errorcheck
         strcpy(db->read[i], core->readbb->get_read_sequence(qname).c_str());
         db->read_len[i] = strlen(db->read[i]);
         db->sum_bases += db->read_len[i];
@@ -312,7 +310,7 @@ void* pthread_single(void* voidargs) {
     }
 #else
     pthread_arg_t* all_args = (pthread_arg_t*)(args->all_pthread_args);
-    //adapted from ktherad
+    //adapted from kthread.c in minimap2
 	for (;;) {
 		i = __sync_fetch_and_add(&args->starti, 1);
 		if (i >= args->endi) {
@@ -374,35 +372,6 @@ void pthread_db(core_t* core, db_t* db, void (*func)(core_t*,db_t*,int)){
     }
 }
 
-// void* event_pthread(void* voidargs) {
-//     int i;
-//     pthread_arg_t* args = (pthread_arg_t*)voidargs;
-//     db_t* db = args->db;
-//     core_t* core = args->core;
-
-//     for (i = args->starti; i < args->endi; i++) {
-//         float* rawptr = db->f5[i]->rawptr;
-//         float range = db->f5[i]->range;
-//         float digitisation = db->f5[i]->digitisation;
-//         float offset = db->f5[i]->offset;
-//         int32_t nsample = db->f5[i]->nsample;
-
-//         // convert to pA
-//         float raw_unit = range / digitisation;
-//         for (int32_t j = 0; j < nsample; j++) {
-//             rawptr[j] = (rawptr[j] + offset) * raw_unit;
-//         }
-//         db->et[i] = getevents(db->f5[i]->nsample, rawptr);
-
-//         //get the scalings
-//         db->scalings[i] = estimate_scalings_using_mom(
-//             db->read[i], db->read_len[i], core->model, db->et[i]);        
-//     }
-
-//     //fprintf(stderr,"Thread %d done\n",(myargs->position)/THREADS);
-//     pthread_exit(0);
-// }
-
 
 void event_single(core_t* core,db_t* db, int32_t i) {
 
@@ -430,87 +399,21 @@ void event_single(core_t* core,db_t* db, int32_t i) {
 }
 
 void event_db(core_t* core, db_t* db){
-    
 
     if (core->opt.num_thread == 1) {
         int32_t i=0;
         for (i = 0; i < db->n_bam_rec; i++) {
             event_single(core,db,i);
-            // float* rawptr = db->f5[i]->rawptr;
-            // float range = db->f5[i]->range;
-            // float digitisation = db->f5[i]->digitisation;
-            // float offset = db->f5[i]->offset;
-            // int32_t nsample = db->f5[i]->nsample;
-
-            // // convert to pA
-            // float raw_unit = range / digitisation;
-            // for (int32_t j = 0; j < nsample; j++) {
-            //     rawptr[j] = (rawptr[j] + offset) * raw_unit;
-            // }
-            // db->et[i] = getevents(db->f5[i]->nsample, rawptr);
-
-            // //get the scalings
-            // db->scalings[i] = estimate_scalings_using_mom(
-            //     db->read[i], db->read_len[i], core->model, db->et[i]);
         }
 
     } 
 
     else {
         pthread_db(core,db,event_single);
-        // //create threads
-        // pthread_t tids[core->opt.num_thread];
-        // pthread_arg_t pt_args[core->opt.num_thread];
-        // int32_t t, ret;
-        // int32_t i = 0;
-        // int32_t num_thread = core->opt.num_thread;
-        // int32_t step = (db->n_bam_rec + num_thread - 1) / num_thread;
-        // //todo : check for higher num of threads than the data
-        // for (t = 0; t < num_thread; t++) {
-        //     pt_args[t].core = core;
-        //     pt_args[t].db = db;
-        //     pt_args[t].starti = i;
-        //     i += step;
-        //     if (i > db->n_bam_rec) {
-        //         pt_args[t].endi = db->n_bam_rec;
-        //     } else {
-        //         pt_args[t].endi = i;
-        //     }
-        //     //fprintf(stderr,"t%d : %d-%d\n",t,pt_args[t].starti,pt_args[t].endi);
-        //     ret = pthread_create(&tids[t], NULL, event_pthread,
-        //                          (void*)(&pt_args[t]));
-        //     NEG_CHK(ret);
-        // }
-
-        // //pthread joining
-        // for (t = 0; t < core->opt.num_thread; t++) {
-        //     int ret = pthread_join(tids[t], NULL);
-        //     NEG_CHK(ret);
-        // }
-    
     }
-
-
    
 }
 
-
-// void* align_pthread(void* voidargs) {
-//     int i;
-//     pthread_arg_t* args = (pthread_arg_t*)voidargs;
-//     db_t* db = args->db;
-//     core_t* core = args->core;
-
-//     for (i = args->starti; i < args->endi; i++) {
-//         db->n_event_align_pairs[i] = align(
-//             db->event_align_pairs[i], db->read[i], db->read_len[i], db->et[i],
-//             core->model, db->scalings[i], db->f5[i]->sample_rate);
-//         //fprintf(stderr,"readlen %d,n_events %d\n",db->read_len[i],n_event_align_pairs);
-//     }
-
-//     //fprintf(stderr,"Thread %d done\n",(myargs->position)/THREADS);
-//     pthread_exit(0);
-// }
 
 
 void scaling_single(core_t* core, db_t* db, int32_t i){
@@ -621,43 +524,9 @@ void align_db(core_t* core, db_t* db) {
             int i;
             for (i = 0; i < db->n_bam_rec; i++) {
                 align_single(core, db, i);
-                // db->n_event_align_pairs[i] =
-                //     align(db->event_align_pairs[i], db->read[i],
-                //           db->read_len[i], db->et[i], core->model,
-                //           db->scalings[i], db->f5[i]->sample_rate);
-                //fprintf(stderr,"readlen %d,n_events %d\n",db->read_len[i],n_event_align_pairs);
             }
         } else {
             pthread_db(core, db, align_single);
-            // //create threads
-            // pthread_t tids[core->opt.num_thread];
-            // pthread_arg_t pt_args[core->opt.num_thread];
-            // int32_t t, ret;
-            // int32_t i = 0;
-            // int32_t num_thread = core->opt.num_thread;
-            // int32_t step = (db->n_bam_rec + num_thread - 1) / num_thread;
-            // //todo : check for higher num of threads than the data
-            // for (t = 0; t < num_thread; t++) {
-            //     pt_args[t].core = core;
-            //     pt_args[t].db = db;
-            //     pt_args[t].starti = i;
-            //     i += step;
-            //     if (i > db->n_bam_rec) {
-            //         pt_args[t].endi = db->n_bam_rec;
-            //     } else {
-            //         pt_args[t].endi = i;
-            //     }
-            //     //fprintf(stderr,"t%d : %d-%d\n",t,pt_args[t].starti,pt_args[t].endi);
-            //     ret = pthread_create(&tids[t], NULL, align_pthread,
-            //                          (void*)(&pt_args[t]));
-            //     NEG_CHK(ret);
-            // }
-
-            // //pthread joining
-            // for (t = 0; t < core->opt.num_thread; t++) {
-            //     int ret = pthread_join(tids[t], NULL);
-            //     NEG_CHK(ret);
-            // }
         }
     }
 }
@@ -666,7 +535,7 @@ void align_db(core_t* core, db_t* db) {
 void meth_single(core_t* core, db_t* db, int32_t i){
     if(!db->read_stat_flag[i]){
         calculate_methylation_for_read(db->site_score_map[i], db->fasta_cache[i], db->bam_rec[i], db->read_len[i], db->et[i].event, db->base_to_event_map[i],
-db->scalings[i], core->cpgmodel,db->events_per_base[i]);
+        db->scalings[i], core->cpgmodel,db->events_per_base[i]);
     }
 }
 
@@ -689,8 +558,7 @@ void process_single(core_t* core, db_t* db,int32_t i) {
     event_single(core,db,i);
 
     db->event_align_pairs[i] = (AlignedPair*)malloc( 
-        sizeof(AlignedPair) * db->et[i].n *
-        2); //todo : find a good heuristic to save memory //todo : save memory by freeing here itself
+        sizeof(AlignedPair) * db->et[i].n * 2); //todo : find a good heuristic to save memory //todo : save memory by freeing here itself
     MALLOC_CHK(db->event_align_pairs[i]);
 
     align_single(core, db,i);
@@ -764,71 +632,70 @@ void process_single(core_t* core, db_t* db,int32_t i) {
     }
 
     calculate_methylation_for_read(db->site_score_map[i], db->fasta_cache[i], db->bam_rec[i], db->read_len[i], db->et[i].event, db->base_to_event_map[i],
-db->scalings[i], core->cpgmodel,db->events_per_base[i]);
+        db->scalings[i], core->cpgmodel,db->events_per_base[i]);
     
 }
 
 void process_db(core_t* core, db_t* db) {
     
-if((core->opt.flag&F5C_SEC_PROF) || (!(core->opt.flag & F5C_DISABLE_CUDA))){
+    if((core->opt.flag&F5C_SEC_PROF) || (!(core->opt.flag & F5C_DISABLE_CUDA))){
 
-    double realtime0=core->realtime0;
-    int32_t i;
-    
-    double event_start = realtime();
-    event_db(core,db);
-    double event_end = realtime();
-    core->event_time += (event_end-event_start);
+        double realtime0=core->realtime0;
+        int32_t i;
+        
+        double event_start = realtime();
+        event_db(core,db);
+        double event_end = realtime();
+        core->event_time += (event_end-event_start);
 
-    fprintf(stderr, "[%s::%.3f*%.2f] Events computed\n", __func__,
-            realtime() - realtime0, cputime() / (realtime() - realtime0));
+        fprintf(stderr, "[%s::%.3f*%.2f] Events computed\n", __func__,
+                realtime() - realtime0, cputime() / (realtime() - realtime0));
 
-    for (i = 0; i < db->n_bam_rec; i++) {
-        db->event_align_pairs[i] = (AlignedPair*)malloc(
-            sizeof(AlignedPair) * db->et[i].n *
-            2); //todo : find a good heuristic to save memory
-        MALLOC_CHK(db->event_align_pairs[i]);
-    }
-
-    double align_start = realtime();
-    align_db(core, db);
-    double align_end = realtime();
-    core->align_time += (align_end-align_start);
-
-    fprintf(stderr, "[%s::%.3f*%.2f] Banded alignment done\n", __func__,
-            realtime() - realtime0, cputime() / (realtime() - realtime0));
-
-    double est_scale_start = realtime();
-    scaling_db(core,db);
-    double est_scale_end = realtime();
-    core->est_scale_time += (est_scale_end-est_scale_start);
-
-    fprintf(stderr, "[%s::%.3f*%.2f] Scaling calibration done\n", __func__,
-            realtime() - realtime0, cputime() / (realtime() - realtime0));
-
-    double meth_start = realtime();
-    meth_db(core,db);
-    double meth_end = realtime();
-    core->meth_time += (meth_end-meth_start);
-
-    fprintf(stderr, "[%s::%.3f*%.2f] Methylation calling done\n", __func__,
-            realtime() - realtime0, cputime() / (realtime() - realtime0));   
-
-
-}
-else{
-    if (core->opt.num_thread == 1) {
-        int32_t i=0;
         for (i = 0; i < db->n_bam_rec; i++) {
-            process_single(core,db,i);
+            db->event_align_pairs[i] = (AlignedPair*)malloc(
+                sizeof(AlignedPair) * db->et[i].n * 2); //todo : find a good heuristic to save memory
+            MALLOC_CHK(db->event_align_pairs[i]);
         }
 
-    } 
-    else {
-        pthread_db(core,db,process_single);    
-    }
+        double align_start = realtime();
+        align_db(core, db);
+        double align_end = realtime();
+        core->align_time += (align_end-align_start);
 
-}
+        fprintf(stderr, "[%s::%.3f*%.2f] Banded alignment done\n", __func__,
+                realtime() - realtime0, cputime() / (realtime() - realtime0));
+
+        double est_scale_start = realtime();
+        scaling_db(core,db);
+        double est_scale_end = realtime();
+        core->est_scale_time += (est_scale_end-est_scale_start);
+
+        fprintf(stderr, "[%s::%.3f*%.2f] Scaling calibration done\n", __func__,
+                realtime() - realtime0, cputime() / (realtime() - realtime0));
+
+        double meth_start = realtime();
+        meth_db(core,db);
+        double meth_end = realtime();
+        core->meth_time += (meth_end-meth_start);
+
+        fprintf(stderr, "[%s::%.3f*%.2f] Methylation calling done\n", __func__,
+                realtime() - realtime0, cputime() / (realtime() - realtime0));   
+
+
+    }
+    else{
+        if (core->opt.num_thread == 1) {
+            int32_t i=0;
+            for (i = 0; i < db->n_bam_rec; i++) {
+                process_single(core,db,i);
+            }
+
+        } 
+        else {
+            pthread_db(core,db,process_single);    
+        }
+
+    }
     
     return;
 }
@@ -911,29 +778,6 @@ void output_db(core_t* core, db_t* db) {
             }
         }
     }
-    // 
-
-    // #ifdef METH_DEBUG
-    // // write all sites for this read
-    // for(auto iter = site_score_map.begin(); iter != site_score_map.end(); ++iter) {
-
-    //     const ScoredSite& ss = iter->second;
-    //     double sum_ll_m = ss.ll_methylated[0]; //+ ss.ll_methylated[1];
-    //     double sum_ll_u = ss.ll_unmethylated[0]; //+ ss.ll_unmethylated[1];
-    //     double diff = sum_ll_m - sum_ll_u;
-
-    //     // fprintf(stderr, "%s\t%d\t%d\t", ss.chromosome.c_str(), ss.start_position, ss.end_position);
-    //     // fprintf(stderr, "%s\t%.2lf\t", qname, diff);
-    //     // fprintf(stderr, "%.2lf\t%.2lf\t", sum_ll_m, sum_ll_u);
-    //     // fprintf(stderr, "%d\t%d\t%s\n", ss.strands_scored, ss.n_cpg, ss.sequence.c_str());
-
-    //     printf("%s\t%d\t%d\t", ss.chromosome.c_str(), ss.start_position, ss.end_position);
-    //     printf("%s\t%.2lf\t", qname, diff);
-    //     printf("%.2lf\t%.2lf\t", sum_ll_m, sum_ll_u);
-    //     printf("%d\t%d\t%s\n", ss.strands_scored, ss.n_cpg, ss.sequence.c_str());
-
-    // }
-    // #endif
 
 }
 
@@ -991,7 +835,6 @@ void init_opt(opt_t* opt) {
 #endif
 
     opt->flag |= F5C_SKIP_UNREADABLE;
-    //opt->flag |= F5C_SECONDARY_YES;
 
     opt->cuda_block_size=64;   
     opt->cuda_dev_id=0;
