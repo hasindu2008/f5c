@@ -33,7 +33,6 @@
 #define FAILED_CALIBRATION 0x001 //if the calibration failed
 #define FAILED_ALIGNMENT 0x002 //if the alignment failed
 #define FAILED_QUALITY_CHK  0x004 //if the quality check failed
-//#define FAILED_FAST5  0x008 //if the fast5 file was unreadable : todo : implement this
 
 
 /* other hard coded options */
@@ -238,8 +237,10 @@ typedef struct {
     //extreme ugly hack till converted to C
     std::map<int, ScoredSite> **site_score_map;
 
-    //stats
+    //stats //set by the load_db
     int64_t sum_bases;
+    int64_t total_reads; //total number mapped entries in the bam file (after filtering based on flags, mapq etc)
+    int64_t bad_fast5_file; //empty fast5 path returned by readdb, could not open fast5    
     
 } db_t;
 
@@ -320,6 +321,15 @@ typedef struct {
     double align_cuda_preprocess;
     double align_cuda_total_kernel;
 #endif
+
+    //stats //set by output_db
+    int64_t sum_bases;
+    int64_t total_reads; //total number mapped entries in the bam file (after filtering based on flags, mapq etc)
+    int64_t bad_fast5_file; //empty fast5 path returned by readdb, could not open fast5   
+    int64_t qc_fail_reads;
+    int64_t failed_calibration_reads;
+    int64_t failed_alignment_reads;
+
 
 } core_t;
 

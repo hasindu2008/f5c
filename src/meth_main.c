@@ -450,8 +450,8 @@ int meth_main(int argc, char* argv[]) {
 #endif
 
 
-    // fprintf(stderr, "[post-run summary] total reads: %d, unparseable: %d, qc fail: %d, could not calibrate: %d, no alignment: %d, bad fast5: %d\n", 
-    //         g_total_reads, g_unparseable_reads, g_qc_fail_reads, g_failed_calibration_reads, g_failed_alignment_reads, g_bad_fast5_file);
+    fprintf(stderr, "[post-run summary] total reads: %ld, qc fail: %ld, could not calibrate: %ld, no alignment: %ld, bad fast5: %ld\n", 
+             core->total_reads, core->qc_fail_reads, core->failed_calibration_reads, core->failed_alignment_reads, core->bad_fast5_file);
 
 
     if((core->opt.flag&F5C_SEC_PROF) || (!(core->opt.flag & F5C_DISABLE_CUDA))){

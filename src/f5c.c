@@ -75,6 +75,13 @@ core_t* init_core(const char* bamfilename, const char* fastafile,
     }
 #endif
 
+    core->sum_bases=0;
+    core->total_reads=0; //total number mapped entries in the bam file (after filtering based on flags, mapq etc)
+    core->bad_fast5_file=0; //empty fast5 path returned by readdb, could not open fast5   
+    core->qc_fail_reads=0;
+    core->failed_calibration_reads=0;
+    core->failed_alignment_reads=0;
+
     return core;
 }
 
@@ -161,6 +168,9 @@ db_t* init_db(core_t* core) {
         NULL_CHK(db->site_score_map[i]);
     }
 
+    db->total_reads=0;
+    db->bad_fast5_file=0;
+
     return db;
 }
 
@@ -170,6 +180,9 @@ ret_status_t load_db(core_t* core, db_t* db) {
     int32_t result = 0;
     db->n_bam_rec = 0;
     db->sum_bases = 0;
+    db->total_reads = 0;
+    db->bad_fast5_file = 0;
+
     ret_status_t status={0,0};
     int32_t i = 0;
     while (db->n_bam_rec < db->capacity_bam_rec && status.num_bases<core->opt.batch_size_bases) {
@@ -189,12 +202,20 @@ ret_status_t load_db(core_t* core, db_t* db) {
                         continue;
                     }
                 }
+
+                db->total_reads++; // candidate read
+
                 std::string qname = bam_get_qname(record);
+                std::string fast5_path_str = core->readbb->get_signal_path(qname);
+                
+                if(fast5_path_str==""){
+                    db->bad_fast5_file++;
+                    continue;
+                }
 
                 char* fast5_path =
-                    (char*)malloc(core->readbb->get_signal_path(qname).size() +
-                                10); // is +10 needed? do errorcheck
-                strcpy(fast5_path, core->readbb->get_signal_path(qname).c_str());
+                    (char*)malloc(fast5_path_str.size() + 10); // is +10 needed? do errorcheck
+                strcpy(fast5_path, fast5_path_str.c_str());
 
                 //fprintf(stderr,"readname : %s\n",qname.c_str());
 
@@ -220,6 +241,7 @@ ret_status_t load_db(core_t* core, db_t* db) {
                     status.num_bases += core->readbb->get_read_sequence(qname).size();
                 
                 } else {
+                    db->bad_fast5_file++;
                     if (core->opt.flag & F5C_SKIP_UNREADABLE) {
                         WARNING("Fast5 file (%s for for read %s) is unreadable and will be skipped",
                                 fast5_path,qname.c_str());
@@ -750,6 +772,10 @@ void output_db(core_t* core, db_t* db) {
         }
     }
 
+    core->sum_bases += db->sum_bases;
+    core->total_reads += db->total_reads;
+    core->bad_fast5_file += db->bad_fast5_file;
+
     int32_t i = 0;
     for (i = 0; i < db->n_bam_rec; i++){
         if(!db->read_stat_flag[i]){
@@ -775,6 +801,20 @@ void output_db(core_t* core, db_t* db) {
                 printf("%.2lf\t%.2lf\t", sum_ll_m, sum_ll_u);
                 printf("%d\t%d\t%s\n", ss.strands_scored, ss.n_cpg, ss.sequence.c_str());
 
+            }
+        }
+        else{
+            if((db->read_stat_flag[i])&FAILED_CALIBRATION){
+                core->failed_calibration_reads++;
+            }
+            else if ((db->read_stat_flag[i])&FAILED_ALIGNMENT){
+                core->failed_alignment_reads++;
+            }
+            else if ((db->read_stat_flag[i])&FAILED_QUALITY_CHK){
+                core->qc_fail_reads++;
+            }
+            else{
+                assert(0);
             }
         }
     }

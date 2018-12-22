@@ -50,7 +50,7 @@ mode_test() {
 	cmd="${exepath} call-methylation -b ${bamfile} -g ${ref} -r ${reads}"
 
 	case $1 in
-		valgrind) valgrind $cmd;;
+		valgrind) valgrind $cmd > /dev/null;;
 		gdb) gdb --args $cmd;;
 		cpu) $cmd --disable-cuda=yes > result.txt;;
 		cuda) $cmd --disable-cuda=no > result.txt;;
