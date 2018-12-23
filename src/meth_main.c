@@ -253,8 +253,9 @@ int meth_main(int argc, char* argv[]) {
 #endif
         } else if(c == 0 && longindex == 18){
             opt.cuda_block_size = atoi(optarg); //todo : warnining for cpu only mode, check limits
-        }else if(c == 0 && longindex == 19){
-            yes_or_no(&opt, F5C_DEBUG_BRK, longindex, optarg, 1);
+        }else if(c == 0 && longindex == 19){ //debug break
+            //yes_or_no(&opt, F5C_DEBUG_BRK, longindex, optarg, 1);
+            opt.debug_break = atoi(optarg);
         }else if(c == 0 && longindex == 20){ //sectional benchmark todo : warning for gpu mode
             yes_or_no(&opt, F5C_SEC_PROF, longindex, optarg, 1);
         }else if(c == 0 && longindex == 21){ //cuda todo : warning for cpu mode, error check
@@ -301,8 +302,8 @@ int meth_main(int argc, char* argv[]) {
         fprintf(fp_help,"   --print-banded-aln=yes|no  prints the event alignment\n");
         fprintf(fp_help,"   --print-scaling=yes|no     prints the estimated scalings\n");
         fprintf(fp_help,"   --print-raw=yes|no         prints the raw signal\n"); 
-        fprintf(fp_help,"   --debug-break=yes|no       break after processing the first batch\n"); 
-        fprintf(fp_help,"   --profile=yes|no           process section by section (used for profiling on CPU)\n"); 
+        fprintf(fp_help,"   --debug-break [INT]        break after processing the specified batch\n"); 
+        fprintf(fp_help,"   --profile-cpu=yes|no       process section by section (used for profiling on CPU)\n"); 
 #ifdef HAVE_CUDA  
         fprintf(fp_help,"   - cuda-mem-frac FLOAT      Fraction of free GPU memory to allocate [0.9 (0.7) for tegra)]\n");
         fprintf(fp_help,"   --cuda-block-size\n");
@@ -324,6 +325,7 @@ int meth_main(int argc, char* argv[]) {
     fprintf(stdout, "chromosome\tstart\tend\tread_name\t"
                                  "log_lik_ratio\tlog_lik_methylated\tlog_lik_unmethylated\t"
                                  "num_calling_strands\tnum_cpgs\tsequence\n");
+    int32_t counter=0;                                 
 
  #ifdef IO_PROC_NO_INTERLEAVE   //If input, processing and output are not interleaved (serial mode)
 
@@ -353,9 +355,10 @@ int meth_main(int argc, char* argv[]) {
         //free temporary 
         free_db_tmp(db);
         
-        if(opt.flag & F5C_DEBUG_BRK){
+        if(opt.debug_break==counter){
             break;
         }
+        counter++;
     }
 
     //free the databatch
@@ -429,9 +432,10 @@ int meth_main(int argc, char* argv[]) {
                 tid_pp);
         }
 
-        if(opt.flag & F5C_DEBUG_BRK){
+        if(opt.debug_break==counter){
             break;
         }
+        counter++;
     }
 
     //final round
@@ -453,7 +457,7 @@ int meth_main(int argc, char* argv[]) {
 
 #endif
 
-
+    //todo : print total bases
     fprintf(stderr, "[post-run summary] total reads: %ld, qc fail: %ld, could not calibrate: %ld, no alignment: %ld, bad fast5: %ld\n", 
              core->total_reads, core->qc_fail_reads, core->failed_calibration_reads, core->failed_alignment_reads, core->bad_fast5_file);
 

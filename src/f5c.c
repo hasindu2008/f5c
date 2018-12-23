@@ -290,7 +290,9 @@ ret_status_t load_db(core_t* core, db_t* db) {
         db->read_stat_flag[i] = 0; //reset the flag
     }
     // fprintf(stderr,"%s:: %d fast5 read\n",__func__,db->n_bam_rec);
-    STDERR("Average read len %.0f",db->sum_bases/(float)db->n_bam_rec);
+    if(core->opt.verbosity>1){
+        STDERR("Average read len %.0f",db->sum_bases/(float)db->n_bam_rec);
+    }
     status.num_reads=db->n_bam_rec;
     assert(status.num_bases==db->sum_bases);
     return status;
@@ -875,6 +877,7 @@ void init_opt(opt_t* opt) {
 #endif
 
     opt->flag |= F5C_SKIP_UNREADABLE;
+    opt->debug_break=-1;
 
     opt->cuda_block_size=64;   
     opt->cuda_dev_id=0;

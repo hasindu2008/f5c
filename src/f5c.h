@@ -25,7 +25,7 @@
 #define F5C_PRINT_BANDED_ALN 0x010 //print the event alignment
 #define F5C_PRINT_SCALING 0x020 //print the estimated scalings
 #define F5C_DISABLE_CUDA 0x040 //disable cuda (only when compile for cuda)
-#define F5C_DEBUG_BRK 0x080 //break after the first batch
+//#define F5C_DEBUG_BRK 0x080 //break after the first batch //removed can be reused
 #define F5C_SEC_PROF 0x100 //profile section by section (only effective on the CPU mode)
 
 
@@ -66,6 +66,7 @@ typedef struct {
 
     int32_t num_thread;
     int8_t verbosity;
+    int32_t debug_break;
 
     //todo : these are required only for HAVE_CUDA (but need to chnage the meth_main accordingly)
     int32_t cuda_block_size;
