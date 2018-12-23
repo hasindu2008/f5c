@@ -320,6 +320,10 @@ int meth_main(int argc, char* argv[]) {
         p7_FLogsumInit();
     #endif
 
+    //print the header
+    fprintf(stdout, "chromosome\tstart\tend\tread_name\t"
+                                 "log_lik_ratio\tlog_lik_methylated\tlog_lik_unmethylated\t"
+                                 "num_calling_strands\tnum_cpgs\tsequence\n");
 
  #ifdef IO_PROC_NO_INTERLEAVE   //If input, processing and output are not interleaved (serial mode)
 
