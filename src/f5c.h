@@ -236,6 +236,7 @@ typedef struct {
     int32_t* read_stat_flag;
 
     //extreme ugly hack till converted to C
+    // An output map from reference positions to scored CpG sites
     std::map<int, ScoredSite> **site_score_map;
 
     //stats //set by the load_db

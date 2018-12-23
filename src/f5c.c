@@ -254,7 +254,7 @@ ret_status_t load_db(core_t* core, db_t* db) {
                     }
                     
                     db->n_bam_rec++;
-                    //todo : make efficient (redudantly accessed below)
+                    //todo : make efficient (redudantly accessed below, can be combined with it?)
                     status.num_bases += core->readbb->get_read_sequence(qname).size();
                 
                 } else {
@@ -491,7 +491,6 @@ void scaling_single(core_t* core, db_t* db, int32_t i){
             //     events[strand_idx].clear();
             free(db->event_alignment[i]);
             //free(db->event_align_pairs[i]);
-            //     g_failed_calibration_reads += 1; //todo : add these stats
             db->read_stat_flag[i] |= FAILED_CALIBRATION;
             return;
         }
@@ -504,14 +503,12 @@ void scaling_single(core_t* core, db_t* db, int32_t i){
         // this->events_per_base[strand_idx] = 0.0f;
         //free(db->event_align_pairs[i]);
         db->read_stat_flag[i] |= FAILED_ALIGNMENT;
-        // g_failed_alignment_reads += 1; //todo : add these stats
         return;
     }
 
     // Filter poor quality reads that have too many "stays"
 
     if (db->events_per_base[i] > 5.0) {
-        //     g_qc_fail_reads += 1; //todo : add these stats
         //     events[0].clear();
         //     events[1].clear();
         //free(db->event_align_pairs[i]);
@@ -598,7 +595,7 @@ void process_single(core_t* core, db_t* db,int32_t i) {
 
     db->event_alignment[i] = NULL;
     db->n_event_alignment[i] = 0;
-    db->events_per_base[i] = 0; //todo : is double needed? not just int8?
+    db->events_per_base[i] = 0; //todo : is double needed? not just float?
 
     int32_t n_kmers = db->read_len[i] - KMER_SIZE + 1;
     db->base_to_event_map[i]=(index_pair_t*)(malloc(sizeof(index_pair_t) * n_kmers));
@@ -636,7 +633,6 @@ void process_single(core_t* core, db_t* db,int32_t i) {
             //     events[strand_idx].clear();
             free(db->event_alignment[i]);
             //free(db->event_align_pairs[i]);
-            //     g_failed_calibration_reads += 1; //todo : add these stats
             db->read_stat_flag[i] |= FAILED_CALIBRATION;
             return;
         }
@@ -649,14 +645,12 @@ void process_single(core_t* core, db_t* db,int32_t i) {
         // this->events_per_base[strand_idx] = 0.0f;
         //free(db->event_align_pairs[i]);
         db->read_stat_flag[i] |= FAILED_ALIGNMENT;
-        // g_failed_alignment_reads += 1; //todo : add these stats
         return;
     }
 
     // Filter poor quality reads that have too many "stays"
 
     if (db->events_per_base[i] > 5.0) {
-        //     g_qc_fail_reads += 1; //todo : add these stats
         //     events[0].clear();
         //     events[1].clear();
         //free(db->event_align_pairs[i]);

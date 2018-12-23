@@ -466,7 +466,7 @@ core->align_post_kernel_time += (realtime() - realtime1);
 
     cudaDeviceSynchronize();
     cudaError_t code = cudaGetLastError();
-    //todo : print a message to detect the launch timed out
+    //todo : can be moved to the generic gpu assert function
     if (code == cudaErrorLaunchTimeout) {
         ERROR("%s", "The kernel timed out. You have to first disable the cuda "
                     "time out.");
@@ -894,7 +894,7 @@ realtime1 = realtime();
                     stat_n_gpu_mem_out++;
                 }
             }
-            else{//todo : add stats and make this better (too many avg events per base, even for the CPU)
+            else{//todo : too many avg events per base, even for the CPU
                 db->n_event_align_pairs[i]=0;
             }
 
@@ -1140,7 +1140,7 @@ core->align_post_kernel_time += (realtime() - realtime1);
 
     cudaDeviceSynchronize();
     cudaError_t code = cudaGetLastError();
-    //todo : print a message to detect the launch timed out
+    //todo : move the message to the generic gpu assert
     if (code == cudaErrorLaunchTimeout) {
         ERROR("%s", "The kernel timed out. You have to first disable the cuda "
                     "time out.");
