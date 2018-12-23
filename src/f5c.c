@@ -11,7 +11,7 @@
 
 /*
 todo : 
-Error counter for skip unreadable
+Error counter for consecutive failures in the skip unreadable mode
 */
 
 core_t* init_core(const char* bamfilename, const char* fastafile,
@@ -55,7 +55,7 @@ core_t* init_core(const char* bamfilename, const char* fastafile,
         set_model(core->model);
     }
 
-    //todo : load the cpg model from file
+    //todo (low priority) : load the cpg model from file
     set_cpgmodel(core->cpgmodel);
 
     core->opt = opt;
@@ -174,6 +174,18 @@ db_t* init_db(core_t* core) {
     return db;
 }
 
+static inline void handle_bad_fast5(core_t* core, db_t* db,std::string fast5_path_str, std::string qname){
+    db->bad_fast5_file++;
+    if (core->opt.flag & F5C_SKIP_UNREADABLE) {
+        WARNING("Fast5 file [%s] for read [%s] is unreadable and will be skipped",
+                fast5_path_str.c_str(),qname.c_str());
+    } else {
+        ERROR("Fast5 file [%s] could not be opened for read [%s]", fast5_path_str.c_str(), qname.c_str());
+        exit(EXIT_FAILURE);
+    }
+    return;
+}
+
 ret_status_t load_db(core_t* core, db_t* db) {
     // get bams
     bam1_t* record;
@@ -209,7 +221,7 @@ ret_status_t load_db(core_t* core, db_t* db) {
                 std::string fast5_path_str = core->readbb->get_signal_path(qname);
                 
                 if(fast5_path_str==""){
-                    db->bad_fast5_file++;
+                    handle_bad_fast5(core, db,fast5_path_str,qname);
                     continue;
                 }
 
@@ -223,7 +235,12 @@ ret_status_t load_db(core_t* core, db_t* db) {
                 if (hdf5_file >= 0) {
                     db->f5[i] = (fast5_t*)calloc(1, sizeof(fast5_t));
                     MALLOC_CHK(db->f5[i]);
-                    fast5_read(hdf5_file, db->f5[i]); // todo : errorhandle
+                    int32_t ret=fast5_read(hdf5_file, db->f5[i]); 
+                    if(ret<0){
+                        handle_bad_fast5(core, db,fast5_path,qname);
+                        free(fast5_path);
+                        continue;
+                    }
                     fast5_close(hdf5_file);
 
                     if (core->opt.flag & F5C_PRINT_RAW) {
@@ -241,18 +258,10 @@ ret_status_t load_db(core_t* core, db_t* db) {
                     status.num_bases += core->readbb->get_read_sequence(qname).size();
                 
                 } else {
-                    db->bad_fast5_file++;
-                    if (core->opt.flag & F5C_SKIP_UNREADABLE) {
-                        WARNING("Fast5 file (%s for for read %s) is unreadable and will be skipped",
-                                fast5_path,qname.c_str());
-                    } else {
-                        ERROR("Fast5 file (%s) could not be opened for read %s", fast5_path, qname.c_str());
-                        exit(EXIT_FAILURE);
-                    }
+                    handle_bad_fast5(core, db,fast5_path,qname);
                 }
 
                 
-
                 free(fast5_path);                
                 
             }
