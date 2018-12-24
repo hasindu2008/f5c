@@ -98,7 +98,10 @@ static inline int32_t cuda_exists() {
                 __func__, cudaGetErrorString(code), __FILE__, __LINE__);
     }
     if (nDevices <= 0) {
-        fprintf(stderr, "[%s::ERROR]\033[1;31m No CUDA capable device found. Run with --disable-cuda=yes to run on the CPU\033[0m\n",__func__);
+        fprintf(stderr, "[%s::ERROR]\033[1;31m Could not initialise a cuda capable device. Some troubleshooting tips:\n"
+                        "- Do you have an NVIDIA GPU?\n"
+                        "- Have you installed the NVIDIA proprietary driver? (not the open source nouveau driver)\n"
+                        "Run with --disable-cuda=yes to run on the CPU\033[0m\n",__func__);
         exit(1);
     }
 
