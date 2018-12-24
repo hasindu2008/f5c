@@ -71,8 +71,21 @@ static inline void gpu_assert(const char* file, uint64_t line) {
     if (code != cudaSuccess) {
         fprintf(stderr, "[%s::ERROR]\033[1;31m Cuda error: %s \n in file : %s line number : %lu\033[0m\n",
                 __func__, cudaGetErrorString(code), file, line);
+        if (code == cudaErrorLaunchTimeout) {
+            ERROR("%s", "The kernel timed out. You have to first disable the cuda "
+                        "time out.");
+            fprintf(
+                stderr,
+                "On Ubuntu do the following\nOpen the file /etc/X11/xorg.conf\nYou "
+                "will have a section about your NVIDIA device. Add the following "
+                "line to it.\nOption \"Interactive\" \"0\"\nIf you do not have a "
+                "section about your NVIDIA device in /etc/X11/xorg.conf or you do "
+                "not have a file named /etc/X11/xorg.conf, run the command sudo "
+                "nvidia-xconfig to generate a xorg.conf file and do as above.\n\n");
+        }
         exit(-1);
     }
+
 }
 
 static inline int32_t cuda_exists() {
@@ -113,7 +126,7 @@ static inline uint64_t cuda_freemem(int32_t devicenum) {
     uint64_t freemem, total;
     cudaMemGetInfo(&freemem, &total); 
     CUDA_CHK();
-    fprintf(stderr, "[%s] %.2f GB free of total %.2f GB global memory\n",__func__,
+    fprintf(stderr, "[%s] %.2f GB free of total %.2f GB GPU memory\n",__func__,
             freemem / double(1024 * 1024 * 1024),
             total / double(1024 * 1024 * 1024));
 

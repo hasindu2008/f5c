@@ -40,7 +40,7 @@ static inline void malloc_chk(void* ret, const char* func, const char* file,
     fprintf(
         stderr,
         "[%s::ERROR]\033[1;31m Failed to allocate memory : "
-        "%s.\033[0m\n[%s::DEBUG]\033[1;35m Error occured at %s:%d.\033[0m\n\n",
+        "%s.\033[0m\n[%s::DEBUG]\033[1;35m Error occured at %s:%d. Try with a small batchsize (-K) to reduce the peak memory\033[0m\n\n",
         func, strerror(errno), func, file, line);
     exit(EXIT_FAILURE);
 }

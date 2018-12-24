@@ -543,7 +543,7 @@ void align_single(core_t* core, db_t* db, int32_t i) {
 void align_db(core_t* core, db_t* db) {
 #ifdef HAVE_CUDA
     if (!(core->opt.flag & F5C_DISABLE_CUDA)) {
-        STDERR("%s","Performing on cuda");
+        //STDERR("%s","Performing on cuda");
         align_cuda(core, db);
     }
 #endif
@@ -877,6 +877,7 @@ void init_opt(opt_t* opt) {
     opt->num_thread = 8;
 #ifndef HAVE_CUDA
     opt->flag |= F5C_DISABLE_CUDA;
+    opt->batch_size_bases = 5*1000*1000;    
 #endif
 
     opt->flag |= F5C_SKIP_UNREADABLE;

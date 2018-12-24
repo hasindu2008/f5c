@@ -21,7 +21,7 @@ void init_cuda(core_t* core){
     cudaDeviceProp prop;
     cudaGetDeviceProperties(&prop, cuda_device_num);
     CUDA_CHK();
-    STDERR("Running on device id %d -  %s", cuda_device_num,prop.name);
+    STDERR("Running on %s (device id %d)",prop.name, cuda_device_num);
 
     //fprintf(stderr,"AVG_EVENTS_PER_KMER %f\n",AVG_EVENTS_PER_KMER);
     //fprintf(stderr,"AVG_EVENTS_PER_KMER %f\n",AVG_EVENTS_PER_KMER_GPU_THRESH);
@@ -60,29 +60,29 @@ void init_cuda(core_t* core){
     MALLOC_CHK(core->cuda->n_event_align_pairs_host);
 
     //cuda arrays
-    print_size("read_ptr array",n_bam_rec * sizeof(int32_t));
+    if(core->opt.verbosity>1) print_size("read_ptr array",n_bam_rec * sizeof(int32_t));
     cudaMalloc((void**)&(core->cuda->read_ptr), n_bam_rec * sizeof(int32_t));
     CUDA_CHK();
-    print_size("read_lens",n_bam_rec * sizeof(int32_t));
+    if(core->opt.verbosity>1) print_size("read_lens",n_bam_rec * sizeof(int32_t));
     cudaMalloc((void**)&(core->cuda->read_len), n_bam_rec * sizeof(int32_t));
     CUDA_CHK();
     //n_events
-    print_size("n_events",n_bam_rec * sizeof(int32_t));
+    if(core->opt.verbosity>1) print_size("n_events",n_bam_rec * sizeof(int32_t));
     cudaMalloc((void**)&(core->cuda->n_events), n_bam_rec * sizeof(int32_t));
     CUDA_CHK();
     //event ptr
-    print_size("event ptr",n_bam_rec * sizeof(int32_t));
+    if(core->opt.verbosity>1) print_size("event ptr",n_bam_rec * sizeof(int32_t));
     cudaMalloc((void**)&(core->cuda->event_ptr), n_bam_rec * sizeof(int32_t));
     CUDA_CHK();
     //scalings : already linear
-    print_size("Scalings",n_bam_rec * sizeof(scalings_t));
+    if(core->opt.verbosity>1) print_size("Scalings",n_bam_rec * sizeof(scalings_t));
     cudaMalloc((void**)&(core->cuda->scalings), n_bam_rec * sizeof(scalings_t));
     CUDA_CHK();
     cudaMalloc((void**)&(core->cuda->model),
             NUM_KMER * sizeof(model_t));
     CUDA_CHK();  
 
-    print_size("n_event_align_pairs",n_bam_rec * sizeof(int32_t));
+    if(core->opt.verbosity>1) print_size("n_event_align_pairs",n_bam_rec * sizeof(int32_t));
     cudaMalloc((void**)&(core->cuda->n_event_align_pairs), n_bam_rec * sizeof(int32_t));
     CUDA_CHK();
 
@@ -133,13 +133,13 @@ void init_cuda(core_t* core){
     assert(read_capacity + event_table_capacity + model_kmer_cache_capacity + event_align_pairs_capacity
     + bands_capacity + trace_capacity + band_lower_left_capacity <= free_mem);
 
-    print_size("read_capacity",read_capacity);
-    print_size("event_table_capacity",event_table_capacity);
-    print_size("model_kmer_cache_capacity",model_kmer_cache_capacity);
-    print_size("event_align_pairs_capacity",event_align_pairs_capacity);
-    print_size("bands_capacity",bands_capacity);
-    print_size("trace_capacity",trace_capacity);
-    print_size("band_lower_left_capacity",band_lower_left_capacity);
+    if(core->opt.verbosity>1) print_size("read_capacity",read_capacity);
+    if(core->opt.verbosity>1) print_size("event_table_capacity",event_table_capacity);
+    if(core->opt.verbosity>1) print_size("model_kmer_cache_capacity",model_kmer_cache_capacity);
+    if(core->opt.verbosity>1) print_size("event_align_pairs_capacity",event_align_pairs_capacity);
+    if(core->opt.verbosity>1) print_size("bands_capacity",bands_capacity);
+    if(core->opt.verbosity>1) print_size("trace_capacity",trace_capacity);
+    if(core->opt.verbosity>1) print_size("band_lower_left_capacity",band_lower_left_capacity);
     
 
     //input arrays
@@ -162,7 +162,7 @@ void init_cuda(core_t* core){
     cudaMalloc((void**)&(core->cuda->band_lower_left), band_lower_left_capacity);
     CUDA_CHK();  
 
-    STDERR("Max sum bases GPU %.1fM",core->cuda->max_sum_read_len/(1000.0*1000.0));
+    STDERR("Max GPU capacity %.1fM bases",core->cuda->max_sum_read_len/(1000.0*1000.0));
 
 #endif
 
@@ -301,23 +301,23 @@ realtime1 = realtime();
     model_t* model = core->cuda->model;
 #else
 
-    print_size("read_ptr array",n_bam_rec * sizeof(int32_t));
+    if(core->opt.verbosity>1) print_size("read_ptr array",n_bam_rec * sizeof(int32_t));
     cudaMalloc((void**)&read_ptr, n_bam_rec * sizeof(int32_t));
     CUDA_CHK();
 
-    print_size("read_lens",n_bam_rec * sizeof(int32_t));
+    if(core->opt.verbosity>1) print_size("read_lens",n_bam_rec * sizeof(int32_t));
     cudaMalloc((void**)&read_len, n_bam_rec * sizeof(int32_t));
     CUDA_CHK();
     //n_events
-    print_size("n_events",n_bam_rec * sizeof(int32_t));
+    if(core->opt.verbosity>1) print_size("n_events",n_bam_rec * sizeof(int32_t));
     cudaMalloc((void**)&n_events, n_bam_rec * sizeof(int32_t));
     CUDA_CHK();
     //event ptr
-    print_size("event ptr",n_bam_rec * sizeof(int32_t));
+    if(core->opt.verbosity>1) print_size("event ptr",n_bam_rec * sizeof(int32_t));
     cudaMalloc((void**)&event_ptr, n_bam_rec * sizeof(int32_t));
     CUDA_CHK();
     //scalings : already linear
-    print_size("Scalings",n_bam_rec * sizeof(scalings_t));
+    if(core->opt.verbosity>1) print_size("Scalings",n_bam_rec * sizeof(scalings_t));
     cudaMalloc((void**)&scalings, n_bam_rec * sizeof(scalings_t));
     CUDA_CHK();
     //model : already linear
@@ -328,10 +328,10 @@ realtime1 = realtime();
 #endif
 
 
-    print_size("read array",sum_read_len * sizeof(char));
+    if(core->opt.verbosity>1) print_size("read array",sum_read_len * sizeof(char));
     cudaMalloc((void**)&read, sum_read_len * sizeof(char)); //with null char
     CUDA_CHK();
-    print_size("event table",sum_n_events * sizeof(event_t));
+    if(core->opt.verbosity>1) print_size("event table",sum_n_events * sizeof(event_t));
     cudaMalloc((void**)&event_table, sum_n_events * sizeof(event_t));
     CUDA_CHK();
     model_t* model_kmer_cache;
@@ -339,7 +339,7 @@ realtime1 = realtime();
     CUDA_CHK();
  
     /**allocate output arrays for cuda**/
-    print_size("event align pairs",2 * sum_n_events *sizeof(AlignedPair));
+    if(core->opt.verbosity>1) print_size("event align pairs",2 * sum_n_events *sizeof(AlignedPair));
     cudaMalloc((void**)&event_align_pairs,
             2 * sum_n_events *
                 sizeof(AlignedPair)); //todo : need better huristic
@@ -347,20 +347,20 @@ realtime1 = realtime();
 #ifdef CUDA_PRE_MALLOC
     n_event_align_pairs=core->cuda->n_event_align_pairs;
 #else
-    print_size("n_event_align_pairs",n_bam_rec * sizeof(int32_t));
+    if(core->opt.verbosity>1) print_size("n_event_align_pairs",n_bam_rec * sizeof(int32_t));
     cudaMalloc((void**)&n_event_align_pairs, n_bam_rec * sizeof(int32_t));
     CUDA_CHK();
 #endif
     //scratch arrays
     size_t sum_n_bands = sum_n_events + sum_read_len; //todo : can be optimised 
-    print_size("bands",sizeof(float) * sum_n_bands * ALN_BANDWIDTH);
+    if(core->opt.verbosity>1) print_size("bands",sizeof(float) * sum_n_bands * ALN_BANDWIDTH);
     cudaMalloc((void**)&bands,sizeof(float) * sum_n_bands * ALN_BANDWIDTH);
     CUDA_CHK();
-    print_size("trace",sizeof(uint8_t) * sum_n_bands * ALN_BANDWIDTH);
+    if(core->opt.verbosity>1) print_size("trace",sizeof(uint8_t) * sum_n_bands * ALN_BANDWIDTH);
     cudaMalloc((void**)&trace, sizeof(uint8_t) * sum_n_bands * ALN_BANDWIDTH);
     CUDA_CHK();
     cudaMemset(trace,0,sizeof(uint8_t) * sum_n_bands * ALN_BANDWIDTH); //initialise the trace array to 0
-    print_size("band_lower_left",sizeof(EventKmerPair)* sum_n_bands);
+    if(core->opt.verbosity>1) print_size("band_lower_left",sizeof(EventKmerPair)* sum_n_bands);
     cudaMalloc((void**)&band_lower_left, sizeof(EventKmerPair)* sum_n_bands);
     CUDA_CHK();   
 core->align_cuda_malloc += (realtime() - realtime1);
@@ -407,14 +407,14 @@ realtime1 = realtime();
     assert(BLOCK_LEN_BANDWIDTH>=ALN_BANDWIDTH);
     dim3 gridpre(1,(db->n_bam_rec + BLOCK_LEN_READS - 1) / BLOCK_LEN_READS);
     dim3 blockpre(BLOCK_LEN_BANDWIDTH,BLOCK_LEN_READS);  
-	fprintf(stderr,"grid %d,%d, block %d,%d\n",gridpre.x,gridpre.y, blockpre.x,blockpre.y);	
+	if(core->opt.verbosity>1) fprintf(stderr,"grid %d,%d, block %d,%d\n",gridpre.x,gridpre.y, blockpre.x,blockpre.y);	
 
     align_kernel_pre_2d<<<gridpre, blockpre>>>( read,
         read_len, read_ptr, n_events,
         event_ptr, model, n_bam_rec, model_kmer_cache,bands,trace,band_lower_left); 
        
     cudaDeviceSynchronize();CUDA_CHK();
-    fprintf(stderr, "[%s::%.3f*%.2f] align pre done\n", __func__,
+    if(core->opt.verbosity>1) fprintf(stderr, "[%s::%.3f*%.2f] align-pre kernel done\n", __func__,
             realtime() - realtime1, cputime() / (realtime() - realtime1));
 core->align_kernel_time += (realtime() - realtime1);        
 core->align_pre_kernel_time += (realtime() - realtime1);        
@@ -429,7 +429,7 @@ realtime1 = realtime();
             event_ptr, scalings, n_bam_rec, model_kmer_cache,bands,trace,band_lower_left );
     
     cudaDeviceSynchronize();CUDA_CHK();
-    fprintf(stderr, "[%s::%.3f*%.2f] align done\n", __func__,
+    if(core->opt.verbosity>1) fprintf(stderr, "[%s::%.3f*%.2f] align-core kernel done\n", __func__,
     realtime() - realtime1, cputime() / (realtime() - realtime1));
     core->align_kernel_time += (realtime() - realtime1);
 core->align_core_kernel_time += (realtime() - realtime1);
@@ -448,13 +448,13 @@ realtime1 = realtime();
     #else
         assert(BLOCK_LEN>=32);    
         dim3 grid1post((db->n_bam_rec + (BLOCK_LEN/32) - 1) / (BLOCK_LEN/32)); 
-        fprintf(stderr,"grid new %d\n",grid1post.x);   
+        if(core->opt.verbosity>1) fprintf(stderr,"grid new %d\n",grid1post.x);   
         align_kernel_post<<<grid1post, blockpost>>>(event_align_pairs, n_event_align_pairs,
             read_len, read_ptr, event_table, n_events,
             event_ptr, scalings, n_bam_rec, model_kmer_cache,bands,trace,band_lower_left );
     #endif
     cudaDeviceSynchronize();CUDA_CHK();
-    fprintf(stderr, "[%s::%.3f*%.2f] align post done\n", __func__,
+    if(core->opt.verbosity>1) fprintf(stderr, "[%s::%.3f*%.2f] align-post kernel done\n", __func__,
             realtime() - realtime1, cputime() / (realtime() - realtime1));
     core->align_kernel_time += (realtime() - realtime1);        
 core->align_post_kernel_time += (realtime() - realtime1);        
@@ -465,25 +465,7 @@ core->align_post_kernel_time += (realtime() - realtime1);
 #ifdef CUDA_DEBUG
 
     cudaDeviceSynchronize();
-    cudaError_t code = cudaGetLastError();
-    //todo : can be moved to the generic gpu assert function
-    if (code == cudaErrorLaunchTimeout) {
-        ERROR("%s", "The kernel timed out. You have to first disable the cuda "
-                    "time out.");
-        fprintf(
-            stderr,
-            "On Ubuntu do the following\nOpen the file /etc/X11/xorg.conf\nYou "
-            "will have a section about your NVIDIA device. Add the following "
-            "line to it.\nOption \"Interactive\" \"0\"\nIf you do not have a "
-            "section about your NVIDIA device in /etc/X11/xorg.conf or you do "
-            "not have a file named /etc/X11/xorg.conf, run the command sudo "
-            "nvidia-xconfig to generate a xorg.conf file and do as above.\n\n");
-    }
-    if (code != cudaSuccess) {
-        fprintf(stderr, "Cuda error: %s \n in file : %s line number : %lu\n",
-                cudaGetErrorString(code), __FILE__, __LINE__);
-        exit(-1);
-    }        
+    CUDA_CHK();       
     
 #endif
 
@@ -679,7 +661,7 @@ void* align_cudb(void* voidargs){
 
 
     args->ret1 = realtime() - realtime1;
-    fprintf(stderr, "[%s::%.3fsec] %d reads processed on cpu\n", __func__,
+    if(core->opt.verbosity>1) fprintf(stderr, "[%s::%.3fsec] %d reads processed on cpu\n", __func__,
     realtime() - realtime1, n_ultra_long_reads);
     
 
@@ -747,76 +729,76 @@ void load_balance(core_t *core, db_t *db, double cpu_process_time,double gpu_pro
     int32_t stat_n_gpu_mem_out, int32_t stat_n_too_many_events, int32_t stat_n_ultra_long_reads, 
     float read_array_usage, float event_array_usage){
 
-    fprintf(stderr,"[%s] Processing time on CPU %fsec, processing time on GPU %fsec\n",__func__,cpu_process_time,gpu_process_time);
+    fprintf(stderr,"[%s] Processing time : CPU %.1f sec, GPU %.1f sec\n",__func__,cpu_process_time,gpu_process_time);
     double factor = (cpu_process_time-gpu_process_time)/(cpu_process_time+gpu_process_time);
-    fprintf(stderr,"[%s] factor %f\n",__func__,factor);
+    if (core->opt.verbosity>1) fprintf(stderr,"[%s] factor %f\n",__func__,factor);
     float thresh_factor=0.2;
     float thresh_reads=0.05;
     float thresh=0.2;
 
     if(factor>thresh_factor){ //cpu too much time
-        fprintf(stderr,"[%s] CPU too much time\n",__func__);
+        if (core->opt.verbosity>1) fprintf(stderr,"[%s] CPU too much time\n",__func__);
 
         if(stat_n_gpu_mem_out > db->n_bam_rec * thresh_reads){ //gpu run out of memory
-            fprintf(stderr,"[%s] Looks like the loaded dataset is too much for the GPU.\n",__func__);
+            if (core->opt.verbosity>1) fprintf(stderr,"[%s] Looks like the loaded dataset is too much for the GPU.\n",__func__);
             
             //are the GPU arrays balanced? give a warning
             if(read_array_usage>99 && event_array_usage<100-thresh*100){ //read array full
-                fprintf(stderr,"[%s] GPU read array usage too high.\n",__func__);
+                if (core->opt.verbosity>1) fprintf(stderr,"[%s] GPU read array usage too high.\n",__func__);
                 if(stat_n_ultra_long_reads> db->n_bam_rec * thresh_reads){ //array fileld sue to ultra long reads
-                    INFO("%s","GPU read arrays ran out due to ultra long reads. Consider decreasing cuda-max-lf");
+                    INFO("%s","GPU read arrays ran out due to ultra long reads. If this message repeats, consider decreasing --cuda-max-lf");
                 }
                 else{
-                    INFO("%s", "GPU read arrays ran out due to too much being allocated for event arrays. Consider decreasing cuda-avg-epk");
+                    INFO("%s", "GPU read arrays ran out due to too much being allocated for event arrays. If this message repeats, consider decreasing --cuda-avg-epk");
                 }
             }
             else if(event_array_usage>99 && read_array_usage<100-thresh*100){ //event array full
-                fprintf(stderr,"[%s] GPU event array usage too high.\n",__func__);
+                if (core->opt.verbosity>1) fprintf(stderr,"[%s] GPU event array usage too high.\n",__func__);
                 if(stat_n_too_many_events > db->n_bam_rec * thresh_reads){//array filled mainly due to reads with too many events
-                    INFO("%s","GPU event arrays ran out due to over segmented reads. Consider decreasing cuda-max-epk");
+                    INFO("%s","GPU event arrays ran out due to over segmented reads. If this message repeats, consider  decreasing --cuda-max-epk");
                 }
                 else{ //array filled AVG_EVENTS_PER_KMER being not enough
-                    INFO("%s","GPU event arrays ran out due to not enough being allocated for events. Consider increasing cuda-avg-epk");
+                    INFO("%s","GPU event arrays ran out due to not enough being allocated for events. If this message repeats, consider increasing --cuda-avg-epk");
                 }                
             }
             else{//else reduce the batch size
-                INFO("%s","GPU arrays ran out. Consider reducing max-bases (-B option)");
+                INFO("%s","GPU arrays ran out. If this message repeats, consider reducing --max-bases (-B option)");
             }
 
             
         }
         else{ //slow CPU?
             if(stat_n_ultra_long_reads< db->n_bam_rec * thresh_reads && stat_n_too_many_events < db->n_bam_rec * thresh_reads){
-                INFO("%s", "CPU got too much work. Consider increasing cuda-max-epk or cuda-max-lf");
+                INFO("%s", "CPU got too much work. If this message repeats, consider increasing --cuda-max-epk or --cuda-max-lf");
             }
             else{
                 if(stat_n_ultra_long_reads< db->n_bam_rec * thresh_reads){ 
-                        INFO("%s", "CPU got too much work. Consider increasing cuda-max-lf");
+                        INFO("%s", "CPU got too much work. If this message repeats, consider increasing --cuda-max-lf");
                 }
                 else if(stat_n_too_many_events < db->n_bam_rec * thresh_reads){
-                        INFO("%s", "CPU got too much work. Consider increasing cuda-max-epk");
+                        INFO("%s", "CPU got too much work. If this message repeats, consider increasing --cuda-max-epk");
                 }                
             }
         }
     }
     else if(factor<-thresh_factor){ //gpu too much time
-        INFO("%s", "GPU got too much work. Consider decreasing cuda-max-epk or cuda-max-lf");
+        INFO("%s", "GPU got too much work. If this message repeats, consider decreasing --cuda-max-epk or --cuda-max-lf");
     }
     else{
         if(event_array_usage<100-thresh*100 && read_array_usage<100-thresh*100){
-            fprintf(stderr,"[%s] GPU arrays are not fully utilised\n",__func__);
+            if (core->opt.verbosity>1) fprintf(stderr,"[%s] GPU arrays are not fully utilised\n",__func__);
             if(db->n_bam_rec>=core->opt.batch_size){
-                INFO("%s", "GPU arrays are not fully utilised. Increase the batchsize (-K option)");
+                INFO("%s", "GPU arrays are not fully utilised. If this message repeats, consider increasing the --batchsize (-K option)");
             }
             else if(db->sum_bases >= core->opt.batch_size_bases){
-                INFO("%s", "GPU arrays are not fully utilised. Increase the max-bases (-B option)");
+                INFO("%s", "GPU arrays are not fully utilised. If this message repeats, consider increasing the --max-bases (-B option)");
             }
             else{
-                fprintf(stderr,"[%s] Probably the last batch\n",__func__);
+                if (core->opt.verbosity>1) fprintf(stderr,"[%s] Probably the last batch\n",__func__);
             }
         }
         else{
-            fprintf(stderr,"[%s] No load balancing required\n",__func__);
+            if (core->opt.verbosity>1) fprintf(stderr,"[%s] No load balancing required\n",__func__);
         }
     }
 }
@@ -885,7 +867,7 @@ realtime1 = realtime();
                 sum_bases_cpu += db->read_len[i];
                 if(db->read_len[i]>=(core->opt.cuda_max_readlen * db->sum_bases/(float)db->n_bam_rec)){
                     stat_n_ultra_long_reads++;
-                    STDERR("readlen>=%.0fkbases\t%d",(core->opt.cuda_max_readlen * db->sum_bases/(float)db->n_bam_rec)/1000,db->read_len[i]);
+                    if(core->opt.verbosity>2)STDERR("readlen>=%.0fkbases\t%d",(core->opt.cuda_max_readlen * db->sum_bases/(float)db->n_bam_rec)/1000,db->read_len[i]);
                 }
                 else if ((db->et[i].n)/(float)(db->read_len[i]) >= AVG_EVENTS_PER_KMER_GPU_THRESH){
                     stat_n_too_many_events++;
@@ -991,7 +973,7 @@ realtime1 = realtime();
     assert(sum_read_len <= core->cuda->max_sum_read_len);
     assert(sum_n_events <= floor(core->cuda->max_sum_read_len * AVG_EVENTS_PER_KMER));
     //fprintf(stderr,"%d %d\n", sum_read_len,sum_n_events);
-    STDERR("%.2f %% of readarrays and %.2f %% of eventarrays were utilised",
+    if(core->opt.verbosity>1) STDERR("%.2f %% of GPU read arrays and %.2f %% of GPU event arrays were utilised",
         sum_read_len/(float)(core->cuda->max_sum_read_len)*100 ,
         sum_n_events/(float)floor((core->cuda->max_sum_read_len)*AVG_EVENTS_PER_KMER)*100);
 
@@ -1007,18 +989,18 @@ realtime1 = realtime();
     CUDA_CHK();
     
 #else    
-    print_size("read array",sum_read_len * sizeof(char));
+    if(core->opt.verbosity>1) print_size("read array",sum_read_len * sizeof(char));
     cudaMalloc((void**)&read, sum_read_len * sizeof(char)); //with null char
     CUDA_CHK();
-    print_size("event table",sum_n_events * sizeof(event_t));
+    if(core->opt.verbosity>1) print_size("event table",sum_n_events * sizeof(event_t));
     cudaMalloc((void**)&event_table, sum_n_events * sizeof(event_t));
     CUDA_CHK();
-    print_size("model kmer cache",sum_read_len * sizeof(model_t));
+    if(core->opt.verbosity>1) print_size("model kmer cache",sum_read_len * sizeof(model_t));
     cudaMalloc((void**)&model_kmer_cache, sum_read_len * sizeof(model_t)); 
     CUDA_CHK();
  
     /**allocate output arrays for cuda**/
-    print_size("event align pairs",2 * sum_n_events *sizeof(AlignedPair));
+    if(core->opt.verbosity>1) print_size("event align pairs",2 * sum_n_events *sizeof(AlignedPair));
     cudaMalloc((void**)&event_align_pairs,
             2 * sum_n_events *
                 sizeof(AlignedPair)); //todo : need better huristic
@@ -1027,15 +1009,15 @@ realtime1 = realtime();
 
     //scratch arrays
     size_t sum_n_bands = sum_n_events + sum_read_len; //todo : can be optimised 
-    print_size("bands",sizeof(float) * sum_n_bands * ALN_BANDWIDTH);
+    if(core->opt.verbosity>1) print_size("bands",sizeof(float) * sum_n_bands * ALN_BANDWIDTH);
     cudaMalloc((void**)&bands,sizeof(float) * sum_n_bands * ALN_BANDWIDTH);
     CUDA_CHK();
-    print_size("trace",sizeof(uint8_t) * sum_n_bands * ALN_BANDWIDTH);
+    if(core->opt.verbosity>1) print_size("trace",sizeof(uint8_t) * sum_n_bands * ALN_BANDWIDTH);
     cudaMalloc((void**)&trace, sizeof(uint8_t) * sum_n_bands * ALN_BANDWIDTH);
     CUDA_CHK();
     cudaMemset(trace,0,sizeof(uint8_t) * sum_n_bands * ALN_BANDWIDTH); //initialise the trace array to 0
     CUDA_CHK();   
-    print_size("band_lower_left",sizeof(EventKmerPair)* sum_n_bands);
+    if(core->opt.verbosity>1) print_size("band_lower_left",sizeof(EventKmerPair)* sum_n_bands);
     cudaMalloc((void**)&band_lower_left, sizeof(EventKmerPair)* sum_n_bands);
     CUDA_CHK();  
 
@@ -1081,14 +1063,14 @@ realtime1 = realtime();
     assert(BLOCK_LEN_BANDWIDTH>=ALN_BANDWIDTH);
     dim3 gridpre(1,(n_bam_rec_cuda + BLOCK_LEN_READS - 1) / BLOCK_LEN_READS);
     dim3 blockpre(BLOCK_LEN_BANDWIDTH,BLOCK_LEN_READS);  
-	STDERR("grid %d,%d, block %d,%d",gridpre.x,gridpre.y, blockpre.x,blockpre.y);	
+	if(core->opt.verbosity>1) STDERR("grid %d,%d, block %d,%d",gridpre.x,gridpre.y, blockpre.x,blockpre.y);	
 
     align_kernel_pre_2d<<<gridpre, blockpre>>>( read,
         read_len, read_ptr, n_events,
         event_ptr, model, n_bam_rec_cuda, model_kmer_cache,bands,trace,band_lower_left); 
        
     cudaDeviceSynchronize();CUDA_CHK();
-    fprintf(stderr, "[%s::%.3fsec] align pre done\n", __func__,
+    if(core->opt.verbosity>1) fprintf(stderr, "[%s::%.3fsec] align-pre kernel done\n", __func__,
             realtime() - realtime1);
 core->align_kernel_time += (realtime() - realtime1);        
 core->align_pre_kernel_time += (realtime() - realtime1);        
@@ -1103,7 +1085,7 @@ realtime1 = realtime();
             event_ptr, scalings, n_bam_rec_cuda, model_kmer_cache,bands,trace,band_lower_left );
     
     cudaDeviceSynchronize();CUDA_CHK();
-    fprintf(stderr, "[%s::%.3fsec] align done\n", __func__,
+    if(core->opt.verbosity>1) fprintf(stderr, "[%s::%.3fsec] align-core kernel done\n", __func__,
     realtime() - realtime1);
     core->align_kernel_time += (realtime() - realtime1);
 core->align_core_kernel_time += (realtime() - realtime1);
@@ -1122,13 +1104,13 @@ realtime1 = realtime();
     #else
         assert(BLOCK_LEN>=32);    
         dim3 grid1post((n_bam_rec_cuda + (BLOCK_LEN/32) - 1) / (BLOCK_LEN/32)); 
-        STDERR("grid new %d",grid1post.x);   
+        if(core->opt.verbosity>1) STDERR("grid new %d",grid1post.x);   
         align_kernel_post<<<grid1post, blockpost>>>(event_align_pairs, n_event_align_pairs,
             read_len, read_ptr, event_table, n_events,
             event_ptr, scalings, n_bam_rec_cuda, model_kmer_cache,bands,trace,band_lower_left );
     #endif
     cudaDeviceSynchronize();CUDA_CHK();
-    fprintf(stderr, "[%s::%.3fsec] align post done\n", __func__,
+    if(core->opt.verbosity>1) fprintf(stderr, "[%s::%.3fsec] align-post kernel done\n", __func__,
             realtime() - realtime1);
     core->align_kernel_time += (realtime() - realtime1);        
 core->align_post_kernel_time += (realtime() - realtime1);        
@@ -1139,25 +1121,7 @@ core->align_post_kernel_time += (realtime() - realtime1);
 #ifdef CUDA_DEBUG
 
     cudaDeviceSynchronize();
-    cudaError_t code = cudaGetLastError();
-    //todo : move the message to the generic gpu assert
-    if (code == cudaErrorLaunchTimeout) {
-        ERROR("%s", "The kernel timed out. You have to first disable the cuda "
-                    "time out.");
-        fprintf(
-            stderr,
-            "On Ubuntu do the following\nOpen the file /etc/X11/xorg.conf\nYou "
-            "will have a section about your NVIDIA device. Add the following "
-            "line to it.\nOption \"Interactive\" \"0\"\nIf you do not have a "
-            "section about your NVIDIA device in /etc/X11/xorg.conf or you do "
-            "not have a file named /etc/X11/xorg.conf, run the command sudo "
-            "nvidia-xconfig to generate a xorg.conf file and do as above.\n\n");
-    }
-    if (code != cudaSuccess) {
-        fprintf(stderr, "Cuda error: %s \n in file : %s line number : %d\n",
-                cudaGetErrorString(code), __FILE__, __LINE__);
-        exit(-1);
-    }        
+    CUDA_CHK();        
     
 #endif
 
@@ -1229,9 +1193,15 @@ realtime1 =  realtime();
     double cpu_process_time = align_cudb_async_join(tmparg,tid);  
 core->extra_load_cpu += (realtime() - realtime1);
 
-    fprintf(stderr, "[%s::%.3fsec] CPU extra processing done (>=%.0fkbases:%d|>=%.1fevents:%d|gpu_mem_out:%d)\n", __func__,
-    realtime() - realtime1,((core->opt.cuda_max_readlen * db->sum_bases/(float)db->n_bam_rec))/1000,stat_n_ultra_long_reads, AVG_EVENTS_PER_KMER_GPU_THRESH,stat_n_too_many_events,stat_n_gpu_mem_out);
-    STDERR("CPU load %.1fM bases, GPU load %.1fM bases",(float)sum_bases_cpu/(1000*1000),(float)sum_read_len/(1000*1000));
+    if(core->opt.verbosity>1) {
+        fprintf(stderr, "[%s::%.3fsec] CPU extra processing done (>=%.0fkbases:%d|>=%.1fevents:%d|gpu_mem_out:%d)\n", 
+        __func__,realtime() - realtime1,((core->opt.cuda_max_readlen * db->sum_bases/(float)db->n_bam_rec))/1000, 
+        stat_n_ultra_long_reads, AVG_EVENTS_PER_KMER_GPU_THRESH,stat_n_too_many_events, stat_n_gpu_mem_out);
+    }
+
+
+    STDERR("Load : CPU %d entries (%.1fM bases), GPU %d entries (%.1fM bases)",
+    n_bam_rec-n_bam_rec_cuda, (float)sum_bases_cpu/(1000*1000),n_bam_rec_cuda, (float)sum_read_len/(1000*1000));
 
     load_balance(core,db,cpu_process_time,gpu_process_time,stat_n_gpu_mem_out,stat_n_too_many_events, stat_n_ultra_long_reads,
         sum_read_len/(float)(core->cuda->max_sum_read_len)*100 ,
