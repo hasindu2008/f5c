@@ -46,18 +46,7 @@ download_test_set() {
 	rm -f $tar_path
 }
 
-mode_test() {
-	cmd="${exepath} call-methylation -b ${bamfile} -g ${ref} -r ${reads}"
 
-	case $1 in
-		valgrind) valgrind $cmd > /dev/null;;
-		gdb) gdb --args $cmd;;
-		cpu) $cmd --disable-cuda=yes > result.txt;;
-		cuda) $cmd --disable-cuda=no > result.txt;;
-		echo) echo "$cmd -t $threads > result.txt";;
-		*) die "Unknown mode: $1";;
-	esac
-}
 
 handle_tests() {
 	numfailed=$(cat ${testdir}/floatdiff.txt | wc -l)
@@ -65,6 +54,54 @@ handle_tests() {
 	echo "$numfailed of $numcases test cases failed."
 	failp=$(echo "$numfailed/$numcases" | bc)
 	[ $failp -gt 0 ] && die "${1}: Validation failed"
+}
+
+do_the_test(){
+
+	if [ $testdir = test/chr22_meth_example ]; then
+		grep -w "chr20" ${testdir}/result.txt | awk '{print $1$2$3$4$8$9$10"\t"$5"\t"$6"\t"$7}' > ${testdir}/result_float.txt
+		grep -w "chr20" ${testdir}/meth.exp | awk '{print $1$2$3$4$8$9$10"\t"$5"\t"$6"\t"$7}'  > ${testdir}/meth_float.txt
+
+		join -a 1 -a 2 ${testdir}/result_float.txt ${testdir}/meth_float.txt | awk -v thresh=0.1 '
+		function abs(x){return (((x) < 0.0) ? -(x) : (x))}
+		BEGIN{status=0}
+		{
+			if(abs($2-$5)>abs(thresh*$5)+0.02 || abs($3-$6)>abs(thresh*$6)+0.02 || abs($4-$7)>abs(thresh*$7)+0.02)
+				{print $0,abs($2-$5)">"abs(thresh*$5)+0.02 ,abs($3-$6)">"abs(thresh*$6)+0.02,abs($4-$7)">"abs(thresh*$7)+0.02;status=1}
+			}
+		END{if(status>0){exit 1}}
+		' > ${testdir}/floatdiff.txt || handle_tests "${file}"
+	else	
+		tail -n +2 ${testdir}/result.txt | awk '{print $1,$2,$3,$4,$8,$9,$10}' > ${testdir}/result_exact.txt
+		awk '{print $1,$2,$3,$4,$8,$9,$10}' ${testdir}/meth.exp > ${testdir}/meth_exact.txt
+		diff -q ${testdir}/meth_exact.txt ${testdir}/result_exact.txt || die "diff ${testdir}/result_exact.txt ${testdir}/meth_exact.txt failed" 
+
+		tail -n +2  ${testdir}/result.txt | awk '{print $1$2$3$4$8$9$10"\t"$5"\t"$6"\t"$7}' > ${testdir}/result_float.txt
+		awk '{print $1$2$3$4$8$9$10"\t"$5"\t"$6"\t"$7}' ${testdir}/meth.exp > ${testdir}/meth_float.txt	
+
+		join -a 1 -a 2 ${testdir}/result_float.txt ${testdir}/meth_float.txt | awk -v thresh=0.1 '
+		function abs(x){return (((x) < 0.0) ? -(x) : (x))} 
+		BEGIN{status=0} 
+		{
+			if(abs($2-$5)>abs(thresh*$5)+0.02 || abs($3-$6)>abs(thresh*$6)+0.02 || abs($4-$7)>abs(thresh*$7)+0.02)
+				{print $0,abs($2-$5)">"abs(thresh*$5)+0.02 ,abs($3-$6)">"abs(thresh*$6)+0.02,abs($4-$7)">"abs(thresh*$7)+0.02;status=1} 
+			} 
+		END{if(status>0){exit 1}}
+		' > ${testdir}/floatdiff.txt || die "${file}: Validation failed" 
+	fi	
+}
+
+mode_test() {
+	cmd="${exepath} call-methylation -b ${bamfile} -g ${ref} -r ${reads}"
+
+	case $1 in
+		valgrind) valgrind $cmd > /dev/null;;
+		gdb) gdb --args $cmd;;
+		cpu) $cmd --disable-cuda=yes > result.txt;do_the_test;;
+		cuda) $cmd --disable-cuda=no > result.txt;do_the_test;;
+		echo) echo "$cmd -t $threads > result.txt";;
+		*) die "Unknown mode: $1";;
+	esac
 }
 
 help_msg() {
@@ -121,37 +158,11 @@ done
 if [ -z $mode ]; then
 	if [ $testdir = test/chr22_meth_example ]; then
 		${exepath} call-methylation -b ${bamfile} -g ${ref} -r ${reads} -t ${threads} -K $batchsize -B $max_bases > ${testdir}/result.txt
-		grep -w "chr20" ${testdir}/result.txt | awk '{print $1$2$3$4$8$9$10"\t"$5"\t"$6"\t"$7}' > ${testdir}/result_float.txt
-		grep -w "chr20" ${testdir}/meth.exp | awk '{print $1$2$3$4$8$9$10"\t"$5"\t"$6"\t"$7}'  > ${testdir}/meth_float.txt
-
-		join -a 1 -a 2 ${testdir}/result_float.txt ${testdir}/meth_float.txt | awk -v thresh=0.1 '
-		function abs(x){return (((x) < 0.0) ? -(x) : (x))}
-		BEGIN{status=0}
-		{
-			if(abs($2-$5)>abs(thresh*$5)+0.02 || abs($3-$6)>abs(thresh*$6)+0.02 || abs($4-$7)>abs(thresh*$7)+0.02)
-				{print $0,abs($2-$5)">"abs(thresh*$5)+0.02 ,abs($3-$6)">"abs(thresh*$6)+0.02,abs($4-$7)">"abs(thresh*$7)+0.02;status=1}
-			}
-		END{if(status>0){exit 1}}
-		' > ${testdir}/floatdiff.txt || handle_tests "${file}: Validation failed"
+		do_the_test
 	else
 		${exepath} index -d ${testdir}/fast5_files ${testdir}/reads.fasta
 		${exepath} call-methylation -b ${bamfile} -g ${ref} -r ${reads} --secondary=yes --min-mapq=0 -B $max_bases > ${testdir}/result.txt
-		tail -n +2 ${testdir}/result.txt | awk '{print $1,$2,$3,$4,$8,$9,$10}' > ${testdir}/result_exact.txt
-		awk '{print $1,$2,$3,$4,$8,$9,$10}' ${testdir}/meth.exp > ${testdir}/meth_exact.txt
-		diff -q ${testdir}/meth_exact.txt ${testdir}/result_exact.txt || die "diff ${testdir}/result_exact.txt ${testdir}/meth_exact.txt failed" 
-
-		tail -n +2  ${testdir}/result.txt | awk '{print $1$2$3$4$8$9$10"\t"$5"\t"$6"\t"$7}' > ${testdir}/result_float.txt
-		awk '{print $1$2$3$4$8$9$10"\t"$5"\t"$6"\t"$7}' ${testdir}/meth.exp > ${testdir}/meth_float.txt	
-
-		join -a 1 -a 2 ${testdir}/result_float.txt ${testdir}/meth_float.txt | awk -v thresh=0.1 '
-		function abs(x){return (((x) < 0.0) ? -(x) : (x))} 
-		BEGIN{status=0} 
-		{
-			if(abs($2-$5)>abs(thresh*$5)+0.02 || abs($3-$6)>abs(thresh*$6)+0.02 || abs($4-$7)>abs(thresh*$7)+0.02)
-				{print $0,abs($2-$5)">"abs(thresh*$5)+0.02 ,abs($3-$6)">"abs(thresh*$6)+0.02,abs($4-$7)">"abs(thresh*$7)+0.02;status=1} 
-			} 
-		END{if(status>0){exit 1}}
-		' > ${testdir}/floatdiff.txt || die "${file}: Validation failed" 
+		do_the_test
 	fi
 else
 	mode_test $mode
