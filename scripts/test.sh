@@ -100,6 +100,7 @@ mode_test() {
 		cpu) $cmd --disable-cuda=yes > result.txt;do_the_test;;
 		cuda) $cmd --disable-cuda=no > result.txt;do_the_test;;
 		echo) echo "$cmd -t $threads > result.txt";;
+		custom) shift;$cmd $@ > result.txt;do_the_test;;
 		*) die "Unknown mode: $1";;
 	esac
 }
@@ -165,5 +166,5 @@ if [ -z $mode ]; then
 		do_the_test
 	fi
 else
-	mode_test $mode
+	mode_test $@
 fi
