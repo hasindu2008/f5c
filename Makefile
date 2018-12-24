@@ -123,7 +123,7 @@ dist: distclean
 	cp -r README.md LICENSE Dockerfile Makefile configure.ac config.mk.in \
 		installdeps.mk src docs build .dockerignore configure f5c-$(VERSION)
 	mkdir -p f5c-$(VERSION)/scripts
-	cp scripts/install-hdf5.sh scripts/install-hts.sh f5c-$(VERSION)/scripts
+	cp scripts/install-hdf5.sh scripts/install-hts.sh scripts/test.sh f5c-$(VERSION)/scripts
 	tar -zcf f5c-$(VERSION).tar.gz f5c-$(VERSION)
 	rm -rf f5c-$(VERSION)
 

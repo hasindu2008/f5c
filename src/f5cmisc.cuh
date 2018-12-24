@@ -90,7 +90,7 @@ static inline void gpu_assert(const char* file, uint64_t line) {
 
 static inline int32_t cuda_exists() {
     //check cuda devices
-    int32_t nDevices;
+    int32_t nDevices=-1;
     cudaGetDeviceCount(&nDevices);
     cudaError_t code = cudaGetLastError();
     if (code != cudaSuccess) {
