@@ -99,8 +99,8 @@ static inline int32_t cuda_exists() {
     }
     if (nDevices <= 0) {
         fprintf(stderr, "[%s::ERROR]\033[1;31m Could not initialise a cuda capable device. Some troubleshooting tips in order:\n"
-                        "1. Do you have an NVIDIA GPU? [lspci | grep -i vga]\n"
-                        "2. Have you installed the NVIDIA proprietary driver (not the open source nouveau driver)? [lspci -nnk | grep -iA2 vga | grep driver]\n"
+                        "1. Do you have an NVIDIA GPU? [lspci | grep -i \"vga\\|3d\\|display\"]\n"
+                        "2. Have you installed the NVIDIA proprietary driver (not the open source nouveau driver)? [lspci -nnk | grep -iA2 \"vga\\|3d\\|display\"]\n"
                         "3. If you GPU is tegra is the current user belongs to the [video] user group?"
                         "4. Is your cuda driver too old? (the release binary compiled using cuda 6.5)"
                         "Run with --disable-cuda=yes to run on the CPU\033[0m\n",__func__);
