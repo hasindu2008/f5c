@@ -27,7 +27,7 @@ ifdef cuda
     CUDA_LIB = $(CUDA_ROOT)/lib64
     CUDA_OBJ = $(BUILD_DIR)/f5c_cuda.o $(BUILD_DIR)/align_cuda.o
     NVCC = nvcc
-    CUDA_CFLAGS += -g -O2 -std=c++11 -lineinfo $(CUDA_ARCH)
+    CUDA_CFLAGS += -g  -O2 -std=c++11 -lineinfo $(CUDA_ARCH) -Xcompiler -Wall
     CUDA_LDFLAGS = -L$(CUDA_LIB) -lcudart_static -lrt -ldl
     OBJ += $(BUILD_DIR)/gpucode.o $(CUDA_OBJ)
     CPPFLAGS += -DHAVE_CUDA=1
@@ -124,9 +124,8 @@ dist: distclean
 	cp -r README.md LICENSE Dockerfile Makefile configure.ac config.mk.in \
 		installdeps.mk src docs build .dockerignore configure f5c-$(VERSION)
 	mkdir -p f5c-$(VERSION)/scripts
-	cp scripts/install-hdf5.sh scripts/install-hts.sh f5c-$(VERSION)/scripts
-	tar -cf f5c-$(VERSION).tar f5c-$(VERSION)
-	gzip f5c-$(VERSION).tar
+	cp scripts/install-hdf5.sh scripts/install-hts.sh scripts/test.sh f5c-$(VERSION)/scripts
+	tar -zcf f5c-$(VERSION).tar.gz f5c-$(VERSION)
 	rm -rf f5c-$(VERSION)
 
 install: $(BINARY)

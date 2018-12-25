@@ -29,7 +29,7 @@ make
 
 #### Method 2 (time consuming)
 
-Dependencies : Install the HDF5 and zlib development libraries
+Dependencies : Install the zlib development libraries
 ```
 On Debian/Ubuntu : sudo apt-get install zlib1g-dev
 On Fedora/CentOS : sudo dnf/yum install zlib-devel
@@ -39,10 +39,10 @@ Now build f5c
 ```
 git clone https://github.com/hasindug/f5c
 cd f5c
-autoreconf #optional
-scripts/install-hts.sh #optional
-scripts/install-hdf5.sh #optional
-./configure --enable-localhdf5 #optional
+autoreconf #not required if a release
+scripts/install-hts.sh
+scripts/install-hdf5.sh
+./configure --enable-localhdf5
 make
 ```
 
@@ -57,7 +57,7 @@ Now build f5c
 ```
 git clone https://github.com/hasindug/f5c
 cd f5c
-autoreconf
+autoreconf #not required if a release
 ./configure --enable-systemhts
 make
 ```

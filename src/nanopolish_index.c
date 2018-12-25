@@ -240,7 +240,7 @@ void parse_index_options(int argc, char** argv)
 {
     bool die = false;
     //std::vector< std::string> log_level;
-    for (char c; (c = getopt_long(argc, argv, shortopts, longopts, NULL)) != -1;) {
+    for (int c; (c = getopt_long(argc, argv, shortopts, longopts, NULL)) != -1;) {
         std::istringstream arg(optarg != NULL ? optarg : "");
         switch (c) {
             case OPT_HELP:

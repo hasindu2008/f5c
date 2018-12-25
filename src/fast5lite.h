@@ -204,7 +204,7 @@ static inline int32_t fast5_read(hid_t hdf5_file, fast5_t* f5) {
 
 
 
-//todo : make to C
+//todo : make to C (the following are used by the indexer)
 #include <string>
 static inline std::string fast5_get_fixed_string_attribute(hid_t hdf5_file, const std::string& group_name, const std::string& attribute_name)
 {

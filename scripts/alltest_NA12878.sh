@@ -56,14 +56,32 @@ done
 
 echo "Default test"
 make clean && make
-"${exepath}" call-methylation -b "${bamfile}" -g "${ref}" -r "${reads}" -t "${NCPU}"  -K256 -v5 > ${testdir}/result.txt
+"${exepath}" call-methylation -b "${bamfile}" -g "${ref}" -r "${reads}" -t "${NCPU}"  -K1024 -v5 > ${testdir}/result.txt 2> default.log
+evaluate
+
+echo "sectional benchmark"
+"${exepath}" call-methylation -b "${bamfile}" -g "${ref}" -r "${reads}" -t "${NCPU}"  -K1024 -v5 --profile=yes > ${testdir}/result.txt 2> profile.log
 evaluate
 
 echo "NO IO PROC INTERLEAVE test"
 make clean &&  CFLAGS+="-DIO_PROC_NO_INTERLEAVE=1" make
-"${exepath}" call-methylation -b "${bamfile}" -g "${ref}" -r "${reads}" -t "${NCPU}"  -K256 -v5 > ${testdir}/result.txt
+"${exepath}" call-methylation -b "${bamfile}" -g "${ref}" -r "${reads}" -t "${NCPU}"  -K1024 -v5 > ${testdir}/result.txt 2> no_io_proc.log
+evaluate
+
+echo "CUDA test"
+make clean && make cuda=1
+"${exepath}" call-methylation -b "${bamfile}" -g "${ref}" -r "${reads}" -t "${NCPU}"  -K256 -v5 > ${testdir}/result.txt 2> default_cuda.log
+evaluate
+
+echo "CUDA test : cuda disabled"
+make clean && make cuda=1
+"${exepath}" call-methylation -b "${bamfile}" -g "${ref}" -r "${reads}" -t "${NCPU}"  -K256 -v5 --disable-cuda=yes > ${testdir}/result.txt 2> cuda_disabled.log
 evaluate
 
 
+echo "CUDA test : dynamic malloc"
+make clean && CFLAGS_CUDA+="-DCUDA_DYNAMIC_MALLOC=1" make cuda=1
+"${exepath}" call-methylation -b "${bamfile}" -g "${ref}" -r "${reads}" -t "${NCPU}"  -K256 -v5 > ${testdir}/result.txt 2> cuda_malloc.log
+evaluate
 
 exit 0

@@ -4,16 +4,14 @@
 #include <stdint.h>
 
 #define CUDA_DEBUG 1 //whether perform CUDA_device_synchronise or not
-
 #define CUDA_PRE_MALLOC 1 //whether static cuda/cpu arrays are preallocated
-#define CPU_GPU_PROC 1 //CUDA_PRE_MALLOC does not have effect with this
-#define GPU_MAX_READ_LEN 20000 //work only with CPU_GPU_PROC
-
+#define CPU_GPU_PROC 1 //CUDA_PRE_MALLOC should be always 1 if this is set
+//#define CUDA_DYNAMIC_MALLOC 1 //only effective with CPU_GPU_PROC (whether big dynamic loops are statically preallocated)
 #define WARP_HACK 1 //whether the kernels are  performed in 1D with a warp hack (effective only  if specific TWODIM_ALIGN is not defined)
 
 //align-core-kernel options
 
-#define BLOCK_LEN_READS 1 //the block size along y axis (the number of reads)
+#define BLOCK_LEN_READS 1 //the block size along y axis (the number of reads) - never change this as you might end up with wrong answers
 #define BLOCK_LEN_BANDWIDTH 128 //the block size along the x axis, should be >= ALN_BANDWIDTH
 #define ALIGN_KERNEL_FLOAT 1 //(for 2d kernel only)
 
@@ -21,13 +19,27 @@
 #define BLOCK_LEN_NUMBAND 16    //the block size along the x axis (BANDWDITH)
 #define BLOCK_LEN_READS2 16 // //the block size along y axis (the number of reads)
 
+#define AVG_EVENTS_PER_KMER (core->opt.cuda_avg_events_per_kmer) // the average number of events per base/k-mer
+//AVG_EVENTS_PER_KMER is used to pre-allocate arrays on GPU that depends on the number of events
 
+//if average events per base of a read < AVG_EVENTS_PER_KMER_GPU_THRESH process on GPU
+//else go for the CPU
+#define AVG_EVENTS_PER_KMER_GPU_THRESH (core->opt.cuda_max_avg_events_per_kmer)
+
+#define AVG_EVENTS_PER_KMER_MAX 15.0f //if average events per base of a read >AVG_EVENTS_PER_KMER_MAX do not process
+
+#define TEGRA_MEM_FACTOR 0.7f //in tegra we cannot grab all  (can be overriden by user options)
+//the free memory as we have to reserve some space for RAM as well
+//TEGRA_MEM_FACTOR is the factor of the free memory allocated for the gpu
+
+#define MEM_FACTOR 0.9f //for non-tegra GPU. how much factor of the free memory to allocate (can be overriden by user options)
+
+#define REVERSAL_ON_CPU 1 //reversal of the backtracked array is performed on the CPU instead of the GPU
 
 /* check whether the last CUDA function or CUDA kernel launch is erroneous and if yes an error message will be printed
 and then the program will be aborted*/
 #define CUDA_CHK()                                                             \
     { gpu_assert(__FILE__, __LINE__); }
-
 
 
 __global__ void 
@@ -57,39 +69,73 @@ __global__ void align_kernel_post(AlignedPair* event_align_pairs,
 static inline void gpu_assert(const char* file, uint64_t line) {
     cudaError_t code = cudaGetLastError();
     if (code != cudaSuccess) {
-        fprintf(stderr, "Cuda error: %s \n in file : %s line number : %lu\n",
-                cudaGetErrorString(code), file, line);
+        fprintf(stderr, "[%s::ERROR]\033[1;31m Cuda error: %s \n in file : %s line number : %lu\033[0m\n",
+                __func__, cudaGetErrorString(code), file, line);
+        if (code == cudaErrorLaunchTimeout) {
+            ERROR("%s", "The kernel timed out. You have to first disable the cuda "
+                        "time out.");
+            fprintf(
+                stderr,
+                "On Ubuntu do the following\nOpen the file /etc/X11/xorg.conf\nYou "
+                "will have a section about your NVIDIA device. Add the following "
+                "line to it.\nOption \"Interactive\" \"0\"\nIf you do not have a "
+                "section about your NVIDIA device in /etc/X11/xorg.conf or you do "
+                "not have a file named /etc/X11/xorg.conf, run the command sudo "
+                "nvidia-xconfig to generate a xorg.conf file and do as above.\n\n");
+        }
         exit(-1);
     }
+
 }
 
 static inline int32_t cuda_exists() {
     //check cuda devices
-    int32_t nDevices;
+    int32_t nDevices=-1;
     cudaGetDeviceCount(&nDevices);
-    if (nDevices == 0) {
-        fprintf(stderr, "No CUDA device found. Use the CPU version\n");
+    cudaError_t code = cudaGetLastError();
+    if (code != cudaSuccess) {
+        fprintf(stderr, "[%s::ERROR]\033[1;31m Cuda error: %s \n in file : %s line number : %d\033[0m\n",
+                __func__, cudaGetErrorString(code), __FILE__, __LINE__);
+    }
+    if (nDevices <= 0) {
+        fprintf(stderr, "[%s::ERROR]\033[1;31m Could not initialise a cuda capable device. Some troubleshooting tips in order:\n"
+                        "1. Do you have an NVIDIA GPU? [lspci | grep -i vga]\n"
+                        "2. Have you installed the NVIDIA proprietary driver (not the open source nouveau driver)? [lspci -nnk | grep -iA2 vga | grep driver]\n"
+                        "3. If you GPU is tegra is the current user belongs to the [video] user group?"
+                        "4. Is your cuda driver too old? (the release binary compiled using cuda 6.5)"
+                        "Run with --disable-cuda=yes to run on the CPU\033[0m\n",__func__);
         exit(1);
     }
 
     return nDevices;
 }
 
+// static inline uint64_t cuda_freemem(int32_t devicenum) {
+//     cudaDeviceProp prop;
+//     cudaGetDeviceProperties(&prop, devicenum);
+//     fprintf(stderr, "Device name: %s\n", prop.name);
+//     uint64_t golabalmem = prop.totalGlobalMem;
+//     fprintf(stderr, "Total global memory: %lf GB\n",
+//             (golabalmem / double(1024 * 1024 * 1024)));
+//     uint64_t freemem, total;
+//     cudaMemGetInfo(&freemem, &total);
+//     fprintf(stderr, "%lf GB free of total %lf GB\n",
+//             freemem / double(1024 * 1024 * 1024),
+//             total / double(1024 * 1024 * 1024));
+
+//     return freemem;
+// }
+
 static inline uint64_t cuda_freemem(int32_t devicenum) {
-    cudaDeviceProp prop;
-    cudaGetDeviceProperties(&prop, devicenum);
-    fprintf(stderr, "Device name: %s\n", prop.name);
-    uint64_t golabalmem = prop.totalGlobalMem;
-    fprintf(stderr, "Total global memory: %lf GB\n",
-            (golabalmem / double(1024 * 1024 * 1024)));
+
     uint64_t freemem, total;
-    cudaMemGetInfo(&freemem, &total);
-    fprintf(stderr, "%lf GB free of total %lf GB\n",
+    cudaMemGetInfo(&freemem, &total); 
+    CUDA_CHK();
+    fprintf(stderr, "[%s] %.2f GB free of total %.2f GB GPU memory\n",__func__,
             freemem / double(1024 * 1024 * 1024),
             total / double(1024 * 1024 * 1024));
 
     return freemem;
 }
-
 
 #endif

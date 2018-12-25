@@ -82,9 +82,9 @@ static inline void print_size(const char* name, uint64_t bytes)
         count /= 1024;
     }
     if (count - floor(count) == 0.0)
-        fprintf(stderr, "%s : %d %s\n", name, (int)count, suffixes[s]);
+        fprintf(stderr, "[%s] %s : %d %s\n", __func__ , name, (int)count, suffixes[s]);
     else
-        fprintf(stderr, "%s : %.1f %s\n", name, count, suffixes[s]);
+        fprintf(stderr, "[%s] %s : %.1f %s\n", __func__, name, count, suffixes[s]);
 }
 
 
