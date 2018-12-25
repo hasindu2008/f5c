@@ -24,7 +24,7 @@ VERSION = `git describe --tags`
 
 ifdef cuda
     CUDA_ROOT = /usr/local/cuda
-    CUDA_LIB = $(CUDA_ROOT)/lib64
+    CUDA_LIB ?= $(CUDA_ROOT)/lib64
     CUDA_OBJ = $(BUILD_DIR)/f5c_cuda.o $(BUILD_DIR)/align_cuda.o
     NVCC = nvcc
     CUDA_CFLAGS += -g  -O2 -std=c++11 -lineinfo $(CUDA_ARCH) -Xcompiler -Wall
