@@ -305,7 +305,7 @@ int meth_main(int argc, char* argv[]) {
         fprintf(fp_help,"   --debug-break [INT]        break after processing the specified batch\n"); 
         fprintf(fp_help,"   --profile-cpu=yes|no       process section by section (used for profiling on CPU)\n"); 
 #ifdef HAVE_CUDA  
-        fprintf(fp_help,"   - cuda-mem-frac FLOAT      Fraction of free GPU memory to allocate [0.9 (0.7) for tegra)]\n");
+        fprintf(fp_help,"   - cuda-mem-frac FLOAT      Fraction of free GPU memory to allocate [0.9 (0.7 for tegra)]\n");
         fprintf(fp_help,"   --cuda-block-size\n");
 #endif
         if(fp_help == stdout){

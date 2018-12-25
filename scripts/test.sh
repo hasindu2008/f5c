@@ -92,15 +92,15 @@ do_the_test(){
 }
 
 mode_test() {
-	cmd="${exepath} call-methylation -b ${bamfile} -g ${ref} -r ${reads}"
+	cmd="${exepath} call-methylation -b ${bamfile} -g ${ref} -r ${reads} -t ${threads} -K $batchsize -B $max_bases"
 
 	case $1 in
 		valgrind) valgrind $cmd > /dev/null;;
 		gdb) gdb --args $cmd;;
-		cpu) $cmd --disable-cuda=yes > result.txt;do_the_test;;
-		cuda) $cmd --disable-cuda=no > result.txt;do_the_test;;
-		echo) echo "$cmd -t $threads > result.txt";;
-		custom) shift;$cmd $@ > result.txt;do_the_test;;
+		cpu) $cmd --disable-cuda=yes > ${testdir}/result.txt; do_the_test;;
+		cuda) $cmd --disable-cuda=no > ${testdir}/result.txt; do_the_test;;
+		echo) echo "$cmd -t $threads > ${testdir}/result.txt";;
+		custom) shift; $cmd $@ > ${testdir}/result.txt; do_the_test;;
 		*) die "Unknown mode: $1";;
 	esac
 }
