@@ -3,226 +3,18 @@ title: Comparison with Nanopolish
 chart: true
 ---
 
-The disk cache could have significant impact on the execution time of both f5c
-and nanopolish. Running without disk cache (for example, first f5c run) could be
-a performance bottleneck when number of threads is large enough, where you would
-not see any performance improvement because loading the files into memory takes
-more time than the actual processing.
-
-```chart
-{
-  "type": "line",
-  "data": {
-    "labels": [
-      "8",
-      "16",
-      "24",
-      "32",
-      "40",
-      "48",
-      "56",
-      "64",
-      "72"
-    ],
-    "datasets": [
-      {
-        "label": "f5c",
-        "fill": false,
-        "lineTension": 0.1,
-        "backgroundColor": "rgba(75,192,192,0.4)",
-        "borderColor": "rgba(75,192,192,1)",
-        "borderCapStyle": "butt",
-        "borderDash": [],
-        "borderDashOffset": 0,
-        "borderJoinStyle": "miter",
-        "pointBorderColor": "rgba(75,192,192,1)",
-        "pointBackgroundColor": "#fff",
-        "pointBorderWidth": 1,
-        "pointHoverRadius": 5,
-        "pointHoverBackgroundColor": "rgba(75,192,192,1)",
-        "pointHoverBorderColor": "rgba(220,220,220,1)",
-        "pointHoverBorderWidth": 2,
-        "pointRadius": 1,
-        "pointHitRadius": 10,
-        "data": [
-          163.09,
-          97.02,
-          74.64,
-          70.24,
-          65.78,
-          67.08,
-          64.85,
-          65.5,
-          66.19
-        ],
-        "spanGaps": false
-      },
-      {
-        "label": "nanpolish call-methylation",
-        "fill": false,
-        "lineTension": 0.1,
-        "backgroundColor": "rgba(255, 99, 132, 0.2)",
-        "borderColor": "rgba(255,99,132,1)",
-        "borderCapStyle": "butt",
-        "borderDash": [],
-        "borderDashOffset": 0,
-        "borderJoinStyle": "miter",
-        "pointBorderColor": "#fff",
-        "pointBackgroundColor": "rgba(255,99,132,1)",
-        "pointBorderWidth": 1,
-        "pointHoverRadius": 5,
-        "pointHoverBackgroundColor": "#fff",
-        "pointHoverBorderColor": "rgba(255,99,132,1)",
-        "pointHoverBorderWidth": 2,
-        "pointRadius": 1,
-        "pointHitRadius": 10,
-        "data": [
-          198,
-          111.78,
-          86.61,
-          79.14,
-          81,
-          95.61,
-          99.59,
-          101.29,
-          101.53
-        ],
-        "spanGaps": false
-      }
-    ]
-  },
-  "options": {
-    "title": {
-      "display": true,
-      "text": "Execution time with respect to number of threads"
-    },
-    "scales": {
-      "yAxes": [{
-        "scaleLabel": {
-          "display": true,
-          "labelString": "time/s"
-        }
-      }],
-      "xAxes": [{
-        "scaleLabel": {
-          "display": true,
-          "labelString": "threads"
-        }
-      }]
-    }
-  }
-}
-```
-
-```chart
-{
-  "type": "line",
-  "data": {
-    "labels": [
-      "8",
-      "16",
-      "24",
-      "32",
-      "40",
-      "48",
-      "56",
-      "64",
-      "72"
-    ],
-    "datasets": [
-      {
-        "label": "f5c",
-        "fill": false,
-        "lineTension": 0.1,
-        "backgroundColor": "rgba(75,192,192,0.4)",
-        "borderColor": "rgba(75,192,192,1)",
-        "borderCapStyle": "butt",
-        "borderDash": [],
-        "borderDashOffset": 0,
-        "borderJoinStyle": "miter",
-        "pointBorderColor": "rgba(75,192,192,1)",
-        "pointBackgroundColor": "#fff",
-        "pointBorderWidth": 1,
-        "pointHoverRadius": 5,
-        "pointHoverBackgroundColor": "rgba(75,192,192,1)",
-        "pointHoverBorderColor": "rgba(220,220,220,1)",
-        "pointHoverBorderWidth": 2,
-        "pointRadius": 1,
-        "pointHitRadius": 10,
-        "data": [
-          172.23,
-          161.02,
-          161.93,
-          163.3,
-          164.45,
-          164.49,
-          161.69,
-          164.33,
-          161.32
-        ],
-        "spanGaps": false
-      },
-      {
-        "label": "nanpolish call-methylation",
-        "fill": false,
-        "lineTension": 0.1,
-        "backgroundColor": "rgba(255, 99, 132, 0.2)",
-        "borderColor": "rgba(255,99,132,1)",
-        "borderCapStyle": "butt",
-        "borderDash": [],
-        "borderDashOffset": 0,
-        "borderJoinStyle": "miter",
-        "pointBorderColor": "#fff",
-        "pointBackgroundColor": "rgba(255,99,132,1)",
-        "pointBorderWidth": 1,
-        "pointHoverRadius": 5,
-        "pointHoverBackgroundColor": "#fff",
-        "pointHoverBorderColor": "rgba(255,99,132,1)",
-        "pointHoverBorderWidth": 2,
-        "pointRadius": 1,
-        "pointHitRadius": 10,
-        "data": [
-          240.73,
-          177.72,
-          185.99,
-          183.68,
-          186.64,
-          193.32,
-          195.66,
-          198.39,
-          200.18
-        ],
-        "spanGaps": false
-      }
-    ]
-  },
-  "options": {
-    "title": {
-      "display": true,
-      "text": "Execution time with respect to number of threads (without disk cache)"
-    },
-    "scales": {
-      "yAxes": [{
-        "scaleLabel": {
-          "display": true,
-          "labelString": "time/s"
-        }
-      }],
-      "xAxes": [{
-        "scaleLabel": {
-          "display": true,
-          "labelString": "threads"
-        }
-      }]
-    }
-  }
-}
-```
-
----
-
 Performance can best be benchmarked by putting the data set in ramdisk, where
-disk cache has no effect on the execution time of both f5c and nanopolish.
+disk cache has no effect on the execution time of both f5c and nanopolish (more
+on this in the second half of this page). For the sake of a complete comparison,
+a benchmark with data set on mechanical disks is included as well.
+
+Note that in this benchmark nanopolish v0.9.0 is used since this is the version
+that f5c aims to improve the performance on.
+
+Options used for both f5c and nanopolish:
+- secondary: yes
+- min-mapq: 0
+- batch size: 512
 
 ```chart
 {
@@ -433,6 +225,225 @@ disk cache has no effect on the execution time of both f5c and nanopolish.
   }
 }
 ```
-
 Now we can see that there is an approximately 1.5x to 2x performance improvement
-when using f5c.
+over nanopolish when using f5c.
+
+---
+
+The disk cache could have significant impact on the execution time of both f5c
+and nanopolish. Running without disk cache (for example, first f5c run) could be
+a performance bottleneck when number of threads is large enough, where you would
+not see any performance improvement because loading the files into memory takes
+more time than the actual processing.
+
+This benchmark is tested on f5c dev branch and nanopolish v0.10.2.
+
+```chart
+{
+  "type": "line",
+  "data": {
+    "labels": [
+      "8",
+      "16",
+      "24",
+      "32",
+      "40",
+      "48",
+      "56",
+      "64",
+      "72"
+    ],
+    "datasets": [
+      {
+        "label": "f5c",
+        "fill": false,
+        "lineTension": 0.1,
+        "backgroundColor": "rgba(75,192,192,0.4)",
+        "borderColor": "rgba(75,192,192,1)",
+        "borderCapStyle": "butt",
+        "borderDash": [],
+        "borderDashOffset": 0,
+        "borderJoinStyle": "miter",
+        "pointBorderColor": "rgba(75,192,192,1)",
+        "pointBackgroundColor": "#fff",
+        "pointBorderWidth": 1,
+        "pointHoverRadius": 5,
+        "pointHoverBackgroundColor": "rgba(75,192,192,1)",
+        "pointHoverBorderColor": "rgba(220,220,220,1)",
+        "pointHoverBorderWidth": 2,
+        "pointRadius": 1,
+        "pointHitRadius": 10,
+        "data": [
+          163.09,
+          97.02,
+          74.64,
+          70.24,
+          65.78,
+          67.08,
+          64.85,
+          65.5,
+          66.19
+        ],
+        "spanGaps": false
+      },
+      {
+        "label": "nanpolish call-methylation",
+        "fill": false,
+        "lineTension": 0.1,
+        "backgroundColor": "rgba(255, 99, 132, 0.2)",
+        "borderColor": "rgba(255,99,132,1)",
+        "borderCapStyle": "butt",
+        "borderDash": [],
+        "borderDashOffset": 0,
+        "borderJoinStyle": "miter",
+        "pointBorderColor": "#fff",
+        "pointBackgroundColor": "rgba(255,99,132,1)",
+        "pointBorderWidth": 1,
+        "pointHoverRadius": 5,
+        "pointHoverBackgroundColor": "#fff",
+        "pointHoverBorderColor": "rgba(255,99,132,1)",
+        "pointHoverBorderWidth": 2,
+        "pointRadius": 1,
+        "pointHitRadius": 10,
+        "data": [
+          198,
+          111.78,
+          86.61,
+          79.14,
+          81,
+          95.61,
+          99.59,
+          101.29,
+          101.53
+        ],
+        "spanGaps": false
+      }
+    ]
+  },
+  "options": {
+    "title": {
+      "display": true,
+      "text": "Execution time with respect to number of threads"
+    },
+    "scales": {
+      "yAxes": [{
+        "scaleLabel": {
+          "display": true,
+          "labelString": "time/s"
+        }
+      }],
+      "xAxes": [{
+        "scaleLabel": {
+          "display": true,
+          "labelString": "threads"
+        }
+      }]
+    }
+  }
+}
+```
+
+```chart
+{
+  "type": "line",
+  "data": {
+    "labels": [
+      "8",
+      "16",
+      "24",
+      "32",
+      "40",
+      "48",
+      "56",
+      "64",
+      "72"
+    ],
+    "datasets": [
+      {
+        "label": "f5c",
+        "fill": false,
+        "lineTension": 0.1,
+        "backgroundColor": "rgba(75,192,192,0.4)",
+        "borderColor": "rgba(75,192,192,1)",
+        "borderCapStyle": "butt",
+        "borderDash": [],
+        "borderDashOffset": 0,
+        "borderJoinStyle": "miter",
+        "pointBorderColor": "rgba(75,192,192,1)",
+        "pointBackgroundColor": "#fff",
+        "pointBorderWidth": 1,
+        "pointHoverRadius": 5,
+        "pointHoverBackgroundColor": "rgba(75,192,192,1)",
+        "pointHoverBorderColor": "rgba(220,220,220,1)",
+        "pointHoverBorderWidth": 2,
+        "pointRadius": 1,
+        "pointHitRadius": 10,
+        "data": [
+          172.23,
+          161.02,
+          161.93,
+          163.3,
+          164.45,
+          164.49,
+          161.69,
+          164.33,
+          161.32
+        ],
+        "spanGaps": false
+      },
+      {
+        "label": "nanpolish call-methylation",
+        "fill": false,
+        "lineTension": 0.1,
+        "backgroundColor": "rgba(255, 99, 132, 0.2)",
+        "borderColor": "rgba(255,99,132,1)",
+        "borderCapStyle": "butt",
+        "borderDash": [],
+        "borderDashOffset": 0,
+        "borderJoinStyle": "miter",
+        "pointBorderColor": "#fff",
+        "pointBackgroundColor": "rgba(255,99,132,1)",
+        "pointBorderWidth": 1,
+        "pointHoverRadius": 5,
+        "pointHoverBackgroundColor": "#fff",
+        "pointHoverBorderColor": "rgba(255,99,132,1)",
+        "pointHoverBorderWidth": 2,
+        "pointRadius": 1,
+        "pointHitRadius": 10,
+        "data": [
+          240.73,
+          177.72,
+          185.99,
+          183.68,
+          186.64,
+          193.32,
+          195.66,
+          198.39,
+          200.18
+        ],
+        "spanGaps": false
+      }
+    ]
+  },
+  "options": {
+    "title": {
+      "display": true,
+      "text": "Execution time with respect to number of threads (without disk cache)"
+    },
+    "scales": {
+      "yAxes": [{
+        "scaleLabel": {
+          "display": true,
+          "labelString": "time/s"
+        }
+      }],
+      "xAxes": [{
+        "scaleLabel": {
+          "display": true,
+          "labelString": "threads"
+        }
+      }]
+    }
+  }
+}
+```
