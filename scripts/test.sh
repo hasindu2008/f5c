@@ -100,6 +100,7 @@ mode_test() {
 		cpu) $cmd --disable-cuda=yes > ${testdir}/result.txt; do_the_test;;
 		cuda) $cmd --disable-cuda=no > ${testdir}/result.txt; do_the_test;;
 		echo) echo "$cmd -t $threads > ${testdir}/result.txt";;
+		nvprof) nvprof  -f --analysis-metrics -o profile.nvprof $cmd --disable-cuda=no --debug-break=5 > /dev/null;;
 		custom) shift; $cmd $@ > ${testdir}/result.txt; do_the_test;;
 		*) die "Unknown mode: $1";;
 	esac
