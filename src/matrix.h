@@ -36,7 +36,7 @@ void allocate_matrix(Matrix<T>& matrix, uint32_t n_rows, uint32_t n_cols)
 {
     matrix.n_rows = n_rows;
     matrix.n_cols = n_cols;
-    
+
     uint32_t N = matrix.n_rows * matrix.n_cols;
     matrix.cells = (T*)malloc(N * sizeof(T));
     memset(matrix.cells, 0, N * sizeof(T));
@@ -60,14 +60,12 @@ void copy_matrix(Matrix<T>& new_matrix, const Matrix<T>& old_matrix)
     memcpy(new_matrix.cells, old_matrix.cells, bytes);
 }
 
-//
 template<typename T>
 inline uint32_t cell(const Matrix<T>& matrix, uint32_t row, uint32_t col)
 {
     return row * matrix.n_cols + col;
 }
 
-//
 template<typename T, typename U>
 inline void set(Matrix<T>& matrix, uint32_t row, uint32_t col, U v)
 {
@@ -75,7 +73,6 @@ inline void set(Matrix<T>& matrix, uint32_t row, uint32_t col, U v)
     matrix.cells[c] = v;
 }
 
-// 
 template<typename T>
 inline T get(const Matrix<T>& matrix, uint32_t row, uint32_t col)
 {

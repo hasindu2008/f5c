@@ -282,7 +282,7 @@ static inline std::string fast5_get_read_id(hid_t hdf5_file)
 {
 
     std::string out = "";
-    
+
     // Get the path to the raw read group
     // retrieve the size of the read name
     ssize_t size = H5Lget_name_by_idx(hdf5_file, RAW_ROOT, H5_INDEX_NAME,

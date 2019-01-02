@@ -38,7 +38,7 @@ void read_model(model_t* model, const char* file) {
             continue;
         } else {
             //as sd_mean and sd_stdv seems not to be used just read to the summy weight
-            #ifdef LOAD_SD_MEANSSTDV           
+            #ifdef LOAD_SD_MEANSSTDV
                 int32_t ret =
                     sscanf(buffer, "%s\t%f\t%f\t%f\t%f\t%f", kmer,
                         &model[num_k].level_mean, &model[num_k].level_stdv,
@@ -94,7 +94,7 @@ void set_model(model_t* model) {
             r9_4_450bps_nucleotide_6mer_template_model_builtin_data[i * 4 + 0];
         model[i].level_stdv =
             r9_4_450bps_nucleotide_6mer_template_model_builtin_data[i * 4 + 1];
-    #ifdef LOAD_SD_MEANSSTDV     
+    #ifdef LOAD_SD_MEANSSTDV
         model[i].sd_mean =
             r9_4_450bps_nucleotide_6mer_template_model_builtin_data[i * 4 + 2];
         model[i].sd_stdv =
@@ -123,7 +123,7 @@ void set_cpgmodel(model_t* model) {
             r9_4_450bps_cpg_6mer_template_model_builtin_data[i * 4 + 0];
         model[i].level_stdv =
             r9_4_450bps_cpg_6mer_template_model_builtin_data[i * 4 + 1];
-    #ifdef LOAD_SD_MEANSSTDV              
+    #ifdef LOAD_SD_MEANSSTDV
         model[i].sd_mean =
             r9_4_450bps_cpg_6mer_template_model_builtin_data[i * 4 + 2];
         model[i].sd_stdv =

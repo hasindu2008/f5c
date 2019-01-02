@@ -28,7 +28,7 @@ static inline uint32_t get_rank(char base) {
     } else if (base == 'M') {
         return 3;
     } else if (base == 'T') {
-        return 4;        
+        return 4;
     } else {
         WARNING("A None ACGMT base found : %c", base);
         return 0;
@@ -81,7 +81,7 @@ static inline float log_probability_match_r9(scalings_t scaling,
     //GaussianParameters gp = read.get_scaled_gaussian_from_pore_model_state(pore_model, strand, kmer_rank);
     float gp_mean =
         scaling.scale * models[kmer_rank].level_mean + scaling.shift;
-    float gp_stdv = models[kmer_rank].level_stdv * scaling.var; 
+    float gp_stdv = models[kmer_rank].level_stdv * scaling.var;
     // float gp_stdv = 0;
     // float gp_log_stdv = models[kmer_rank].level_log_stdv + scaling.log_var;
     // if(models[kmer_rank].level_stdv <0.01 ){
@@ -89,10 +89,10 @@ static inline float log_probability_match_r9(scalings_t scaling,
     // }
 #ifdef CACHED_LOG
     float gp_log_stdv =
-        models[kmer_rank].level_log_stdv + scaling.log_var; 
+        models[kmer_rank].level_log_stdv + scaling.log_var;
 #else
     float gp_log_stdv =
-        log(models[kmer_rank].level_stdv) + log(scaling.var); 
+        log(models[kmer_rank].level_stdv) + log(scaling.var);
 #endif
 
     float lp = log_normal_pdf(scaledLevel, gp_mean, gp_stdv, gp_log_stdv);
@@ -174,7 +174,7 @@ inline std::vector<float> make_pre_flanking(const uint32_t e_start,
                                             int8_t event_stride)
 {
     std::vector<float> pre_flank(num_events + 1, 0.0f);
-    
+
     // base cases
 
     // no skipping
@@ -192,13 +192,13 @@ inline std::vector<float> make_pre_flanking(const uint32_t e_start,
     // skip the remaining events
     for(size_t i = 2; i < pre_flank.size(); ++i) {
         //uint32_t event_idx = e_start + (i - 1) * event_stride;
-        // pre_flank[i] = log(TRANS_CLIP_SELF) + 
+        // pre_flank[i] = log(TRANS_CLIP_SELF) +
         //                log_probability_background(*data.read, event_idx, data.strand) + // emit from background
         //                pre_flank[i - 1]; // this accounts for the transition from the start & to the silent pre
-        pre_flank[i] = log(TRANS_CLIP_SELF) + 
+        pre_flank[i] = log(TRANS_CLIP_SELF) +
                        -3.0f + // emit from background
                        pre_flank[i - 1]; // this accounts for the transition from the start & to the silent pre
-    
+
     }
 
     return pre_flank;
@@ -241,16 +241,16 @@ inline std::vector<BlockTransitions> calculate_transitions(uint32_t num_kmers, c
                                                                                 double events_per_base)
 {
     std::vector<BlockTransitions> transitions(num_kmers);
-    
+
     //double read_events_per_base = data.read->events_per_base[data.strand];
     double read_events_per_base = events_per_base;
     for(uint32_t ki = 0; ki < num_kmers; ++ki) {
 
         // probability of skipping k_i from k_(i - 1)
         //float p_stay = 0.4;
-        float p_stay = 1 - (1 / read_events_per_base); 
+        float p_stay = 1 - (1 / read_events_per_base);
 #ifndef USE_EXTERNAL_PARAMS
-        float p_skip = 0.0025; 
+        float p_skip = 0.0025;
         float p_bad = 0.001;
         float p_bad_self = p_bad;
         float p_skip_self = 0.3;
@@ -289,7 +289,7 @@ inline std::vector<BlockTransitions> calculate_transitions(uint32_t num_kmers, c
         bt.lp_bk = log(p_bk);
         bt.lp_bm_next = log(p_bm_next);
         bt.lp_bm_self = log(p_bm_self);
-        
+
         bt.lp_kk = log(p_kk);
         bt.lp_km = log(p_km);
     }
@@ -324,8 +324,8 @@ inline float profile_hmm_fill_generic_r9(const char *m_seq,
 #if HMM_REVERSE_FIX
     if(event_stride == -1) {
         // sequence.swap();
-        char *temp = m_seq; 
-        m_seq = m_rc_seq; 
+        char *temp = m_seq;
+        m_seq = m_rc_seq;
         m_rc_seq = temp;
         uint32_t tmp = event_stop_idx;
         event_stop_idx = event_start_idx;
@@ -336,7 +336,7 @@ inline float profile_hmm_fill_generic_r9(const char *m_seq,
 #endif
 
     //e_start = event_start_idx;
-    
+
     // Calculate number of blocks
     // A block of the HMM is a set of states for one kmer
     uint32_t num_blocks = output.get_num_columns() / PSR9_NUM_STATES;
@@ -346,10 +346,10 @@ inline float profile_hmm_fill_generic_r9(const char *m_seq,
     // Precompute the transition probabilites for each kmer block
     uint32_t num_kmers = num_blocks - 2; // two terminal blocks
     uint32_t last_kmer_idx = num_kmers - 1;
-    
-	
 
-	
+
+
+
     std::vector<BlockTransitions> transitions = calculate_transitions(num_kmers,
                                                                         m_seq,
                                                                         m_rc_seq,
@@ -362,7 +362,7 @@ inline float profile_hmm_fill_generic_r9(const char *m_seq,
                                                                         event_stride,
                                                                         rc,
                                                                         events_per_base);
- 
+
     // Precompute kmer ranks
     // const uint32_t k = data.pore_model->k;
     //const uint32_t k = KMER_SIZE;
@@ -399,7 +399,7 @@ inline float profile_hmm_fill_generic_r9(const char *m_seq,
 
     std::vector<float> pre_flank = make_pre_flanking(e_start, num_events,event_stride);
     std::vector<float> post_flank = make_post_flanking(e_start, num_events,event_stride,event_stop_idx);
-    
+
     // The model is currently constrainted to always transition
     // from the terminal/clipped state to the first kmer (and from the
     // last kmer to the terminal/clipping state so these are log(1.0).
@@ -424,7 +424,7 @@ inline float profile_hmm_fill_generic_r9(const char *m_seq,
             uint32_t prev_block = block - 1;
             uint32_t prev_block_offset = PSR9_NUM_STATES * prev_block;
             uint32_t curr_block_offset = PSR9_NUM_STATES * block;
-            
+
             // Emission probabilities
             uint32_t event_idx = e_start + (row - 1) * event_stride;
             uint32_t rank = kmer_ranks[kmer_idx];
@@ -445,14 +445,14 @@ inline float profile_hmm_fill_generic_r9(const char *m_seq,
             scores.x[HMT_FROM_PREV_K] = bt.lp_km + output.get(row - 1, prev_block_offset + PSR9_KMER_SKIP);
 
             // m_s is the probability of going from the start state
-            // to this kmer. The start state is (currently) only 
+            // to this kmer. The start state is (currently) only
             // allowed to go to the first kmer. If ALLOW_PRE_CLIP
             // is defined, we allow all events before this one to be skipped,
             // with a penalty;
             scores.x[HMT_FROM_SOFT] = (kmer_idx == 0 &&
                                         (event_idx == e_start ||
                                              (hmm_flags & HAF_ALLOW_PRE_CLIP))) ? lp_sm + pre_flank[row - 1] : -INFINITY;
-            
+
             output.update_cell(row, curr_block_offset + PSR9_MATCH, scores, lp_emission_m);
 
             // state PSR9_BAD_EVENT
@@ -474,7 +474,7 @@ inline float profile_hmm_fill_generic_r9(const char *m_seq,
             output.update_cell(row, curr_block_offset + PSR9_KMER_SKIP, scores, 0.0f); // no emission
 
             // If POST_CLIP is enabled we allow the last kmer to transition directly
-            // to the end after any event. Otherwise we only allow it from the 
+            // to the end after any event. Otherwise we only allow it from the
             // last kmer/event match.
             if(kmer_idx == last_kmer_idx && ( (hmm_flags & HAF_ALLOW_POST_CLIP) || row == last_event_row_idx)) {
                 float lp1 = lp_ms + output.get(row, curr_block_offset + PSR9_MATCH) + post_flank[row - 1];
@@ -491,24 +491,24 @@ inline float profile_hmm_fill_generic_r9(const char *m_seq,
             printf("[%d %d]   end: %.2lf post: %.2lf\n", event_idx, kmer_idx, lp_end, post_flank[row - 1]);
 #endif
 
-#ifdef DEBUG_FILL    
+#ifdef DEBUG_FILL
             printf("Row %u block %u\n", row, block);
 
-            printf("\tPSR9_MATCH -- Transitions: [%.3lf %.3lf %.3lf %.3lf %.3lf] Prev: [%.2lf %.2lf %.2lf %.2lf %.2lf] out: %.2lf\n", 
-                    bt.lp_mm_self, bt.lp_mm_next, bt.lp_bm_self, bt.lp_bm_next, bt.lp_km, 
+            printf("\tPSR9_MATCH -- Transitions: [%.3lf %.3lf %.3lf %.3lf %.3lf] Prev: [%.2lf %.2lf %.2lf %.2lf %.2lf] out: %.2lf\n",
+                    bt.lp_mm_self, bt.lp_mm_next, bt.lp_bm_self, bt.lp_bm_next, bt.lp_km,
                     output.get(row - 1, prev_block_offset + PSR9_MATCH),
                     output.get(row - 1, curr_block_offset + PSR9_MATCH),
                     output.get(row - 1, prev_block_offset + PSR9_BAD_EVENT),
                     output.get(row - 1, curr_block_offset + PSR9_BAD_EVENT),
                     output.get(row - 1, prev_block_offset + PSR9_KMER_SKIP),
                     output.get(row, curr_block_offset + PSR9_MATCH));
-            printf("\tPSR9_BAD_EVENT -- Transitions: [%.3lf %.3lf] Prev: [%.2lf %.2lf] out: %.2lf\n", 
+            printf("\tPSR9_BAD_EVENT -- Transitions: [%.3lf %.3lf] Prev: [%.2lf %.2lf] out: %.2lf\n",
                     bt.lp_mb, bt.lp_bb,
                     output.get(row - 1, curr_block_offset + PSR9_MATCH),
                     output.get(row - 1, curr_block_offset + PSR9_BAD_EVENT),
                     output.get(row, curr_block_offset + PSR9_BAD_EVENT));
 
-            printf("\tPSR9_KMER_SKIP -- Transitions: [%.3lf %.3lf %.3lf] Prev: [%.2lf %.2lf %.2lf] sum: %.2lf\n", 
+            printf("\tPSR9_KMER_SKIP -- Transitions: [%.3lf %.3lf %.3lf] Prev: [%.2lf %.2lf %.2lf] sum: %.2lf\n",
                     bt.lp_mk, bt.lp_bk, bt.lp_kk,
                     output.get(row, prev_block_offset + PSR9_MATCH),
                     output.get(row, prev_block_offset + PSR9_BAD_EVENT),
@@ -519,7 +519,7 @@ inline float profile_hmm_fill_generic_r9(const char *m_seq,
 #endif
         }
     }
-    
+
     return output.get_end();
 }
 
@@ -550,10 +550,10 @@ class ProfileHMMForwardOutputR9
 {
     public:
         ProfileHMMForwardOutputR9(FloatMatrix* p) : p_fm(p), lp_end(-INFINITY) {
-		//p7_FLogsumInit(); 
+		//p7_FLogsumInit();
         //commented by hasindu
 	}
-        
+
         //
         inline void update_cell(uint32_t row, uint32_t col, const HMMUpdateScores& scores, float lp_emission)
         {
@@ -592,7 +592,7 @@ class ProfileHMMForwardOutputR9
         {
             return p_fm->n_rows;
         }
-    
+
     private:
         ProfileHMMForwardOutputR9(); // not allowed
         FloatMatrix* p_fm;
@@ -662,10 +662,10 @@ float profile_hmm_score_r9(const char *m_seq,
                                                 event_stop_idx,
                                                 strand,
                                                 event_stride,
-                                                rc, 
+                                                rc,
                                                 e_start,
-                                                events_per_base, 
-                                                hmm_flags, 
+                                                events_per_base,
+                                                hmm_flags,
                                                 output);
 
     // cleanup
@@ -703,7 +703,7 @@ float profile_hmm_score(
 
     #endif
 
-	
+
 	return profile_hmm_score_r9(m_seq,
 								m_rc_seq,
 								event,

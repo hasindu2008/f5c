@@ -161,7 +161,7 @@ static inline float log_probability_match_r9(scalings_t scaling,
 #ifdef ALIGN_2D_ARRAY
     #define BAND_ARRAY(r, c) ( bands[(r)][(c)] )
     #define TRACE_ARRAY(r, c) ( trace[(r)][(c)] )
-#else    
+#else
     #define BAND_ARRAY(r, c) ( bands[((r)*(ALN_BANDWIDTH)+(c))] )
     #define TRACE_ARRAY(r, c) ( trace[((r)*(ALN_BANDWIDTH)+(c))] )
 #endif
@@ -231,10 +231,10 @@ int32_t align(AlignedPair* out_2, char* sequence, int32_t sequence_len,
     float* bands = (float*)malloc(sizeof(float) * n_bands * bandwidth);
     MALLOC_CHK(bands);
     uint8_t* trace = (uint8_t*)malloc(sizeof(uint8_t) * n_bands * bandwidth);
-    MALLOC_CHK(trace);    
+    MALLOC_CHK(trace);
 #endif
     for (size_t i = 0; i < n_bands; i++) {
-    #ifdef ALIGN_2D_ARRAY    
+    #ifdef ALIGN_2D_ARRAY
         bands[i] = (float*)malloc(sizeof(float) * bandwidth);
         MALLOC_CHK(bands[i]);
         trace[i] = (uint8_t*)malloc(sizeof(uint8_t) * bandwidth);
@@ -262,7 +262,7 @@ int32_t align(AlignedPair* out_2, char* sequence, int32_t sequence_len,
     //std::vector<EventKmerPair> band_lower_left(n_);
     //<<<<<<<<<<<<<<<<<New Replacement over
 
-    // initialize range of first two 
+    // initialize range of first two
     band_lower_left[0].event_idx = half_bandwidth - 1;
     band_lower_left[0].kmer_idx = -1 - half_bandwidth;
     band_lower_left[1] = move_down(band_lower_left[0]);
@@ -532,7 +532,7 @@ int32_t align(AlignedPair* out_2, char* sequence, int32_t sequence_len,
     }
 
     free(kmer_ranks);
-#ifdef ALIGN_2D_ARRAY    
+#ifdef ALIGN_2D_ARRAY
     for (size_t i = 0; i < n_bands; i++) {
         free(bands[i]);
         free(trace[i]);
@@ -745,7 +745,7 @@ bool recalibrate_model(model_t* pore_model, event_table et,
         scallings->scale = scale;
         //scallings->drift=drift;
         scallings->var = var;
-#ifdef CACHED_LOG        
+#ifdef CACHED_LOG
         scallings->log_var = log(var);
 #endif
 

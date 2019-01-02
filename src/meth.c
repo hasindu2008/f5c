@@ -10,7 +10,7 @@
 
 #define METH_DEBUG 1
 
-//following Code is adapted from Nanopolish 
+//following Code is adapted from Nanopolish
 
 int32_t get_aligned_segments(const bam1_t* record, int read_stride, AlignedPair *segments, int32_t read_len)
 {
@@ -30,11 +30,11 @@ int32_t get_aligned_segments(const bam1_t* record, int read_stride, AlignedPair 
     // query pos is an index in the query string that is recorded in the bam
     // we record this as a sanity check
     //int query_pos = 0;
-    
+
     int ref_pos = c->pos;
 
     for (uint32_t ci = 0; ci < c->n_cigar; ++ci) {
-        
+
         int cigar_len = cigar[ci] >> 4;
         int cigar_op = cigar[ci] & 0xf;
 
@@ -42,7 +42,7 @@ int32_t get_aligned_segments(const bam1_t* record, int read_stride, AlignedPair 
         // based on the cigar operation
         int read_inc = 0;
         int ref_inc = 0;
- 
+
         // Process match between the read and the reference
         bool is_aligned = false;
         if(cigar_op == BAM_CMATCH || cigar_op == BAM_CEQUAL || cigar_op == BAM_CDIFF) {
@@ -50,7 +50,7 @@ int32_t get_aligned_segments(const bam1_t* record, int read_stride, AlignedPair 
             read_inc = read_stride;
             ref_inc = 1;
         } else if(cigar_op == BAM_CDEL) {
-            ref_inc = 1;   
+            ref_inc = 1;
         } else if(cigar_op == BAM_CREF_SKIP) {
             // end the current segment and start a new one
             fprintf(stderr, "Error: spliced alignments detected when loading read %s\n", bam_get_qname(record));
@@ -89,7 +89,7 @@ int32_t get_aligned_segments(const bam1_t* record, int read_stride, AlignedPair 
 
 
 // helper for get_closest_event_to
-int get_next_event(int start, int stop, int stride,index_pair_t* base_to_event_map) 
+int get_next_event(int start, int stop, int stride,index_pair_t* base_to_event_map)
 {
     while(start != stop) {
 
@@ -142,7 +142,7 @@ int32_t get_event_alignment_record(const bam1_t* record,int32_t read_length, ind
     //this->sr = sr;
     int32_t k = KMER_SIZE;
     //size_t read_length = this->sr->read_sequence.length();
-    
+
     for(int32_t i = 0; i < segments_size; ++i) {
         // skip positions at the boundary
         if(seq_record[i].read_pos < k) {
@@ -175,7 +175,7 @@ int32_t get_event_alignment_record(const bam1_t* record,int32_t read_length, ind
 	    *aligned_events_ptr = NULL;
 	    aligned_events_size = 0;
         }
-    } 
+    }
     // else {
     //     stride = 1;
     // }
@@ -342,11 +342,11 @@ inline RecognitionMatch match_to_site(const std::string& str, size_t i, const ch
             match.offset = 0;
             match.length = cl;
         }
-    }   
+    }
 
     //printf("Match site: %s %s %s %d %d\n", str.c_str(), str.substr(i).c_str(), recognition, match.offset, match.length);
     if(match.length > 0) {
-        match.covers_methylated_site = 
+        match.covers_methylated_site =
             str.substr(i, match.length).find_first_of(METHYLATED_SYMBOL) != std::string::npos;
     }
 
@@ -356,7 +356,7 @@ inline RecognitionMatch match_to_site(const std::string& str, size_t i, const ch
 
 // If the alphabet supports methylated bases, convert str
 // to a methylated string using the recognition sites
-std::string methylate(const std::string& str) 
+std::string methylate(const std::string& str)
 {
     std::string out(str);
     size_t i = 0;
@@ -384,7 +384,7 @@ std::string methylate(const std::string& str)
 // reverse-complement a string meth aware
 // when the string contains methylated bases, the methylation
 // symbol transfered to the output strand in the appropriate position
-std::string reverse_complement_meth(const std::string& str) 
+std::string reverse_complement_meth(const std::string& str)
 {
     std::string out(str.length(), 'A');
     size_t i = 0; // input
@@ -470,8 +470,8 @@ bool find_by_ref_bounds(const AlignedPair *pairs, size_t pairs_size, int ref_sta
 
 // struct ScoredSite
 // {
-//     ScoredSite() 
-//     { 
+//     ScoredSite()
+//     {
 //         ll_unmethylated[0] = 0;
 //         ll_unmethylated[1] = 0;
 //         ll_methylated[0] = 0;
@@ -501,7 +501,7 @@ bool find_by_ref_bounds(const AlignedPair *pairs, size_t pairs_size, int ref_sta
 void calculate_methylation_for_read(std::map<int, ScoredSite>* site_score_map, char* ref, bam1_t* record, int32_t read_length, event_t* event, index_pair_t* base_to_event_map,
 scalings_t scaling, model_t* cpgmodel,double events_per_base) {
 
-    
+
     //todo : have to check this, if required have to implement
     // if(!sr.has_events_for_strand(strand_idx)) {
     //     continue;

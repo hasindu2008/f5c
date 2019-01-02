@@ -42,11 +42,11 @@ and then the program will be aborted*/
     { gpu_assert(__FILE__, __LINE__); }
 
 
-__global__ void 
+__global__ void
 //__launch_bounds__(MY_KERNEL_MAX_THREADS, MY_KERNEL_MIN_BLOCKS)
 align_kernel_core_2d_shm(int32_t* read_len, int32_t* read_ptr,
     event_t* event_table, int32_t* n_events1,
-    int32_t* event_ptr, 
+    int32_t* event_ptr,
     scalings_t* scalings, int32_t n_bam_rec,model_t* model_kmer_caches,float *band,uint8_t *traces, EventKmerPair* band_lower_lefts) ;
 
 __global__ void align_kernel_pre_2d(char* read,
@@ -57,10 +57,10 @@ __global__ void align_kernel_pre_2d(char* read,
 
 
 __global__ void align_kernel_post(AlignedPair* event_align_pairs,
-    int32_t* n_event_align_pairs, 
+    int32_t* n_event_align_pairs,
     int32_t* read_len, int32_t* read_ptr,
     event_t* event_table, int32_t* n_events,
-    int32_t* event_ptr, 
+    int32_t* event_ptr,
     scalings_t* scalings, int32_t n_bam_rec,model_t* model_kmer_caches,float *bands1,uint8_t *trace1, EventKmerPair* band_lower_left1);
 
 
@@ -129,7 +129,7 @@ static inline int32_t cuda_exists() {
 static inline uint64_t cuda_freemem(int32_t devicenum) {
 
     uint64_t freemem, total;
-    cudaMemGetInfo(&freemem, &total); 
+    cudaMemGetInfo(&freemem, &total);
     CUDA_CHK();
     fprintf(stderr, "[%s] %.2f GB free of total %.2f GB GPU memory\n",__func__,
             freemem / double(1024 * 1024 * 1024),
