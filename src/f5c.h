@@ -43,9 +43,9 @@
 #define STEAL_THRESH_CUDA 1 //stealing threshold for the CPU part in a GPU accelerated workload
 
 //set if input, processing and output are not to be interleaved (serial mode) - useful for debugging
-//#define IO_PROC_NO_INTERLEAVE 1    
+//#define IO_PROC_NO_INTERLEAVE 1
 
-//#define ALIGN_2D_ARRAY 1 //for CPU whether to use a 1D array or a 2D array 
+//#define ALIGN_2D_ARRAY 1 //for CPU whether to use a 1D array or a 2D array
 // note : (2D arrays are very slow due to mallocs when the number of threads is high)
 
 #define CACHED_LOG 1 //if the log values of scalings and the model k-mers are cached
@@ -62,7 +62,7 @@ typedef struct {
     const char* model_file;     //name of the model file
     uint32_t flag;              //flags
     int32_t batch_size;         //max reads loaded at once
-    int64_t batch_size_bases;   //max bases loaded at once   
+    int64_t batch_size_bases;   //max bases loaded at once
 
     int32_t num_thread;
     int8_t verbosity;
@@ -89,7 +89,7 @@ typedef struct {
 
 // event table : adapted from scrappie
 typedef struct {
-    size_t n;     //todo : int32_t not enough?  
+    size_t n;     //todo : int32_t not enough?
     size_t start; //todo : always 0?
     size_t end;   //todo : always equal to n?
     event_t* event;
@@ -123,7 +123,7 @@ typedef struct {
     //float var_sd;
 
     // derived parameters that are cached for efficiency
-#ifdef CACHED_LOG    
+#ifdef CACHED_LOG
     float log_var;
 #endif
     //float scaled_var;
@@ -170,8 +170,8 @@ typedef struct {
 struct ScoredSite
 {
     //toto : clean up unused
-    ScoredSite() 
-    { 
+    ScoredSite()
+    {
         ll_unmethylated[0] = 0;
         ll_unmethylated[1] = 0;
         ll_methylated[0] = 0;
@@ -242,12 +242,12 @@ typedef struct {
     //stats //set by the load_db
     int64_t sum_bases;
     int64_t total_reads; //total number mapped entries in the bam file (after filtering based on flags, mapq etc)
-    int64_t bad_fast5_file; //empty fast5 path returned by readdb, could not open fast5    
-    
+    int64_t bad_fast5_file; //empty fast5 path returned by readdb, could not open fast5
+
 } db_t;
 
-//cuda core data structure : allocated array pointers 
-#ifdef HAVE_CUDA 
+//cuda core data structure : allocated array pointers
+#ifdef HAVE_CUDA
     typedef struct{
     int32_t* event_ptr_host;
     int32_t* n_events_host;
@@ -306,10 +306,10 @@ typedef struct {
     double align_time;
     double est_scale_time;
     double meth_time;
-    
-#ifdef HAVE_CUDA   
 
-    //cuda arrays 
+#ifdef HAVE_CUDA
+
+    //cuda arrays
     cuda_data_t* cuda;
 
     double align_kernel_time;
@@ -327,7 +327,7 @@ typedef struct {
     //stats //set by output_db
     int64_t sum_bases;
     int64_t total_reads; //total number mapped entries in the bam file (after filtering based on flags, mapq etc)
-    int64_t bad_fast5_file; //empty fast5 path returned by readdb, could not open fast5   
+    int64_t bad_fast5_file; //empty fast5 path returned by readdb, could not open fast5
     int64_t qc_fail_reads;
     int64_t failed_calibration_reads;
     int64_t failed_alignment_reads;

@@ -10,7 +10,7 @@
 
 
 /*
-todo : 
+todo :
 Error counter for consecutive failures in the skip unreadable mode
 */
 
@@ -77,7 +77,7 @@ core_t* init_core(const char* bamfilename, const char* fastafile,
 
     core->sum_bases=0;
     core->total_reads=0; //total number mapped entries in the bam file (after filtering based on flags, mapq etc)
-    core->bad_fast5_file=0; //empty fast5 path returned by readdb, could not open fast5   
+    core->bad_fast5_file=0; //empty fast5 path returned by readdb, could not open fast5
     core->qc_fail_reads=0;
     core->failed_calibration_reads=0;
     core->failed_alignment_reads=0;
@@ -98,7 +98,7 @@ void free_core(core_t* core) {
     if (!(core->opt.flag & F5C_DISABLE_CUDA)) {
         free_cuda(core);
     }
-#endif    
+#endif
     free(core);
 }
 
@@ -206,9 +206,9 @@ ret_status_t load_db(core_t* core, db_t* db) {
             break;
         } else {
             if ((record->core.flag & BAM_FUNMAP) == 0 &&
-                record->core.qual >= core->opt.min_mapq) { 
+                record->core.qual >= core->opt.min_mapq) {
                 // printf("%s\t%d\n",bam_get_qname(db->bam_rec[db->n_bam_rec]),result);
-                
+
                 if(!(core->opt.flag & F5C_SECONDARY_YES)){
                     if((record->core.flag & BAM_FSECONDARY)){
                         continue;
@@ -219,7 +219,7 @@ ret_status_t load_db(core_t* core, db_t* db) {
 
                 std::string qname = bam_get_qname(record);
                 std::string fast5_path_str = core->readbb->get_signal_path(qname);
-                
+
                 if(fast5_path_str==""){
                     handle_bad_fast5(core, db,fast5_path_str,qname);
                     continue;
@@ -235,7 +235,7 @@ ret_status_t load_db(core_t* core, db_t* db) {
                 if (hdf5_file >= 0) {
                     db->f5[i] = (fast5_t*)calloc(1, sizeof(fast5_t));
                     MALLOC_CHK(db->f5[i]);
-                    int32_t ret=fast5_read(hdf5_file, db->f5[i]); 
+                    int32_t ret=fast5_read(hdf5_file, db->f5[i]);
                     if(ret<0){
                         handle_bad_fast5(core, db,fast5_path,qname);
                         free(fast5_path);
@@ -252,18 +252,18 @@ ret_status_t load_db(core_t* core, db_t* db) {
                         }
                         printf("\n");
                     }
-                    
+
                     db->n_bam_rec++;
                     //todo : make efficient (redudantly accessed below, can be combined with it?)
                     status.num_bases += core->readbb->get_read_sequence(qname).size();
-                
+
                 } else {
                     handle_bad_fast5(core, db,fast5_path,qname);
                 }
 
-                
-                free(fast5_path);                
-                
+
+                free(fast5_path);
+
             }
         }
     }
@@ -352,8 +352,8 @@ void* pthread_single(void* voidargs) {
 		args->func(core,db,i);
 	}
 	while ((i = steal_work(all_args,core->opt.num_thread)) >= 0){
-		args->func(core,db,i);  
-    }  
+		args->func(core,db,i);
+    }
 #endif
 
     //fprintf(stderr,"Thread %d done\n",(myargs->position)/THREADS);
@@ -361,7 +361,7 @@ void* pthread_single(void* voidargs) {
 }
 
 
-void pthread_db(core_t* core, db_t* db, void (*func)(core_t*,db_t*,int)){ 
+void pthread_db(core_t* core, db_t* db, void (*func)(core_t*,db_t*,int)){
     //create threads
     pthread_t tids[core->opt.num_thread];
     pthread_arg_t pt_args[core->opt.num_thread];
@@ -370,7 +370,7 @@ void pthread_db(core_t* core, db_t* db, void (*func)(core_t*,db_t*,int)){
     int32_t num_thread = core->opt.num_thread;
     int32_t step = (db->n_bam_rec + num_thread - 1) / num_thread;
     //todo : check for higher num of threads than the data
-    //current works but many threads are created despite 
+    //current works but many threads are created despite
 
     //set the data structures
     for (t = 0; t < num_thread; t++) {
@@ -384,7 +384,7 @@ void pthread_db(core_t* core, db_t* db, void (*func)(core_t*,db_t*,int)){
             pt_args[t].endi = i;
         }
         pt_args[t].func=func;
-    #ifdef WORK_STEAL    
+    #ifdef WORK_STEAL
         pt_args[t].all_pthread_args =  (void *)pt_args;
     #endif
         //fprintf(stderr,"t%d : %d-%d\n",t,pt_args[t].starti,pt_args[t].endi);
@@ -427,7 +427,7 @@ void event_single(core_t* core,db_t* db, int32_t i) {
 
     //get the scalings
     db->scalings[i] = estimate_scalings_using_mom(
-        db->read[i], db->read_len[i], core->model, db->et[i]);        
+        db->read[i], db->read_len[i], core->model, db->et[i]);
 
 }
 
@@ -439,12 +439,12 @@ void event_db(core_t* core, db_t* db){
             event_single(core,db,i);
         }
 
-    } 
+    }
 
     else {
         pthread_db(core,db,event_single);
     }
-   
+
 }
 
 
@@ -461,7 +461,7 @@ void scaling_single(core_t* core, db_t* db, int32_t i){
 
     if (db->n_event_align_pairs[i] > 0) {
         // prepare data structures for the final calibration
-        
+
         db->event_alignment[i] = (event_alignment_t*)malloc(
             sizeof(event_alignment_t) * db->n_event_align_pairs[i]);
         MALLOC_CHK(db->event_alignment[i]);
@@ -526,7 +526,7 @@ void scaling_db(core_t* core, db_t* db){
             scaling_single(core,db,i);
         }
 
-    } 
+    }
     else {
         pthread_db(core,db,scaling_single);
     }
@@ -575,19 +575,19 @@ void meth_db(core_t* core, db_t* db) {
         for (i = 0; i < db->n_bam_rec; i++) {
             meth_single(core, db, i);
         }
-    } 
+    }
     else {
         pthread_db(core, db, meth_single);
     }
 }
-    
+
 
 
 void process_single(core_t* core, db_t* db,int32_t i) {
 
     event_single(core,db,i);
 
-    db->event_align_pairs[i] = (AlignedPair*)malloc( 
+    db->event_align_pairs[i] = (AlignedPair*)malloc(
         sizeof(AlignedPair) * db->et[i].n * 2); //todo : find a good heuristic to save memory //todo : save memory by freeing here itself
     MALLOC_CHK(db->event_align_pairs[i]);
 
@@ -603,7 +603,7 @@ void process_single(core_t* core, db_t* db,int32_t i) {
 
     if (db->n_event_align_pairs[i] > 0) {
         // prepare data structures for the final calibration
-        
+
         db->event_alignment[i] = (event_alignment_t*)malloc(
             sizeof(event_alignment_t) * db->n_event_align_pairs[i]);
         MALLOC_CHK(db->event_alignment[i]);
@@ -660,16 +660,16 @@ void process_single(core_t* core, db_t* db,int32_t i) {
 
     calculate_methylation_for_read(db->site_score_map[i], db->fasta_cache[i], db->bam_rec[i], db->read_len[i], db->et[i].event, db->base_to_event_map[i],
         db->scalings[i], core->cpgmodel,db->events_per_base[i]);
-    
+
 }
 
 void process_db(core_t* core, db_t* db) {
-    
+
     if((core->opt.flag&F5C_SEC_PROF) || (!(core->opt.flag & F5C_DISABLE_CUDA))){
 
         double realtime0=core->realtime0;
         int32_t i;
-        
+
         double event_start = realtime();
         event_db(core,db);
         double event_end = realtime();
@@ -706,7 +706,7 @@ void process_db(core_t* core, db_t* db) {
         core->meth_time += (meth_end-meth_start);
 
         fprintf(stderr, "[%s::%.3f*%.2f] Methylation calling done\n", __func__,
-                realtime() - realtime0, cputime() / (realtime() - realtime0));   
+                realtime() - realtime0, cputime() / (realtime() - realtime0));
 
 
     }
@@ -717,13 +717,13 @@ void process_db(core_t* core, db_t* db) {
                 process_single(core,db,i);
             }
 
-        } 
+        }
         else {
-            pthread_db(core,db,process_single);    
+            pthread_db(core,db,process_single);
         }
 
     }
-    
+
     return;
 }
 
@@ -864,7 +864,7 @@ void free_db(db_t* db) {
     free(db->read_stat_flag);
     for (i = 0; i < db->capacity_bam_rec; ++i) {
         delete db->site_score_map[i];
-    }   
+    }
     free(db->site_score_map);
     free(db);
 }
@@ -877,18 +877,18 @@ void init_opt(opt_t* opt) {
     opt->num_thread = 8;
 #ifndef HAVE_CUDA
     opt->flag |= F5C_DISABLE_CUDA;
-    opt->batch_size_bases = 5*1000*1000;    
+    opt->batch_size_bases = 5*1000*1000;
 #endif
 
     opt->flag |= F5C_SKIP_UNREADABLE;
     opt->debug_break=-1;
 
-    opt->cuda_block_size=64;   
+    opt->cuda_block_size=64;
     opt->cuda_dev_id=0;
     opt->cuda_mem_frac=1.0f; //later set by cuda_init()
 
-    //effective only if  CPU_GPU_PROC  is set 
-    opt->cuda_max_readlen=3.0f; 
+    //effective only if  CPU_GPU_PROC  is set
+    opt->cuda_max_readlen=3.0f;
     opt->cuda_avg_events_per_kmer=2.0f; //only if CUDA_DYNAMIC_MALLOC is unset
     opt->cuda_max_avg_events_per_kmer=5.0f;
 }

@@ -1,6 +1,6 @@
 //
 // logsum -- a port of Sean Eddy's fast table-driven log sum
-// This code was originally part of HMMER. This version is used with 
+// This code was originally part of HMMER. This version is used with
 // Sean Eddy's permission as public domain code.
 //
 
@@ -23,10 +23,10 @@
 
  /* Synopsis:  Initialize the p7_Logsum() function.
  *
- * Purpose:   Initialize the lookup table for <p7_FLogsum()>. 
+ * Purpose:   Initialize the lookup table for <p7_FLogsum()>.
  *            This function must be called once before any
  *            call to <p7_FLogsum()>.
- *            
+ *
  *            The precision of the lookup table is determined
  *            by the compile-time <p7_LOGSUM_TBL> constant.
  *
@@ -52,7 +52,7 @@ static inline int p7_FLogsumInit(void)
  *
  * Purpose:   Returns a fast table-driven approximation to
  *            $\log(e^a + e^b)$.
- *            
+ *
  *            Either <a> or <b> (or both) may be $-\infty$,
  *            but neither may be $+\infty$ or <NaN>.
  *
@@ -66,8 +66,8 @@ static inline float p7_FLogsum(float a, float b){
   const float min = ESL_MIN(a, b);
 
   //return (min == -eslINFINITY || (max-min) >= 15.7f) ? max : max + log(1.0 + exp(min-max));  /* SRE: While debugging SSE impl. Remember to remove! */
-  
+
   return (min == -eslINFINITY || (max-min) >= 15.7f) ? max : max + flogsum_lookup[(int)((max-min)*p7_LOGSUM_SCALE)];
-} 
+}
 
 #endif

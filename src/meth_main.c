@@ -9,11 +9,11 @@
 #include <unistd.h>
 #include "logsum.h"
 
-/* Input/processing/output interleave framework : 
+/* Input/processing/output interleave framework :
 unless IO_PROC_NO_INTERLEAVE is set input, processing and output are interleaved
-main thread 
+main thread
 1. allocates and loads a databatch
-2. create `pthread_processor` thread which will perform the processing 
+2. create `pthread_processor` thread which will perform the processing
 (note that `pthread_processor` is the process-controller that will spawn user specified number of processing threads - see below)
 3. create the `pthread_post_processor` thread that will print the output and free the databatch one the `pthread_processor` is done
 4. allocates and load another databatch
@@ -34,14 +34,14 @@ main thread
 */
 
 /*
-TODO : 
+TODO :
 debug-break should take a number (loop count)
 --print-* options should take a filename
 a step controller if one requires to perform only upto a certain step such as alignment, ignoring the reset
 */
 
 /*
-LIMITATIONS : 
+LIMITATIONS :
 Does not support multi strand reads (2D and 1D^2 reads) at the moment
 Only works for DNA at the moment
 */
@@ -59,7 +59,7 @@ static struct option long_options[] = {
     {"verbose", required_argument, 0, 'v'},        //6 verbosity level [1]
     {"help", no_argument, 0, 'h'},                 //7
     {"version", no_argument, 0, 'V'},              //8
-    {"min-mapq", required_argument, 0, 0},         //9 consider only reads with MAPQ>=min-mapq [30] 
+    {"min-mapq", required_argument, 0, 0},         //9 consider only reads with MAPQ>=min-mapq [30]
     {"secondary", required_argument, 0, 0},        //10 consider secondary alignments or not [yes]
     {"kmer-model", required_argument, 0, 0},       //11 custom k-mer model file (used for debugging)
     {"skip-unreadable", required_argument, 0, 0},  //12 skip any unreadable fast5 or terminate program [yes]
@@ -68,7 +68,7 @@ static struct option long_options[] = {
     {"print-scaling", required_argument, 0, 0},    //15 prints the estimated scalings (used for debugging)
     {"print-raw", required_argument, 0, 0},        //16 prints the raw signal (used for debugging)
     {"disable-cuda", required_argument, 0, 0},     //17 disable running on CUDA [no] (only if compiled for CUDA)
-    {"cuda-block-size",required_argument, 0, 0},   //18 
+    {"cuda-block-size",required_argument, 0, 0},   //18
     {"debug-break",required_argument, 0, 0},       //19 break after processing the first batch (used for debugging)
     {"profile-cpu",required_argument, 0, 0},       //20 perform section by section (used for profiling - for CPU only)
     {"cuda-max-lf",required_argument, 0, 0},       //21 reads <= cuda-max-lf*avg_readlen on GPU, rest on CPU (only if compiled for CUDA)
@@ -96,7 +96,7 @@ static inline int64_t mm_parse_num(const char* str) //taken from minimap2
 //parse yes or no arguments : taken from minimap2
 static inline void yes_or_no(opt_t* opt, uint64_t flag, int long_idx,
                              const char* arg,
-                             int yes_to_set) 
+                             int yes_to_set)
 {
     if (yes_to_set) {
         if (strcmp(arg, "yes") == 0 || strcmp(arg, "y") == 0) {
@@ -137,7 +137,7 @@ void* pthread_processor(void* voidargs) {
     //need to inform the output thread that we completed the processing
     pthread_mutex_lock(&args->mutex);
     pthread_cond_signal(&args->cond);
-    pthread_mutex_unlock(&args->mutex); 
+    pthread_mutex_unlock(&args->mutex);
 
     if(core->opt.verbosity > 1){
         fprintf(stderr, "[%s::%.3f*%.2f] Signal sent!\n", __func__,
@@ -168,13 +168,13 @@ void* pthread_post_processor(void* voidargs){
     //output and free
     output_db(core, db);
     free_db_tmp(db);
-    free_db(db);    
+    free_db(db);
     free(args);
-    pthread_exit(0);    
+    pthread_exit(0);
 }
 
 int meth_main(int argc, char* argv[]) {
-    
+
     double realtime0 = realtime();
 
     //signal(SIGSEGV, sig_handler);
@@ -188,7 +188,7 @@ int meth_main(int argc, char* argv[]) {
     char* fastqfile = NULL;
 
     FILE *fp_help = stderr;
-    
+
     opt_t opt;
     init_opt(&opt); //initialise options to defaults
 
@@ -201,7 +201,7 @@ int meth_main(int argc, char* argv[]) {
         } else if (c == 'g') {
             fastafile = optarg;
         } else if (c == 'B') {
-            opt.batch_size_bases = mm_parse_num(optarg); 
+            opt.batch_size_bases = mm_parse_num(optarg);
             if(opt.batch_size_bases<=0){
                 ERROR("%s","Maximum number of bases should be larger than 0.");
                 exit(EXIT_FAILURE);
@@ -264,11 +264,11 @@ int meth_main(int argc, char* argv[]) {
             opt.cuda_avg_events_per_kmer = atof(optarg);
         }else if(c == 0 && longindex == 23){ //cuda todo : warning for cpu mode, error check
             opt.cuda_max_avg_events_per_kmer = atof(optarg);
-        }else if(c == 0 && longindex == 24){ 
+        }else if(c == 0 && longindex == 24){
             opt.cuda_dev_id = atoi(optarg);
         } else if(c == 0 && longindex == 25){ //todo : warning for CPU mode, warning for dynamic malloc mode
             opt.cuda_mem_frac = atof(optarg);
-        }           
+        }
     }
 
     if (fastqfile == NULL || bamfilename == NULL || fastafile == NULL || fp_help == stdout) {
@@ -287,13 +287,13 @@ int meth_main(int argc, char* argv[]) {
         fprintf(fp_help,"   --skip-unreadable=yes|no   skip any unreadable fast5 or terminate program [%s]\n",(opt.flag&F5C_SKIP_UNREADABLE?"yes":"no"));
         fprintf(fp_help,"   --verbose INT              verbosity level [%d]\n",opt.verbosity);
         fprintf(fp_help,"   --version                  print version\n");
-#ifdef HAVE_CUDA   
+#ifdef HAVE_CUDA
         fprintf(fp_help,"   --disable-cuda=yes|no      disable running on CUDA [%s]\n",(opt.flag&F5C_DISABLE_CUDA?"yes":"no"));
         fprintf(fp_help,"   - cuda-dev-id INT          CUDA device ID to run kernels on [%d]\n",opt.cuda_dev_id);
         fprintf(fp_help,"   --cuda-max-lf FLOAT        reads with length <= cuda-max-lf*avg_readlen on GPU, rest on CPU [%.1f]\n",opt.cuda_max_readlen);
         fprintf(fp_help,"   --cuda-avg-epk FLOAT       average number of events per kmer - for allocating GPU arrays [%.1f]\n",opt.cuda_avg_events_per_kmer);
         fprintf(fp_help,"   --cuda-max-epk FLOAT       reads with events per kmer <= cuda_max_epk on GPU, rest on CPU [%.1f]\n",opt.cuda_max_avg_events_per_kmer);
-#endif	 
+#endif
 
 
         fprintf(fp_help,"debug options:\n");
@@ -301,16 +301,16 @@ int meth_main(int argc, char* argv[]) {
         fprintf(fp_help,"   --print-events=yes|no      prints the event table\n");
         fprintf(fp_help,"   --print-banded-aln=yes|no  prints the event alignment\n");
         fprintf(fp_help,"   --print-scaling=yes|no     prints the estimated scalings\n");
-        fprintf(fp_help,"   --print-raw=yes|no         prints the raw signal\n"); 
-        fprintf(fp_help,"   --debug-break [INT]        break after processing the specified batch\n"); 
-        fprintf(fp_help,"   --profile-cpu=yes|no       process section by section (used for profiling on CPU)\n"); 
-#ifdef HAVE_CUDA  
+        fprintf(fp_help,"   --print-raw=yes|no         prints the raw signal\n");
+        fprintf(fp_help,"   --debug-break [INT]        break after processing the specified batch\n");
+        fprintf(fp_help,"   --profile-cpu=yes|no       process section by section (used for profiling on CPU)\n");
+#ifdef HAVE_CUDA
         fprintf(fp_help,"   - cuda-mem-frac FLOAT      Fraction of free GPU memory to allocate [0.9 (0.7 for tegra)]\n");
         fprintf(fp_help,"   --cuda-block-size\n");
 #endif
         if(fp_help == stdout){
             exit(EXIT_SUCCESS);
-        }    
+        }
         exit(EXIT_FAILURE);
     }
 
@@ -325,7 +325,7 @@ int meth_main(int argc, char* argv[]) {
     fprintf(stdout, "chromosome\tstart\tend\tread_name\t"
                                  "log_lik_ratio\tlog_lik_methylated\tlog_lik_unmethylated\t"
                                  "num_calling_strands\tnum_cpgs\tsequence\n");
-    int32_t counter=0;                                 
+    int32_t counter=0;
 
  #ifdef IO_PROC_NO_INTERLEAVE   //If input, processing and output are not interleaved (serial mode)
 
@@ -349,12 +349,12 @@ int meth_main(int argc, char* argv[]) {
                 realtime() - realtime0, cputime() / (realtime() - realtime0),
                 status.num_reads,status.num_bases/(1000.0*1000.0));
 
-        //output print        
+        //output print
         output_db(core, db);
 
-        //free temporary 
+        //free temporary
         free_db_tmp(db);
-        
+
         if(opt.debug_break==counter){
             break;
         }
@@ -392,9 +392,9 @@ int meth_main(int argc, char* argv[]) {
                 tid_p);
             }
         }
-        first_flag_p=1; 
+        first_flag_p=1;
 
-        //set up args 
+        //set up args
         pthread_arg2_t *pt_arg = (pthread_arg2_t*)malloc(sizeof(pthread_arg2_t));
         pt_arg->core=core;
         pt_arg->db=db;
@@ -458,7 +458,7 @@ int meth_main(int argc, char* argv[]) {
 #endif
 
     //todo : print total bases
-    fprintf(stderr, "\n[%s] total entries: %ld, qc fail: %ld, could not calibrate: %ld, no alignment: %ld, bad fast5: %ld", 
+    fprintf(stderr, "\n[%s] total entries: %ld, qc fail: %ld, could not calibrate: %ld, no alignment: %ld, bad fast5: %ld",
              __func__,core->total_reads, core->qc_fail_reads, core->failed_calibration_reads, core->failed_alignment_reads, core->bad_fast5_file);
     fprintf(stderr,"\n[%s] total bases: %.1f Mbases",__func__,core->sum_bases/(float)(1000*1000));
 
@@ -471,12 +471,12 @@ int meth_main(int argc, char* argv[]) {
             if (!(core->opt.flag & F5C_DISABLE_CUDA)) {
                 fprintf(stderr, "\n[%s]           -cpu preprocess time: %.3f sec",
                     __func__, core->align_cuda_preprocess);
-            #ifdef CUDA_DYNAMIC_MALLOC        
+            #ifdef CUDA_DYNAMIC_MALLOC
                 fprintf(stderr, "\n[%s]           -cuda malloc time: %.3f sec",
                     __func__, core->align_cuda_malloc);
-            #endif        
+            #endif
                 fprintf(stderr, "\n[%s]           -cuda data transfer time: %.3f sec",
-                    __func__, core->align_cuda_memcpy);                
+                    __func__, core->align_cuda_memcpy);
                 fprintf(stderr, "\n[%s]           -cuda kernel time: %.3f sec",
                     __func__, core->align_kernel_time);
                 fprintf(stderr, "\n[%s]                -align-pre kernel only time: %.3f sec",
@@ -485,17 +485,17 @@ int meth_main(int argc, char* argv[]) {
                     __func__, core->align_core_kernel_time);
                 fprintf(stderr, "\n[%s]                -align-post kernel only time: %.3f sec",
                     __func__, core->align_post_kernel_time);
-  
+
                 fprintf(stderr, "\n[%s]           -cpu postprocess time: %.3f sec",
                     __func__, core->align_cuda_postprocess);
                 fprintf(stderr, "\n[%s]           -additional cpu processing time (load imbalance): %.3f sec",
                     __func__, core->extra_load_cpu);
             }
-        #endif            
+        #endif
         fprintf(stderr, "\n[%s] Estimate scaling time: %.3f sec",
-                __func__, core->est_scale_time);    
+                __func__, core->est_scale_time);
         fprintf(stderr, "\n[%s] Call methylation time: %.3f sec",
-                __func__, core->meth_time);    
+                __func__, core->meth_time);
 
     }
 

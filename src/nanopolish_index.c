@@ -30,7 +30,7 @@ bool is_directory(const std::string& file_name){
         return false;
     }
     closedir(dir);
-    return true;    
+    return true;
 }
 
 // Split a string into parts based on the delimiter (nanopolish_common.cpp)
