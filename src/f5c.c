@@ -207,7 +207,7 @@ ret_status_t load_db(core_t* core, db_t* db) {
     while (db->n_bam_rec < db->capacity_bam_rec && status.num_bases<core->opt.batch_size_bases) {
         i=db->n_bam_rec;
         record = db->bam_rec[i];
-	t = realtime();
+        t = realtime();
         result = sam_itr_next(core->m_bam_fh, core->itr, record);
         core->db_bam_time += realtime() - t;
 
