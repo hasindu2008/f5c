@@ -307,6 +307,12 @@ typedef struct {
     double est_scale_time;
     double meth_time;
 
+    double db_bam_time;
+    double db_fasta_time;
+    double db_fast5_time;
+    double db_fast5_open_time;
+    double db_fast5_read_time;
+
 #ifdef HAVE_CUDA
 
     //cuda arrays

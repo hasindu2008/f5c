@@ -457,6 +457,11 @@ int meth_main(int argc, char* argv[]) {
 
 #endif
 
+    fprintf(stderr, "\n[%s] bam time %.6f", __func__, core->db_bam_time);
+    fprintf(stderr, "\n[%s] fasta time %.6f", __func__, core->db_fasta_time);
+    fprintf(stderr, "\n[%s] fast5 time %.6f", __func__, core->db_fast5_time);
+    fprintf(stderr, "\n[%s] \tfast5 open time %.6f", __func__, core->db_fast5_open_time);
+    fprintf(stderr, "\n[%s] \tfast5 read time %.6f", __func__, core->db_fast5_read_time);
     //todo : print total bases
     fprintf(stderr, "\n[%s] total entries: %ld, qc fail: %ld, could not calibrate: %ld, no alignment: %ld, bad fast5: %ld",
              __func__,core->total_reads, core->qc_fail_reads, core->failed_calibration_reads, core->failed_alignment_reads, core->bad_fast5_file);
