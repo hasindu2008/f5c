@@ -309,11 +309,14 @@ ret_status_t load_db(core_t* core, db_t* db) {
 
         // Get the read type from the fast5 file
         std::string qname = bam_get_qname(db->bam_rec[i]);
+	t = realtime();
+	std::string read_seq = core->readbb->get_read_sequence(qname);
+	core->db_fasta_time += realtime() - t;
 
         //get the read in ascci
         db->read[i] =
-            (char*)malloc(core->readbb->get_read_sequence(qname).size() + 1); // todo : is +1 needed? do errorcheck
-        strcpy(db->read[i], core->readbb->get_read_sequence(qname).c_str());
+            (char*)malloc(read_seq.size() + 1); // todo : is +1 needed? do errorcheck
+        strcpy(db->read[i], read_seq.c_str());
         db->read_len[i] = strlen(db->read[i]);
         db->sum_bases += db->read_len[i];
 
