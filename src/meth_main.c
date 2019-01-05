@@ -457,20 +457,24 @@ int meth_main(int argc, char* argv[]) {
 
 #endif
 
-    fprintf(stderr, "\n[%s] bam load time: %.6f sec", __func__, core->db_bam_time);
-    fprintf(stderr, "\n[%s] fasta load time: %.6f sec", __func__, core->db_fasta_time);
-    fprintf(stderr, "\n[%s] fast5 load time: %.6f sec", __func__, core->db_fast5_time);
-    fprintf(stderr, "\n[%s] \tfast5 open time: %.6f sec", __func__, core->db_fast5_open_time);
-    fprintf(stderr, "\n[%s] \tfast5 read time: %.6f sec", __func__, core->db_fast5_read_time);
-    //todo : print total bases
+
     fprintf(stderr, "\n[%s] total entries: %ld, qc fail: %ld, could not calibrate: %ld, no alignment: %ld, bad fast5: %ld",
              __func__,core->total_reads, core->qc_fail_reads, core->failed_calibration_reads, core->failed_alignment_reads, core->bad_fast5_file);
     fprintf(stderr,"\n[%s] total bases: %.1f Mbases",__func__,core->sum_bases/(float)(1000*1000));
 
+    fprintf(stderr, "\n[%s] Data loading time: %.3f sec", __func__,core->load_db_time);
+    fprintf(stderr, "\n[%s]     - bam load time: %.3f sec", __func__, core->db_bam_time);
+    fprintf(stderr, "\n[%s]     - fasta load time: %.3f sec", __func__, core->db_fasta_time);
+    fprintf(stderr, "\n[%s]     - fast5 load time: %.3f sec", __func__, core->db_fast5_time);
+    fprintf(stderr, "\n[%s]         - fast5 open time: %.3f sec", __func__, core->db_fast5_open_time);
+    fprintf(stderr, "\n[%s]         - fast5 read time: %.3f sec", __func__, core->db_fast5_read_time);
+
+    fprintf(stderr, "\n[%s] Data processing time: %.3f sec", __func__,core->process_db_time);
+
     if((core->opt.flag&F5C_SEC_PROF) || (!(core->opt.flag & F5C_DISABLE_CUDA))){
-        fprintf(stderr, "\n[%s] Events time: %.3f sec",
+        fprintf(stderr, "\n[%s]     - Events time: %.3f sec",
                 __func__, core->event_time);
-        fprintf(stderr, "\n[%s] Alignment time: %.3f sec",
+        fprintf(stderr, "\n[%s]     - Alignment time: %.3f sec",
                 __func__, core->align_time);
         #ifdef HAVE_CUDA
             if (!(core->opt.flag & F5C_DISABLE_CUDA)) {
@@ -497,12 +501,18 @@ int meth_main(int argc, char* argv[]) {
                     __func__, core->extra_load_cpu);
             }
         #endif
-        fprintf(stderr, "\n[%s] Estimate scaling time: %.3f sec",
+        fprintf(stderr, "\n[%s]     - Estimate scaling time: %.3f sec",
                 __func__, core->est_scale_time);
-        fprintf(stderr, "\n[%s] Call methylation time: %.3f sec",
+        fprintf(stderr, "\n[%s]     - Call methylation time: %.3f sec",
                 __func__, core->meth_time);
 
     }
+
+#ifndef IO_PROC_NO_INTERLEAVE
+    if(core->load_db_time > core->process_db_time){
+        INFO("Performance bounded by I/O. I/O took %.3f sec than processing",core->load_db_time - core->process_db_time);
+    }
+#endif
 
     //free the core data structure
     free_core(core);

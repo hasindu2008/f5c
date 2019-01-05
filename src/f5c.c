@@ -63,16 +63,19 @@ core_t* init_core(const char* bamfilename, const char* fastafile,
     //realtime0
     core->realtime0=realtime0;
 
-    core->event_time=0;
-    core->align_time=0;
-    core->est_scale_time=0;
-    core->meth_time=0;
+    core->load_db_time=0;
+    core->process_db_time=0;
 
     core->db_bam_time=0;
     core->db_fasta_time=0;
     core->db_fast5_time=0;
     core->db_fast5_open_time=0;
     core->db_fast5_read_time=0;
+
+    core->event_time=0;
+    core->align_time=0;
+    core->est_scale_time=0;
+    core->meth_time=0;   
 
     //cuda stuff
 #ifdef HAVE_CUDA
@@ -193,6 +196,9 @@ static inline void handle_bad_fast5(core_t* core, db_t* db,std::string fast5_pat
 }
 
 ret_status_t load_db(core_t* core, db_t* db) {
+
+    double load_start = realtime();
+
     // get bams
     bam1_t* record;
     int32_t result = 0;
@@ -328,6 +334,10 @@ ret_status_t load_db(core_t* core, db_t* db) {
     }
     status.num_reads=db->n_bam_rec;
     assert(status.num_bases==db->sum_bases);
+
+    double load_end = realtime();
+    core->load_db_time += (load_end-load_start);
+
     return status;
 }
 
@@ -689,6 +699,8 @@ void process_single(core_t* core, db_t* db,int32_t i) {
 
 void process_db(core_t* core, db_t* db) {
 
+    double process_start = realtime();
+
     if((core->opt.flag&F5C_SEC_PROF) || (!(core->opt.flag & F5C_DISABLE_CUDA))){
 
         double realtime0=core->realtime0;
@@ -747,6 +759,9 @@ void process_db(core_t* core, db_t* db) {
         }
 
     }
+
+    double process_end= realtime();
+    core->process_db_time += (process_end-process_start);
 
     return;
 }

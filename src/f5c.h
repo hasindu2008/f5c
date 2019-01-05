@@ -302,16 +302,23 @@ typedef struct {
 
     //realtime0
     double realtime0;
-    double event_time;
-    double align_time;
-    double est_scale_time;
-    double meth_time;
 
+    double load_db_time;
+    double process_db_time;
+
+    //loading time breakdown
     double db_bam_time;
     double db_fasta_time;
     double db_fast5_time;
     double db_fast5_open_time;
     double db_fast5_read_time;
+
+    //processing time break down
+    double event_time;
+    double align_time;
+    double est_scale_time;
+    double meth_time;
+
 
 #ifdef HAVE_CUDA
 
