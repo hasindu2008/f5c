@@ -94,7 +94,13 @@ void init_cuda(core_t* core){
 #ifndef CUDA_DYNAMIC_MALLOC
     // //dynamic arrays
     //compute the maximum
-    uint64_t free_mem = cuda_freemem(cuda_device_num);
+    uint64_t free_mem = 0;
+    if(prop.integrated==1){ //in tegra free mem should be sought differently
+        free_mem=tegra_freemem(cuda_device_num);
+    }
+    else{
+        free_mem=cuda_freemem(cuda_device_num);
+    }
 
     double factor =  1 * sizeof(char) + //read_capacity
                     AVG_EVENTS_PER_KMER * sizeof(event_t) + //event_table_capacity

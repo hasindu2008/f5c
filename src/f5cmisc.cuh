@@ -138,4 +138,37 @@ static inline uint64_t cuda_freemem(int32_t devicenum) {
     return freemem;
 }
 
+static inline uint64_t tegra_freemem(int32_t devicenum) {
+
+    uint64_t freemem, total;
+    cudaMemGetInfo(&freemem, &total);
+    CUDA_CHK();
+
+    // RAM //from tegrastats
+    FILE* f = fopen("/proc/meminfo", "r");
+    int64_t totalRAMkB = -1, freeRAMkB = -1, buffersRAMkB = -1, cachedRAMkB = -1;
+
+    if(f)
+    {
+        // add if (blah) {} to get around compiler warning
+        if (fscanf(f, "MemTotal: %ld kB\n", &totalRAMkB)) {}
+        if (fscanf(f, "MemFree: %ld kB\n", &freeRAMkB)) {}
+        if (fscanf(f, "Buffers: %ld kB\n", &buffersRAMkB)) {}
+        if (fscanf(f, "Cached: %ld kB\n", &cachedRAMkB)) {}
+        fclose(f);
+    }
+    if(totalRAMkB>0 && freeRAMkB>0 && buffersRAMkB>0 && cachedRAMkB>0){
+        freemem += (cachedRAMkB+buffersRAMkB)*1024;
+    }
+    else{
+        WARNING("%s","Reading /proc/meminfo failed. Inferred free GPU memory might be wrong.");
+    }
+
+    fprintf(stderr, "[%s] %.2f GB free of total %.2f GB GPU memory\n",__func__,
+            freemem / double(1024 * 1024 * 1024),
+            total / double(1024 * 1024 * 1024));
+
+    return freemem;
+}
+
 #endif
