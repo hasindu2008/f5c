@@ -146,13 +146,14 @@ static inline uint64_t tegra_freemem(int32_t devicenum) {
 
     // RAM //from tegrastats
     FILE* f = fopen("/proc/meminfo", "r");
-    int64_t totalRAMkB = -1, freeRAMkB = -1, buffersRAMkB = -1, cachedRAMkB = -1;
+    int64_t totalRAMkB = -1, freeRAMkB = -1, memAvailablekB=-1, buffersRAMkB = -1, cachedRAMkB = -1;
 
     if(f)
     {
         // add if (blah) {} to get around compiler warning
         if (fscanf(f, "MemTotal: %ld kB\n", &totalRAMkB)) {}
         if (fscanf(f, "MemFree: %ld kB\n", &freeRAMkB)) {}
+        if (fscanf(f, "MemAvailable: %ld kB\n", &memAvailablekB)) {}
         if (fscanf(f, "Buffers: %ld kB\n", &buffersRAMkB)) {}
         if (fscanf(f, "Cached: %ld kB\n", &cachedRAMkB)) {}
         fclose(f);
