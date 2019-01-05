@@ -510,7 +510,7 @@ int meth_main(int argc, char* argv[]) {
 
 #ifndef IO_PROC_NO_INTERLEAVE
     if(core->load_db_time > core->process_db_time){
-        INFO("Performance bounded by I/O. I/O took %.3f sec than processing",core->load_db_time - core->process_db_time);
+        INFO("Performance bounded by file I/O. File I/O took %.3f sec than processing",core->load_db_time - core->process_db_time);
     }
 #endif
 
