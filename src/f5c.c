@@ -68,6 +68,12 @@ core_t* init_core(const char* bamfilename, const char* fastafile,
     core->est_scale_time=0;
     core->meth_time=0;
 
+    core->db_bam_time=0;
+    core->db_fasta_time=0;
+    core->db_fast5_time=0;
+    core->db_fast5_open_time=0;
+    core->db_fast5_read_time=0;
+
     //cuda stuff
 #ifdef HAVE_CUDA
     if (!(core->opt.flag & F5C_DISABLE_CUDA)) {
@@ -197,10 +203,13 @@ ret_status_t load_db(core_t* core, db_t* db) {
 
     ret_status_t status={0,0};
     int32_t i = 0;
+    double t = 0;
     while (db->n_bam_rec < db->capacity_bam_rec && status.num_bases<core->opt.batch_size_bases) {
         i=db->n_bam_rec;
         record = db->bam_rec[i];
+        t = realtime();
         result = sam_itr_next(core->m_bam_fh, core->itr, record);
+        core->db_bam_time += realtime() - t;
 
         if (result < 0) {
             break;
@@ -218,7 +227,9 @@ ret_status_t load_db(core_t* core, db_t* db) {
                 db->total_reads++; // candidate read
 
                 std::string qname = bam_get_qname(record);
+                t = realtime();
                 std::string fast5_path_str = core->readbb->get_signal_path(qname);
+                core->db_fasta_time += realtime() - t;
 
                 if(fast5_path_str==""){
                     handle_bad_fast5(core, db,fast5_path_str,qname);
@@ -231,17 +242,27 @@ ret_status_t load_db(core_t* core, db_t* db) {
 
                 //fprintf(stderr,"readname : %s\n",qname.c_str());
 
+                t = realtime();
                 hid_t hdf5_file = fast5_open(fast5_path);
+                double ot = realtime() - t;
+                core->db_fast5_open_time += ot;
+                core->db_fast5_time += ot;
                 if (hdf5_file >= 0) {
                     db->f5[i] = (fast5_t*)calloc(1, sizeof(fast5_t));
                     MALLOC_CHK(db->f5[i]);
+                    t = realtime();
                     int32_t ret=fast5_read(hdf5_file, db->f5[i]);
+                    double rt = realtime() - t;
+                    core->db_fast5_read_time += rt;
+                    core->db_fast5_time += rt;
                     if(ret<0){
                         handle_bad_fast5(core, db,fast5_path,qname);
                         free(fast5_path);
                         continue;
                     }
+                    t = realtime();
                     fast5_close(hdf5_file);
+                    core->db_fast5_time += realtime() - t;
 
                     if (core->opt.flag & F5C_PRINT_RAW) {
                         printf(">%s\tPATH:%s\tLN:%llu\n", qname.c_str(), fast5_path,
@@ -255,15 +276,13 @@ ret_status_t load_db(core_t* core, db_t* db) {
 
                     db->n_bam_rec++;
                     //todo : make efficient (redudantly accessed below, can be combined with it?)
+                    t = realtime();
                     status.num_bases += core->readbb->get_read_sequence(qname).size();
-
+                    core->db_fasta_time += realtime() - t;
                 } else {
                     handle_bad_fast5(core, db,fast5_path,qname);
                 }
-
-
                 free(fast5_path);
-
             }
         }
     }
@@ -280,7 +299,9 @@ ret_status_t load_db(core_t* core, db_t* db) {
 
         // Extract the reference sequence for this region
         int32_t fetched_len = 0;
+        t = realtime();
         char* refseq = faidx_fetch_seq(core->fai, ref_name, ref_start_pos, ref_end_pos, &fetched_len); // todo : error handle?
+        core->db_fasta_time += realtime() - t;
         db->fasta_cache[i] = refseq;
         // printf("seq : %s\n",db->fasta_cache[i]);
 
@@ -288,11 +309,14 @@ ret_status_t load_db(core_t* core, db_t* db) {
 
         // Get the read type from the fast5 file
         std::string qname = bam_get_qname(db->bam_rec[i]);
+	t = realtime();
+	std::string read_seq = core->readbb->get_read_sequence(qname);
+	core->db_fasta_time += realtime() - t;
 
         //get the read in ascci
         db->read[i] =
-            (char*)malloc(core->readbb->get_read_sequence(qname).size() + 1); // todo : is +1 needed? do errorcheck
-        strcpy(db->read[i], core->readbb->get_read_sequence(qname).c_str());
+            (char*)malloc(read_seq.size() + 1); // todo : is +1 needed? do errorcheck
+        strcpy(db->read[i], read_seq.c_str());
         db->read_len[i] = strlen(db->read[i]);
         db->sum_bases += db->read_len[i];
 
