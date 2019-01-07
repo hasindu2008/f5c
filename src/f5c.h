@@ -335,6 +335,11 @@ typedef struct {
     double align_cuda_postprocess;
     double align_cuda_preprocess;
     double align_cuda_total_kernel;
+
+    //perf stats
+    int32_t previous;
+    int32_t previous_count;
+
 #endif
 
     //stats //set by output_db

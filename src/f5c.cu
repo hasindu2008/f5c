@@ -41,6 +41,9 @@ void init_cuda(core_t* core){
     core->align_cuda_postprocess=0;
     core->align_cuda_preprocess=0;
 
+    core->previous = -1;
+    core->previous_count = 0;
+
 #ifdef CUDA_PRE_MALLOC
 
     int32_t n_bam_rec = core->opt.batch_size;
@@ -731,6 +734,49 @@ static inline int8_t if_on_gpu(core_t* core, db_t* db, int32_t i){
     }
 }
 
+
+#define GPU_DEC_MAX_LF 0
+#define GPU_DEC_AVG_EPK 1
+#define GPU_DEC_MAX_EPK 2
+#define GPU_INC_AVG_EPK 3
+#define GPU_DEC_B 4
+#define CPU_INC_MAX_EPK_LF 5
+#define CPU_INC_MAX_LF 6
+#define CPU_INC_MAX_EPK 7
+#define GPU_DEC_MAX_EPK_LF 8
+#define GPU_INC_K 9
+#define GPU_INC_B 10
+
+static inline void load_balance_advisor(core_t* core, int32_t state){
+    if(core->previous==state){
+        core->previous_count++;
+        if(core->previous_count>3){
+            switch (core->previous) {
+                case GPU_DEC_MAX_LF     : INFO("%s","GPU read arrays ran out due to ultra long reads. consider decreasing --cuda-max-lf");   break;
+                case GPU_DEC_AVG_EPK    : INFO("%s", "GPU read arrays ran out due to too much being allocated for event arrays. consider decreasing --cuda-avg-epk");   break;
+                case GPU_DEC_MAX_EPK    : INFO("%s","GPU event arrays ran out due to over segmented reads. consider  decreasing --cuda-max-epk");   break;
+                case GPU_INC_AVG_EPK    : INFO("%s","GPU event arrays ran out due to not enough being allocated for events. consider increasing --cuda-avg-epk");   break;
+                case GPU_DEC_B          : INFO("%s","GPU arrays ran out. consider reducing --max-bases (-B option)");   break;
+                case CPU_INC_MAX_EPK_LF : INFO("%s", "CPU got too much work. consider increasing --cuda-max-epk or --cuda-max-lf");   break;
+                case CPU_INC_MAX_LF     : INFO("%s", "CPU got too much work. consider increasing --cuda-max-lf");   break;
+                case CPU_INC_MAX_EPK    : INFO("%s", "CPU got too much work. consider increasing --cuda-max-epk");   break;
+                case GPU_DEC_MAX_EPK_LF : INFO("%s", "GPU got too much work. consider decreasing --cuda-max-epk or --cuda-max-lf");   break;
+                case GPU_INC_K          : INFO("%s", "GPU arrays are not fully utilised. consider increasing the --batchsize (-K option)");   break;
+                case GPU_INC_B          : INFO("%s", "GPU arrays are not fully utilised. consider increasing the --max-bases (-B option)");   break;
+                default :
+                    break;
+
+            }
+
+        }
+    }
+    else{
+        core->previous=state;
+        core->previous_count=0;
+    }
+}
+
+
 void load_balance(core_t *core, db_t *db, double cpu_process_time,double gpu_process_time,
     int32_t stat_n_gpu_mem_out, int32_t stat_n_too_many_events, int32_t stat_n_ultra_long_reads,
     float read_array_usage, float event_array_usage){
@@ -752,52 +798,63 @@ void load_balance(core_t *core, db_t *db, double cpu_process_time,double gpu_pro
             if(read_array_usage>99 && event_array_usage<100-thresh*100){ //read array full
                 if (core->opt.verbosity>1) fprintf(stderr,"[%s] GPU read array usage too high.\n",__func__);
                 if(stat_n_ultra_long_reads> db->n_bam_rec * thresh_reads){ //array fileld sue to ultra long reads
-                    INFO("%s","GPU read arrays ran out due to ultra long reads. If this message repeats, consider decreasing --cuda-max-lf");
+                    load_balance_advisor(core,GPU_DEC_MAX_LF);
+                    if (core->opt.verbosity>1) INFO("%s","GPU read arrays ran out due to ultra long reads. If this message repeats, consider decreasing --cuda-max-lf");
                 }
                 else{
-                    INFO("%s", "GPU read arrays ran out due to too much being allocated for event arrays. If this message repeats, consider decreasing --cuda-avg-epk");
+                    load_balance_advisor(core,GPU_DEC_AVG_EPK);
+                    if (core->opt.verbosity>1) INFO("%s", "GPU read arrays ran out due to too much being allocated for event arrays. If this message repeats, consider decreasing --cuda-avg-epk");
                 }
             }
             else if(event_array_usage>99 && read_array_usage<100-thresh*100){ //event array full
                 if (core->opt.verbosity>1) fprintf(stderr,"[%s] GPU event array usage too high.\n",__func__);
                 if(stat_n_too_many_events > db->n_bam_rec * thresh_reads){//array filled mainly due to reads with too many events
-                    INFO("%s","GPU event arrays ran out due to over segmented reads. If this message repeats, consider  decreasing --cuda-max-epk");
+                    load_balance_advisor(core,GPU_DEC_MAX_EPK);
+                    if (core->opt.verbosity>1) INFO("%s","GPU event arrays ran out due to over segmented reads. If this message repeats, consider  decreasing --cuda-max-epk");
                 }
                 else{ //array filled AVG_EVENTS_PER_KMER being not enough
-                    INFO("%s","GPU event arrays ran out due to not enough being allocated for events. If this message repeats, consider increasing --cuda-avg-epk");
+                    load_balance_advisor(core,GPU_INC_AVG_EPK);
+                    if (core->opt.verbosity>1) INFO("%s","GPU event arrays ran out due to not enough being allocated for events. If this message repeats, consider increasing --cuda-avg-epk");
                 }
             }
             else{//else reduce the batch size
-                INFO("%s","GPU arrays ran out. If this message repeats, consider reducing --max-bases (-B option)");
+                load_balance_advisor(core,GPU_DEC_B);
+                if (core->opt.verbosity>1) INFO("%s","GPU arrays ran out. If this message repeats, consider reducing --max-bases (-B option)");
             }
 
 
         }
         else{ //slow CPU?
             if(stat_n_ultra_long_reads< db->n_bam_rec * thresh_reads && stat_n_too_many_events < db->n_bam_rec * thresh_reads){
-                INFO("%s", "CPU got too much work. If this message repeats, consider increasing --cuda-max-epk or --cuda-max-lf");
+                load_balance_advisor(core,CPU_INC_MAX_EPK_LF);
+                if (core->opt.verbosity>1) INFO("%s", "CPU got too much work. If this message repeats, consider increasing --cuda-max-epk or --cuda-max-lf");
             }
             else{
                 if(stat_n_ultra_long_reads< db->n_bam_rec * thresh_reads){
-                        INFO("%s", "CPU got too much work. If this message repeats, consider increasing --cuda-max-lf");
+                        load_balance_advisor(core,CPU_INC_MAX_LF);
+                        if (core->opt.verbosity>1) INFO("%s", "CPU got too much work. If this message repeats, consider increasing --cuda-max-lf");
                 }
                 else if(stat_n_too_many_events < db->n_bam_rec * thresh_reads){
-                        INFO("%s", "CPU got too much work. If this message repeats, consider increasing --cuda-max-epk");
+                        load_balance_advisor(core,CPU_INC_MAX_EPK);
+                        if (core->opt.verbosity>1) INFO("%s", "CPU got too much work. If this message repeats, consider increasing --cuda-max-epk");
                 }
             }
         }
     }
     else if(factor<-thresh_factor){ //gpu too much time
-        INFO("%s", "GPU got too much work. If this message repeats, consider decreasing --cuda-max-epk or --cuda-max-lf");
+        load_balance_advisor(core,GPU_DEC_MAX_EPK_LF);
+        if (core->opt.verbosity>1) INFO("%s", "GPU got too much work. If this message repeats, consider decreasing --cuda-max-epk or --cuda-max-lf");
     }
     else{
         if(event_array_usage<100-thresh*100 && read_array_usage<100-thresh*100){
             if (core->opt.verbosity>1) fprintf(stderr,"[%s] GPU arrays are not fully utilised\n",__func__);
             if(db->n_bam_rec>=core->opt.batch_size){
-                INFO("%s", "GPU arrays are not fully utilised. If this message repeats, consider increasing the --batchsize (-K option)");
+                load_balance_advisor(core,GPU_INC_K);
+                if (core->opt.verbosity>1) INFO("%s", "GPU arrays are not fully utilised. If this message repeats, consider increasing the --batchsize (-K option)");
             }
             else if(db->sum_bases >= core->opt.batch_size_bases){
-                INFO("%s", "GPU arrays are not fully utilised. If this message repeats, consider increasing the --max-bases (-B option)");
+                load_balance_advisor(core,GPU_INC_B);
+                if (core->opt.verbosity>1) INFO("%s", "GPU arrays are not fully utilised. If this message repeats, consider increasing the --max-bases (-B option)");
             }
             else{
                 if (core->opt.verbosity>1) fprintf(stderr,"[%s] Probably the last batch\n",__func__);
