@@ -8,80 +8,95 @@
 #include "fast5lite.h"
 #include "nanopolish_read_db.h"
 
-#define F5C_VERSION "0.0"
+#define F5C_VERSION "0.1-beta"
 
-#define KMER_SIZE 6 //hard coded for now; todo : change to dynamic
+/* hard coded numbers*/
+#define KMER_SIZE 6 //hard coded for now; todo : change to dynamic?
 #define NUM_KMER 4096   //num k-mers for 6-mers DNA
 #define NUM_KMER_METH 15625 //number k-mers for 6-mers with methylated C
-//#define HAVE_CUDA 1 //if compile for CUDA or not
-#define ALN_BANDWIDTH 100 // the band size in banded_alignment
+//#define HAVE_CUDA 1 //if compiled for CUDA or not
+#define ALN_BANDWIDTH 100 // the band size in adaptive_banded_dynamic_alignment
 
-//user option related flags
+/*flags related to the user specified options (opt_t)*/
 #define F5C_PRINT_RAW 0x001     //print the raw signal to stdio
 #define F5C_SECONDARY_YES 0x002 //consider secondary reads
-#define F5C_SKIP_UNREADABLE                                                    \
-    0x004 //Skip unreadable fast5 and continue rather than exiting
+#define F5C_SKIP_UNREADABLE 0x004 //Skip unreadable fast5 and continue rather than exiting
 #define F5C_PRINT_EVENTS 0x008 //print the event table
 #define F5C_PRINT_BANDED_ALN 0x010 //print the event alignment
 #define F5C_PRINT_SCALING 0x020 //print the estimated scalings
-#define F5C_DISABLE_CUDA 0x040 //diable cuda (only when compile for cuda)
-#define F5C_DEBUG_BRK 0x080 //break after the first batch
+#define F5C_DISABLE_CUDA 0x040 //disable cuda (only when compile for cuda)
+//#define F5C_DEBUG_BRK 0x080 //break after the first batch //removed can be reused
+#define F5C_SEC_PROF 0x100 //profile section by section (only effective on the CPU mode)
 
 
-//flags for a read status
+/*flags for a read status (related to db_t->read_stat_flag)*/
 #define FAILED_CALIBRATION 0x001 //if the calibration failed
 #define FAILED_ALIGNMENT 0x002 //if the alignment failed
 #define FAILED_QUALITY_CHK  0x004 //if the quality check failed
-//#define FAILED_FAST5  0x008 //if the fast5 file was unreadable
 
 
-#define WORK_STEAL 1
-#define STEAL_THRESH 5
+/* other hard coded options */
+
+/*CPU thread scheduling options for multithreading framework for processing*/
+#define WORK_STEAL 1 //simple work stealing enabled or not (no work stealing mean no load balancing)
+#define STEAL_THRESH 5 //stealing threshold for the CPU only sections
+#define STEAL_THRESH_CUDA 1 //stealing threshold for the CPU part in a GPU accelerated workload
 
 //set if input, processing and output are not to be interleaved (serial mode) - useful for debugging
-//#define IO_PROC_NO_INTERLEAVE 1 
-#define SECTIONAL_BENCHMARK 1   
+//#define IO_PROC_NO_INTERLEAVE 1
 
 //#define ALIGN_2D_ARRAY 1 //for CPU whether to use a 1D array or a 2D array
+// note : (2D arrays are very slow due to mallocs when the number of threads is high)
 
 #define CACHED_LOG 1 //if the log values of scalings and the model k-mers are cached
-//#define LOAD_SD_MEANSSTDV 1 //if the sd_mean and the sd_stdv is yo be loaded
+//#define LOAD_SD_MEANSSTDV 1 //if the sd_mean and the sd_stdv is to be loaded (they are unused anyway)
 
-#define ESL_LOG_SUM 1 // the fast log sum for HMM
+#define ESL_LOG_SUM 1 // enable the fast log sum for HMM
 
+
+/* data structures */
 
 //user options
 typedef struct {
-    int32_t min_mapq;       //minimum mapq
-    const char* model_file; //name of the model file
-    uint32_t flag;
-    int32_t batch_size;
+    int32_t min_mapq;           //minimum mapq
+    const char* model_file;     //name of the model file
+    uint32_t flag;              //flags
+    int32_t batch_size;         //max reads loaded at once
+    int64_t batch_size_bases;   //max bases loaded at once
+
     int32_t num_thread;
-    int32_t cuda_block_size;
     int8_t verbosity;
+    int32_t debug_break;
+
+    //todo : these are required only for HAVE_CUDA (but need to chnage the meth_main accordingly)
+    int32_t cuda_block_size;
+    float cuda_max_readlen;
+    float cuda_avg_events_per_kmer;
+    float cuda_max_avg_events_per_kmer;
+    int32_t cuda_dev_id;
+    float cuda_mem_frac;
 } opt_t;
 
-// events : from scrappie
+// a single event : adapted from taken from scrappie
 typedef struct {
     uint64_t start;
-    float length; //cant be made int
+    float length; //todo : cant be made int?
     float mean;
     float stdv;
-    int32_t pos;   //always -1 can be removed
-    int32_t state; //always -1 can be removed
+    int32_t pos;   //todo : always -1 can be removed
+    int32_t state; //todo : always -1 can be removed
 } event_t;
 
-// events : from scrappie
+// event table : adapted from scrappie
 typedef struct {
-    size_t n;
-    size_t start; //always 0
-    size_t end;   //always eqial to n
+    size_t n;     //todo : int32_t not enough?
+    size_t start; //todo : always 0?
+    size_t end;   //todo : always equal to n?
     event_t* event;
 } event_table;
 
 //k-mer model
 typedef struct {
-    //char kmer[KMER_SIZE + 1]; //KMER_SIZE+null character //can get rid of this
     float level_mean;
     float level_stdv;
 
@@ -97,23 +112,22 @@ typedef struct {
 #endif
 } model_t;
 
-//scalings : taken from nanopolish
+//scaling parameters for the signal : taken from nanopolish
 typedef struct {
     // direct parameters that must be set
     float scale;
     float shift;
     //float drift; = 0 always?
-    float var; // set later
+    float var; // set later when calibrating
     //float scale_sd;
     //float var_sd;
 
     // derived parameters that are cached for efficiency
-#ifdef CACHED_LOG    
+#ifdef CACHED_LOG
     float log_var;
 #endif
     //float scaled_var;
     //float log_scaled_var;
-
 } scalings_t;
 
 //from nanopolish
@@ -133,7 +147,6 @@ typedef struct {
     int32_t start;
     int32_t stop; // inclusive
 } index_pair_t;
-
 
 //from nanopolish
 typedef struct {
@@ -157,8 +170,8 @@ typedef struct {
 struct ScoredSite
 {
     //toto : clean up unused
-    ScoredSite() 
-    { 
+    ScoredSite()
+    {
         ll_unmethylated[0] = 0;
         ll_unmethylated[1] = 0;
         ll_methylated[0] = 0;
@@ -179,7 +192,6 @@ struct ScoredSite
 
     //
     static bool sort_by_position(const ScoredSite& a, const ScoredSite& b) { return a.start_position < b.start_position; }
-
 };
 
 
@@ -224,12 +236,18 @@ typedef struct {
     int32_t* read_stat_flag;
 
     //extreme ugly hack till converted to C
+    // An output map from reference positions to scored CpG sites
     std::map<int, ScoredSite> **site_score_map;
-    
+
+    //stats //set by the load_db
+    int64_t sum_bases;
+    int64_t total_reads; //total number mapped entries in the bam file (after filtering based on flags, mapq etc)
+    int64_t bad_fast5_file; //empty fast5 path returned by readdb, could not open fast5
+
 } db_t;
 
-//cuda data structure
-#ifdef HAVE_CUDA 
+//cuda core data structure : allocated array pointers
+#ifdef HAVE_CUDA
     typedef struct{
     int32_t* event_ptr_host;
     int32_t* n_events_host;
@@ -238,13 +256,25 @@ typedef struct {
     scalings_t* scalings_host;
     int32_t* n_event_align_pairs_host;
 
+    char* read;        //flattened reads sequences
     int32_t* read_ptr; //index pointer for flattedned "reads"
     int32_t* read_len;
+    int64_t sum_read_len;
     int32_t* n_events;
+    event_t* event_table;
     int32_t* event_ptr;
+    int64_t sum_n_events;
     scalings_t* scalings;
+    AlignedPair* event_align_pairs;
     int32_t* n_event_align_pairs;
-    model_t *model;
+    float *bands;
+    uint8_t *trace;
+    EventKmerPair* band_lower_left;
+    model_t* model_kmer_cache;
+    model_t* model;
+
+    //dynamic arrays
+    uint64_t max_sum_read_len;
 
     } cuda_data_t;
 #endif
@@ -272,14 +302,27 @@ typedef struct {
 
     //realtime0
     double realtime0;
+
+    double load_db_time;
+    double process_db_time;
+
+    //loading time breakdown
+    double db_bam_time;
+    double db_fasta_time;
+    double db_fast5_time;
+    double db_fast5_open_time;
+    double db_fast5_read_time;
+
+    //processing time break down
     double event_time;
     double align_time;
     double est_scale_time;
     double meth_time;
-    
-#ifdef HAVE_CUDA   
 
-    //cuda structures
+
+#ifdef HAVE_CUDA
+
+    //cuda arrays
     cuda_data_t* cuda;
 
     double align_kernel_time;
@@ -292,11 +335,25 @@ typedef struct {
     double align_cuda_postprocess;
     double align_cuda_preprocess;
     double align_cuda_total_kernel;
+
+    //perf stats
+    int32_t previous;
+    int32_t previous_count;
+
 #endif
+
+    //stats //set by output_db
+    int64_t sum_bases;
+    int64_t total_reads; //total number mapped entries in the bam file (after filtering based on flags, mapq etc)
+    int64_t bad_fast5_file; //empty fast5 path returned by readdb, could not open fast5
+    int64_t qc_fail_reads;
+    int64_t failed_calibration_reads;
+    int64_t failed_alignment_reads;
+
 
 } core_t;
 
-//argument warpper for the multithreading framework
+//argument wrapper for the multithreading framework for processing
 typedef struct {
     core_t* core;
     db_t* db;
@@ -307,10 +364,12 @@ typedef struct {
     void *all_pthread_args;
 #endif
 #ifdef HAVE_CUDA
-    int32_t *ultra_long_reads;
+    int32_t *ultra_long_reads; //reads that are assigned to the CPU due to the unsuitability to process on the GPU
+    double ret1;    //return value
 #endif
 } pthread_arg_t;
 
+//argument wrapper for Input/processing/output interleave thread framework
 typedef struct {
     core_t* core;
     db_t* db;
@@ -319,8 +378,17 @@ typedef struct {
     pthread_mutex_t mutex;
 } pthread_arg2_t;
 
+//return status by the load_db - used for termination when all the data is processed
+typedef struct {
+    int32_t num_reads;
+    int64_t num_bases;
+} ret_status_t;
+
+
+/* Function prototype for major functions */
+
 db_t* init_db(core_t* core);
-int32_t load_db(core_t* dg, db_t* db);
+ret_status_t load_db(core_t* dg, db_t* db);
 core_t* init_core(const char* bamfilename, const char* fastafile,
                   const char* fastqfile, opt_t opt,double realtime0);
 void process_db(core_t* dg, db_t* db);
@@ -338,5 +406,7 @@ void init_opt(opt_t* opt);
     void free_cuda(core_t* core);
 
 #endif
+
+/* Function prototypes for other non-major functions are in f5cmisc.h (and f5cmisc.cuh for CUDA)*/
 
 #endif

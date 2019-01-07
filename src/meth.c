@@ -10,7 +10,7 @@
 
 #define METH_DEBUG 1
 
-//following Code is adapted from Nanopolish 
+//following Code is adapted from Nanopolish
 
 int32_t get_aligned_segments(const bam1_t* record, int read_stride, AlignedPair *segments, int32_t read_len)
 {
@@ -30,11 +30,11 @@ int32_t get_aligned_segments(const bam1_t* record, int read_stride, AlignedPair 
     // query pos is an index in the query string that is recorded in the bam
     // we record this as a sanity check
     //int query_pos = 0;
-    
+
     int ref_pos = c->pos;
 
     for (uint32_t ci = 0; ci < c->n_cigar; ++ci) {
-        
+
         int cigar_len = cigar[ci] >> 4;
         int cigar_op = cigar[ci] & 0xf;
 
@@ -42,7 +42,7 @@ int32_t get_aligned_segments(const bam1_t* record, int read_stride, AlignedPair 
         // based on the cigar operation
         int read_inc = 0;
         int ref_inc = 0;
- 
+
         // Process match between the read and the reference
         bool is_aligned = false;
         if(cigar_op == BAM_CMATCH || cigar_op == BAM_CEQUAL || cigar_op == BAM_CDIFF) {
@@ -50,7 +50,7 @@ int32_t get_aligned_segments(const bam1_t* record, int read_stride, AlignedPair 
             read_inc = read_stride;
             ref_inc = 1;
         } else if(cigar_op == BAM_CDEL) {
-            ref_inc = 1;   
+            ref_inc = 1;
         } else if(cigar_op == BAM_CREF_SKIP) {
             // end the current segment and start a new one
             fprintf(stderr, "Error: spliced alignments detected when loading read %s\n", bam_get_qname(record));
@@ -89,7 +89,7 @@ int32_t get_aligned_segments(const bam1_t* record, int read_stride, AlignedPair 
 
 
 // helper for get_closest_event_to
-int get_next_event(int start, int stop, int stride,index_pair_t* base_to_event_map) 
+int get_next_event(int start, int stop, int stride,index_pair_t* base_to_event_map)
 {
     while(start != stop) {
 
@@ -142,7 +142,7 @@ int32_t get_event_alignment_record(const bam1_t* record,int32_t read_length, ind
     //this->sr = sr;
     int32_t k = KMER_SIZE;
     //size_t read_length = this->sr->read_sequence.length();
-    
+
     for(int32_t i = 0; i < segments_size; ++i) {
         // skip positions at the boundary
         if(seq_record[i].read_pos < k) {
@@ -175,7 +175,7 @@ int32_t get_event_alignment_record(const bam1_t* record,int32_t read_length, ind
 	    *aligned_events_ptr = NULL;
 	    aligned_events_size = 0;
         }
-    } 
+    }
     // else {
     //     stride = 1;
     // }
@@ -342,11 +342,11 @@ inline RecognitionMatch match_to_site(const std::string& str, size_t i, const ch
             match.offset = 0;
             match.length = cl;
         }
-    }   
+    }
 
     //printf("Match site: %s %s %s %d %d\n", str.c_str(), str.substr(i).c_str(), recognition, match.offset, match.length);
     if(match.length > 0) {
-        match.covers_methylated_site = 
+        match.covers_methylated_site =
             str.substr(i, match.length).find_first_of(METHYLATED_SYMBOL) != std::string::npos;
     }
 
@@ -356,7 +356,7 @@ inline RecognitionMatch match_to_site(const std::string& str, size_t i, const ch
 
 // If the alphabet supports methylated bases, convert str
 // to a methylated string using the recognition sites
-std::string methylate(const std::string& str) 
+std::string methylate(const std::string& str)
 {
     std::string out(str);
     size_t i = 0;
@@ -384,7 +384,7 @@ std::string methylate(const std::string& str)
 // reverse-complement a string meth aware
 // when the string contains methylated bases, the methylation
 // symbol transfered to the output strand in the appropriate position
-std::string reverse_complement_meth(const std::string& str) 
+std::string reverse_complement_meth(const std::string& str)
 {
     std::string out(str.length(), 'A');
     size_t i = 0; // input
@@ -470,8 +470,8 @@ bool find_by_ref_bounds(const AlignedPair *pairs, size_t pairs_size, int ref_sta
 
 // struct ScoredSite
 // {
-//     ScoredSite() 
-//     { 
+//     ScoredSite()
+//     {
 //         ll_unmethylated[0] = 0;
 //         ll_unmethylated[1] = 0;
 //         ll_methylated[0] = 0;
@@ -500,14 +500,9 @@ bool find_by_ref_bounds(const AlignedPair *pairs, size_t pairs_size, int ref_sta
 // Test CpG sites in this read for methylation
 void calculate_methylation_for_read(std::map<int, ScoredSite>* site_score_map, char* ref, bam1_t* record, int32_t read_length, event_t* event, index_pair_t* base_to_event_map,
 scalings_t scaling, model_t* cpgmodel,double events_per_base) {
-    // Load a squiggle read for the mapped read
-    // std::string read_name = bam_get_qname(record);
-    // SquiggleRead sr(read_name, read_db);
 
-    // An output map from reference positions to scored CpG sites
-    //std::map<int, ScoredSite> site_score_map;
 
-    //todo : do this
+    //todo : have to check this, if required have to implement
     // if(!sr.has_events_for_strand(strand_idx)) {
     //     continue;
     // }
@@ -515,6 +510,7 @@ scalings_t scaling, model_t* cpgmodel,double events_per_base) {
     //size_t k = sr.get_model_k(strand_idx);
     uint32_t k = KMER_SIZE;
 
+    //todo : this is required in a generic version of the tool
     // // check if there is a cpg model for this strand
     // if(!PoreModelSet::has_model(sr.get_model_kit_name(strand_idx),
     //                             "cpg",
@@ -524,23 +520,12 @@ scalings_t scaling, model_t* cpgmodel,double events_per_base) {
     //     continue;
     // }
 
-    // Build the event-to-reference map for this read from the bam record
-   // std::vector<AlignedPair> seq_align_record=get_sequence_alignment(record);
-    // EventAlignmentRecord event_align_record(&sr, strand_idx, seq_align_record);
-
-    // std::string contig = hdr->target_name[record->core.tid];
     int ref_start_pos = record->core.pos;
     //int ref_end_pos =  bam_endpos(record);
 
-    // // Extract the reference sequence for this region
-    // int fetched_len = 0;
-    // assert(ref_end_pos >= ref_start_pos);
-    // std::string ref_seq = get_reference_region_ts(fai, contig.c_str(), ref_start_pos,
-    //                                               ref_end_pos, &fetched_len);
-
     // Remove non-ACGT bases from this reference segment
-    std::string ref_seq = ref; //todo : this is a hack due to pure laziness
-    ref_seq = disambiguate(ref_seq); //todo : do this
+    std::string ref_seq = ref; //todo : this is a hack due to pure laziness convert to C
+    ref_seq = disambiguate(ref_seq); //todo :  convert to C
 
     // Scan the sequence for CpGs
     assert(ref_seq.size() != 0);
@@ -587,17 +572,17 @@ scalings_t scaling, model_t* cpgmodel,double events_per_base) {
             continue;
         }
 
-        //todo : do this
+        //todo : convert to C
         std::string subseq =
             ref_seq.substr(sub_start_pos, sub_end_pos - sub_start_pos + 1);
-        std::string rc_subseq = reverse_complement(subseq); //todo : fix this to meth aware
+        std::string rc_subseq = reverse_complement(subseq); //todo : fix this to meth aware generic complement function
 
         int calling_start = sub_start_pos + ref_start_pos;
         int calling_end = sub_end_pos + ref_start_pos;
 
+        // Build the event-to-reference map for this read from the bam record
         AlignedPair *event_align_record = NULL;
         int32_t event_align_record_size = get_event_alignment_record(record, read_length, base_to_event_map, &event_align_record);
-
 
         // using the reference-to-event map, look up the event indices for this segment
         int e1, e2;
@@ -611,13 +596,11 @@ scalings_t scaling, model_t* cpgmodel,double events_per_base) {
 
         double ratio = fabs(e2 - e1) / (calling_start - calling_end);
 
-
         // Only process this region if the the read is aligned within the boundaries
         // and the span between the start/end is not unusually short
         if (!bounded || abs(e2 - e1) <= 10 || ratio > MAX_EVENT_TO_BP_RATIO) {
             continue;
         }
-
 
         uint32_t hmm_flags = HAF_ALLOW_PRE_CLIP | HAF_ALLOW_POST_CLIP;
 
@@ -626,7 +609,7 @@ scalings_t scaling, model_t* cpgmodel,double events_per_base) {
         uint32_t event_start_idx=e1;
         uint32_t event_stop_idx=e2;
         int8_t event_stride = event_start_idx <= event_stop_idx ? 1 : -1;
-        uint8_t rc = bam_is_rev(record); //only for starnd 0
+        uint8_t rc = bam_is_rev(record); //only for strand 0
 
         const char* m_seq = subseq.c_str();
         const char* m_rc_seq = rc_subseq.c_str();
@@ -638,13 +621,9 @@ scalings_t scaling, model_t* cpgmodel,double events_per_base) {
         std::string mcpg_subseq = methylate(subseq);
         std::string rc_mcpg_subseq = reverse_complement_meth(mcpg_subseq);
 
-
         double methylated_score=profile_hmm_score(mcpg_subseq.c_str(),rc_mcpg_subseq.c_str(), event, scaling, cpgmodel, event_start_idx, event_stop_idx,
         strand,event_stride,rc,events_per_base,hmm_flags);
-
         //fprintf(stderr,"meth score %f\n",methylated_score);
-
-        //std::string contig = m_hdr->target_name[record->core.tid];
 
         // Aggregate score
         int start_position = cpg_sites[start_idx] + ref_start_pos;

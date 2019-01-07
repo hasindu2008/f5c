@@ -37,7 +37,7 @@ float profile_hmm_score(const char *m_seq,const char *m_rc_seq, event_t* event, 
     uint32_t event_stop_idx,
     uint8_t strand,
     int8_t event_stride,
-    uint8_t rc,double events_per_base,uint32_t hmm_flags 
+    uint8_t rc,double events_per_base,uint32_t hmm_flags
 );
 void calculate_methylation_for_read(std::map<int, ScoredSite>* site_score_map, char* ref, bam1_t* record, int32_t read_length, event_t* event, index_pair_t* base_to_event_map,
 scalings_t scaling, model_t* cpgmodel,double events_per_base);
@@ -82,9 +82,9 @@ static inline void print_size(const char* name, uint64_t bytes)
         count /= 1024;
     }
     if (count - floor(count) == 0.0)
-        fprintf(stderr, "%s : %d %s\n", name, (int)count, suffixes[s]);
+        fprintf(stderr, "[%s] %s : %d %s\n", __func__ , name, (int)count, suffixes[s]);
     else
-        fprintf(stderr, "%s : %.1f %s\n", name, count, suffixes[s]);
+        fprintf(stderr, "[%s] %s : %.1f %s\n", __func__, name, count, suffixes[s]);
 }
 
 
