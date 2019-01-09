@@ -503,14 +503,14 @@ int meth_main(int argc, char* argv[]) {
         #endif
         fprintf(stderr, "\n[%s]     - Estimate scaling time: %.3f sec",
                 __func__, core->est_scale_time);
-        fprintf(stderr, "\n[%s]     - Call methylation time: %.3f sec\n",
+        fprintf(stderr, "\n[%s]     - Call methylation time: %.3f sec",
                 __func__, core->meth_time);
 
     }
 
 #ifndef IO_PROC_NO_INTERLEAVE
     if(core->load_db_time > core->process_db_time){
-        INFO("Performance bounded by file I/O. File I/O took %.3f sec than processing\n",core->load_db_time - core->process_db_time);
+        INFO("\nPerformance bounded by file I/O. File I/O took %.3f sec than processing",core->load_db_time - core->process_db_time);
     }
 #endif
 
