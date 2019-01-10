@@ -23,3 +23,5 @@ docs:
     children:
       - title:  Comparison with Nanopolish
         url:    /docs/comparison-with-nanopolish
+      - title:  HDF5 Performance
+        url:    /docs/hdf5-performance
