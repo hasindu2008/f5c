@@ -8,7 +8,7 @@ python group-fasta-readlen.py reads.fasta
 """
 
 import argparse
-from math import trunc
+from math import floor, trunc
 
 
 def parse_fasta(handle):
@@ -55,6 +55,10 @@ def parse_fasta(handle):
     yield title, ''.join(lines).replace(" ", "").replace("\r", "")
 
 
+def round_down(x):
+    return int(floor(x / 1000)) * 1000
+
+
 def cli_main():
     """Command line entry point."""
     parser = argparse.ArgumentParser()
@@ -67,7 +71,7 @@ def cli_main():
         reads = {}
         for header, seq in parse_fasta(file):
             # round down to nearest thousand
-            rounded_length = round(len(seq), -3)
+            rounded_length = round_down(len(seq))
             read = (header, seq)
             try:
                 reads[rounded_length].add(read)
@@ -75,7 +79,8 @@ def cli_main():
                 reads[rounded_length] = {read}
 
     for k, v in reads.items():
-        fn = '{}k_reads.fasta'.format(trunc(k / 1000))
+        readlen = trunc(k / 1000)
+        fn = '{}k_{}k_reads.fasta'.format(readlen, readlen + 1)
         with open(fn, 'a') as f:
             for read in v:
                 f.write('>' + read[0] + '\n')
