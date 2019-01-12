@@ -26,7 +26,7 @@ core_t* init_core(const char* bamfilename, const char* fastafile,
     // load bam index file
     core->m_bam_idx = sam_index_load(core->m_bam_fh, bamfilename);
     if(core->m_bam_idx==NULL){
-        ERROR("could not load the .bai index file for %s\n", bamfilename);
+        ERROR("could not load the .bai index file for %s", bamfilename);
         fprintf(stderr, "Please run 'samtools index %s'\n", bamfilename);
         exit(EXIT_FAILURE);
     }
