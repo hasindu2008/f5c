@@ -73,8 +73,8 @@ int main(int argc, char* argv[]){
         fprintf(stderr, " %s", argv[i]);
     }
 
-    fprintf(stderr, "\n[%s] Real time: %.3f sec; CPU time: %.3f sec\n",
-            __func__, realtime() - realtime0, cputime());
+    fprintf(stderr, "\n[%s] Real time: %.3f sec; CPU time: %.3f sec; Peak RAM: %.3f GB\n\n",
+            __func__, realtime() - realtime0, cputime(),peakrss() / 1024.0 / 1024.0 / 1024.0);
 
     return ret;
 }

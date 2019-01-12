@@ -35,7 +35,6 @@ main thread
 
 /*
 TODO :
-debug-break should take a number (loop count)
 --print-* options should take a filename
 a step controller if one requires to perform only upto a certain step such as alignment, ignoring the reset
 */
@@ -509,8 +508,9 @@ int meth_main(int argc, char* argv[]) {
     }
 
 #ifndef IO_PROC_NO_INTERLEAVE
-    if(core->load_db_time > core->process_db_time){
-        INFO("\nPerformance bounded by file I/O. File I/O took %.3f sec than processing",core->load_db_time - core->process_db_time);
+    fprintf(stderr,"\n");
+    if((core->load_db_time - core->process_db_time) > (core->process_db_time*0.2) ){
+        INFO("Performance bounded by file I/O. File I/O took %.3f sec than processing",core->load_db_time - core->process_db_time);
     }
 #endif
 

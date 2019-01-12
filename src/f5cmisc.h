@@ -62,6 +62,18 @@ static inline double cputime(void) {
            1e-6 * (r.ru_utime.tv_usec + r.ru_stime.tv_usec);
 }
 
+//taken from minimap2
+static inline long peakrss(void)
+{
+	struct rusage r;
+	getrusage(RUSAGE_SELF, &r);
+#ifdef __linux__
+	return r.ru_maxrss * 1024;
+#else
+	return r.ru_maxrss;
+#endif
+}
+
 // Prints to the provided buffer a nice number of bytes (KB, MB, GB, etc)
 //from https://www.mbeckler.org/blog/?p=114
 static inline void print_size(const char* name, uint64_t bytes)
