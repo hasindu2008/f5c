@@ -33,8 +33,8 @@ clear_fscache() {
 }
 
 run() {
-	echo $1
-	eval $1
+	echo "$1"
+	eval "$1"
 	[ $clean_cache = true ] && clear_fscache
 	return 0
 }
@@ -78,23 +78,23 @@ do
 		F) nano_output="$OPTARG";;
 		h) help_msg
 		   exit 0;;
-		?) printf "Usage: %s [-c] [-h] [f5c path] [nanopolish path]\n" $0
+		?) printf "Usage: %s [-c] [-h] [f5c path] [nanopolish path]\\n" "$0"
 		   exit 2;;
 	esac
 done
 
 shift $(($OPTIND - 1))
-[ -z $1 ] && die "Specify f5c path."
-[ -z $2 ] && die "Specify nanopolish path."
+[ -z "$1" ] && die "Specify f5c path."
+[ -z "$2" ] && die "Specify nanopolish path."
 f5c_path=$1
 nanopolish_path=$2
 
 for file in ${bamfile} ${ref} ${reads}
 do
-	[ -f ${file} ] || die "${file} not found."
+	[ -f "${file}" ] || die "${file} not found."
 done
 
-rm -f *_benchmark.log
+rm -f ./*_benchmark.log
 
 [ $clean_cache = true ] && clear_fscache
 
@@ -105,7 +105,7 @@ then
 	t=$threads
 fi
 # run benchmark
-while [ $t -le $threads ]
+while [ "$t" -le "$threads" ]
 do
 	run "/usr/bin/time -v ${f5c_path} call-methylation -b ${bamfile} -g ${ref} -r ${reads} -t $t --secondary=yes --min-mapq=0 -K $batchsize --disable-cuda=$disable_cuda -B $bases > $f5c_output 2>> f5c_benchmark.log"
 	run "/usr/bin/time -v ${nanopolish_path} call-methylation -b ${bamfile} -g ${ref} -r ${reads} -t $t -K $batchsize > $nano_output 2>> nano_benchmark.log"
