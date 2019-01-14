@@ -88,7 +88,7 @@ do
 		F) nano_output="$OPTARG";;
 		R) readlen_mode=true
 		   # equivalent of ls -v but -v option is not in POSIX ls
-		   readlen_mode_reads=$(ls ./*_reads.fasta | sort -nk 1.3);;
+		   readlen_mode_reads=$(ls ./*_reads.fasta | sort -n);;
 		h) help_msg
 		   exit 0;;
 		?) printf "Usage: %s [-c] [-h] [f5c path] [nanopolish path]\\n" "$0"
