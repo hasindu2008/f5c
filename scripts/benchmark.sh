@@ -88,7 +88,7 @@ do
 		F) nano_output="$OPTARG";;
 		R) readlen_mode=true
 		   # equivalent of ls -v but -v option is not in POSIX ls
-		   readlen_mode_reads=$(ls ./*_reads.fasta | sort -nk 1);;
+		   readlen_mode_reads=$(ls ./*_reads.fasta | sort -nk 1.3);;
 		h) help_msg
 		   exit 0;;
 		?) printf "Usage: %s [-c] [-h] [f5c path] [nanopolish path]\\n" "$0"
@@ -132,7 +132,7 @@ then
 			--min-mapq=0 \
 			-K $batchsize \
 			--disable-cuda=$disable_cuda \
-			-b $bases > $f5c_output 2>> f5c_benchmark.log"
+			-B $bases > $f5c_output 2>> f5c_benchmark.log"
 	done
 else
 	while [ "$t" -le "$threads" ]
