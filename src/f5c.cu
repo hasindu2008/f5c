@@ -1039,7 +1039,7 @@ realtime1 = realtime();
 
 #ifndef CUDA_DYNAMIC_MALLOC
 
-    assert(sum_read_len <= core->cuda->max_sum_read_len);
+    assert(sum_read_len <= (int32_t)core->cuda->max_sum_read_len);
     assert(sum_n_events <= floor(core->cuda->max_sum_read_len * AVG_EVENTS_PER_KMER));
     //fprintf(stderr,"%d %d\n", sum_read_len,sum_n_events);
     if(core->opt.verbosity>1) STDERR("%.2f %% of GPU read arrays and %.2f %% of GPU event arrays were utilised",
@@ -1128,59 +1128,63 @@ core->align_cuda_memcpy += (realtime() - realtime1);
 
 realtime1 = realtime();
 
+    if(n_bam_rec_cuda>0){ 
     /*pre kernel*/
     assert(BLOCK_LEN_BANDWIDTH>=ALN_BANDWIDTH);
-    dim3 gridpre(1,(n_bam_rec_cuda + BLOCK_LEN_READS - 1) / BLOCK_LEN_READS);
-    dim3 blockpre(BLOCK_LEN_BANDWIDTH,BLOCK_LEN_READS);
-	if(core->opt.verbosity>1) STDERR("grid %d,%d, block %d,%d",gridpre.x,gridpre.y, blockpre.x,blockpre.y);
-
-    align_kernel_pre_2d<<<gridpre, blockpre>>>( read,
-        read_len, read_ptr, n_events,
-        event_ptr, model, n_bam_rec_cuda, model_kmer_cache,bands,trace,band_lower_left);
-
-    cudaDeviceSynchronize();CUDA_CHK();
-    if(core->opt.verbosity>1) fprintf(stderr, "[%s::%.3fsec] align-pre kernel done\n", __func__,
+        dim3 gridpre(1,(n_bam_rec_cuda + BLOCK_LEN_READS - 1) / BLOCK_LEN_READS);
+        dim3 blockpre(BLOCK_LEN_BANDWIDTH,BLOCK_LEN_READS);
+        if(core->opt.verbosity>1) STDERR("grid %d,%d, block %d,%d",gridpre.x,gridpre.y, blockpre.x,blockpre.y);
+        align_kernel_pre_2d<<<gridpre, blockpre>>>( read,
+            read_len, read_ptr, n_events,
+            event_ptr, model, n_bam_rec_cuda, model_kmer_cache,bands,trace,band_lower_left);
+        cudaDeviceSynchronize();CUDA_CHK();
+        if(core->opt.verbosity>1) fprintf(stderr, "[%s::%.3fsec] align-pre kernel done\n", __func__,
             realtime() - realtime1);
+    }
 core->align_kernel_time += (realtime() - realtime1);
 core->align_pre_kernel_time += (realtime() - realtime1);
 
 realtime1 = realtime();
 
     /* core kernel*/
-    assert(BLOCK_LEN_BANDWIDTH>=ALN_BANDWIDTH);
-    dim3 grid1(1,(n_bam_rec_cuda + BLOCK_LEN_READS - 1) / BLOCK_LEN_READS);
-    dim3 block1(BLOCK_LEN_BANDWIDTH,BLOCK_LEN_READS);
-    align_kernel_core_2d_shm<<<grid1, block1>>>(read_len, read_ptr, event_table, n_events,
-            event_ptr, scalings, n_bam_rec_cuda, model_kmer_cache,bands,trace,band_lower_left );
+    if(n_bam_rec_cuda>0){ 
+        assert(BLOCK_LEN_BANDWIDTH>=ALN_BANDWIDTH);
+        dim3 grid1(1,(n_bam_rec_cuda + BLOCK_LEN_READS - 1) / BLOCK_LEN_READS);
+        dim3 block1(BLOCK_LEN_BANDWIDTH,BLOCK_LEN_READS);
+        align_kernel_core_2d_shm<<<grid1, block1>>>(read_len, read_ptr, event_table, n_events,
+                event_ptr, scalings, n_bam_rec_cuda, model_kmer_cache,bands,trace,band_lower_left );
 
-    cudaDeviceSynchronize();CUDA_CHK();
-    if(core->opt.verbosity>1) fprintf(stderr, "[%s::%.3fsec] align-core kernel done\n", __func__,
-    realtime() - realtime1);
-    core->align_kernel_time += (realtime() - realtime1);
+        cudaDeviceSynchronize();CUDA_CHK();
+        if(core->opt.verbosity>1) fprintf(stderr, "[%s::%.3fsec] align-core kernel done\n", __func__,
+        realtime() - realtime1);
+    }
+core->align_kernel_time += (realtime() - realtime1);
 core->align_core_kernel_time += (realtime() - realtime1);
 
 realtime1 = realtime();
 
     /*post kernel*/
-    int32_t BLOCK_LEN = core->opt.cuda_block_size;
-    dim3 gridpost((n_bam_rec_cuda + BLOCK_LEN - 1) / BLOCK_LEN);
-    dim3 blockpost(BLOCK_LEN);
-    #ifndef WARP_HACK
-        align_kernel_post<<<gridpost, blockpost>>>(event_align_pairs, n_event_align_pairs,
-            read_len, read_ptr, event_table, n_events,
-            event_ptr,scalings, n_bam_rec_cuda, model_kmer_cache,bands,trace,band_lower_left );
+    if(n_bam_rec_cuda>0){ 
+        int32_t BLOCK_LEN = core->opt.cuda_block_size;
+        dim3 gridpost((n_bam_rec_cuda + BLOCK_LEN - 1) / BLOCK_LEN);
+        dim3 blockpost(BLOCK_LEN);
+        #ifndef WARP_HACK
+            align_kernel_post<<<gridpost, blockpost>>>(event_align_pairs, n_event_align_pairs,
+                read_len, read_ptr, event_table, n_events,
+                event_ptr,scalings, n_bam_rec_cuda, model_kmer_cache,bands,trace,band_lower_left );
 
-    #else
-        assert(BLOCK_LEN>=32);
-        dim3 grid1post((n_bam_rec_cuda + (BLOCK_LEN/32) - 1) / (BLOCK_LEN/32));
-        if(core->opt.verbosity>1) STDERR("grid new %d",grid1post.x);
-        align_kernel_post<<<grid1post, blockpost>>>(event_align_pairs, n_event_align_pairs,
-            read_len, read_ptr, event_table, n_events,
-            event_ptr, scalings, n_bam_rec_cuda, model_kmer_cache,bands,trace,band_lower_left );
-    #endif
-    cudaDeviceSynchronize();CUDA_CHK();
-    if(core->opt.verbosity>1) fprintf(stderr, "[%s::%.3fsec] align-post kernel done\n", __func__,
-            realtime() - realtime1);
+        #else
+            assert(BLOCK_LEN>=32);
+            dim3 grid1post((n_bam_rec_cuda + (BLOCK_LEN/32) - 1) / (BLOCK_LEN/32));
+            if(core->opt.verbosity>1) STDERR("grid new %d",grid1post.x);
+            align_kernel_post<<<grid1post, blockpost>>>(event_align_pairs, n_event_align_pairs,
+                read_len, read_ptr, event_table, n_events,
+                event_ptr, scalings, n_bam_rec_cuda, model_kmer_cache,bands,trace,band_lower_left );
+        #endif
+        cudaDeviceSynchronize();CUDA_CHK();
+        if(core->opt.verbosity>1) fprintf(stderr, "[%s::%.3fsec] align-post kernel done\n", __func__,
+                realtime() - realtime1);
+    }
     core->align_kernel_time += (realtime() - realtime1);
 core->align_post_kernel_time += (realtime() - realtime1);
 
