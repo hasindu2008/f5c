@@ -15,11 +15,11 @@ set_cpu_count() {
 }
 
 handle_tests(){
-	numfailed=$(cat ${testdir}/floatdiff.txt | wc -l)
-	numcases=$(cat ${testdir}/meth_float.txt | wc -l)
+	numfailed=$(wc -l < "${testdir}"/floatdiff.txt)
+	numcases=$(wc -l < "${testdir}"/meth_float.txt)
 	echo "$numfailed of $numcases test cases failed."
 	failp=$(echo "$numfailed/$numcases" | bc)
-	[ $failp -gt 0 ] && die "${1}: Validation failed"
+	[ "$failp" -gt 0 ] && die "${1}: Validation failed"
 }
 
 
