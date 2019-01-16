@@ -210,34 +210,75 @@ def round_down(x):
     return int(floor(x / 1000)) * 1000
 
 
+def write_iter_to_file(f, iterable):
+    """Write an iterable of reads to a file."""
+    for read in iterable:
+        f.write('>' + read[0] + '\n')
+        f.write(read[1] + '\n')
+
+
+def parse_reads(file):
+    """Parse read file and split them into dict of sets."""
+    reads = {}
+    _, ext = os.path.splitext(file.name)
+    file_parser = parse_fasta if ext == '.fasta' else parse_fastq
+    for header, seq in file_parser(file):
+        # round down to nearest thousand
+        rounded_length = round_down(len(seq))
+        read = (header, seq)
+        try:
+            reads[rounded_length].add(read)
+        except KeyError:
+            reads[rounded_length] = {read}
+    return reads
+
+
 def cli_main():
     """Command line entry point."""
     parser = argparse.ArgumentParser()
     parser.add_argument(
         'file', type=argparse.FileType('r'), help='fasta file to be grouped')
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument(
+        '-a',
+        '--accumulate',
+        help='split reads into 0k to N k',
+        action='store_true')
+    group.add_argument(
+        '-r',
+        '--range',
+        nargs=2,
+        type=int,
+        help='output only reads in this range of length')
 
     args = parser.parse_args()
 
     with args.file as file:
-        reads = {}
-        _, ext = os.path.splitext(args.file.name)
-        file_parser = parse_fasta if ext == '.fasta' else parse_fastq
-        for header, seq in file_parser(file):
-            # round down to nearest thousand
-            rounded_length = round_down(len(seq))
-            read = (header, seq)
-            try:
-                reads[rounded_length].add(read)
-            except KeyError:
-                reads[rounded_length] = {read}
+        reads = parse_reads(file)
 
-    for k, v in reads.items():
-        readlen = trunc(k / 1000)
-        fn = '{}k_{}k_reads.fasta'.format(readlen, readlen + 1)
+    if args.accumulate:
+        read_lengths = sorted(reads.keys())
+        for length in read_lengths:
+            readlen = trunc(length / 1000)
+            fn = '0k_{}k_reads.fasta'.format(readlen + 1)
+            with open(fn, 'a') as f:
+                for l in read_lengths[:read_lengths.index(length) + 1]:
+                    write_iter_to_file(f, reads[l])
+    elif args.range:
+        read_lengths = sorted(reads.keys())
+        start = read_lengths.index(args.range[0] * 1000)
+        end = read_lengths.index((args.range[1] + 1) * 1000)
+        read_lengths = read_lengths[start:end]
+        fn = '{}k_{}k_reads.fasta'.format(args.range[0], args.range[1] + 1)
         with open(fn, 'a') as f:
-            for read in v:
-                f.write('>' + read[0] + '\n')
-                f.write(read[1] + '\n')
+            for l in read_lengths:
+                write_iter_to_file(f, reads[l])
+    else:
+        for length, reads_set in reads.items():
+            readlen = trunc(length / 1000)
+            fn = '{}k_{}k_reads.fasta'.format(readlen, readlen + 1)
+            with open(fn, 'a') as f:
+                write_iter_to_file(f, reads_set)
 
 
 if __name__ == '__main__':
