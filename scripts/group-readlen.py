@@ -250,29 +250,37 @@ def cli_main():
         nargs=2,
         type=int,
         help='output only reads in this range of length')
+    group.add_argument(
+        '-l', '--limit', type=int, help='limit output to this read length')
 
     args = parser.parse_args()
 
     with args.file as file:
         reads = parse_reads(file)
 
+    read_lengths = sorted(reads.keys())
     if args.accumulate:
-        read_lengths = sorted(reads.keys())
         for length in read_lengths:
             readlen = trunc(length / 1000)
             fn = '0k_{}k_reads.fasta'.format(readlen + 1)
             with open(fn, 'a') as f:
-                for l in read_lengths[:read_lengths.index(length) + 1]:
+                for l in read_lengths[:read_lengths.index(length)]:
                     write_iter_to_file(f, reads[l])
     elif args.range:
-        read_lengths = sorted(reads.keys())
         start = read_lengths.index(args.range[0] * 1000)
-        end = read_lengths.index((args.range[1] + 1) * 1000)
+        end = read_lengths.index(args.range[1] * 1000)
         read_lengths = read_lengths[start:end]
         fn = '{}k_{}k_reads.fasta'.format(args.range[0], args.range[1] + 1)
         with open(fn, 'a') as f:
             for l in read_lengths:
                 write_iter_to_file(f, reads[l])
+    elif args.limit:
+        read_lengths = read_lengths[:read_lengths.index(args.limit * 1000)]
+        for length in read_lengths:
+            readlen = trunc(length / 1000)
+            fn = '{}k_{}k_reads.fasta'.format(readlen, readlen + 1)
+            with open(fn, 'a') as f:
+                write_iter_to_file(f, reads[length])
     else:
         for length, reads_set in reads.items():
             readlen = trunc(length / 1000)
