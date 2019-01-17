@@ -83,8 +83,8 @@ typedef struct {
     float length; //todo : cant be made int?
     float mean;
     float stdv;
-    int32_t pos;   //todo : always -1 can be removed
-    int32_t state; //todo : always -1 can be removed
+    //int32_t pos;   //todo : always -1 can be removed
+    //int32_t state; //todo : always -1 can be removed
 } event_t;
 
 // event table : adapted from scrappie

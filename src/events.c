@@ -457,8 +457,8 @@ event_t create_event(size_t start, size_t end, double const* sums,
     assert(end <= nsample);
 
     event_t event = {0};
-    event.pos = -1;
-    event.state = -1;
+    //event.pos = -1;
+    //event.state = -1;
 
     event.start = (uint64_t)start;
     event.length = (float)(end - start);
