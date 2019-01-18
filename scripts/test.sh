@@ -3,6 +3,8 @@
 # exit when command fails
 set -e
 
+. scripts/common.sh
+
 # defaults
 exepath=./f5c
 testdir=test/ecoli_2kb_region
@@ -22,12 +24,6 @@ mode=
 testset_url="http://genome.cse.unsw.edu.au/tmp/f5c_ecoli_2kb_region_test.tgz"
 fallback_url="https://ndownloader.figshare.com/files/13784075?private_link=b04e3976eaed2225b848"
 
-# terminate script
-die() {
-	echo "test.sh: $1" >&2
-	exit 1
-}
-
 # download test set given url
 #
 # $1 - URL
@@ -40,7 +36,7 @@ download_test_set() {
 
 	mkdir -p test
 	tar_path=test/data.tgz
-	wget -O $tar_path $1 || wget -O $tar_path $2 || rm -rf $tar_path ${testdir}
+	wget -O $tar_path "$1" || wget -O $tar_path "$2" || rm -rf $tar_path ${testdir}
 	echo "Extracting. Please wait."
 	tar -xf $tar_path -C test || rm -rf $tar_path ${testdir}
 	rm -f $tar_path
@@ -49,28 +45,20 @@ download_test_set() {
 
 
 handle_tests() {
-	numfailed=$(cat ${testdir}/floatdiff.txt | wc -l)
-	numcases=$(cat ${testdir}/meth_float.txt | wc -l)
+	numfailed=$(wc -l < ${testdir}/floatdiff.txt)
+	numcases=$(wc -l < ${testdir}/meth_float.txt)
 	echo "$numfailed of $numcases test cases failed."
 	failp=$(echo "$numfailed/$numcases" | bc)
-	[ $failp -gt 0 ] && die "${1}: Validation failed"
+	[ "$failp" -gt 0 ] && die "${1}: Validation failed"
 }
 
-do_the_test(){
+execute_test() {
 
 	if [ $testdir = test/chr22_meth_example ]; then
 		grep -w "chr20" ${testdir}/result.txt | awk '{print $1$2$3$4$8$9$10"\t"$5"\t"$6"\t"$7}' > ${testdir}/result_float.txt
 		grep -w "chr20" ${testdir}/meth.exp | awk '{print $1$2$3$4$8$9$10"\t"$5"\t"$6"\t"$7}'  > ${testdir}/meth_float.txt
 
-		join -a 1 -a 2 ${testdir}/result_float.txt ${testdir}/meth_float.txt | awk -v thresh=0.1 '
-		function abs(x){return (((x) < 0.0) ? -(x) : (x))}
-		BEGIN{status=0}
-		{
-			if(abs($2-$5)>abs(thresh*$5)+0.02 || abs($3-$6)>abs(thresh*$6)+0.02 || abs($4-$7)>abs(thresh*$7)+0.02)
-				{print $0,abs($2-$5)">"abs(thresh*$5)+0.02 ,abs($3-$6)">"abs(thresh*$6)+0.02,abs($4-$7)">"abs(thresh*$7)+0.02;status=1}
-			}
-		END{if(status>0){exit 1}}
-		' > ${testdir}/floatdiff.txt || handle_tests "${file}"
+		join -a 1 -a 2 ${testdir}/result_float.txt ${testdir}/meth_float.txt | awk -v thresh=0.1 -f scripts/test.awk > ${testdir}/floatdiff.txt || handle_tests "${file}"
 	else	
 		tail -n +2 ${testdir}/result.txt | awk '{print $1,$2,$3,$4,$8,$9,$10}' > ${testdir}/result_exact.txt
 		awk '{print $1,$2,$3,$4,$8,$9,$10}' ${testdir}/meth.exp > ${testdir}/meth_exact.txt
@@ -79,15 +67,7 @@ do_the_test(){
 		tail -n +2  ${testdir}/result.txt | awk '{print $1$2$3$4$8$9$10"\t"$5"\t"$6"\t"$7}' > ${testdir}/result_float.txt
 		awk '{print $1$2$3$4$8$9$10"\t"$5"\t"$6"\t"$7}' ${testdir}/meth.exp > ${testdir}/meth_float.txt	
 
-		join -a 1 -a 2 ${testdir}/result_float.txt ${testdir}/meth_float.txt | awk -v thresh=0.1 '
-		function abs(x){return (((x) < 0.0) ? -(x) : (x))} 
-		BEGIN{status=0} 
-		{
-			if(abs($2-$5)>abs(thresh*$5)+0.02 || abs($3-$6)>abs(thresh*$6)+0.02 || abs($4-$7)>abs(thresh*$7)+0.02)
-				{print $0,abs($2-$5)">"abs(thresh*$5)+0.02 ,abs($3-$6)">"abs(thresh*$6)+0.02,abs($4-$7)">"abs(thresh*$7)+0.02;status=1} 
-			} 
-		END{if(status>0){exit 1}}
-		' > ${testdir}/floatdiff.txt || die "${file}: Validation failed" 
+		join -a 1 -a 2 ${testdir}/result_float.txt ${testdir}/meth_float.txt | awk -v thresh=0.1 -f scripts/test.awk > ${testdir}/floatdiff.txt || die "${file}: Validation failed" 
 	fi	
 }
 
@@ -95,13 +75,13 @@ mode_test() {
 	cmd="${exepath} call-methylation -b ${bamfile} -g ${ref} -r ${reads} -t ${threads} -K $batchsize -B $max_bases"
 
 	case $1 in
-		valgrind) valgrind $cmd > /dev/null;;
-		gdb) gdb --args $cmd;;
-		cpu) $cmd --disable-cuda=yes > ${testdir}/result.txt; do_the_test;;
-		cuda) $cmd --disable-cuda=no > ${testdir}/result.txt; do_the_test;;
+		valgrind) valgrind "$cmd" > /dev/null;;
+		gdb) gdb --args "$cmd";;
+		cpu) $cmd --disable-cuda=yes > ${testdir}/result.txt; execute_test;;
+		cuda) $cmd --disable-cuda=no > ${testdir}/result.txt; execute_test;;
 		echo) echo "$cmd -t $threads > ${testdir}/result.txt";;
-		nvprof) nvprof  -f --analysis-metrics -o profile.nvprof $cmd --disable-cuda=no --debug-break=5 > /dev/null;;
-		custom) shift; $cmd $@ > ${testdir}/result.txt; do_the_test;;
+		nvprof) nvprof  -f --analysis-metrics -o profile.nvprof "$cmd" --disable-cuda=no --debug-break=5 > /dev/null;;
+		custom) shift; $cmd "$@" > ${testdir}/result.txt; execute_test;;
 		*) die "Unknown mode: $1";;
 	esac
 }
@@ -143,7 +123,7 @@ do
 		   exit 0;;
 		h) help_msg
 		   exit 0;;
-		?) printf "Usage: %s [-c] [-b bam file] [-g reference genome] [-r fastq/fasta read] args" $0
+		?) printf "Usage: %s [-c] [-b bam file] [-g reference genome] [-r fastq/fasta read] args" "$0"
 		   exit 2;;
 	esac
 done
@@ -157,15 +137,15 @@ for file in ${bamfile} ${ref} ${reads}; do
 	[ -f ${file} ] || die "${file}: File does not exist"
 done
 
-if [ -z $mode ]; then
+if [ -z "$mode" ]; then
 	if [ $testdir = test/chr22_meth_example ]; then
-		${exepath} call-methylation -b ${bamfile} -g ${ref} -r ${reads} -t ${threads} -K $batchsize -B $max_bases > ${testdir}/result.txt
-		do_the_test
+		${exepath} call-methylation -b ${bamfile} -g ${ref} -r ${reads} -t "$threads" -K "$batchsize" -B "$max_bases" > ${testdir}/result.txt
+		execute_test
 	else
 		${exepath} index -d ${testdir}/fast5_files ${testdir}/reads.fasta
-		${exepath} call-methylation -b ${bamfile} -g ${ref} -r ${reads} --secondary=yes --min-mapq=0 -B $max_bases > ${testdir}/result.txt
-		do_the_test
+		${exepath} call-methylation -b ${bamfile} -g ${ref} -r ${reads} --secondary=yes --min-mapq=0 -B "$max_bases" > ${testdir}/result.txt
+		execute_test
 	fi
 else
-	mode_test $@
+	mode_test "$@"
 fi

@@ -2,7 +2,8 @@
 
 set -e
 
-clean_cache=false
+. scripts/common.sh
+
 testdir=test/chr22_meth_example
 bamfile=$testdir/reads.sorted.bam
 ref=$testdir/humangenome.fa
@@ -20,25 +21,6 @@ else
 fi
 f5c_output=/dev/null
 nano_output=/dev/null
-
-# terminate script
-die() {
-	echo "test.sh: $1" >&2
-	echo
-	help_msg
-	exit 1
-}
-
-clear_fscache() {
-	sync; echo 3 | tee /proc/sys/vm/drop_caches
-}
-
-run() {
-	echo "$1"
-	eval "$1"
-	[ $clean_cache = true ] && clear_fscache
-	return 0
-}
 
 preprocess_read() {
 	read_basename=$(basename "$1")
@@ -158,8 +140,8 @@ else
 fi
 
 echo "f5c time"
-grep "Elapsed (wall clock) time (h:mm:ss or m:ss):" f5c_benchmark.log | cut -d ' ' -f 8 |tr ':' \\t |  awk '{if(NF==1) print; else{ if(NF==2) print(($1*60)+$2); else print(($1*3600)+($2*60)+$3)}}' | tr '\n' '\t'
+grep "Elapsed (wall clock) time (h:mm:ss or m:ss):" f5c_benchmark.log | cut -d ' ' -f 8 | tr ':' \\t | awk '{if(NF==1) print; else{ if(NF==2) print(($1*60)+$2); else print(($1*3600)+($2*60)+$3)}}' | tr '\n' '\t'
 echo
 echo "nanopolish time"
-grep "Elapsed (wall clock) time (h:mm:ss or m:ss):" nano_benchmark.log | cut -d ' ' -f 8 |tr ':' \\t |  awk '{if(NF==1) print; else{ if(NF==2) print(($1*60)+$2); else print(($1*3600)+($2*60)+$3)}}' | tr '\n' '\t'
+grep "Elapsed (wall clock) time (h:mm:ss or m:ss):" nano_benchmark.log | cut -d ' ' -f 8 | tr ':' \\t | awk '{if(NF==1) print; else{ if(NF==2) print(($1*60)+$2); else print(($1*3600)+($2*60)+$3)}}' | tr '\n' '\t'
 echo
