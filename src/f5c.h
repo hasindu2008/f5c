@@ -54,7 +54,7 @@
 #define ESL_LOG_SUM 1 // enable the fast log sum for HMM
 
 
-typedef int32_t ptr_t;
+typedef int64_t ptr_t;
 
 /* data structures */
 
