@@ -48,11 +48,11 @@ void init_cuda(core_t* core){
 
     int32_t n_bam_rec = core->opt.batch_size;
     //cpu arrays
-    core->cuda->read_ptr_host = (int32_t*)malloc(sizeof(int32_t) * n_bam_rec);
+    core->cuda->read_ptr_host = (ptr_t*)malloc(sizeof(ptr_t) * n_bam_rec);
     MALLOC_CHK(core->cuda->read_ptr_host);
     core->cuda->n_events_host = (int32_t*)malloc(sizeof(int32_t) * n_bam_rec);
     MALLOC_CHK(core->cuda->n_events_host);
-    core->cuda->event_ptr_host = (int32_t*)malloc(sizeof(int32_t) * n_bam_rec);
+    core->cuda->event_ptr_host = (ptr_t*)malloc(sizeof(ptr_t) * n_bam_rec);
     MALLOC_CHK(core->cuda->event_ptr_host);
 
     core->cuda->read_len_host = (int32_t*)malloc(sizeof(int32_t) * n_bam_rec);
@@ -63,8 +63,8 @@ void init_cuda(core_t* core){
     MALLOC_CHK(core->cuda->n_event_align_pairs_host);
 
     //cuda arrays
-    if(core->opt.verbosity>1) print_size("read_ptr array",n_bam_rec * sizeof(int32_t));
-    cudaMalloc((void**)&(core->cuda->read_ptr), n_bam_rec * sizeof(int32_t));
+    if(core->opt.verbosity>1) print_size("read_ptr array",n_bam_rec * sizeof(ptr_t));
+    cudaMalloc((void**)&(core->cuda->read_ptr), n_bam_rec * sizeof(ptr_t));
     CUDA_CHK();
     if(core->opt.verbosity>1) print_size("read_lens",n_bam_rec * sizeof(int32_t));
     cudaMalloc((void**)&(core->cuda->read_len), n_bam_rec * sizeof(int32_t));
@@ -74,8 +74,8 @@ void init_cuda(core_t* core){
     cudaMalloc((void**)&(core->cuda->n_events), n_bam_rec * sizeof(int32_t));
     CUDA_CHK();
     //event ptr
-    if(core->opt.verbosity>1) print_size("event ptr",n_bam_rec * sizeof(int32_t));
-    cudaMalloc((void**)&(core->cuda->event_ptr), n_bam_rec * sizeof(int32_t));
+    if(core->opt.verbosity>1) print_size("event ptr",n_bam_rec * sizeof(ptr_t));
+    cudaMalloc((void**)&(core->cuda->event_ptr), n_bam_rec * sizeof(ptr_t));
     CUDA_CHK();
     //scalings : already linear
     if(core->opt.verbosity>1) print_size("Scalings",n_bam_rec * sizeof(scalings_t));
@@ -229,12 +229,12 @@ void align_cuda(core_t* core, db_t* db) {
 
     /**cuda pointers*/
     char* read;        //flattened reads sequences
-    int32_t* read_ptr; //index pointer for flattedned "reads"
+    ptr_t* read_ptr; //index pointer for flattedned "reads"
     int32_t* read_len;
     int64_t sum_read_len;
     int32_t* n_events;
     event_t* event_table;
-    int32_t* event_ptr;
+    ptr_t* event_ptr;
     int64_t sum_n_events;
     scalings_t* scalings;
     AlignedPair* event_align_pairs;
@@ -246,10 +246,10 @@ void align_cuda(core_t* core, db_t* db) {
 realtime1 = realtime();
 
 #ifdef CUDA_PRE_MALLOC
-    int32_t* read_ptr_host = core->cuda->read_ptr_host;
+    ptr_t* read_ptr_host = core->cuda->read_ptr_host;
 #else
     //get the total size and create the pointers
-    int32_t* read_ptr_host = (int32_t*)malloc(sizeof(int32_t) * n_bam_rec);
+    ptr_t* read_ptr_host = (ptr_t*)malloc(sizeof(ptr_t) * n_bam_rec);
     MALLOC_CHK(read_ptr_host);
 #endif
     sum_read_len = 0;
@@ -263,7 +263,7 @@ realtime1 = realtime();
     char* read_host = (char*)malloc(sizeof(char) * sum_read_len);
     MALLOC_CHK(read_host);
     for (i = 0; i < n_bam_rec; i++) {
-        int32_t idx = read_ptr_host[i];
+        ptr_t idx = read_ptr_host[i];
         strcpy(&read_host[idx], db->read[i]);
     }
 
@@ -272,11 +272,11 @@ realtime1 = realtime();
     //get the total size and create the pointers
 #ifdef CUDA_PRE_MALLOC
     int32_t* n_events_host = core->cuda->n_events_host;
-    int32_t* event_ptr_host = core->cuda->event_ptr_host;
+    ptr_t* event_ptr_host = core->cuda->event_ptr_host;
 #else
     int32_t* n_events_host = (int32_t*)malloc(sizeof(int32_t) * n_bam_rec);
     MALLOC_CHK(n_events_host);
-    int32_t* event_ptr_host = (int32_t*)malloc(sizeof(int32_t) * n_bam_rec);
+    ptr_t* event_ptr_host = (ptr_t*)malloc(sizeof(ptr_t) * n_bam_rec);
     MALLOC_CHK(event_ptr_host);
 #endif
 
@@ -293,7 +293,7 @@ realtime1 = realtime();
         (event_t*)malloc(sizeof(event_t) * sum_n_events);
     MALLOC_CHK(event_table_host);
     for (i = 0; i < n_bam_rec; i++) {
-        int32_t idx = event_ptr_host[i];
+        ptr_t idx = event_ptr_host[i];
         memcpy(&event_table_host[idx], db->et[i].event,
                sizeof(event_t) * db->et[i].n);
     }
@@ -316,8 +316,8 @@ realtime1 = realtime();
     model_t* model = core->cuda->model;
 #else
 
-    if(core->opt.verbosity>1) print_size("read_ptr array",n_bam_rec * sizeof(int32_t));
-    cudaMalloc((void**)&read_ptr, n_bam_rec * sizeof(int32_t));
+    if(core->opt.verbosity>1) print_size("read_ptr array",n_bam_rec * sizeof(ptr_t));
+    cudaMalloc((void**)&read_ptr, n_bam_rec * sizeof(ptr_t));
     CUDA_CHK();
 
     if(core->opt.verbosity>1) print_size("read_lens",n_bam_rec * sizeof(int32_t));
@@ -328,8 +328,8 @@ realtime1 = realtime();
     cudaMalloc((void**)&n_events, n_bam_rec * sizeof(int32_t));
     CUDA_CHK();
     //event ptr
-    if(core->opt.verbosity>1) print_size("event ptr",n_bam_rec * sizeof(int32_t));
-    cudaMalloc((void**)&event_ptr, n_bam_rec * sizeof(int32_t));
+    if(core->opt.verbosity>1) print_size("event ptr",n_bam_rec * sizeof(ptr_t));
+    cudaMalloc((void**)&event_ptr, n_bam_rec * sizeof(ptr_t));
     CUDA_CHK();
     //scalings : already linear
     if(core->opt.verbosity>1) print_size("Scalings",n_bam_rec * sizeof(scalings_t));
@@ -382,7 +382,7 @@ core->align_cuda_malloc += (realtime() - realtime1);
 
     /* cuda mem copys*/
 realtime1 =realtime();
-    cudaMemcpy(read_ptr, read_ptr_host, n_bam_rec * sizeof(int32_t),
+    cudaMemcpy(read_ptr, read_ptr_host, n_bam_rec * sizeof(ptr_t),
                cudaMemcpyHostToDevice);
     CUDA_CHK();
     cudaMemcpy(read, read_host, sum_read_len * sizeof(char),
@@ -395,7 +395,7 @@ realtime1 =realtime();
     cudaMemcpy(n_events, n_events_host, n_bam_rec * sizeof(int32_t),
                cudaMemcpyHostToDevice);
     CUDA_CHK();
-    cudaMemcpy(event_ptr, event_ptr_host, n_bam_rec * sizeof(int32_t),
+    cudaMemcpy(event_ptr, event_ptr_host, n_bam_rec * sizeof(ptr_t),
                cudaMemcpyHostToDevice);
     CUDA_CHK();
     cudaMemcpy(event_table, event_table_host, sizeof(event_t) * sum_n_events,
@@ -519,7 +519,7 @@ core->align_cuda_malloc += (realtime() - realtime1);
 realtime1 =  realtime();
     //copy back
     for (i = 0; i < n_bam_rec; i++) {
-        int32_t idx = event_ptr_host[i];
+        ptr_t idx = event_ptr_host[i];
         memcpy(db->event_align_pairs[i], &event_align_pairs_host[idx * 2],
                sizeof(AlignedPair) * db->n_event_align_pairs[i]);
     }
@@ -887,9 +887,9 @@ void align_cuda(core_t* core, db_t* db) {
     int32_t ultra_long_reads[n_bam_rec]; //not only ultra-long reads, but also ones with large number of average events per base
 
     //cpu temp pointers
-    int32_t* read_ptr_host;
+    ptr_t* read_ptr_host;
     int32_t* n_events_host;
-    int32_t* event_ptr_host;
+    ptr_t* event_ptr_host;
     event_t* event_table_host;
     AlignedPair* event_align_pairs_host;
     int32_t* read_len_host;
@@ -899,12 +899,12 @@ void align_cuda(core_t* core, db_t* db) {
 
     /**cuda pointers*/
     char* read;        //flattened reads sequences
-    int32_t* read_ptr; //index pointer for flattedned "reads"
+    ptr_t* read_ptr; //index pointer for flattedned "reads"
     int32_t* read_len;
     int64_t sum_read_len;
     int32_t* n_events;
     event_t* event_table;
-    int32_t* event_ptr;
+    ptr_t* event_ptr;
     int64_t sum_n_events;
     scalings_t* scalings;
     AlignedPair* event_align_pairs;
@@ -971,7 +971,7 @@ realtime1 = realtime();
     sum_n_events = 0;
     for (i = 0,j=0; i < n_bam_rec; i++) {
         if(if_on_gpu(core, db, i) && if_gpu_mem_free(core, db, i,sum_read_len,sum_n_events)){
-            int32_t idx = read_ptr_host[j];
+            ptr_t idx = read_ptr_host[j];
             strcpy(&read_host[idx], db->read[i]);
             read_len_host[j]=db->read_len[i];
             scalings_host[j]=db->scalings[i];
@@ -1010,7 +1010,7 @@ realtime1 = realtime();
     sum_n_events = 0;
     for (i = 0,j=0; i < n_bam_rec; i++) {
         if(if_on_gpu(core, db, i) && if_gpu_mem_free(core, db, i,sum_read_len,sum_n_events)){
-            int32_t idx = event_ptr_host[j];
+            ptr_t idx = event_ptr_host[j];
             memcpy(&event_table_host[idx], db->et[i].event,
                 sizeof(event_t) * db->et[i].n);
                 j++;
@@ -1097,7 +1097,7 @@ core->align_cuda_malloc += (realtime() - realtime1);
 
     /* cuda mem copys*/
 realtime1 =realtime();
-    cudaMemcpy(read_ptr, read_ptr_host, n_bam_rec_cuda * sizeof(int32_t),
+    cudaMemcpy(read_ptr, read_ptr_host, n_bam_rec_cuda * sizeof(ptr_t),
                cudaMemcpyHostToDevice);
     CUDA_CHK();
     cudaMemcpy(read, read_host, sum_read_len * sizeof(char),
@@ -1110,7 +1110,7 @@ realtime1 =realtime();
     cudaMemcpy(n_events, n_events_host, n_bam_rec_cuda * sizeof(int32_t),
                cudaMemcpyHostToDevice);
     CUDA_CHK();
-    cudaMemcpy(event_ptr, event_ptr_host, n_bam_rec_cuda * sizeof(int32_t),
+    cudaMemcpy(event_ptr, event_ptr_host, n_bam_rec_cuda * sizeof(ptr_t),
                cudaMemcpyHostToDevice);
     CUDA_CHK();
     cudaMemcpy(event_table, event_table_host, sizeof(event_t) * sum_n_events,
@@ -1230,7 +1230,7 @@ realtime1 =  realtime();
     sum_n_events = 0;
     for (i = 0,j=0; i < n_bam_rec; i++) {
         if(if_on_gpu(core, db, i) && if_gpu_mem_free(core, db, i,sum_read_len,sum_n_events)){
-            int32_t idx = event_ptr_host[j];
+            ptr_t idx = event_ptr_host[j];
             db->n_event_align_pairs[i]=n_event_align_pairs_host[j];
     #ifdef REVERSAL_ON_CPU
             int c;

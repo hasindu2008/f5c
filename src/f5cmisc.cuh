@@ -44,23 +44,23 @@ and then the program will be aborted*/
 
 __global__ void
 //__launch_bounds__(MY_KERNEL_MAX_THREADS, MY_KERNEL_MIN_BLOCKS)
-align_kernel_core_2d_shm(int32_t* read_len, int32_t* read_ptr,
+align_kernel_core_2d_shm(int32_t* read_len, ptr_t* read_ptr,
     event_t* event_table, int32_t* n_events1,
-    int32_t* event_ptr,
+    ptr_t* event_ptr,
     scalings_t* scalings, int32_t n_bam_rec,model_t* model_kmer_caches,float *band,uint8_t *traces, EventKmerPair* band_lower_lefts) ;
 
 __global__ void align_kernel_pre_2d(char* read,
-    int32_t* read_len, int32_t* read_ptr,
+    int32_t* read_len, ptr_t* read_ptr,
     int32_t* n_events,
-    int32_t* event_ptr, model_t* models,
+    ptr_t* event_ptr, model_t* models,
     int32_t n_bam_rec,model_t* model_kmer_caches,float *bands1,uint8_t *trace1, EventKmerPair* band_lower_left1) ;
 
 
 __global__ void align_kernel_post(AlignedPair* event_align_pairs,
     int32_t* n_event_align_pairs,
-    int32_t* read_len, int32_t* read_ptr,
+    int32_t* read_len, ptr_t* read_ptr,
     event_t* event_table, int32_t* n_events,
-    int32_t* event_ptr,
+    ptr_t* event_ptr,
     scalings_t* scalings, int32_t n_bam_rec,model_t* model_kmer_caches,float *bands1,uint8_t *trace1, EventKmerPair* band_lower_left1);
 
 

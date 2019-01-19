@@ -54,6 +54,8 @@
 #define ESL_LOG_SUM 1 // enable the fast log sum for HMM
 
 
+typedef int32_t ptr_t;
+
 /* data structures */
 
 //user options
@@ -249,20 +251,20 @@ typedef struct {
 //cuda core data structure : allocated array pointers
 #ifdef HAVE_CUDA
     typedef struct{
-    int32_t* event_ptr_host;
+    ptr_t* event_ptr_host;
     int32_t* n_events_host;
-    int32_t* read_ptr_host;
+    ptr_t* read_ptr_host;
     int32_t* read_len_host;
     scalings_t* scalings_host;
     int32_t* n_event_align_pairs_host;
 
     char* read;        //flattened reads sequences
-    int32_t* read_ptr; //index pointer for flattedned "reads"
+    ptr_t* read_ptr; //index pointer for flattedned "reads"
     int32_t* read_len;
     int64_t sum_read_len;
     int32_t* n_events;
     event_t* event_table;
-    int32_t* event_ptr;
+    ptr_t* event_ptr;
     int64_t sum_n_events;
     scalings_t* scalings;
     AlignedPair* event_align_pairs;
