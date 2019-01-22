@@ -378,6 +378,7 @@ typedef struct {
     //conditional variable for notifying the processing to the output threads
     pthread_cond_t cond;
     pthread_mutex_t mutex;
+    int8_t finished;
 } pthread_arg2_t;
 
 //return status by the load_db - used for termination when all the data is processed

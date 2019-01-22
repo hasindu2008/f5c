@@ -136,6 +136,7 @@ void* pthread_processor(void* voidargs) {
     //need to inform the output thread that we completed the processing
     pthread_mutex_lock(&args->mutex);
     pthread_cond_signal(&args->cond);
+    args->finished=1;
     pthread_mutex_unlock(&args->mutex);
 
     if(core->opt.verbosity > 1){
@@ -156,7 +157,9 @@ void* pthread_post_processor(void* voidargs){
 
     //wait until the processing thread has informed us
     pthread_mutex_lock(&args->mutex);
-    pthread_cond_wait(&args->cond, &args->mutex);
+    while(args->finished==0){
+        pthread_cond_wait(&args->cond, &args->mutex);
+    }
     pthread_mutex_unlock(&args->mutex);
 
     if(core->opt.verbosity > 1){
@@ -399,6 +402,7 @@ int meth_main(int argc, char* argv[]) {
         pt_arg->db=db;
         pt_arg->cond = PTHREAD_COND_INITIALIZER;
         pt_arg->mutex = PTHREAD_MUTEX_INITIALIZER;
+        pt_arg->finished = 0;
 
         //process thread launch
         int ret = pthread_create(&tid_p, NULL, pthread_processor,
