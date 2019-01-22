@@ -11,6 +11,7 @@ python group-fasta-readlen.py reads.fasta
 """
 
 import argparse
+import bisect
 import os
 from math import floor, trunc
 
@@ -287,8 +288,8 @@ def cli_main():
                 for l in read_lengths[:read_lengths.index(length)]:
                     write_iter_to_file(f, reads[l])
     elif args.range:
-        start = read_lengths.index(args.range[0] * 1000)
-        end = read_lengths.index(args.range[1] * 1000) + 1
+        start = bisect.bisect_left(read_lengths, args.range[0] * 1000)
+        end = bisect.bisect(read_lengths, args.range[1] * 1000)
         fn = '{}k_{}k_reads.fasta'.format(args.range[0], args.range[1])
         with open(fn, 'a') as f:
             for l in read_lengths[start:end]:
