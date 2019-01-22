@@ -139,7 +139,7 @@ void* pthread_processor(void* voidargs) {
     pthread_mutex_unlock(&args->mutex);
 
     if(core->opt.verbosity > 1){
-        fprintf(stderr, "[%s::%.3f*%.2f] Signal sent!\n", __func__,
+        fprintf(stderr, "[%s::%.3f*%.2f] Signal sent by processor thread!\n", __func__,
                 realtime() - realtime0, cputime() / (realtime() - realtime0));
     }
 
@@ -160,7 +160,7 @@ void* pthread_post_processor(void* voidargs){
     pthread_mutex_unlock(&args->mutex);
 
     if(core->opt.verbosity > 1){
-        fprintf(stderr, "[%s::%.3f*%.2f] Signal got!\n", __func__,
+        fprintf(stderr, "[%s::%.3f*%.2f] Signal got by post-processor thread!\n", __func__,
                 realtime() - realtime0, cputime() / (realtime() - realtime0));
     }
 
@@ -386,7 +386,7 @@ int meth_main(int argc, char* argv[]) {
             int ret = pthread_join(tid_p, NULL);
             NEG_CHK(ret);
             if(opt.verbosity>1){
-                fprintf(stderr, "[%s::%.3f*%.2f] Joined to thread %lu\n", __func__,
+                fprintf(stderr, "[%s::%.3f*%.2f] Joined to processor thread %ld\n", __func__,
                 realtime() - realtime0, cputime() / (realtime() - realtime0),
                 tid_p);
             }
@@ -405,7 +405,7 @@ int meth_main(int argc, char* argv[]) {
                                 (void*)(pt_arg));
         NEG_CHK(ret);
         if(opt.verbosity>1){
-            fprintf(stderr, "[%s::%.3f*%.2f] Spawned thread %lu\n", __func__,
+            fprintf(stderr, "[%s::%.3f*%.2f] Spawned processor thread %ld\n", __func__,
                 realtime() - realtime0, cputime() / (realtime() - realtime0),
                 tid_p);
         }
@@ -414,7 +414,7 @@ int meth_main(int argc, char* argv[]) {
             int ret = pthread_join(tid_pp, NULL);
             NEG_CHK(ret);
             if(opt.verbosity>1){
-                fprintf(stderr, "[%s::%.3f*%.2f] Joined to thread %lu\n", __func__,
+                fprintf(stderr, "[%s::%.3f*%.2f] Joined to post-processor thread %ld\n", __func__,
                 realtime() - realtime0, cputime() / (realtime() - realtime0),
                 tid_pp);
             }
@@ -426,7 +426,7 @@ int meth_main(int argc, char* argv[]) {
                                 (void*)(pt_arg));
         NEG_CHK(ret);
         if(opt.verbosity>1){
-            fprintf(stderr, "[%s::%.3f*%.2f] Spawned thread %lu\n", __func__,
+            fprintf(stderr, "[%s::%.3f*%.2f] Spawned post-processor thread %ld\n", __func__,
                 realtime() - realtime0, cputime() / (realtime() - realtime0),
                 tid_pp);
         }
@@ -441,14 +441,14 @@ int meth_main(int argc, char* argv[]) {
     int ret = pthread_join(tid_p, NULL);
     NEG_CHK(ret);
     if(opt.verbosity>1){
-        fprintf(stderr, "[%s::%.3f*%.2f] Joined to thread %lu\n", __func__,
+        fprintf(stderr, "[%s::%.3f*%.2f] Joined to last processor thread %ld\n", __func__,
                 realtime() - realtime0, cputime() / (realtime() - realtime0),
                 tid_p);
     }
     ret = pthread_join(tid_pp, NULL);
     NEG_CHK(ret);
     if(opt.verbosity>1){
-    fprintf(stderr, "[%s::%.3f*%.2f] Joined to thread %lu\n", __func__,
+    fprintf(stderr, "[%s::%.3f*%.2f] Joined to last post-processor thread %ld\n", __func__,
                 realtime() - realtime0, cputime() / (realtime() - realtime0),
                 tid_pp);
     }
