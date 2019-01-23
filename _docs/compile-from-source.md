@@ -1,89 +1,73 @@
 ---
-title: Compile from source
+title: Building f5c
 ---
-Instead of using the pre-compiled binary, you can build the binary from source.
 
-While we have tried hard to avoid the dependency hell, three dependencies
-(zlib, HDF5 and htslib) could not be avoided:
-- zlib (`zlib1g-dev` on Debian/Ubuntu, `zlib-devel` on Fedora/CentOS, `zlib` on Arch Linux)
-- htslib (`libhts1` on Debian/Ubuntu, and install `htslib` from AUR if you are on Arch Linux)
-- hdf5 (`libhdf5-dev` on Debian/Ubuntu, `hdf5-devel` on Fedora/CentOS, `hdf5` on Arch Linux)
+Note : Building from the Github repository requires `autoreconf` which can be installed on Ubuntu using `sudo apt-get install autoconf automake`.
 
-## Build from tar release
-f5c provides a minimal tar ball for users to build a binary on their computer.
-
-Download the [latest release](https://github.com/hasindu2008/f5c/releases/latest)
-from GitHub, then extract and `cd` to the working directory.
-```sh
-scripts/install-hts.sh  # download and compile the htslib
-./configure
-make
-make install
+Clone the git repository.
+```
+git clone https://github.com/hasindug/f5c && cd f5c
+```
+Alternatively, download the [latest release](https://github.com/hasindu2008/f5c/releases) tarball and exract. 
+eg :
+```
+wget "https://github.com/hasindu2008/f5c/releases/download/v0.0-alpha/f5c-v0.0-alpha-release.tar.gz" && tar xvf f5c-v0.0-alpha-release.tar.gz && cd f5c-v0.0-alpha/
 ```
 
-## Build from git source
+While we have tried hard to avoid the dependency hell, three dependencies (zlib, HDF5 and HTS) could not be avoided.
+
+Currently 3 building methods are supported.
+1. Locally compiled HTS library and system wide HDF5 library (recommended)
+2. Locally compiled HTS and HDF5 libraries (HDF5 local compilation - takes a bit of time)
+3. System wide HTS and HDF5 libraries (not recommended as HTS versions can be old)
+
 
 #### Method 1 (recommended)
 
-Install HDF5 (and zlib development libraries) listed at the [top](http://127.0.0.1:4000/docs/compile-from-source).
-This compiles only htslib locally and uses the system-wide HDF5 installation.
+Dependencies : Install the HDF5 (and zlib development libraries)
+```
+On Debian/Ubuntu : sudo apt-get install libhdf5-dev zlib1g-dev
+On Fedora/CentOS : sudo dnf/yum install hdf5-devel zlib-devel
+On Arch Linux: sudo pacman -S hdf5
+On OS X : brew install hdf5
+```
 
 Now build f5c
-```sh
-git clone https://github.com/hasindug/f5c
-cd f5c
-autoreconf
-scripts/install-hts.sh
+```
+autoreconf              # skip if compiling a release, only required when building from github
+scripts/install-hts.sh  # download and compiles htslib in the current folder
 ./configure
-make
-make install
+make                    # or make cuda=1 if compiling for CUDA
 ```
 
 #### Method 2 (time consuming)
 
-This compiles all the libraries locally and statically link them with the
-binary, which could take up to half an hour. Make sure you have zlib installed
-on your computer.
+Dependencies : Install the zlib development libraries
+```
+On Debian/Ubuntu : sudo apt-get install zlib1g-dev
+On Fedora/CentOS : sudo dnf/yum install zlib-devel
+```
 
 Now build f5c
-```sh
-git clone https://github.com/hasindug/f5c
-cd f5c
-make
-make install
+```
+autoreconf                      # skip if compiling a release, only required when building from github
+scripts/install-hts.sh          # download and compiles htslib in the current folder
+scripts/install-hdf5.sh         # download and compiles HDF5 in the current folder
+./configure --enable-localhdf5
+make                            # or make cuda=1 if compiling for CUDA
 ```
 
 #### Method 3 (not recommended)
 
-This method is not recommended as the pre-compiled htslib on Debian/Ubuntu is
-not up to date and f5c depends on a newer version of htslib. Building on Arch
-Linux should be fine though.
+Dependencies : Install HDF5 and hts
+```
+On Debian/Ubuntu : sudo apt-get install libhdf5-dev zlib1g-dev libhts1
+```
 
-First install HDF5 and htslib using your package manager.
-
-Then build f5c
-```sh
-git clone https://github.com/hasindug/f5c
-cd f5c
-autoreconf
+Now build f5c
+```
+autoreconf                      # skip if compiling a release, only required when building from github
 ./configure --enable-systemhts
-make
-make install
+make                            # or make cuda=1 if compiling for CUDA
 ```
 
-## NVIDIA CUDA Support
-To build for the GPU, you need to have the CUDA toolkit properly installed. Make sure you have added the nvcc (NVIDIA C Compiler) to your PATH.  
-
-The building instructions are the same as above except that you should call make as:
-```sh
-make cuda=1
-```
-Optionally you can provide the CUDA architecture as:
-```sh
-make cuda=1 CUDA_ARCH=-arch=sm_xy
-```
-
-If you get an error that `/usr/local/cuda/` does not exist, for the moment you
-will have to create a symbolic link to direct to the correct CUDA installation
-or else edit the line `CUDALIB=-L/usr/local/cuda/lib64/ -lcudart_static -lrt -ldl`
-in the Makefile. We will make our installation scripts more intelligent in the future releases.
