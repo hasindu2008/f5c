@@ -9,8 +9,8 @@ docs:
     children:
       - title:  Quick Start
         url:    /docs/quick-start
-      - title:  Compile From Source
-        url:    /docs/compile-from-source
+      - title:  Building
+        url:    /docs/building
       - title:  Docker
         url:    /docs/docker
   - title:      Usage
