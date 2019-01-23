@@ -4,8 +4,6 @@ An optimised re-implementation of the call-methylation module in [Nanopolish](ht
 
 First the reads have to be indexed using `f5c index` (or `nanopolish index` - f5c index is the same code as nanopolish index). Then invoke `f5c call-methylation` to detect methylated cytosine bases. The result is almost the same as from nanopolish except a few differences due to floating point approximations.
 
-![#f03c15](https://placehold.it/15/f03c15/000000?text=+) `This project is under active development.`
-
 [![Build Status](https://travis-ci.org/hasindu2008/f5c.svg?branch=master)](https://travis-ci.org/hasindu2008/f5c)
 
 ## Quick start
@@ -38,7 +36,7 @@ On OS X : brew install hdf5
 If you skip `scripts/install-hts.sh` and `./configure` HDF5 will be compiled locally. It is a good option if you cannot install HDF5 system wide. However, building HDF5 takes ages.
 
 Building from the Github repository additionally requires `autoreconf` which can be installed on ubuntu using `sudo apt-get install autoconf automake`.
-Other building options are detailed [here](building.md).
+Other building options are detailed [here](https://hasindu2008.github.io/f5c/docs/compile-from-source).
 
 ### NVIDIA CUDA support
 
@@ -124,7 +122,7 @@ debug options:
 
 To build a docker image
 ```
-git clone https://github.com/hasindug/f5c
+git clone https://github.com/hasindu2008/f5c
 cd f5c
 docker build .
 ```
