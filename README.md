@@ -36,7 +36,9 @@ On OS X : brew install hdf5
 If you skip `scripts/install-hts.sh` and `./configure` HDF5 will be compiled locally. It is a good option if you cannot install HDF5 system wide. However, building HDF5 takes ages.
 
 Building from the Github repository additionally requires `autoreconf` which can be installed on ubuntu using `sudo apt-get install autoconf automake`.
+
 Other building options are detailed [here](https://hasindu2008.github.io/f5c/docs/compile-from-source).
+Instruction to build a docker image is detailed [here](https://hasindu2008.github.io/f5c/docs/docker).
 
 ### NVIDIA CUDA support
 
@@ -66,7 +68,7 @@ wget -O f5c_na12878_test.tgz "http://genome.cse.unsw.edu.au/tmp/f5c_na12878_test
 tar xf f5c_na12878_test.tgz
 
 #index and call methylation
-f5c index -d chr22_meth_example/fast5_files chr22_meth_example//reads.fastq
+f5c index -d chr22_meth_example/fast5_files chr22_meth_example/reads.fastq
 f5c call-methylation -b chr22_meth_example/reads.sorted.bam -g chr22_meth_example/humangenome.fa -r chr22_meth_example/reads.fastq > chr22_meth_example/result.tsv
 ```
 
@@ -116,19 +118,6 @@ debug options:
    --debug-break [INT]        break after processing the specified batch
    --profile-cpu=yes|no       process section by section (used for profiling on CPU)
    - cuda-mem-frac FLOAT      Fraction of free GPU memory to allocate [0.9 (0.7) for tegra)]
-```
-
-## Docker image
-
-To build a docker image
-```
-git clone https://github.com/hasindu2008/f5c
-cd f5c
-docker build .
-```
-Note down the image uuid and run f5c as :
-```
-docker run -v /path/to/local/data/data/:/data/ -it :image_id  ./f5c call-methylation -r /data/reads.fa -b /data/alignments.sorted.bam -g /data/ref.fa
 ```
 
 ## Acknowledgement
