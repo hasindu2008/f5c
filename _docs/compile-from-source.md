@@ -6,7 +6,7 @@ Note : Building from the Github repository requires `autoreconf` which can be in
 
 Clone the git repository.
 ```
-git clone https://github.com/hasindug/f5c && cd f5c
+git clone https://github.com/hasindu2008/f5c && cd f5c
 ```
 Alternatively, download the [latest release](https://github.com/hasindu2008/f5c/releases) tarball and exract. 
 eg :
