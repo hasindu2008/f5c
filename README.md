@@ -35,7 +35,7 @@ On Fedora/CentOS : sudo dnf/yum install hdf5-devel zlib-devel
 On Arch Linux: sudo pacman -S hdf5
 On OS X : brew install hdf5
 ```
-If you cannot install HDF5 system wide, you can build it locally by skipping `scripts/install-hts.sh` and `./configure`. However, building HDF5 takes ages.
+If you skip `scripts/install-hts.sh` and `./configure` HDF5 will be compiled locally. It is a good option if you cannot install HDF5 system wide. However, building HDF5 takes ages.
 
 Building from the Github repository additionally requires `autoreconf` which can be installed on ubuntu using `sudo apt-get install autoconf automake`.
 Other building options are detailed [here](building.md).
