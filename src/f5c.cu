@@ -592,12 +592,16 @@ void* pthread_cusingle(void* voidargs) {
             break;
         }
         j=args->ultra_long_reads[i];
+        if(core->opt.verbosity>2) fprintf(stderr, "[%s::%.3fsec] Thread (%d-%d) : read %d events %ld assigned\n", __func__,
+            realtime() - realtime1, args->starti,args->endi, db->read_len[j], db->et[j].n );
 		args->func(core,db,j);
         if(core->opt.verbosity>2) fprintf(stderr, "[%s::%.3fsec] Thread (%d-%d) : read %d events %ld done\n", __func__,
             realtime() - realtime1, args->starti,args->endi, db->read_len[j], db->et[j].n );
 	}
 	while ((i = steal_work(all_args,core->opt.num_thread)) >= 0){
         j=args->ultra_long_reads[i];
+        if(core->opt.verbosity>2) fprintf(stderr, "[%s::%.3fsec] Thread (%d-%d) : stolen read %d events %ld assigned\n", __func__,
+            realtime() - realtime1, args->starti,args->endi, db->read_len[j], db->et[j].n );
 		args->func(core,db,j);
         if(core->opt.verbosity>2) fprintf(stderr, "[%s::%.3fsec] Thread (%d-%d) : stolen read %d events %ld done\n", __func__,
             realtime() - realtime1, args->starti,args->endi, db->read_len[j], db->et[j].n );
