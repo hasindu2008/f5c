@@ -74,7 +74,7 @@ jobs:
         - make && mv f5c f5c-${TRAVIS_TAG}-bin/f5c_x86_64_linux
         - cp -r README.md LICENSE docs f5c-${TRAVIS_TAG}-bin/
         - mkdir -p f5c-${TRAVIS_TAG}-bin/scripts
-        - cp scripts/install-hdf5.sh scripts/install-hts.sh scripts/test.sh f5c-${TRAVIS_TAG}-bin/scripts
+        - cp scripts/common.sh scripts/test.awk scripts/test.sh f5c-${TRAVIS_TAG}-bin/scripts
         - tar -zcf f5c-${TRAVIS_TAG}-bin.tar.gz f5c-${TRAVIS_TAG}-bin
         - rm -rf f5c-${TRAVIS_TAG}-bin
       deploy:
