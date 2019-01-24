@@ -585,7 +585,7 @@ void* pthread_cusingle(void* voidargs) {
     }
 #else
     pthread_arg_t* all_args = (pthread_arg_t*)(args->all_pthread_args);
-    //adapted from ktherad
+    //adapted from kthread
 	for (;;) {
 		i = __sync_fetch_and_add(&args->starti, 1);
 		if (i >= args->endi) {
@@ -593,10 +593,14 @@ void* pthread_cusingle(void* voidargs) {
         }
         j=args->ultra_long_reads[i];
 		args->func(core,db,j);
+        if(core->opt.verbosity>2) fprintf(stderr, "[%s::%.3fsec] Thread (%d-%d) : read %s, len %d done\n", __func__,
+            realtime() - realtime1, args->starti,args->endi, db->read[j], db->read_len[j] );
 	}
 	while ((i = steal_work(all_args,core->opt.num_thread)) >= 0){
         j=args->ultra_long_reads[i];
 		args->func(core,db,j);
+        if(core->opt.verbosity>2) fprintf(stderr, "[%s::%.3fsec] Thread (%d-%d) : stolen read %s, len %d done\n", __func__,
+            realtime() - realtime1, args->starti,args->endi, db->read[j], db->read_len[j] );
     }
 #endif
     if(core->opt.verbosity>2) fprintf(stderr, "[%s::%.3fsec] Thread (%d-%d) done\n", __func__,
