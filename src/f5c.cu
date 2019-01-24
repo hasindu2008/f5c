@@ -570,6 +570,9 @@ static inline int32_t steal_work(pthread_arg_t* all_args, int32_t n_threads)
 #endif
 
 void* pthread_cusingle(void* voidargs) {
+
+    double realtime1 = realtime();
+
     int32_t i,j;
     pthread_arg_t* args = (pthread_arg_t*)voidargs;
     db_t* db = args->db;
@@ -596,7 +599,8 @@ void* pthread_cusingle(void* voidargs) {
 		args->func(core,db,j);
     }
 #endif
-
+    if(core->opt.verbosity>2) fprintf(stderr, "[%s::%.3fsec] Thread (%d-%d) done\n", __func__,
+    realtime() - realtime1, args->starti,args->endi );
     //fprintf(stderr,"Thread %d done\n",(myargs->position)/THREADS);
     pthread_exit(0);
 }
