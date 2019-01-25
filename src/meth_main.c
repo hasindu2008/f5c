@@ -75,6 +75,8 @@ static struct option long_options[] = {
     {"cuda-max-epk",required_argument, 0, 0},      //23 reads <= cuda_max_epk on GPU, rest on CPU (only if compiled for CUDA)
     {"cuda-dev-id",required_argument, 0, 0},       //24 cuda device ID to run on (only if compiled for CUDA)
     {"cuda-mem-frac",required_argument, 0, 0},     //25 fraction of the free GPU memory to use (only if compiled for CUDA)
+    {"skip-ultra",required_argument, 0, 0},        //26 skip the ultra long reads for better load balancing
+    {"ultra-thresh",required_argument, 0, 0},      //27 the threadshold for skipping ultra long reads
     {0, 0, 0, 0}};
 
 
@@ -188,6 +190,7 @@ int meth_main(int argc, char* argv[]) {
     char* bamfilename = NULL;
     char* fastafile = NULL;
     char* fastqfile = NULL;
+    char *tmpfile = NULL;
 
     FILE *fp_help = stderr;
 
@@ -270,7 +273,14 @@ int meth_main(int argc, char* argv[]) {
             opt.cuda_dev_id = atoi(optarg);
         } else if(c == 0 && longindex == 25){ //todo : warning for CPU mode, warning for dynamic malloc mode
             opt.cuda_mem_frac = atof(optarg);
-        }
+        } else if(c == 0 && longindex == 26){ //check for empty strings
+            tmpfile = optarg;
+        } else if(c == 0 && longindex == 27){ 
+            if(tmpfile==NULL){
+                WARNING("%s", "ultra-thresh has no effect without skip-ultra");
+            }
+            opt.ultra_thresh = atoi(optarg);
+        }         
     }
 
     if (fastqfile == NULL || bamfilename == NULL || fastafile == NULL || fp_help == stdout) {
@@ -291,7 +301,7 @@ int meth_main(int argc, char* argv[]) {
         fprintf(fp_help,"   --version                  print version\n");
 #ifdef HAVE_CUDA
         fprintf(fp_help,"   --disable-cuda=yes|no      disable running on CUDA [%s]\n",(opt.flag&F5C_DISABLE_CUDA?"yes":"no"));
-        fprintf(fp_help,"   - cuda-dev-id INT          CUDA device ID to run kernels on [%d]\n",opt.cuda_dev_id);
+        fprintf(fp_help,"   --cuda-dev-id INT          CUDA device ID to run kernels on [%d]\n",opt.cuda_dev_id);
         fprintf(fp_help,"   --cuda-max-lf FLOAT        reads with length <= cuda-max-lf*avg_readlen on GPU, rest on CPU [%.1f]\n",opt.cuda_max_readlen);
         fprintf(fp_help,"   --cuda-avg-epk FLOAT       average number of events per kmer - for allocating GPU arrays [%.1f]\n",opt.cuda_avg_events_per_kmer);
         fprintf(fp_help,"   --cuda-max-epk FLOAT       reads with events per kmer <= cuda_max_epk on GPU, rest on CPU [%.1f]\n",opt.cuda_max_avg_events_per_kmer);
@@ -306,6 +316,8 @@ int meth_main(int argc, char* argv[]) {
         fprintf(fp_help,"   --print-raw=yes|no         prints the raw signal\n");
         fprintf(fp_help,"   --debug-break [INT]        break after processing the specified batch\n");
         fprintf(fp_help,"   --profile-cpu=yes|no       process section by section (used for profiling on CPU)\n");
+        fprintf(fp_help,"   --skip-ultra FILE          skip ultra long reads and write those entries to the bam file provided as the argument\n");
+        fprintf(fp_help,"   --ultra-thresh [INT]       threshold to skip ultra long reads [%ld]\n",opt.ultra_thresh);
 #ifdef HAVE_CUDA
         fprintf(fp_help,"   - cuda-mem-frac FLOAT      Fraction of free GPU memory to allocate [0.9 (0.7 for tegra)]\n");
         fprintf(fp_help,"   --cuda-block-size\n");
@@ -317,7 +329,7 @@ int meth_main(int argc, char* argv[]) {
     }
 
     //initialise the core data structure
-    core_t* core = init_core(bamfilename, fastafile, fastqfile, opt,realtime0);
+    core_t* core = init_core(bamfilename, fastafile, fastqfile, tmpfile, opt,realtime0);
 
     #ifdef ESL_LOG_SUM
         p7_FLogsumInit();
@@ -510,13 +522,17 @@ int meth_main(int argc, char* argv[]) {
                 __func__, core->meth_time);
 
     }
+
+    fprintf(stderr,"\n");
+
     if(core->ultra_long_skipped>0){
-        WARNING("\n%ld ultra long reads were skipped. Please run ....\n",core->ultra_long_skipped);
+        assert(tmpfile!=NULL);
+        WARNING("%ld ultra long reads (>%.1f kbases) were skipped.",core->ultra_long_skipped,core->opt.ultra_thresh/1000.0);
+        fprintf(stderr," Please run samtools index on '%s' followed by f5c with a larger -B on the CPU.\n",tmpfile);
     }
 
 
 #ifndef IO_PROC_NO_INTERLEAVE
-    fprintf(stderr,"\n");
     if((core->load_db_time - core->process_db_time) > (core->process_db_time*0.2) ){
         INFO("Performance bounded by file I/O. File I/O took %.3f sec than processing",core->load_db_time - core->process_db_time);
     }

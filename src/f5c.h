@@ -69,6 +69,7 @@ typedef struct {
     int32_t num_thread;
     int8_t verbosity;
     int32_t debug_break;
+    int64_t ultra_thresh;
 
     //todo : these are required only for HAVE_CUDA (but need to chnage the meth_main accordingly)
     int32_t cuda_block_size;
@@ -398,7 +399,7 @@ typedef struct {
 db_t* init_db(core_t* core);
 ret_status_t load_db(core_t* dg, db_t* db);
 core_t* init_core(const char* bamfilename, const char* fastafile,
-                  const char* fastqfile, opt_t opt,double realtime0);
+                  const char* fastqfile, const char* tmpfile, opt_t opt,double realtime0);
 void process_db(core_t* dg, db_t* db);
 void pthread_db(core_t* core, db_t* db, void (*func)(core_t*,db_t*,int));
 void align_db(core_t* core, db_t* db);

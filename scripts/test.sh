@@ -47,7 +47,10 @@ download_test_set() {
 handle_tests() {
 	numfailed=$(wc -l < ${testdir}/floatdiff.txt)
 	numcases=$(wc -l < ${testdir}/meth_float.txt)
-	echo "$numfailed of $numcases test cases failed."
+	numres=$(wc -l < ${testdir}/result_float.txt)
+	echo "$numfailed of $numcases test cases deviated."
+	missing=$(echo "$numcases-$numres" | bc)
+	echo "$missing entries in the truthset are missing in the testset"
 	failp=$(echo "$numfailed/$numcases" | bc)
 	[ "$failp" -gt 0 ] && die "${1}: Validation failed"
 }
@@ -58,7 +61,7 @@ execute_test() {
 		grep -w "chr20" ${testdir}/result.txt | awk '{print $1$2$3$4$8$9$10"\t"$5"\t"$6"\t"$7}' > ${testdir}/result_float.txt
 		grep -w "chr20" ${testdir}/meth.exp | awk '{print $1$2$3$4$8$9$10"\t"$5"\t"$6"\t"$7}'  > ${testdir}/meth_float.txt
 
-		join -a 1 -a 2 ${testdir}/result_float.txt ${testdir}/meth_float.txt | awk -v thresh=0.1 -f scripts/test.awk > ${testdir}/floatdiff.txt || handle_tests "${file}"
+		join  ${testdir}/result_float.txt ${testdir}/meth_float.txt | awk -v thresh=0.1 -f scripts/test.awk > ${testdir}/floatdiff.txt || handle_tests "${file}"
 	else	
 		tail -n +2 ${testdir}/result.txt | awk '{print $1,$2,$3,$4,$8,$9,$10}' > ${testdir}/result_exact.txt
 		awk '{print $1,$2,$3,$4,$8,$9,$10}' ${testdir}/meth.exp > ${testdir}/meth_exact.txt
@@ -75,7 +78,7 @@ mode_test() {
 	cmd="${exepath} call-methylation -b ${bamfile} -g ${ref} -r ${reads} -t ${threads} -K $batchsize -B $max_bases"
 
 	case $1 in
-		valgrind) valgrind "$cmd" > /dev/null;;
+		valgrind) valgrind $cmd > /dev/null;;
 		gdb) gdb --args "$cmd";;
 		cpu) $cmd --disable-cuda=yes > ${testdir}/result.txt; execute_test;;
 		cuda) $cmd --disable-cuda=no > ${testdir}/result.txt; execute_test;;

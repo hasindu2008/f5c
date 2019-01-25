@@ -15,7 +15,7 @@ Error counter for consecutive failures in the skip unreadable mode
 */
 
 core_t* init_core(const char* bamfilename, const char* fastafile,
-                  const char* fastqfile, opt_t opt,double realtime0) {
+                  const char* fastqfile, const char* tmpfile, opt_t opt,double realtime0) {
     core_t* core = (core_t*)malloc(sizeof(core_t));
     MALLOC_CHK(core);
 
@@ -39,12 +39,15 @@ core_t* init_core(const char* bamfilename, const char* fastafile,
     NULL_CHK(core->itr);
 
     //open the bam file for writing skipped ultra long reads
-    core->ultra_long_tmp = sam_open("tmp.bam", "wb");
-    NULL_CHK(core->ultra_long_tmp);
+    core->ultra_long_tmp=NULL; //todo :  at the moment this is used to detect if the load balance mode is enabled. A better method in the opt flags.
+    if(tmpfile!=NULL){
+        core->ultra_long_tmp = sam_open(tmpfile, "wb");
+        NULL_CHK(core->ultra_long_tmp);
 
-    //write the header to the temporary file
-    int ret_sw=sam_hdr_write(core->ultra_long_tmp,core->m_hdr);
-    NEG_CHK(ret_sw);
+        //write the header to the temporary file
+        int ret_sw=sam_hdr_write(core->ultra_long_tmp,core->m_hdr);
+        NEG_CHK(ret_sw);
+    }
 
     // reference file
     core->fai = fai_load(fastafile);
@@ -116,7 +119,9 @@ void free_core(core_t* core) {
     bam_hdr_destroy(core->m_hdr);
     hts_idx_destroy(core->m_bam_idx);
     sam_close(core->m_bam_fh);
-    sam_close(core->ultra_long_tmp);
+    if(core->ultra_long_tmp!=NULL){
+        sam_close(core->ultra_long_tmp);
+    }
 #ifdef HAVE_CUDA
     if (!(core->opt.flag & F5C_DISABLE_CUDA)) {
         free_cuda(core);
@@ -250,12 +255,13 @@ ret_status_t load_db(core_t* core, db_t* db) {
 
                 std::string qname = bam_get_qname(record);
                 t = realtime();
-                int32_t read_length=core->readbb->get_read_sequence(qname).size();
+                //todo : make efficient (redudantly accessed below, can be combined with it?)
+                int64_t read_length=core->readbb->get_read_sequence(qname).size();
                 std::string fast5_path_str = core->readbb->get_signal_path(qname);
                 core->db_fasta_time += realtime() - t;
 
                 //skipping ultra-long-reads
-                if(read_length>100000){
+                if(core->ultra_long_tmp!=NULL && read_length > core->opt.ultra_thresh){
                     db->ultra_long_skipped++;
                     int ret_wr=sam_write1(core->ultra_long_tmp,core->m_hdr,record);
                     NEG_CHK(ret_wr);  
@@ -306,10 +312,9 @@ ret_status_t load_db(core_t* core, db_t* db) {
                     }
 
                     db->n_bam_rec++;
-                    //todo : make efficient (redudantly accessed below, can be combined with it?)
-                    t = realtime();
+                    //t = realtime();
                     status.num_bases += read_length;
-                    core->db_fasta_time += realtime() - t;
+                    //core->db_fasta_time += realtime() - t;
                 } else {
                     handle_bad_fast5(core, db,fast5_path,qname);
                 }
@@ -946,6 +951,7 @@ void init_opt(opt_t* opt) {
 
     opt->flag |= F5C_SKIP_UNREADABLE;
     opt->debug_break=-1;
+    opt->ultra_thresh=100000;
 
     opt->cuda_block_size=64;
     opt->cuda_dev_id=0;
