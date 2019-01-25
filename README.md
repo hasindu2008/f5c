@@ -58,7 +58,7 @@ make cuda=1 CUDA_LIB=/path/to/cuda/library/
 ```
 For instance, it can be something like `/usr/local/cuda-8.0/lib64`. If your system is 32 bit it should be `lib` instead of `lib64`.
 
-Visit [here]() for troubleshooting CUDA related problems.
+Visit [here](https://hasindu2008.github.io/f5c/docs/cuda-troubleshoot) for troubleshooting CUDA related problems.
 
 ## Usage
 
