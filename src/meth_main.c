@@ -510,6 +510,10 @@ int meth_main(int argc, char* argv[]) {
                 __func__, core->meth_time);
 
     }
+    if(core->ultra_long_skipped>0){
+        WARNING("\n%ld ultra long reads were skipped. Please run ....\n",core->ultra_long_skipped);
+    }
+
 
 #ifndef IO_PROC_NO_INTERLEAVE
     fprintf(stderr,"\n");

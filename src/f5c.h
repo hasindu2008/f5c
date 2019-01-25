@@ -245,6 +245,7 @@ typedef struct {
     int64_t sum_bases;
     int64_t total_reads; //total number mapped entries in the bam file (after filtering based on flags, mapq etc)
     int64_t bad_fast5_file; //empty fast5 path returned by readdb, could not open fast5
+    int64_t ultra_long_skipped; //ultra long reads that are skipped
 
 } db_t;
 
@@ -288,6 +289,9 @@ typedef struct {
     hts_idx_t* m_bam_idx;
     bam_hdr_t* m_hdr;
     hts_itr_t* itr;
+
+    //bam file for writing the skipped ultra long reads to be later processed
+    htsFile* ultra_long_tmp;
 
     // fa related
     faidx_t* fai;
@@ -348,6 +352,7 @@ typedef struct {
     int64_t sum_bases;
     int64_t total_reads; //total number mapped entries in the bam file (after filtering based on flags, mapq etc)
     int64_t bad_fast5_file; //empty fast5 path returned by readdb, could not open fast5
+    int64_t ultra_long_skipped; //ultra long reads that are skipped
     int64_t qc_fail_reads;
     int64_t failed_calibration_reads;
     int64_t failed_alignment_reads;

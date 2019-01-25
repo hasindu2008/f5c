@@ -38,6 +38,14 @@ core_t* init_core(const char* bamfilename, const char* fastafile,
     core->itr = sam_itr_queryi(core->m_bam_idx, HTS_IDX_START, 0, 0);
     NULL_CHK(core->itr);
 
+    //open the bam file for writing skipped ultra long reads
+    core->ultra_long_tmp = sam_open("tmp.bam", "wb");
+    NULL_CHK(core->ultra_long_tmp);
+
+    //write the header to the temporary file
+    int ret_sw=sam_hdr_write(core->ultra_long_tmp,core->m_hdr);
+    NEG_CHK(ret_sw);
+
     // reference file
     core->fai = fai_load(fastafile);
     NULL_CHK(core->fai);
@@ -91,6 +99,7 @@ core_t* init_core(const char* bamfilename, const char* fastafile,
     core->sum_bases=0;
     core->total_reads=0; //total number mapped entries in the bam file (after filtering based on flags, mapq etc)
     core->bad_fast5_file=0; //empty fast5 path returned by readdb, could not open fast5
+    core->ultra_long_skipped=0;
     core->qc_fail_reads=0;
     core->failed_calibration_reads=0;
     core->failed_alignment_reads=0;
@@ -107,6 +116,7 @@ void free_core(core_t* core) {
     bam_hdr_destroy(core->m_hdr);
     hts_idx_destroy(core->m_bam_idx);
     sam_close(core->m_bam_fh);
+    sam_close(core->ultra_long_tmp);
 #ifdef HAVE_CUDA
     if (!(core->opt.flag & F5C_DISABLE_CUDA)) {
         free_cuda(core);
@@ -183,6 +193,7 @@ db_t* init_db(core_t* core) {
 
     db->total_reads=0;
     db->bad_fast5_file=0;
+    db->ultra_long_skipped=0;
 
     return db;
 }
@@ -210,6 +221,7 @@ ret_status_t load_db(core_t* core, db_t* db) {
     db->sum_bases = 0;
     db->total_reads = 0;
     db->bad_fast5_file = 0;
+    db->ultra_long_skipped =0;
 
     ret_status_t status={0,0};
     int32_t i = 0;
@@ -238,8 +250,17 @@ ret_status_t load_db(core_t* core, db_t* db) {
 
                 std::string qname = bam_get_qname(record);
                 t = realtime();
+                int32_t read_length=core->readbb->get_read_sequence(qname).size();
                 std::string fast5_path_str = core->readbb->get_signal_path(qname);
                 core->db_fasta_time += realtime() - t;
+
+                //skipping ultra-long-reads
+                if(read_length>100000){
+                    db->ultra_long_skipped++;
+                    int ret_wr=sam_write1(core->ultra_long_tmp,core->m_hdr,record);
+                    NEG_CHK(ret_wr);  
+                    continue;
+                }
 
                 if(fast5_path_str==""){
                     handle_bad_fast5(core, db,fast5_path_str,qname);
@@ -287,7 +308,7 @@ ret_status_t load_db(core_t* core, db_t* db) {
                     db->n_bam_rec++;
                     //todo : make efficient (redudantly accessed below, can be combined with it?)
                     t = realtime();
-                    status.num_bases += core->readbb->get_read_sequence(qname).size();
+                    status.num_bases += read_length;
                     core->db_fasta_time += realtime() - t;
                 } else {
                     handle_bad_fast5(core, db,fast5_path,qname);
@@ -822,6 +843,7 @@ void output_db(core_t* core, db_t* db) {
     core->sum_bases += db->sum_bases;
     core->total_reads += db->total_reads;
     core->bad_fast5_file += db->bad_fast5_file;
+    core->ultra_long_skipped += db->ultra_long_skipped;
 
     int32_t i = 0;
     for (i = 0; i < db->n_bam_rec; i++){
