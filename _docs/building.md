@@ -8,7 +8,7 @@ Clone the git repository.
 ```sh
 git clone https://github.com/hasindu2008/f5c && cd f5c
 ```
-Alternatively, download the [latest release](https://github.com/hasindu2008/f5c/releases) tarball and extract. 
+Alternatively, download the [latest release](https://github.com/hasindu2008/f5c/releases) tarball and extract.
 eg :
 ```sh
 wget "https://github.com/hasindu2008/f5c/releases/download/v0.0-alpha/f5c-v0.0-alpha-release.tar.gz" && tar xvf f5c-v0.0-alpha-release.tar.gz && cd f5c-v0.0-alpha/

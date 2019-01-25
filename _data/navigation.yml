@@ -25,3 +25,7 @@ docs:
         url:    /docs/comparison-with-nanopolish
       - title:  HDF5 Performance
         url:    /docs/hdf5-performance
+  - title:      Troubleshooting
+    children:
+      - title:  CUDA
+        url:    /docs/cuda-troubleshoot
