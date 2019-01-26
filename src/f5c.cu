@@ -130,6 +130,7 @@ void init_cuda(core_t* core){
 
     core->cuda->max_sum_read_len = sum_read_len;
     uint64_t sum_n_events = floor(sum_read_len * AVG_EVENTS_PER_KMER);
+    core->cuda->max_sum_n_events = sum_n_events;
 
     uint64_t read_capacity = sum_read_len * sizeof(char);
     uint64_t event_table_capacity = sum_n_events * sizeof(event_t);
@@ -731,7 +732,7 @@ static inline int8_t if_gpu_mem_free(core_t* core, db_t* db, int32_t i,int64_t s
     return 1;
 #else
     if((sum_read_len+(db->read_len[i] + 1) <= (int64_t)core->cuda->max_sum_read_len) &&
-       (sum_n_events+db->et[i].n <= floor(core->cuda->max_sum_read_len * AVG_EVENTS_PER_KMER)) ){
+       (sum_n_events+db->et[i].n <= (core->cuda->max_sum_n_events)) ){
         return 1;
     }
     else{
@@ -1051,12 +1052,12 @@ realtime1 = realtime();
 
 #ifndef CUDA_DYNAMIC_MALLOC
 
-    assert(sum_read_len <= (int32_t)core->cuda->max_sum_read_len);
-    assert(sum_n_events <= floor(core->cuda->max_sum_read_len * AVG_EVENTS_PER_KMER));
+    assert(sum_read_len <= (int64_t)core->cuda->max_sum_read_len);
+    assert(sum_n_events <= (int64_t)(core->cuda->max_sum_n_events));
     //fprintf(stderr,"%d %d\n", sum_read_len,sum_n_events);
     if(core->opt.verbosity>1) STDERR("%.2f %% of GPU read arrays and %.2f %% of GPU event arrays were utilised",
         sum_read_len/(float)(core->cuda->max_sum_read_len)*100 ,
-        sum_n_events/(float)floor((core->cuda->max_sum_read_len)*AVG_EVENTS_PER_KMER)*100);
+        sum_n_events/(float)(core->cuda->max_sum_n_events)*100);
 
     read=(core->cuda->read);
     event_table=(core->cuda->event_table);
@@ -1290,7 +1291,7 @@ core->extra_load_cpu += (realtime() - realtime1);
 
     load_balance(core,db,cpu_process_time,gpu_process_time,stat_n_gpu_mem_out,stat_n_too_many_events, stat_n_ultra_long_reads,
         sum_read_len/(float)(core->cuda->max_sum_read_len)*100 ,
-        sum_n_events/(float)floor((core->cuda->max_sum_read_len)*AVG_EVENTS_PER_KMER)*100);
+        sum_n_events/(float)(core->cuda->max_sum_n_events)*100);
 
 }
 

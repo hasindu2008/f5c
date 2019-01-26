@@ -279,6 +279,8 @@ typedef struct {
 
     //dynamic arrays
     uint64_t max_sum_read_len;
+    uint64_t max_sum_n_events;
+
 
     } cuda_data_t;
 #endif
