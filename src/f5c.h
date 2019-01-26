@@ -39,8 +39,8 @@
 
 /*CPU thread scheduling options for multithreading framework for processing*/
 #define WORK_STEAL 1 //simple work stealing enabled or not (no work stealing mean no load balancing)
-#define STEAL_THRESH 5 //stealing threshold for the CPU only sections
-#define STEAL_THRESH_CUDA 1 //stealing threshold for the CPU part in a GPU accelerated workload
+#define STEAL_THRESH 1 //stealing threshold for the CPU only sections
+#define STEAL_THRESH_CUDA 0 //stealing threshold for the CPU part in a GPU accelerated workload
 
 //set if input, processing and output are not to be interleaved (serial mode) - useful for debugging
 //#define IO_PROC_NO_INTERLEAVE 1
