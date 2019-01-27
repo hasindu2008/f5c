@@ -1,4 +1,4 @@
-.TH "f5c" "1" "2018-12-05"
+.TH "f5c" "1" "2019-01-25"
 .P
 .SH NAME
 .P
@@ -109,6 +109,31 @@ Verbosity level. Default if 0.
 Print version.
 .P
 .RE
+\fB--disable-cuda\fR <yes|no>
+.RS 4
+disable running on CUDA. Enabled by default.
+.P
+.RE
+\fB--cuda-dev-id\fR <int>
+.RS 4
+CUDA device ID to run kernels on. Default is 0.
+.P
+.RE
+\fB--cuda-max-lf\fR <float>
+.RS 4
+Reads with length <= cuda-max-lf * avg_readlen on GPU, rest on CPU. Default is 3.0
+.P
+.RE
+\fB--cuda-avg-epk\fR <float>
+.RS 4
+Average number of events per kmer - for allocating GPU arrays. Default is 2.0.
+.P
+.RE
+\fB--cuda-max-epk\fR <float>
+.RS 4
+Reads with events per kmer <= cuda_max_epk on GPU, rest on CPU. Default is 5.0.
+.P
+.RE
 .SS DEBUGGING OPTIONS
 .P
 \fB--kmer-model\fR <file>
@@ -116,34 +141,46 @@ Print version.
 Custom k-mer model file.
 .P
 .RE
-\fB--print-events\fR
+\fB--print-events\fR <yes|no>
 .RS 4
 Prints the event table.
 .P
 .RE
-\fB--print-banded-aln\fR
+\fB--print-banded-aln\fR <yes|no>
 .RS 4
 Prints the event alignment.
 .P
 .RE
-\fB--print-scaling\fR
+\fB--print-scaling\fR <yes|no>
 .RS 4
 Prints the estimated scalings.
 .P
 .RE
-\fB--print-raw\fR
+\fB--print-raw\fR <yes|no>
 .RS 4
 Prints the raw signal.
 .P
 .RE
-\fB--debug-break\fR
+\fB--debug-break\fR <int>
 .RS 4
-Break after processing the first batch.
+Break after processing the specified batch.
+.P
+.RE
+\fB--profile-cpu\fR <yes|no>
+.RS 4
+Enable this to process section by section (used for profiling on CPU)
+.P
+.RE
+\fB--cuda-mem-frac\fR <float>
+.RS 4
+Fraction of free GPU memory to allocate. Default is 0.9. 0.7 for Tegra GPU.
 .P
 .RE
 .SH SEE ALSO
 .P
-\fBnanopolish\fR(1)
+Full documentation at: <https://hasindu2008.github.io/f5c>
+.RE
+and Nanopolish documentation at: <https://nanopolish.readthedocs.io/en/latest/>
 .P
 .SH AUTHOR
 .P
