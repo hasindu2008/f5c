@@ -25,6 +25,8 @@ docs:
         url:    /docs/comparison-with-nanopolish
       - title:  HDF5 Performance
         url:    /docs/hdf5-performance
+      - title:  Statically-linked binary
+        url:    /docs/statically-linked-binary
   - title:      Troubleshooting
     children:
       - title:  CUDA
