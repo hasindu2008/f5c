@@ -84,7 +84,7 @@ mode_test() {
 		cuda) $cmd --disable-cuda=no > ${testdir}/result.txt; execute_test;;
 		echo) echo "$cmd -t $threads > ${testdir}/result.txt";;
 		nvprof) nvprof  -f --analysis-metrics -o profile.nvprof "$cmd" --disable-cuda=no --debug-break=5 > /dev/null;;
-		custom) shift; $cmd "$@" > ${testdir}/result.txt; execute_test;;
+		custom) shift; $cmd "$@" --secondary=yes --min-mapq=0 > ${testdir}/result.txt; execute_test;;
 		*) die "Unknown mode: $1";;
 	esac
 }

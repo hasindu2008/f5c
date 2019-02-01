@@ -227,10 +227,48 @@ static inline void handle_bad_fast5(core_t* core, db_t* db,std::string fast5_pat
     return;
 }
 
+
+//make this inline for performance reasons
+void f5write(FILE* fp, void *buf, size_t element_size, size_t num_elements){
+	size_t ret=fwrite(buf,element_size,num_elements,fp);
+	if(ret!=num_elements){
+		fprintf(stderr,"Writing error has occurred :%s\n",strerror(errno));
+		exit(EXIT_FAILURE);
+	}
+}
+
+static inline void f5read(FILE* fp, void *buf, size_t element_size, size_t num_elements){
+	size_t ret=fread(buf,element_size,num_elements,fp);
+	if(ret!=num_elements){
+		fprintf(stderr,"Reading error has occurred :%s\n",strerror(errno));
+		exit(EXIT_FAILURE);
+	}
+}
+
+
 static inline int read_from_fast5_dump(core_t *core, db_t *db , int32_t i){
 
     //return 1 if success, 0 if failed
-    return 1;
+    db->f5[i] = (fast5_t*)calloc(1, sizeof(fast5_t));
+    MALLOC_CHK(db->f5[i]);
+
+    f5read(core->raw_dump,&(db->f5[i]->nsample), sizeof(hsize_t), 1);
+
+    if(db->f5[i]->nsample>0){
+        db->f5[i]->rawptr = (float*)calloc(db->f5[i]->nsample, sizeof(float));
+        MALLOC_CHK( db->f5[i]->rawptr);
+        f5read(core->raw_dump,db->f5[i]->rawptr, sizeof(float), db->f5[i]->nsample);
+        f5read(core->raw_dump,&(db->f5[i]->digitisation), sizeof(float), 1);
+        f5read(core->raw_dump,&(db->f5[i]->offset), sizeof(float), 1);
+        f5read(core->raw_dump,&(db->f5[i]->range), sizeof(float), 1);
+        f5read(core->raw_dump,&(db->f5[i]->sample_rate), sizeof(float), 1);
+        return 1;
+    }
+    else{
+        return 0;
+    }
+
+
 }
 
 static inline int read_from_fast5_files(core_t *core, db_t *db, std::string qname, std::string fast5_path_str, int32_t i){
@@ -256,6 +294,8 @@ static inline int read_from_fast5_files(core_t *core, db_t *db, std::string qnam
         core->db_fast5_time += rt;
         if(ret<0){
             handle_bad_fast5(core, db,fast5_path,qname);
+            hsize_t tmp_nsample = 0;
+            f5write(core->raw_dump,&tmp_nsample, sizeof(hsize_t), 1);
             free(fast5_path);
             return 0;
         }
@@ -274,7 +314,12 @@ static inline int read_from_fast5_files(core_t *core, db_t *db, std::string qnam
         }
         if(core->opt.flag & F5C_WR_RAW_DUMP){
             //write the fast5 dump to the binary file pointer core->raw_dump
-
+            f5write(core->raw_dump,&(db->f5[i]->nsample), sizeof(hsize_t), 1);
+            f5write(core->raw_dump,db->f5[i]->rawptr, sizeof(float), db->f5[i]->nsample);
+            f5write(core->raw_dump,&(db->f5[i]->digitisation), sizeof(float), 1);
+            f5write(core->raw_dump,&(db->f5[i]->offset), sizeof(float), 1);
+            f5write(core->raw_dump,&(db->f5[i]->range), sizeof(float), 1);
+            f5write(core->raw_dump,&(db->f5[i]->sample_rate), sizeof(float), 1);
         }
 
         //db->n_bam_rec++;
@@ -284,6 +329,8 @@ static inline int read_from_fast5_files(core_t *core, db_t *db, std::string qnam
         success=1;
     } else {
         handle_bad_fast5(core, db,fast5_path,qname);
+        hsize_t tmp_nsample = 0;
+        f5write(core->raw_dump,&tmp_nsample, sizeof(hsize_t), 1);
         return 0;
     }
     free(fast5_path);
@@ -351,7 +398,11 @@ ret_status_t load_db(core_t* core, db_t* db) {
 
                 int8_t read_status = 0;    
                 if (core->opt.flag & F5C_RD_RAW_DUMP){
+                    t = realtime();                  
                     read_status=read_from_fast5_dump(core, db,i);     
+                    double rt = realtime() - t;
+                    core->db_fast5_read_time += rt;
+                    core->db_fast5_time += rt;                      
                 }
                 else{    
                    read_status=read_from_fast5_files(core, db, qname,fast5_path_str,i);
