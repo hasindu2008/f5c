@@ -49,6 +49,15 @@ core_t* init_core(const char* bamfilename, const char* fastafile,
         NEG_CHK(ret_sw);
     }
 
+    if(opt.flag & F5C_WR_RAW_DUMP){
+        core->raw_dump = fopen("f5c.tmp.bin","wb");
+        F_CHK(core->raw_dump,"f5c.tmp.bin");
+    }
+    if(opt.flag & F5C_RD_RAW_DUMP){
+        core->raw_dump = fopen("f5c.tmp.bin","rb");
+        F_CHK(core->raw_dump,"f5c.tmp.bin");
+    }    
+
     // reference file
     core->fai = fai_load(fastafile);
     NULL_CHK(core->fai);
@@ -122,6 +131,9 @@ void free_core(core_t* core) {
     if(core->ultra_long_tmp!=NULL){
         sam_close(core->ultra_long_tmp);
     }
+    if(core->opt.flag&F5C_WR_RAW_DUMP || core->opt.flag&F5C_RD_RAW_DUMP){
+        fclose(core->raw_dump);
+    }    
 #ifdef HAVE_CUDA
     if (!(core->opt.flag & F5C_DISABLE_CUDA)) {
         free_cuda(core);
@@ -215,6 +227,70 @@ static inline void handle_bad_fast5(core_t* core, db_t* db,std::string fast5_pat
     return;
 }
 
+static inline int read_from_fast5_dump(core_t *core, db_t *db , int32_t i){
+
+    //return 1 if success, 0 if failed
+    return 1;
+}
+
+static inline int read_from_fast5_files(core_t *core, db_t *db, std::string qname, std::string fast5_path_str, int32_t i){
+    char* fast5_path =
+        (char*)malloc(fast5_path_str.size() + 10); // is +10 needed? do errorcheck
+    strcpy(fast5_path, fast5_path_str.c_str());
+
+    //fprintf(stderr,"readname : %s\n",qname.c_str());
+    int8_t success=0;
+
+    double t = realtime();
+    hid_t hdf5_file = fast5_open(fast5_path);
+    double ot = realtime() - t;
+    core->db_fast5_open_time += ot;
+    core->db_fast5_time += ot;
+    if (hdf5_file >= 0) {
+        db->f5[i] = (fast5_t*)calloc(1, sizeof(fast5_t));
+        MALLOC_CHK(db->f5[i]);
+        t = realtime();
+        int32_t ret=fast5_read(hdf5_file, db->f5[i]);
+        double rt = realtime() - t;
+        core->db_fast5_read_time += rt;
+        core->db_fast5_time += rt;
+        if(ret<0){
+            handle_bad_fast5(core, db,fast5_path,qname);
+            free(fast5_path);
+            return 0;
+        }
+        t = realtime();
+        fast5_close(hdf5_file);
+        core->db_fast5_time += realtime() - t;
+
+        if (core->opt.flag & F5C_PRINT_RAW) {
+            printf(">%s\tPATH:%s\tLN:%llu\n", qname.c_str(), fast5_path,
+                db->f5[i]->nsample);
+            uint32_t j = 0;
+            for (j = 0; j < db->f5[i]->nsample; j++) {
+                printf("%d\t", (int)db->f5[i]->rawptr[j]);
+            }
+            printf("\n");
+        }
+        if(core->opt.flag & F5C_WR_RAW_DUMP){
+            //write the fast5 dump to the binary file pointer core->raw_dump
+
+        }
+
+        //db->n_bam_rec++;
+        //t = realtime();
+        //status.num_bases += read_length;
+        //core->db_fasta_time += realtime() - t;
+        success=1;
+    } else {
+        handle_bad_fast5(core, db,fast5_path,qname);
+        return 0;
+    }
+    free(fast5_path);
+    assert(success==1);
+    return 1;
+}
+
 ret_status_t load_db(core_t* core, db_t* db) {
 
     double load_start = realtime();
@@ -273,52 +349,18 @@ ret_status_t load_db(core_t* core, db_t* db) {
                     continue;
                 }
 
-                char* fast5_path =
-                    (char*)malloc(fast5_path_str.size() + 10); // is +10 needed? do errorcheck
-                strcpy(fast5_path, fast5_path_str.c_str());
-
-                //fprintf(stderr,"readname : %s\n",qname.c_str());
-
-                t = realtime();
-                hid_t hdf5_file = fast5_open(fast5_path);
-                double ot = realtime() - t;
-                core->db_fast5_open_time += ot;
-                core->db_fast5_time += ot;
-                if (hdf5_file >= 0) {
-                    db->f5[i] = (fast5_t*)calloc(1, sizeof(fast5_t));
-                    MALLOC_CHK(db->f5[i]);
-                    t = realtime();
-                    int32_t ret=fast5_read(hdf5_file, db->f5[i]);
-                    double rt = realtime() - t;
-                    core->db_fast5_read_time += rt;
-                    core->db_fast5_time += rt;
-                    if(ret<0){
-                        handle_bad_fast5(core, db,fast5_path,qname);
-                        free(fast5_path);
-                        continue;
-                    }
-                    t = realtime();
-                    fast5_close(hdf5_file);
-                    core->db_fast5_time += realtime() - t;
-
-                    if (core->opt.flag & F5C_PRINT_RAW) {
-                        printf(">%s\tPATH:%s\tLN:%llu\n", qname.c_str(), fast5_path,
-                            db->f5[i]->nsample);
-                        uint32_t j = 0;
-                        for (j = 0; j < db->f5[i]->nsample; j++) {
-                            printf("%d\t", (int)db->f5[i]->rawptr[j]);
-                        }
-                        printf("\n");
-                    }
-
-                    db->n_bam_rec++;
-                    //t = realtime();
-                    status.num_bases += read_length;
-                    //core->db_fasta_time += realtime() - t;
-                } else {
-                    handle_bad_fast5(core, db,fast5_path,qname);
+                int8_t read_status = 0;    
+                if (core->opt.flag & F5C_RD_RAW_DUMP){
+                    read_status=read_from_fast5_dump(core, db,i);     
                 }
-                free(fast5_path);
+                else{    
+                   read_status=read_from_fast5_files(core, db, qname,fast5_path_str,i);
+                }
+                if(read_status==1){
+                    db->n_bam_rec++;
+                    status.num_bases += read_length;
+                }
+
             }
         }
     }
@@ -343,11 +385,10 @@ ret_status_t load_db(core_t* core, db_t* db) {
 
         // get the fast5
 
-        // Get the read type from the fast5 file
         std::string qname = bam_get_qname(db->bam_rec[i]);
-	t = realtime();
-	std::string read_seq = core->readbb->get_read_sequence(qname);
-	core->db_fasta_time += realtime() - t;
+        t = realtime();
+        std::string read_seq = core->readbb->get_read_sequence(qname);
+        core->db_fasta_time += realtime() - t;
 
         //get the read in ascci
         db->read[i] =

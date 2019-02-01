@@ -27,6 +27,8 @@
 #define F5C_DISABLE_CUDA 0x040 //disable cuda (only when compile for cuda)
 //#define F5C_DEBUG_BRK 0x080 //break after the first batch //removed can be reused
 #define F5C_SEC_PROF 0x100 //profile section by section (only effective on the CPU mode)
+#define F5C_WR_RAW_DUMP 0x200 //to say if we should write the raw dump of the fast5
+#define F5C_RD_RAW_DUMP 0x400 //to say if we should read the raw dump fof the fast5
 
 
 /*flags for a read status (related to db_t->read_stat_flag)*/
@@ -295,6 +297,9 @@ typedef struct {
 
     //bam file for writing the skipped ultra long reads to be later processed
     htsFile* ultra_long_tmp;
+
+    //temporary file for dumping
+    FILE *raw_dump;
 
     // fa related
     faidx_t* fai;

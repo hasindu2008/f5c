@@ -77,6 +77,8 @@ static struct option long_options[] = {
     {"cuda-mem-frac",required_argument, 0, 0},     //25 fraction of the free GPU memory to use (only if compiled for CUDA)
     {"skip-ultra",required_argument, 0, 0},        //26 skip the ultra long reads for better load balancing
     {"ultra-thresh",required_argument, 0, 0},      //27 the threadshold for skipping ultra long reads
+    {"write-dump",required_argument, 0, 0},        //28 write the raw data as a dump
+    {"read-dump",required_argument, 0, 0},         //29 read the raw data as a dump
     {0, 0, 0, 0}};
 
 
@@ -280,7 +282,11 @@ int meth_main(int argc, char* argv[]) {
                 WARNING("%s", "ultra-thresh has no effect without skip-ultra");
             }
             opt.ultra_thresh = atoi(optarg);
-        }         
+        } else if(c == 0 && longindex == 28){ //write the raw dump of the fast5 files
+            yes_or_no(&opt, F5C_WR_RAW_DUMP, longindex, optarg, 1);
+        } else if(c == 0 && longindex == 29){ //read the raw dump of the fast5 files
+            yes_or_no(&opt, F5C_RD_RAW_DUMP, longindex, optarg, 1);
+        }        
     }
 
     if (fastqfile == NULL || bamfilename == NULL || fastafile == NULL || fp_help == stdout) {
@@ -308,7 +314,7 @@ int meth_main(int argc, char* argv[]) {
 #endif
 
 
-        fprintf(fp_help,"debug options:\n");
+        fprintf(fp_help,"advanced options:\n");
         fprintf(fp_help,"   --kmer-model FILE          custom k-mer model file\n");
         fprintf(fp_help,"   --print-events=yes|no      prints the event table\n");
         fprintf(fp_help,"   --print-banded-aln=yes|no  prints the event alignment\n");
@@ -318,6 +324,8 @@ int meth_main(int argc, char* argv[]) {
         fprintf(fp_help,"   --profile-cpu=yes|no       process section by section (used for profiling on CPU)\n");
         fprintf(fp_help,"   --skip-ultra FILE          skip ultra long reads and write those entries to the bam file provided as the argument\n");
         fprintf(fp_help,"   --ultra-thresh [INT]       threshold to skip ultra long reads [%ld]\n",opt.ultra_thresh);
+        fprintf(fp_help,"   --write-dump=yes|no        write the fast5 dump to a file or not\n");
+        fprintf(fp_help,"   --read-dump=yes|no         read from a fast5 dump file or not\n");
 #ifdef HAVE_CUDA
         fprintf(fp_help,"   - cuda-mem-frac FLOAT      Fraction of free GPU memory to allocate [0.9 (0.7 for tegra)]\n");
         fprintf(fp_help,"   --cuda-block-size\n");

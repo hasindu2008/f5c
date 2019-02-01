@@ -41,13 +41,13 @@ $(BINARY): src/config.h $(HTS_LIB) $(HDF5_LIB) $(OBJ)
 $(BUILD_DIR)/main.o: src/main.c src/f5cmisc.h src/error.h
 	$(CXX) $(CFLAGS) $(CPPFLAGS) $< -c -o $@
 
-$(BUILD_DIR)/meth_main.o: src/meth_main.c src/f5c.h src/f5cmisc.h src/logsum.h
+$(BUILD_DIR)/meth_main.o: src/meth_main.c src/f5c.h src/fast5lite.h src/f5cmisc.h src/logsum.h
 	$(CXX) $(CFLAGS) $(CPPFLAGS) $< -c -o $@
 
-$(BUILD_DIR)/f5c.o: src/f5c.c src/f5c.h src/f5cmisc.h
+$(BUILD_DIR)/f5c.o: src/f5c.c src/f5c.h src/fast5lite.h src/f5cmisc.h
 	$(CXX) $(CFLAGS) $(CPPFLAGS) $< -c -o $@
 
-$(BUILD_DIR)/events.o: src/events.c src/f5c.h src/f5cmisc.h src/fast5lite.h src/nanopolish_read_db.h src/ksort.h
+$(BUILD_DIR)/events.o: src/events.c src/f5c.h src/fast5lite.h src/f5cmisc.h src/fast5lite.h src/nanopolish_read_db.h src/ksort.h
 	$(CXX) $(CFLAGS) $(CPPFLAGS) $< -c -o $@
 
 $(BUILD_DIR)/nanopolish_read_db.o: src/nanopolish_read_db.c src/nanopolish_read_db.h
@@ -56,26 +56,26 @@ $(BUILD_DIR)/nanopolish_read_db.o: src/nanopolish_read_db.c src/nanopolish_read_
 $(BUILD_DIR)/nanopolish_index.o: src/nanopolish_index.c src/nanopolish_read_db.h src/fast5lite.h
 	$(CXX) $(CFLAGS) $(CPPFLAGS) $< -c -o $@
 
-$(BUILD_DIR)/model.o: src/model.c src/model.h src/f5c.h src/f5cmisc.h
+$(BUILD_DIR)/model.o: src/model.c src/model.h src/f5c.h src/fast5lite.h src/f5cmisc.h
 	$(CXX) $(CFLAGS) $(CPPFLAGS) $< -c -o $@
 
-$(BUILD_DIR)/align.o: src/align.c src/f5c.h
+$(BUILD_DIR)/align.o: src/align.c src/f5c.h src/fast5lite.h
 	$(CXX) $(CFLAGS) $(CPPFLAGS) $< -c -o $@
 
-$(BUILD_DIR)/meth.o: src/meth.c src/f5c.h src/f5cmisc.h
+$(BUILD_DIR)/meth.o: src/meth.c src/f5c.h src/fast5lite.h src/f5cmisc.h
 	$(CXX) $(CFLAGS) $(CPPFLAGS) $< -c -o $@
 
-$(BUILD_DIR)/hmm.o: src/hmm.c src/f5c.h src/f5cmisc.h src/matrix.h src/logsum.h
+$(BUILD_DIR)/hmm.o: src/hmm.c src/f5c.h src/fast5lite.h src/f5cmisc.h src/matrix.h src/logsum.h
 	$(CXX) $(CFLAGS) $(CPPFLAGS) $< -c -o $@
 
 # cuda stuff
 $(BUILD_DIR)/gpucode.o: $(CUDA_OBJ)
 	$(NVCC) $(CUDA_CFLAGS) -dlink $^ -o $@ 
 
-$(BUILD_DIR)/f5c_cuda.o: src/f5c.cu src/error.h src/f5c.h src/f5cmisc.cuh src/f5cmisc.h
+$(BUILD_DIR)/f5c_cuda.o: src/f5c.cu src/error.h src/f5c.h src/fast5lite.h src/f5cmisc.cuh src/f5cmisc.h
 	$(NVCC) -x cu $(CUDA_CFLAGS) $(CPPFLAGS) -rdc=true -c $< -o $@
 
-$(BUILD_DIR)/align_cuda.o: src/align.cu src/f5c.h src/f5cmisc.cuh
+$(BUILD_DIR)/align_cuda.o: src/align.cu src/f5c.h src/fast5lite.h src/f5cmisc.cuh
 	$(NVCC) -x cu $(CUDA_CFLAGS) $(CPPFLAGS) -rdc=true -c $< -o $@
 
 src/config.h:
