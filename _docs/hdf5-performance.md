@@ -3,37 +3,13 @@ title: HDF5 Performance Issue
 author: Thomas Lam
 ---
 
-The Oxford Nanopore reads are stored in `.fast5` files, based on the [HDF5](https://www.hdfgroup.org/HDF5/)
-file format. So in order to process them we obviously need to use a HDF5 library
-which provides us a way to read the file and process them accordingly. At the
+Oxford Nanopore reads are stored in `.fast5` files, based on the [HDF5](https://www.hdfgroup.org/HDF5/)
+file format - one fast5 file for one read. The HDF5 file format is complicated and hence we have to rely on a HDF5 library to read those files. At the
 moment there is only one HDF5 implementation, which is the [official one](https://www.hdfgroup.org/downloads/hdf5)
-that includes libraries and utilities for dealing with HDF5 files.
+that includes libraries and utilities for handling HDF5 files.
 
-When implementing IO interleaving[^1] we discovered that on certain platforms
-the processing time is much faster than the file loading time. This is
-interesting since theoretically the disks should be able to transfer files at a
-higher rate than that. So we went on investigating which part of the code is
-causing a bottleneck when reading in fast5 files.
-
-We are interested to see the time breakdown of IO operations when initializing
-the data batch struct (`db_t` defined in [`f5c.h`](https://github.com/hasindu2008/f5c/blob/master/src/f5c.h#L199-L247)),
-which contains bam records, fasta cache and fast5 file.
-
-```c
-typedef struct {
-    bam1_t **bam_rec;
-    char **fasta_cache;
-    fast5_t **f5;
-    // and other struct members...
-} db_t;
-```
-
-So we embedded a time counter in our code (commit [`1357c4`](https://github.com/hasindu2008/f5c/commit/1357c403b2f60580055a31c24d672c9016001d93))
-to display a time breakdown for loading different types of files, which should
-hopefully show us some clue.
-
-Running f5c with chr22_meth_example dataset on an HPC shows us some really
-interesting results:
+After implementing IO interleaving[^1] we observed that on certain systems (mostly >16 CPU cores with mechanical HD RAID)
+the processing time is much faster than fast5 file access. Running f5c on the small chr22_meth_example dataset (~150 Mbases) on an HPC (72 Intel Xeon Gold 6154 threads and RAID 6 setup of 12 HD) gave us:
 
 ```
 [meth_main] Data loading time: 197.460 sec
@@ -44,13 +20,34 @@ interesting results:
 [meth_main]         - fast5 read time: 65.457 sec
 [meth_main] Data processing time: 60.996 sec
 ```
+Data loading takes three times the processing time! It was worse on a ~60Gbase NA12878 dataset. Data loading took ~69 hours and processing took only ~3 hours.
 
-As you can see bam filles and fasta files used up only 15% of the data load
-time. The majority of the time used is for loading fast5 files. Now we can
-confirm that the culprit of slow file IO time is the fast5 files operations. The
-header file only `fast5lite` library uses the HDF5 C library heavily. If we
-trace down the call tree further, we can see that `fast5_open()` calls
-`H5Fopen()` for us:
+```
+[meth_main] Data loading time: 249389.512 sec = 69.27 hours
+[meth_main]     - bam load time: 2099.134 sec
+[meth_main]     - fasta load time: 21418.816 sec
+[meth_main]     - fast5 load time: 225797.798 sec
+[meth_main]         - fast5 open time: 147881.362 sec
+[meth_main]         - fast5 read time: 69539.236 sec
+[meth_main] Data processing time: 10523.977 sec = 2.92 hours
+```
+
+The breakdown of the data loading time above shows that majority of the time is for fast5 loading. BAM file access consumes comparatively very little time - the access pattern is sequential. Fasta file access (which includes random access to fasta files containing the reference and the reads - uses faidx) takes ~6 hours. Fast5 access takes a massive amount of time : ~62 hours.
+
+
+These times were measured when loading data into the data batch struct (`db_t` defined in [`f5c.h`](https://github.com/hasindu2008/f5c/blob/master/src/f5c.h#L199-L247)) which contains bam records, fasta cache and fast5 file) by embedding a time counter in our code (commit [`1357c4`](https://github.com/hasindu2008/f5c/commit/1357c403b2f60580055a31c24d672c9016001d93)).
+
+```c
+typedef struct {
+    bam1_t **bam_rec;
+    char **fasta_cache;
+    fast5_t **f5;
+    // and other struct members...
+} db_t;
+```
+
+The header only file `fast5lite` uses the HDF5 C library heavily. If we trace down the call tree further, we can see that `fast5_open()` calls
+`H5Fopen()`:
 
 ```c
 static inline hid_t fast5_open(char *filename) {
@@ -87,12 +84,9 @@ static inline int32_t fast5_read(hid_t hdf5_file, fast5_t* f5) {
 }
 ```
 
-This shows pretty clearly that libhdf5 is a bottleneck here. But we still have
-to show that the disk is capable of reading a file at a higher speed to prove
-that the HDF5 library has a slow file IO operation procedure. In the chr22_meth_example
-test set, there are 2.3GB of fast5 files, which takes the HDF5 library a total of
-167 seconds to open and read. This means that the load speed is 14.103 MB/s. To
-find out the file reading speed of the disk, we used `dd` to generate a big
+In the chr22_meth_example test set, there are 2.3GB of fast5 files, which takes the HDF5 library a total of 167 seconds to open and read. This means that the average load speed is 14.103 MB/s - probably a lot of random accesses to the disk.
+
+What if the fast5 files could be sequentially accessed? To find out the file reading speed of the disk, we used `dd` to generate a big
 random file and `cat` it to find out the read time:
 
 ```console
@@ -108,12 +102,11 @@ user    0m0.001s
 sys     0m0.210s
 ```
 
-So the disk is able to read at a rate of 1.355 GB/s, while libhdf5 can only
-process the file at 14.103 MB/s, whoppingly slower than a normal disk read by
-98.4 times. At this point of the development, the data processing time is almost
-always faster than the data load time, meaning that regardless of the number of
-the optimization technique we put in, the fast5 files IO will always be the
-bottleneck. Unless we have a better (faster) HDF5 implementation, f5c can only
-perform as good as the HDF5 library.
+So the disk is able to sequentially read at a rate of 1.355 GB/s, while libhdf5 can only load the files at 14.103 MB/s, whoppingly slower than a normal sequential disk read by 98.4 times.
+
+
+At this point of the development, the data processing time is almost
+always faster than the data loading time, meaning that regardless of the number of the optimisation techniques we put in, the fast5 file I/O will always be the
+bottleneck.
 
 [^1]: brief explanation on how IO interleaving works in f5c can be found [here](https://github.com/hasindu2008/f5c/blob/master/src/meth_main.c#L12-L23)
