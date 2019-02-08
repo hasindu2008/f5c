@@ -24,7 +24,7 @@
 
 // ref: http://stackoverflow.com/a/612176/717706
 // return true if the given name is a directory
-bool is_directory(const std::string& file_name){
+static bool is_directory(const std::string& file_name){
     auto dir = opendir(file_name.c_str());
     if(not dir) {
         return false;
@@ -36,7 +36,7 @@ bool is_directory(const std::string& file_name){
 // Split a string into parts based on the delimiter (nanopolish_common.cpp)
 std::vector<std::string> split(std::string in, char delimiter);
 
-std::vector< std::string > list_directory(const std::string& file_name)
+static std::vector< std::string > list_directory(const std::string& file_name)
 {
     std::vector< std::string > res;
     DIR* dir;

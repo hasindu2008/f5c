@@ -34,6 +34,7 @@ void sig_handler(int sig) {
 
 int meth_main(int argc, char* argv[]);
 int index_main(int argc, char** argv);
+int f52tsv_main(int argc, char** argv);
 
 int print_usage(){
 
@@ -62,6 +63,9 @@ int main(int argc, char* argv[]){
     }
     else if(strcmp(argv[1],"call-methylation")==0){
         ret=meth_main(argc-1, argv+1);
+    }
+    else if(strcmp(argv[1],"fast5totsv")==0){
+        ret=f52tsv_main(argc-1, argv+1);
     }
     else{
         fprintf(stderr,"[f5c] Unrecognised command %s\n",argv[1]);
