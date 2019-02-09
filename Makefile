@@ -14,7 +14,8 @@ OBJ = $(BUILD_DIR)/main.o \
       $(BUILD_DIR)/events.o \
       $(BUILD_DIR)/nanopolish_read_db.o \
       $(BUILD_DIR)/nanopolish_index.o \
-      $(BUILD_DIR)/f52tsv.o \
+      $(BUILD_DIR)/fastt_main.o \
+	  $(BUILD_DIR)/ftidx.o \
       $(BUILD_DIR)/model.o \
       $(BUILD_DIR)/align.o \
       $(BUILD_DIR)/meth.o \
@@ -57,8 +58,11 @@ $(BUILD_DIR)/nanopolish_read_db.o: src/nanopolish_read_db.c src/nanopolish_read_
 $(BUILD_DIR)/nanopolish_index.o: src/nanopolish_index.c src/nanopolish_read_db.h src/fast5lite.h
 	$(CXX) $(CFLAGS) $(CPPFLAGS) $< -c -o $@
 
-$(BUILD_DIR)/f52tsv.o: src/f52tsv.c src/f5c.h src/fast5lite.h src/f5cmisc.h src/error.h
+$(BUILD_DIR)/fastt_main.o: src/fastt_main.c src/f5c.h src/fast5lite.h src/f5cmisc.h src/error.h
 	$(CXX) $(CFLAGS) $(CPPFLAGS) $< -c -o $@
+
+$(BUILD_DIR)/ftidx.o: src/ftidx.c src/ftidx.h
+	$(CXX) $(CFLAGS) $(CPPFLAGS) $< -c -o $@	
 
 $(BUILD_DIR)/model.o: src/model.c src/model.h src/f5c.h src/fast5lite.h src/f5cmisc.h
 	$(CXX) $(CFLAGS) $(CPPFLAGS) $< -c -o $@

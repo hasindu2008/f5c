@@ -34,13 +34,14 @@ void sig_handler(int sig) {
 
 int meth_main(int argc, char* argv[]);
 int index_main(int argc, char** argv);
-int f52tsv_main(int argc, char** argv);
+int fastt_main(int argc, char** argv);
 
 int print_usage(){
 
     fprintf(stderr,"Usage: f5c <command> [options]\n\n");
     fprintf(stderr,"command:\n");
     fprintf(stderr,"         index               Build an index mapping from basecalled reads to the signals measured by the sequencer (same as nanopolish index)\n");
+    fprintf(stderr,"         fastt               Convert fast5 files in given directories recursively to fastt (tsv format)\n");
     fprintf(stderr,"         call-methylation    Classify nucleotides as methylated or not (optimised version of nanopolish call-methylation)\n\n");
 
 
@@ -64,8 +65,8 @@ int main(int argc, char* argv[]){
     else if(strcmp(argv[1],"call-methylation")==0){
         ret=meth_main(argc-1, argv+1);
     }
-    else if(strcmp(argv[1],"fast5totsv")==0){
-        ret=f52tsv_main(argc-1, argv+1);
+    else if(strcmp(argv[1],"fastt")==0){
+        ret=fastt_main(argc-1, argv+1);
     }
     else{
         fprintf(stderr,"[f5c] Unrecognised command %s\n",argv[1]);
