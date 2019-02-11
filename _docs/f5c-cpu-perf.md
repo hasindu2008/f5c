@@ -228,7 +228,7 @@ We observe an approximately 1.5x to 2x performance improvement over Nanopolish w
 
 ## Total runtime (with disk I/O)
 
-Instead of loading data from the RAM, now we directly loaded from the hard disk drives. The same above server used for taking measurements had a RAID 6 setup of 12 mechanical hard disk drives. We cleared the operating system file system cache before each measurement using `sync; echo 3 | tee /proc/sys/vm/drop_caches`.
+Instead of loading data from the RAM, now we directly load from the hard disk drives. The same above server was used for taking measurements - it had a RAID 6 setup of 12 mechanical hard disk drives. We cleared the operating system file system cache before each measurement using `sync; echo 3 | tee /proc/sys/vm/drop_caches`.
 
 ```chart
 {
@@ -440,4 +440,4 @@ Instead of loading data from the RAM, now we directly loaded from the hard disk 
 }
 ```
 
-It is observed that the performance gain for a large number of threads is limited. It is mostly due to disk I/O becomes performance bottleneck, where you would not see any performance improvement because loading the files into memory takes more time than the actual processing. See [HDF5 Performance](/docs/hdf5-performance) about the impact of the I/O.
+It is observed that the performance gain for a large number of threads is limited. It is mostly due to disk I/O becoming the performance bottleneck, where you would not see any performance improvement because loading the files into memory takes more time than the actual processing. See [HDF5 Performance](/docs/hdf5-performance) for more information about the impact of I/O.
