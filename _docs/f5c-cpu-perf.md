@@ -5,7 +5,7 @@ chart: true
 
 ## Runtime for processing (excluding I/O)
 
-The dataset was copied to `/dev/shm1` (tmpfs file system that resides in RAM) so that the disk I/O time is excluded. Runtime measurements were taken on a server (72 Intel Xeon Gold 6154 threads and 376 GB RAM).
+The dataset was copied to `/dev/shm1` (tmpfs file system that resides in RAM) so that the disk I/O time is excluded[^1]. Runtime measurements were taken on a server (72 Intel Xeon Gold 6154 threads and 376 GB RAM).
 
 Performance of F5C over Nanopolish call-methylation v0.9.0 (Nanopolish version which the F5C development was based on) is as follows :
 
@@ -118,7 +118,7 @@ Note that F5C was run with the following additional options to tally with the de
 - min-mapq: 0
 - batch size: 512
 
-We observe an approximately 1.5x to 2x performance improvement over Nanopolish when using f5c. Based on what was learnt during F5C development, a number of improvements were applied to the original Nanopolish repository : [#486](https://github.com/jts/nanopolish/pull/486),[#350](https://github.com/jts/nanopolish/pull/350),[#402](https://github.com/jts/nanopolish/pull/402),[#327](https://github.com/jts/nanopolish/pull/327),[#285](https://github.com/jts/nanopolish/issues/285), [364](https://github.com/jts/nanopolish/issues/364). Following is a comparison with Nanopolish  v0.10.2 with those imrpvements added.
+We observe an approximately 1.5x to 2x performance improvement over Nanopolish when using f5c. Based on what was learnt during F5C development, a number of improvements were applied to the original Nanopolish repository : [#486](https://github.com/jts/nanopolish/pull/486),[#350](https://github.com/jts/nanopolish/pull/350),[#402](https://github.com/jts/nanopolish/pull/402),[#327](https://github.com/jts/nanopolish/pull/327),[#285](https://github.com/jts/nanopolish/issues/285), [364](https://github.com/jts/nanopolish/issues/364). Following is a comparison with Nanopolish  v0.10.2 with those improvements added.
 
 
 ```chart
@@ -441,3 +441,15 @@ Instead of loading data from the RAM, now we directly loaded from the hard disk 
 ```
 
 It is observed that the performance gain for a large number of threads is limited. It is mostly due to disk I/O becomes performance bottleneck, where you would not see any performance improvement because loading the files into memory takes more time than the actual processing. See [HDF5 Performance](/docs/hdf5-performance) about the impact of the I/O.
+
+[^1]: even when loading from tmpfs (RAM), data loading time of F5C is higher (almost twice) the processing time as shown below.
+```
+[meth_main] Data loading time: 43.642 sec
+[meth_main]     - bam load time: 1.662 sec
+[meth_main]     - fasta load time: 11.611 sec
+[meth_main]     - fast5 load time: 30.305 sec
+[meth_main]         - fast5 open time: 1.775 sec
+[meth_main]         - fast5 read time: 25.027 sec
+[meth_main] Data processing time: 24.404 sec
+```
+This might be due to the overheads of the library calls for accessing files. As a result, the multi-threaded performance of F5C plateaus after around 32 threads.
