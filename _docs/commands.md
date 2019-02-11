@@ -37,7 +37,7 @@ Usage: f5c call-methylation [OPTIONS] -r reads.fa -b alignments.bam -g genome.fa
    --cuda-max-lf FLOAT        reads with length <= cuda-max-lf*avg_readlen on GPU, rest on CPU [3.0]
    --cuda-avg-epk FLOAT       average number of events per kmer - for allocating GPU arrays [2.0]
    --cuda-max-epk FLOAT       reads with events per kmer <= cuda_max_epk on GPU, rest on CPU [5.0]
-debug options:
+advanced options:
    --kmer-model FILE          custom k-mer model file
    --print-events=yes|no      prints the event table
    --print-banded-aln=yes|no  prints the event alignment
@@ -45,5 +45,9 @@ debug options:
    --print-raw=yes|no         prints the raw signal
    --debug-break [INT]        break after processing the specified batch
    --profile-cpu=yes|no       process section by section (used for profiling on CPU)
-   - cuda-mem-frac FLOAT      Fraction of free GPU memory to allocate [0.9 (0.7) for tegra)]
+   --skip-ultra FILE          skip ultra long reads and write those entries to the bam file provided as the argument
+   --ultra-thresh [INT]       threshold to skip ultra long reads [100000]
+   --write-dump=yes|no        write the fast5 dump to a file or not
+   --read-dump=yes|no         read from a fast5 dump file or not
+   --cuda-mem-frac FLOAT      fraction of free GPU memory to allocate [0.9 (0.7 for tegra)]
 ```
