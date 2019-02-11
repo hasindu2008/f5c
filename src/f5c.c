@@ -294,8 +294,10 @@ static inline int read_from_fast5_files(core_t *core, db_t *db, std::string qnam
         core->db_fast5_time += rt;
         if(ret<0){
             handle_bad_fast5(core, db,fast5_path,qname);
-            hsize_t tmp_nsample = 0;
-            f5write(core->raw_dump,&tmp_nsample, sizeof(hsize_t), 1);
+            if(core->opt.flag & F5C_WR_RAW_DUMP){
+                hsize_t tmp_nsample = 0;
+                f5write(core->raw_dump,&tmp_nsample, sizeof(hsize_t), 1);
+            }
             free(fast5_path);
             return 0;
         }
@@ -329,8 +331,10 @@ static inline int read_from_fast5_files(core_t *core, db_t *db, std::string qnam
         success=1;
     } else {
         handle_bad_fast5(core, db,fast5_path,qname);
-        hsize_t tmp_nsample = 0;
-        f5write(core->raw_dump,&tmp_nsample, sizeof(hsize_t), 1);
+        if(core->opt.flag & F5C_WR_RAW_DUMP){
+            hsize_t tmp_nsample = 0;
+            f5write(core->raw_dump,&tmp_nsample, sizeof(hsize_t), 1);
+        }
         return 0;
     }
     free(fast5_path);
