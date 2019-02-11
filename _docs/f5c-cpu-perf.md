@@ -440,4 +440,4 @@ Instead of loading data from the RAM, now we directly load from the hard disk dr
 }
 ```
 
-It is observed that the performance gain for a large number of threads is limited. It is mostly due to disk I/O becoming the performance bottleneck, where you would not see any performance improvement because loading the files into memory takes more time than the actual processing. See [HDF5 Performance](/docs/hdf5-performance) for more information about the impact of I/O.
+It is observed that the performance gain for a large number of threads is limited. It is mostly due to disk I/O becoming the performance bottleneck, where you would not see any performance improvement because loading the files into memory takes more time than the actual processing. See [HDF5 Performance](f5c/docs/hdf5-performance) for more information about the impact of I/O.
