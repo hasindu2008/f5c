@@ -21,8 +21,8 @@ docs:
         url:    /docs/example-usage
   - title:      Performance
     children:
-      - title:  Comparison with Nanopolish
-        url:    /docs/comparison-with-nanopolish
+      - title:  F5C multi-core CPU performance
+        url:    /docs/f5c-cpu-perf
       - title:  HDF5 Performance
         url:    /docs/hdf5-performance
       - title:  Statically-linked binary

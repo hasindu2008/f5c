@@ -14,4 +14,5 @@ almost the same as from nanopolish except a few differences due to floating
 point approximations.
 
 [Docs](https://hasindu2008.github.io/f5c/docs/quick-start)
+
 [Latest release](https://github.com/hasindu2008/f5c/releases/latest)
