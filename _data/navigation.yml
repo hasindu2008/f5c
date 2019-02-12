@@ -26,7 +26,7 @@ docs:
       - title:  HDF5 Performance
         url:    /docs/hdf5-performance
       - title:  Portable binary
-        url:    /docs/potable-binary
+        url:    /docs/portable-binary
   - title:      Troubleshooting
     children:
       - title:  CUDA
