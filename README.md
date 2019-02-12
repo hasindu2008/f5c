@@ -10,7 +10,8 @@ First the reads have to be indexed using `f5c index` (or `nanopolish index` - f5
 
 If you are a Linux user and want to quickly try out download the compiled binaries from the [latest release](https://github.com/hasindu2008/f5c/releases). For example:
 ```sh
-wget "https://github.com/hasindu2008/f5c/releases/download/v0.0-alpha/f5c-v0.0-alpha-binaries.tar.gz" && tar xvf f5c-v0.0-alpha-binaries.tar.gz && cd f5c-v0.0-alpha/
+VERSION=v0.1-beta
+wget "https://github.com/hasindu2008/f5c/releases/download/$VERSION/f5c-$VERSION-binaries.tar.gz" && tar xvf f5c-$VERSION-binaries.tar.gz && cd f5c-$VERSION/
 ./f5c_x86_64_linux        # CPU version
 ./f5c_x86_64_linux_cuda   # cuda supported version
 ```
@@ -20,8 +21,9 @@ Binaries should work on most Linux distributions and the only dependency is `zli
 
 Users are recommended to build from the  [latest release](https://github.com/hasindu2008/f5c/releases) tar ball. You need a compiler that supports C++11. Quick example for Ubuntu :
 ```sh
+VERSION=v0.1-beta
 sudo apt-get install libhdf5-dev zlib1g-dev   #install HDF5 and zlib development libraries
-wget "https://github.com/hasindu2008/f5c/releases/download/v0.0-alpha/f5c-v0.0-alpha-release.tar.gz" && tar xvf f5c-v0.0-alpha-release.tar.gz && cd f5c-v0.0-alpha/
+wget "https://github.com/hasindu2008/f5c/releases/download/$VERSION/f5c-$VERSION-release.tar.gz" && tar xvf f5c-$VERSION-release.tar.gz && cd f5c-$VERSION/
 scripts/install-hts.sh  # download and compile the htslib
 ./configure             
 make                    # make cuda=1 to enable CUDA support
