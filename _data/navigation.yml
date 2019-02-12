@@ -25,8 +25,8 @@ docs:
         url:    /docs/f5c-cpu-perf
       - title:  HDF5 Performance
         url:    /docs/hdf5-performance
-      - title:  Statically-linked binary
-        url:    /docs/statically-linked-binary
+      - title:  Portable binary
+        url:    /docs/potable-binary
   - title:      Troubleshooting
     children:
       - title:  CUDA
