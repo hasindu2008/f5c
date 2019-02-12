@@ -125,19 +125,19 @@ dist: distclean
 		installdeps.mk src docs build .dockerignore configure f5c-$(VERSION)
 	mkdir -p f5c-$(VERSION)/scripts
 	cp scripts/install-hdf5.sh scripts/install-hts.sh scripts/test.sh scripts/common.sh scripts/test.awk f5c-$(VERSION)/scripts
-	tar -zcf f5c-$(VERSION).tar.gz f5c-$(VERSION)
+	tar -zcf f5c-$(VERSION)-release.tar.gz f5c-$(VERSION)
 	rm -rf f5c-$(VERSION)
 
 binary: 
-	mkdir -p f5c-$(VERSION)-bin
+	mkdir -p f5c-$(VERSION)
 	make clean
-	make cuda=1 && mv f5c f5c-$(VERSION)-bin/f5c_x86_64_linux_cuda && make clean
-	make && mv f5c f5c-$(VERSION)-bin/f5c_x86_64_linux
-	cp -r README.md LICENSE docs f5c-$(VERSION)-bin/
-	mkdir -p f5c-$(VERSION)-bin/scripts
-	cp scripts/test.sh scripts/common.sh scripts/test.awk f5c-$(VERSION)-bin/scripts
-	tar -zcf f5c-$(VERSION)-bin.tar.gz f5c-$(VERSION)-bin
-	rm -rf f5c-$(VERSION)-bin
+	make cuda=1 && mv f5c f5c-$(VERSION)/f5c_x86_64_linux_cuda && make clean
+	make && mv f5c f5c-$(VERSION)/f5c_x86_64_linux
+	cp -r README.md LICENSE docs f5c-$(VERSION)/
+	mkdir -p f5c-$(VERSION)/scripts
+	cp scripts/test.sh scripts/common.sh scripts/test.awk f5c-$(VERSION)/scripts
+	tar -zcf f5c-$(VERSION)-binaries.tar.gz f5c-$(VERSION)
+	rm -rf f5c-$(VERSION)
 
 install: $(BINARY)
 	mkdir -p $(DESTDIR)$(PREFIX)/bin

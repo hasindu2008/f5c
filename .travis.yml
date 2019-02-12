@@ -69,14 +69,15 @@ jobs:
         - sudo apt-get clean
         - sudo ln -s /usr/local/cuda-6.5/ ${CUDA_HOME}
       script:
-        - mkdir -p f5c-${TRAVIS_TAG}-bin
-        - make cuda=1 && mv f5c f5c-${TRAVIS_TAG}-bin/f5c_x86_64_linux_cuda && make clean
-        - make && mv f5c f5c-${TRAVIS_TAG}-bin/f5c_x86_64_linux
-        - cp -r README.md LICENSE docs f5c-${TRAVIS_TAG}-bin/
-        - mkdir -p f5c-${TRAVIS_TAG}-bin/scripts
-        - cp scripts/common.sh scripts/test.awk scripts/test.sh f5c-${TRAVIS_TAG}-bin/scripts
-        - tar -zcf f5c-${TRAVIS_TAG}-bin.tar.gz f5c-${TRAVIS_TAG}-bin
-        - rm -rf f5c-${TRAVIS_TAG}-bin
+        - make dist
+        - mkdir -p f5c-${TRAVIS_TAG}
+        - make cuda=1 && mv f5c f5c-${TRAVIS_TAG}/f5c_x86_64_linux_cuda && make clean
+        - make && mv f5c f5c-${TRAVIS_TAG}/f5c_x86_64_linux
+        - cp -r README.md LICENSE docs f5c-${TRAVIS_TAG}/
+        - mkdir -p f5c-${TRAVIS_TAG}/scripts
+        - cp scripts/common.sh scripts/test.awk scripts/test.sh f5c-${TRAVIS_TAG}/scripts
+        - tar -zcf f5c-${TRAVIS_TAG}-binaries.tar.gz f5c-${TRAVIS_TAG}
+        - rm -rf f5c-${TRAVIS_TAG}
       deploy:
         provider: releases
         api_key:
@@ -89,4 +90,4 @@ jobs:
           repo: hasindu2008/f5c
           tags: true
       before_deploy:
-        - make dist
+        - make clean
