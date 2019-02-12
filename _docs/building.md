@@ -11,7 +11,8 @@ git clone https://github.com/hasindu2008/f5c && cd f5c
 Alternatively, download the [latest release](https://github.com/hasindu2008/f5c/releases) tarball and extract.
 eg :
 ```sh
-wget "https://github.com/hasindu2008/f5c/releases/download/v0.0-alpha/f5c-v0.0-alpha-release.tar.gz" && tar xvf f5c-v0.0-alpha-release.tar.gz && cd f5c-v0.0-alpha/
+VERSION=v0.1-beta
+wget "https://github.com/hasindu2008/f5c/releases/download/$VERSION/f5c-$VERSION-release.tar.gz" && tar xvf f5c-$VERSION-release.tar.gz && cd f5c-$VERSION/
 ```
 
 While we have tried hard to avoid the dependency hell, three dependencies (zlib, HDF5 and HTS) could not be avoided.

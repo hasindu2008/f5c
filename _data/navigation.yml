@@ -21,7 +21,7 @@ docs:
         url:    /docs/example-usage
   - title:      Performance
     children:
-      - title:  F5C multi-core CPU performance
+      - title:  F5C CPU performance
         url:    /docs/f5c-cpu-perf
       - title:  HDF5 Performance
         url:    /docs/hdf5-performance
