@@ -21,8 +21,8 @@ Binaries should work on most Linux distributions and the only dependency is `zli
 
 Users are recommended to build from the  [latest release](https://github.com/hasindu2008/f5c/releases) tar ball. You need a compiler that supports C++11. Quick example for Ubuntu :
 ```sh
-VERSION=v0.1-beta
 sudo apt-get install libhdf5-dev zlib1g-dev   #install HDF5 and zlib development libraries
+VERSION=v0.1-beta
 wget "https://github.com/hasindu2008/f5c/releases/download/$VERSION/f5c-$VERSION-release.tar.gz" && tar xvf f5c-$VERSION-release.tar.gz && cd f5c-$VERSION/
 scripts/install-hts.sh  # download and compile the htslib
 ./configure             
@@ -39,7 +39,7 @@ If you skip `scripts/install-hts.sh` and `./configure` hdf5 will be compiled loc
 
 Building from the Github repository additionally requires `autoreconf` which can be installed on Ubuntu using `sudo apt-get install autoconf automake`.
 
-Other building options are detailed [here](https://hasindu2008.github.io/f5c/docs/compile-from-source).
+Other building options are detailed [here](https://hasindu2008.github.io/f5c/docs/building).
 Instruction to build a docker image is detailed [here](https://hasindu2008.github.io/f5c/docs/docker).
 
 ### NVIDIA CUDA support
