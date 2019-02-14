@@ -11,6 +11,12 @@
 
 #define ALLOC(type, size) (type *)safe_malloc((size) * sizeof(type))
 
+static const char usage[] = "Usage: %s [options...]\n"
+                            "\n"
+                            "  -c [float]        Call threshold. Default is 2.5.\n"
+                            "  -i [file]         Input file. Read from stdin if not specified.\n"
+                            "  -s                Split groups\n";
+
 struct site_stats {
     int num_reads;
     int posterior_methylated;
@@ -195,9 +201,11 @@ int main(int argc, char **argv) {
                       break;
             case ':':
                       fprintf(stderr, "Option -%c requires an operand\n", optopt);
+                      fprintf(stderr, usage, argv[0]);
                       exit(EXIT_FAILURE);
             case '?':
                       fprintf(stderr, "Unrecognized option: -%c\n", optopt);
+                      fprintf(stderr, usage, argv[0]);
                       exit(EXIT_FAILURE);
             default:
                       break;
