@@ -16,35 +16,25 @@ The release binaries are compiled on an Ubuntu 14 operating system with GCC 4.8 
   "type": "bar",
   "data": {
   "labels": [
-    "CPU (release-binary)",
-    "CPU (fresh-binary)",
-    "GPU (release-binary)",
-    "GPU (fresh-binary)"
+    "CPU",
+    "GPU"
   ],
   "datasets": [
     {
-    "data": [
-      178.2,
-      164.6,
-      97.6,
-      90.8
-    ],
-    "backgroundColor": [
-      "rgba(255, 99, 132, 0.2)",
-      "rgba(54, 162, 235, 0.2)",
-      "rgba(255, 99, 132, 0.2)",
-      "rgba(54, 162, 235, 0.2)"
-    ],
-    "borderColor": [
-      "rgba(255,99,132, 1)",
-      "rgba(54, 162, 235, 1)",
-      "rgba(255,99,132, 1)",
-      "rgba(54, 162, 235, 1)"
-    ],
+    "labels" : "pre-compiled release-binary",  
+    "data": [ 178.2, 97.6 ],
+    "backgroundColor": "rgba(255, 99, 132, 0.2)",
+    "borderColor": "rgba(255,99,132, 1)",
     "borderWidth": 1
+    },
+    {
+    "labels" : "fresh compiled binary",
+    "data": [164.6,90.8],
+    "backgroundColor": "rgba(54, 162, 235, 0.2)",
+    "borderColor": "rgba(255,99,132, 1)",
+    "borderWidth": 1      
     }
-  ]
-  },
+  ],
   "options": {
     "scales": {
       "yAxes": [{
@@ -58,6 +48,7 @@ The release binaries are compiled on an Ubuntu 14 operating system with GCC 4.8 
       }]
     }
   }
+}
 }
 ```
 
