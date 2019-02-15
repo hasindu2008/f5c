@@ -34,8 +34,8 @@ The release binaries are compiled on an Ubuntu 14 operating system with GCC 4.8 
     "borderColor": "rgba(54, 162, 235, 1)",
     "borderWidth": 1      
     }
-  ],
-  }
+  ]
+  },
   "options": {
     "scales": {
       "yAxes": [{
