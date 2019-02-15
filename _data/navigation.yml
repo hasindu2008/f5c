@@ -23,6 +23,8 @@ docs:
     children:
       - title:  F5C CPU performance
         url:    /docs/f5c-cpu-perf
+      - title:  F5C GPU performance
+        url:    /docs/f5c-gpu-perf        
       - title:  HDF5 Performance
         url:    /docs/hdf5-performance
       - title:  Portable binary
