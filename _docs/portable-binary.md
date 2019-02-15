@@ -52,4 +52,7 @@ The release binaries are compiled on an Ubuntu 14 operating system with GCC 4.8 
 }
 ```
 
+Test environment : f5c v0.1-beta, Dell XPS 15 laptop (Ubuntu 18), chr20 dataset (total ~150M bases with ~20K reads)
+
+
 [^1]: See <https://github.com/hasindu2008/f5c/blob/master/.travis.yml> for the commands used to compile the statically-linked binary.
