@@ -35,6 +35,7 @@ The release binaries are compiled on an Ubuntu 14 operating system with GCC 4.8 
     "borderWidth": 1      
     }
   ],
+  }
   "options": {
     "scales": {
       "yAxes": [{
@@ -49,7 +50,7 @@ The release binaries are compiled on an Ubuntu 14 operating system with GCC 4.8 
     }
   }
 }
-}
+
 ```
 
 [^1]: See <https://github.com/hasindu2008/f5c/blob/master/.travis.yml> for the commands used to compile the statically-linked binary.
