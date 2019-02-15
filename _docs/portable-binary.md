@@ -9,7 +9,7 @@ To produce the portable binaries we follow a hybrid linking strategy where some 
 
 You can produce the same binary with `make cuda=1` (without `./configure` before running this command) assuming that you have the CUDA runtime library installed[^1]. This will download HTSlib and HDF5 source code to a local working directory. They are then compiled to produce archive libraries (.a) and be linked with the f5c binary.
 
-The release binaries are compiled on an Ubuntu 14 operating system with GCC 4.8 and CUDA toolkit 6.5 installed. Older versions are used as the glibc is dynamically linked. The performance of a release binary is on par with the one that is fresh compiled - compiled using newer compilers. The graph below shows that there is no significant performance difference between the two. The Dell XPS15 laptop used for testing had Ubuntu 18 as the operating system with GCC 7 and CUDA Toolkit 9.5. 
+The release binaries are compiled on an Ubuntu 14 operating system with GCC 4.8 and CUDA toolkit 6.5 installed. Older versions are used as the glibc is dynamically linked. The performance of a release binary is on par with the one that is fresh compiled - compiled using newer compilers. The graph below shows that there is no significant performance difference between the two. The Dell XPS15 laptop used for testing had Ubuntu 18 as the operating system with GCC 7 and CUDA Toolkit 9.5.
 
 ```chart
 {
@@ -23,7 +23,6 @@ The release binaries are compiled on an Ubuntu 14 operating system with GCC 4.8 
   ],
   "datasets": [
     {
-    "label": "Run time (lower is better)",
     "data": [
       178.2,
       164.6,
