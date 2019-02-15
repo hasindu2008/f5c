@@ -35,3 +35,6 @@ The overall performance for the whole methylation calling process (including I/O
 *Note that the speed up for the overall speedup for the Dell server was limited by slow fast5 I/O compared to the processing capability of the Tesla V100.*
 
 Note : In all cases the programs were executed with maximum number of hardware threads supported by the CPU of the particular system. The small chr20 dataset (total ~150M bases with ~20K reads) was used.
+
+
+Acknowledgement : Thanks [@GPrathap](https://github.com/GPrathap) for running the experiments on the Acer laptop.
