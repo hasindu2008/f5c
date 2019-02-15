@@ -21,17 +21,17 @@ The release binaries are compiled on an Ubuntu 14 operating system with GCC 4.8 
   ],
   "datasets": [
     {
-    "labels" : "pre-compiled release-binary",  
+    "label" : "pre-compiled release-binary",  
     "data": [ 178.2, 97.6 ],
     "backgroundColor": "rgba(255, 99, 132, 0.2)",
     "borderColor": "rgba(255,99,132, 1)",
     "borderWidth": 1
     },
     {
-    "labels" : "fresh compiled binary",
+    "label" : "fresh compiled binary",
     "data": [164.6,90.8],
     "backgroundColor": "rgba(54, 162, 235, 0.2)",
-    "borderColor": "rgba(255,99,132, 1)",
+    "borderColor": "rgba(54, 162, 235, 1)",
     "borderWidth": 1      
     }
   ],
