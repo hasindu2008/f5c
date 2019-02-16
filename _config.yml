@@ -20,6 +20,16 @@ github_username: hasindu2008
 repository: hasindu2008/f5c
 repository_tree: gh-pages
 
+## => Analytics
+##############################
+analytics:
+  provider: google # false (default), "google", "custom"
+
+  ## Google Analytics
+  google:
+    tracking_id : UA-134593745-1 # Google Analytics id for the site
+    anonymize_ip: false # Anonymize IP tracking for Analytic
+    
 # Build settings
 markdown: kramdown
 remote_theme: kitian616/jekyll-text-theme
