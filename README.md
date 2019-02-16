@@ -10,7 +10,8 @@ First the reads have to be indexed using `f5c index` (or `nanopolish index` - f5
 
 If you are a Linux user and want to quickly try out download the compiled binaries from the [latest release](https://github.com/hasindu2008/f5c/releases). For example:
 ```sh
-wget "https://github.com/hasindu2008/f5c/releases/download/v0.0-alpha/f5c-v0.0-alpha-binaries.tar.gz" && tar xvf f5c-v0.0-alpha-binaries.tar.gz && cd f5c-v0.0-alpha/
+VERSION=v0.1-beta
+wget "https://github.com/hasindu2008/f5c/releases/download/$VERSION/f5c-$VERSION-binaries.tar.gz" && tar xvf f5c-$VERSION-binaries.tar.gz && cd f5c-$VERSION/
 ./f5c_x86_64_linux        # CPU version
 ./f5c_x86_64_linux_cuda   # cuda supported version
 ```
@@ -21,7 +22,8 @@ Binaries should work on most Linux distributions and the only dependency is `zli
 Users are recommended to build from the  [latest release](https://github.com/hasindu2008/f5c/releases) tar ball. You need a compiler that supports C++11. Quick example for Ubuntu :
 ```sh
 sudo apt-get install libhdf5-dev zlib1g-dev   #install HDF5 and zlib development libraries
-wget "https://github.com/hasindu2008/f5c/releases/download/v0.0-alpha/f5c-v0.0-alpha-release.tar.gz" && tar xvf f5c-v0.0-alpha-release.tar.gz && cd f5c-v0.0-alpha/
+VERSION=v0.1-beta
+wget "https://github.com/hasindu2008/f5c/releases/download/$VERSION/f5c-$VERSION-release.tar.gz" && tar xvf f5c-$VERSION-release.tar.gz && cd f5c-$VERSION/
 scripts/install-hts.sh  # download and compile the htslib
 ./configure             
 make                    # make cuda=1 to enable CUDA support
@@ -37,7 +39,7 @@ If you skip `scripts/install-hts.sh` and `./configure` hdf5 will be compiled loc
 
 Building from the Github repository additionally requires `autoreconf` which can be installed on Ubuntu using `sudo apt-get install autoconf automake`.
 
-Other building options are detailed [here](https://hasindu2008.github.io/f5c/docs/compile-from-source).
+Other building options are detailed [here](https://hasindu2008.github.io/f5c/docs/building).
 Instruction to build a docker image is detailed [here](https://hasindu2008.github.io/f5c/docs/docker).
 
 ### NVIDIA CUDA support
@@ -56,8 +58,6 @@ If your CUDA library is not in the default location /usr/local/cuda/lib64, point
 ```
 make cuda=1 CUDA_LIB=/path/to/cuda/library/
 ```
-For instance, it can be something like `/usr/local/cuda-8.0/lib64`. If your system is 32 bit it should be `lib` instead of `lib64`.
-
 Visit [here](https://hasindu2008.github.io/f5c/docs/cuda-troubleshoot) for troubleshooting CUDA related problems.
 
 ## Usage
@@ -71,7 +71,7 @@ Visit the [man page](https://hasindu2008.github.io/f5c/docs/commands) for all th
 
 ### Example
 
-Follow the same steps as in [Nanopolish tutorial](https://nanopolish.readthedocs.io/en/latest/quickstart_call_methylation.html) while replacing `nanopolish` with `f5c`. If you only want to perform a quick test of f5c without aligning reads :
+Follow the same steps as in [Nanopolish tutorial](https://nanopolish.readthedocs.io/en/latest/quickstart_call_methylation.html) while replacing `nanopolish` with `f5c`. If you only want to perform a quick test of f5c :
 ```sh
 #download and extract the dataset including sorted alignments
 wget -O f5c_na12878_test.tgz "http://genome.cse.unsw.edu.au/tmp/f5c_na12878_test.tgz"
@@ -83,6 +83,6 @@ f5c call-methylation -b chr22_meth_example/reads.sorted.bam -g chr22_meth_exampl
 ```
 
 ## Acknowledgement
-This extensively reuses code and methods from [Nanopolish](https://github.com/jts/nanopolish).
+This reuses code and methods from [Nanopolish](https://github.com/jts/nanopolish).
 The event detection code is from Oxford Nanopore's [Scrappie basecaller](https://github.com/nanoporetech/scrappie).
 Some code snippets have been taken from [Minimap2](https://github.com/lh3/minimap2) and [Samtools](http://samtools.sourceforge.net/).
