@@ -1,3 +1,10 @@
+/* @f5c
+**
+** f5c interface 
+** @author: Hasindu Gamaarachchi (hasindu@unsw.edu.au)
+** @@
+******************************************************************************/
+
 #include <assert.h>
 #include <math.h>
 #include <pthread.h>

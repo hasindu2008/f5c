@@ -1,3 +1,10 @@
+/* @f5c
+**
+** f5c interface 
+** @author: Hasindu Gamaarachchi (hasindu@unsw.edu.au)
+** @@
+******************************************************************************/
+
 #ifndef F5C_H
 #define F5C_H
 

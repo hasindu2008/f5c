@@ -1,15 +1,27 @@
+/* @f5c
+**
+** calculate methylation frequency
+** @author: Thomas Lam
+** @@
+******************************************************************************/
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <stdbool.h>
 #include <math.h>
 #include <string.h>
+#include <getopt.h>
 #include "khash.h"
 
 #define KEY_SIZE 3
 #define TSV_HEADER_LENGTH 160
 
 #define ALLOC(type, size) (type *)safe_malloc((size) * sizeof(type))
+
+// TODO : a number of inefficient mallocs are done in this code, which can be removed
+// for example getline can use a onetime buffer
+// need to check for empty newline chars
 
 static const char usage[] = "Usage: %s [options...]\n"
                             "\n"
@@ -125,7 +137,7 @@ void update_call_stats(khash_t(str)* sites, char* key, int num_called_cpg_sites,
         .called_sites = 0,
         .called_sites_methylated = 0,
         .group_size = num_called_cpg_sites,
-        .sequence = sequence
+        .sequence = strdup(sequence)
     };
 
     int absent;
@@ -135,7 +147,12 @@ void update_call_stats(khash_t(str)* sites, char* key, int num_called_cpg_sites,
         fprintf(stderr, "Failed to insert key: %s\n", key);
         exit(EXIT_FAILURE);
     } else if (absent > 0) {
+        kh_key(sites,k)=key;
         kh_value(sites, k) = ss;
+    }
+    else{
+        free(ss.sequence);
+        free(key);
     }
 
     kh_value(sites, k).num_reads++;
@@ -152,7 +169,12 @@ struct tsv_record* get_tsv_line(FILE* fp) {
     size_t buf_size = 0;
 
     if (getline(&buf, &buf_size, fp) == -1) {
+        free(record);
+        if(buf_size>0){
+            free(buf);
+        }
         return NULL;
+
     }
 
     record->chromosome = strdup(strtok(buf, "\t"));
@@ -164,22 +186,22 @@ struct tsv_record* get_tsv_line(FILE* fp) {
     strtok(NULL, "\t");
     strtok(NULL, "\t");
     record->num_cpgs = atoi(strtok(NULL, "\t"));
-    record->sequence = strdup(strtok(NULL, "\t"));
+    record->sequence = strdup(strtok(NULL, "\t\n"));
 
     free(buf);
 
     return record;
 }
 
-int main(int argc, char **argv) {
+int freq_main(int argc, char **argv) {
     FILE* input = stdin;
     double call_threshold = 2.5;
     bool split_groups = false;
 
     int c;
 
-    extern char* optarg;
-    extern int optind, optopt;
+    //extern char* optarg;
+    //extern int optind, optopt;
 
     while ((c = getopt(argc, argv, "c:i:s")) != -1) {
         switch(c) {
@@ -216,7 +238,11 @@ int main(int argc, char **argv) {
     struct tsv_record* record;
     /* ignore header */
     char tmp[TSV_HEADER_LENGTH];
-    fgets(tmp, TSV_HEADER_LENGTH, input);
+    char *ret=fgets(tmp, TSV_HEADER_LENGTH, input);
+    if(ret==NULL){
+        fprintf(stderr,"Bad file format with no header?\n");
+        exit(1);
+    }
 
     while ((record = get_tsv_line(input)) != NULL) {
         int num_sites = record->num_cpgs;
@@ -253,13 +279,14 @@ int main(int argc, char **argv) {
         } else {
             char* key = make_key(record->chromosome, record->start, record->end);
             update_call_stats(sites, key, num_sites, is_methylated, sequence);
+
         }
         free(record->sequence);
         free(record->chromosome);
         free(record);
     }
 
-    printf("chromosome\tstart\tend\tnum_cpgs_in_group\tcalled_sites\tcalled_sites_methylated\tmethylated_frequency\tgroup_sequence\n");
+    printf("#chromosome\tstart\tend\tnum_cpgs_in_group\tcalled_sites\tcalled_sites_methylated\tmethylated_frequency\tgroup_sequence\n");
 
     char** sorted_keys = ALLOC(char*, kh_size(sites));
     int size = 0;
@@ -282,6 +309,19 @@ int main(int argc, char **argv) {
             struct site_stats site = kh_value(sites, k);
             double f = (double)site.called_sites_methylated / site.called_sites;
             printf("%s\t%s\t%s\t%d\t%d\t%d\t%.3lf\t%s\n", c, s, e, site.group_size, site.called_sites, site.called_sites_methylated, f, site.sequence);
+            free(site.sequence);
+            free(c);
+            free(s);
+            free(e);
+            free(toks);
+            //free((char*)kh_key(sites, k));
+        }
+    }
+
+
+    for (khint_t k = kh_begin(sites); k != kh_end(sites); k++) {
+        if (kh_exist(sites, k)) {
+            free((char*)kh_key(sites, k));
         }
     }
 
