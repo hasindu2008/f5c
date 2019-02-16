@@ -19,7 +19,8 @@ OBJ = $(BUILD_DIR)/main.o \
       $(BUILD_DIR)/model.o \
       $(BUILD_DIR)/align.o \
       $(BUILD_DIR)/meth.o \
-      $(BUILD_DIR)/hmm.o
+      $(BUILD_DIR)/hmm.o \
+      $(BUILD_DIR)/freq.o
 
 PREFIX = /usr/local
 VERSION = `git describe --tags`
@@ -76,6 +77,9 @@ $(BUILD_DIR)/meth.o: src/meth.c src/f5c.h src/fast5lite.h src/f5cmisc.h
 $(BUILD_DIR)/hmm.o: src/hmm.c src/f5c.h src/fast5lite.h src/f5cmisc.h src/matrix.h src/logsum.h
 	$(CXX) $(CFLAGS) $(CPPFLAGS) $< -c -o $@
 
+$(BUILD_DIR)/freq.o: src/freq.c src/khash.h
+	$(CXX) $(CFLAGS) $(CPPFLAGS) $< -c -o $@	
+	
 # cuda stuff
 $(BUILD_DIR)/gpucode.o: $(CUDA_OBJ)
 	$(NVCC) $(CUDA_CFLAGS) -dlink $^ -o $@ 
@@ -119,7 +123,7 @@ $(BUILD_DIR)/lib/libhdf5.a:
 	make install
 
 clean: 
-	rm -rf $(BINARY) $(BUILD_DIR)/*.o
+	rm -rf $(BINARY) $(BUILD_DIR)/*.o calculate_methylation_frequency
 
 # Delete all gitignored files (but not directories)
 distclean: clean
@@ -133,19 +137,19 @@ dist: distclean
 		installdeps.mk src docs build .dockerignore configure f5c-$(VERSION)
 	mkdir -p f5c-$(VERSION)/scripts
 	cp scripts/install-hdf5.sh scripts/install-hts.sh scripts/test.sh scripts/common.sh scripts/test.awk f5c-$(VERSION)/scripts
-	tar -zcf f5c-$(VERSION).tar.gz f5c-$(VERSION)
+	tar -zcf f5c-$(VERSION)-release.tar.gz f5c-$(VERSION)
 	rm -rf f5c-$(VERSION)
 
 binary: 
-	mkdir -p f5c-$(VERSION)-bin
+	mkdir -p f5c-$(VERSION)
 	make clean
-	make cuda=1 && mv f5c f5c-$(VERSION)-bin/f5c_x86_64_linux_cuda && make clean
-	make && mv f5c f5c-$(VERSION)-bin/f5c_x86_64_linux
-	cp -r README.md LICENSE docs f5c-$(VERSION)-bin/
-	mkdir -p f5c-$(VERSION)-bin/scripts
-	cp scripts/test.sh scripts/common.sh scripts/test.awk f5c-$(VERSION)-bin/scripts
-	tar -zcf f5c-$(VERSION)-bin.tar.gz f5c-$(VERSION)-bin
-	rm -rf f5c-$(VERSION)-bin
+	make cuda=1 && mv f5c f5c-$(VERSION)/f5c_x86_64_linux_cuda && make clean
+	make && mv f5c f5c-$(VERSION)/f5c_x86_64_linux
+	cp -r README.md LICENSE docs f5c-$(VERSION)/
+	mkdir -p f5c-$(VERSION)/scripts
+	cp scripts/test.sh scripts/common.sh scripts/test.awk f5c-$(VERSION)/scripts
+	tar -zcf f5c-$(VERSION)-binaries.tar.gz f5c-$(VERSION)
+	rm -rf f5c-$(VERSION)
 
 install: $(BINARY)
 	mkdir -p $(DESTDIR)$(PREFIX)/bin

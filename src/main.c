@@ -1,3 +1,10 @@
+/* @f5c
+**
+** main 
+** @author: Hasindu Gamaarachchi (hasindu@unsw.edu.au)
+** @@
+******************************************************************************/
+
 #include <stdlib.h>
 #include <unistd.h>
 #include <stdio.h>
@@ -35,6 +42,7 @@ void sig_handler(int sig) {
 int meth_main(int argc, char* argv[]);
 int index_main(int argc, char** argv);
 int fastt_main(int argc, char** argv);
+int freq_main(int argc, char **argv);
 
 int print_usage(){
 
@@ -43,6 +51,7 @@ int print_usage(){
     fprintf(stderr,"         index               Build an index mapping from basecalled reads to the signals measured by the sequencer (same as nanopolish index)\n");
     fprintf(stderr,"         fastt               Convert fast5 files in given directories recursively to fastt (tsv format)\n");
     fprintf(stderr,"         call-methylation    Classify nucleotides as methylated or not (optimised version of nanopolish call-methylation)\n\n");
+    fprintf(stderr,"         meth-freq           Calculate methylation frequency at genomic CpG sites\n\n");
 
 
     exit(EXIT_FAILURE);
@@ -67,6 +76,9 @@ int main(int argc, char* argv[]){
     }
     else if(strcmp(argv[1],"fastt")==0){
         ret=fastt_main(argc-1, argv+1);
+	}
+	else if(strcmp(argv[1],"meth-freq")==0){
+        ret=freq_main(argc-1, argv+1);
     }
     else{
         fprintf(stderr,"[f5c] Unrecognised command %s\n",argv[1]);
