@@ -9,7 +9,9 @@
 #include <string>
 #include <vector>
 #include <dirent.h>
-// #include "ftidx.h"
+#include <getopt.h>
+#include <unistd.h>
+#include "ftidx.h"
 
 static double realtime0=0;
 static int64_t bad_fast5_file=0;
@@ -133,35 +135,90 @@ int fastt_main(int argc, char** argv){
 
     realtime0 = realtime();
     FILE *fp_help = stderr;
+    char *tsvfile=NULL;
 
-    if (argc < 2 || fp_help==stdout) {
-        fprintf(fp_help,
-            "Usage: f5c fastt [OPTIONS] [fast5_dir] [...]\n");        
-        if(fp_help == stdout){
-            exit(EXIT_SUCCESS);
+    int c;
+    while ((c = getopt(argc, argv, "i:h")) != -1) {
+        switch(c) {
+            case 'h':
+                fp_help=stdout;
+                break;
+            case 'i': 
+                tsvfile=optarg;
+                if(tsvfile==NULL){
+                    fprintf(stderr,"File name cannot be empty\n");
+                    exit(EXIT_FAILURE);
+                }
+                break;   
+            case ':':
+                fprintf(stderr, "Option -%c requires an operand\n", optopt);
+                exit(EXIT_FAILURE);
+            case '?':
+                fprintf(stderr, "Unrecognized option: -%c\n", optopt);
+                exit(EXIT_FAILURE);
+            default:
+                break;
         }
-        exit(EXIT_FAILURE);
     }
 
-    printf("#read_id\tn_samples\tdigitisation\toffset\trange\tsample_rate\traw_signal\tnum_bases\tsequence\tfast5_path\n");
 
-    int i;
-    for(i=1;i<argc;i++){
-        std::string path = argv[i];
-        recurse_dir(path);
+    if(tsvfile!=NULL){
+        if(argc-optind >= 1){
+            ftidx_t *ftidx= fti_load(tsvfile);
+            if (ftidx == NULL) {
+                fprintf(stderr, "Error loading ftidx for %s\n",
+                        tsvfile);
+                exit(EXIT_FAILURE);
+            }
+            int i;
+            for(i=optind;i<argc;i++){
+                int len=0;
+                fprintf(stderr, "Fetching %s\n",
+                        argv[i]);
+                char *record = fti_fetch(ftidx, argv[i], &len);
+                if(record==NULL || len <0){
+                    fprintf(stderr, "Error locating %s\n",
+                        argv[i]);
+                    exit(EXIT_FAILURE);  
+                }
+                printf("%s\n",record);
+            }
+            fti_destroy(ftidx);        
+        }
+        else{
+            // build ftidx
+            int ret = fti_build(tsvfile);
+            if (ret != 0) {
+                fprintf(stderr, "Error running ftidx_build on %s\n",
+                        tsvfile);
+                exit(EXIT_FAILURE);
+            }
+        }
+    }
+    else{
+
+        if (argc-optind < 1 || fp_help==stdout) {
+            fprintf(fp_help,
+                "Usage: f5c fastt [OPTIONS] [fast5_dir] [...]\n");        
+            if(fp_help == stdout){
+                exit(EXIT_SUCCESS);
+            }
+            exit(EXIT_FAILURE);
+        }
+
+        printf("#read_id\tn_samples\tdigitisation\toffset\trange\tsample_rate\traw_signal\tnum_bases\tsequence\tfast5_path\n");
+
+        int i;
+        for(i=optind;i<argc;i++){
+            std::string path = argv[i];
+            recurse_dir(path);
+        }
+
+        fprintf(stderr, "\n[%s] total reads: %ld, bad fast5: %ld",
+                __func__,total_reads,bad_fast5_file);
+        //fprintf(stderr,"\n[%s] total bases: %.1f Mbases",__func__,core->sum_bases/(float)(1000*1000));
     }
 
-    fprintf(stderr, "\n[%s] total reads: %ld, bad fast5: %ld",
-             __func__,total_reads,bad_fast5_file);
-    //fprintf(stderr,"\n[%s] total bases: %.1f Mbases",__func__,core->sum_bases/(float)(1000*1000));
-
-     // build ftidx
-    // int ret = fti_build("tmp.fastt");
-    // if (ret != 0) {
-    //     fprintf(stderr, "Error running ftidx_build on %s\n",
-    //             "tmp.fastt");
-    //     exit(EXIT_FAILURE);
-    // }
 
     return 0;
 }

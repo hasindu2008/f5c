@@ -34,7 +34,7 @@ DEALINGS IN THE SOFTWARE.  */
 #include <limits.h>
 #include <unistd.h>
 #include <assert.h>
-
+#include <getopt.h>
 #include "htslib/bgzf.h"
 #include "ftidx.h"
 #include "htslib/hfile.h"
@@ -117,37 +117,29 @@ static ftidx_t *fti_build_core(BGZF *bgzf) {
     state = OUT_READ, read_done = 0, line_num = 1;
     seq_offset = qual_offset = seq_len = qual_len = char_len = cl = line_len = ll = 0;
 
+    linebuffer.l=0;
 
-    while (bgzf_getline(bgzf, '\n', &linebuffer)) >0 ) {
+    while (bgzf_getline(bgzf, '\n', &linebuffer) >0 ) {
         if (linebuffer.s[0] == '#' || linebuffer.s[0] == '\n' || linebuffer.s[0] == '\r') { //comments and header
-            fprintf(stderr,"%s\n",linebuffer.s)
+            fprintf(stderr,"%s\n",linebuffer.s);
+            line_num++;
+            linebuffer.l=0;
             continue;
         }
         else{
-            fprintf(stderr,"%s\n",linebuffer.s)
+                
+                char *name=strtok(linebuffer.s,"\t");
+                fprintf(stderr,"%s %ld\n",name,seq_offset);
+                if (fti_insert_index(idx, name, seq_len, line_len, char_len, seq_offset, qual_offset) != 0){
+                    goto ftil;
+                }
+                seq_len = qual_len = char_len = line_len = 0;
+                seq_offset = bgzf_utell(bgzf);
+                line_num++;
+                linebuffer.l=0;
+                //name.l=0;
         }
     }
-
-
-    // while ((c = bgzf_getc(bgzf)) >= 0) {
-    //     if(c=='#'){
-    //         //comment
-    //         while ((c = bgzf_getc(bgzf)) >= 0 && c!='\n');
-    //     }
-    //     else if(c=='\n'){
-    //         continue;	
-    //     }
-    //     else{
-    //         do {
-    //                 if (!isspace(c)) {
-    //                     kputc(c, &name);
-    //                 } else if (name.l > 0 || c == '\n') {
-    //                     break;
-    //                 }
-    //         } while ((c = bgzf_getc(bgzf)) >= 0);
-    //     }
-
-    // }
 
     // while ((c = bgzf_getc(bgzf)) >= 0) {
     //     switch (state) {
@@ -227,10 +219,12 @@ static ftidx_t *fti_build_core(BGZF *bgzf) {
     // }
 
     free(name.s);
+    free(linebuffer.s);
     return idx;
 
 ftil:
     free(name.s);
+    free(linebuffer.s);
     fti_destroy(idx);
     return NULL;
 }
@@ -605,27 +599,33 @@ static char *fti_retrieve(const ftidx_t *fti, const ftidx1_t *val,
     char *s;
     size_t l;
     int c = 0;
+    // int ret = bgzf_useek(fti->bgzf,
+    //                      offset
+    //                      + beg / val->line_blen * val->line_len
+    //                      + beg % val->line_blen, SEEK_SET);
     int ret = bgzf_useek(fti->bgzf,
-                         offset
-                         + beg / val->line_blen * val->line_len
-                         + beg % val->line_blen, SEEK_SET);
-
+                         offset, SEEK_SET);
     if (ret < 0) {
         *len = -1;
         hts_log_error("Failed to retrieve block. (Seeking in a compressed, .gzi unindexed, file?)");
         return NULL;
     }
 
-    l = 0;
-    s = (char*)malloc((size_t) end - beg + 2);
-    if (!s) {
-        *len = -1;
-        return NULL;
-    }
+    // l = 0;
+    // s = (char*)malloc((size_t) end - beg + 2);
+    // if (!s) {
+    //     *len = -1;
+    //     return NULL;
+    // }
 
-    while ( l < end - beg && (c=bgzf_getc(fti->bgzf))>=0 )
-        if (isgraph(c)) s[l++] = c;
-    if (c < 0) {
+    kstring_t linebuffer = { 0, 0, NULL };
+    ret=bgzf_getline(fti->bgzf, '\n', &linebuffer);
+
+
+    // while ( l < end - beg && (c=bgzf_getc(fti->bgzf))>=0 )
+    //     if (isgraph(c)) s[l++] = c;
+    // if (c < 0) {
+    if(ret<0){
         hts_log_error("Failed to retrieve block: %s",
             c == -1 ? "unexpected end of file" : "error reading file");
         free(s);
@@ -633,7 +633,9 @@ static char *fti_retrieve(const ftidx_t *fti, const ftidx1_t *val,
         return NULL;
     }
 
-    s[l] = '\0';
+    l=linebuffer.l;
+    s=linebuffer.s;
+    //s[l] = '\0';
     *len = l < INT_MAX ? l : INT_MAX;
     return s;
 }
