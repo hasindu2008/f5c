@@ -22,7 +22,7 @@ Error counter for consecutive failures in the skip unreadable mode
 */
 
 core_t* init_core(const char* bamfilename, const char* fastafile,
-                  const char* fastqfile, const char* tmpfile, opt_t opt,double realtime0) {
+                  const char* fastqfile, const char* tmpfile, const char* fasttfilename, opt_t opt,double realtime0) {
     core_t* core = (core_t*)malloc(sizeof(core_t));
     MALLOC_CHK(core);
 
@@ -60,10 +60,20 @@ core_t* init_core(const char* bamfilename, const char* fastafile,
         core->raw_dump = fopen("f5c.tmp.bin","wb");
         F_CHK(core->raw_dump,"f5c.tmp.bin");
     }
-    if(opt.flag & F5C_RD_RAW_DUMP){
+    if(opt.flag & F5C_RD_RAW_DUMP){ //check for condition when F5C_WR_RAW_DUMP is also set
         core->raw_dump = fopen("f5c.tmp.bin","rb");
         F_CHK(core->raw_dump,"f5c.tmp.bin");
-    }    
+    }
+    if(opt.flag & F5C_RD_FASTT){
+        assert((opt.flag & F5C_RD_RAW_DUMP) == 0);
+        assert((opt.flag & F5C_WR_RAW_DUMP) == 0);
+        core->ftidx = fti_load(fasttfilename);
+        if (core->ftidx == NULL) {
+            fprintf(stderr, "Error loading ftidx for %s\n",
+                    fasttfilename);
+            exit(EXIT_FAILURE);
+        }
+    }
 
     // reference file
     core->fai = fai_load(fastafile);
@@ -140,7 +150,10 @@ void free_core(core_t* core) {
     }
     if(core->opt.flag&F5C_WR_RAW_DUMP || core->opt.flag&F5C_RD_RAW_DUMP){
         fclose(core->raw_dump);
-    }    
+    }
+    if(core->opt.flag & F5C_RD_FASTT){
+        fti_destroy(core->ftidx); 
+    }
 #ifdef HAVE_CUDA
     if (!(core->opt.flag & F5C_DISABLE_CUDA)) {
         free_cuda(core);
@@ -275,6 +288,55 @@ static inline int read_from_fast5_dump(core_t *core, db_t *db , int32_t i){
         return 0;
     }
 
+
+}
+
+static inline int read_from_fastt(core_t *core, db_t *db, std::string qname, int32_t i){
+
+    //return 1 if success, 0 if failed
+    db->f5[i] = (fast5_t*)calloc(1, sizeof(fast5_t));
+    MALLOC_CHK(db->f5[i]);
+
+    int len=0;
+    char *record = fti_fetch(core->ftidx, qname.c_str(), &len);
+    if(record==NULL || len <0){
+        handle_bad_fast5(core, db, "" , qname);  
+        return 0;
+    }
+    else{
+        //printf("#read_id\tn_samples\tdigitisation\toffset\trange\tsample_rate\traw_signal\tnum_bases\tsequence\tfast5_path\n");
+        //fprintf(stderr,"%s\n",record);
+        char *read_id = strtok(record,"\t");
+        assert(read_id!=NULL);
+        //fprintf(stderr,"%s\t%s\n",qname.c_str(),read_id);
+        assert(strcmp(read_id,qname.c_str())==0);
+        db->f5[i]->nsample = atoll(strtok(NULL,"\t"));  //n_samples
+        assert(db->f5[i]->nsample>0);
+        db->f5[i]->rawptr = (float*)calloc(db->f5[i]->nsample, sizeof(float));
+        MALLOC_CHK( db->f5[i]->rawptr);
+
+        db->f5[i]->digitisation = atof(strtok(NULL,"\t"));
+        db->f5[i]->offset = atof(strtok(NULL,"\t"));
+        db->f5[i]->range = atof(strtok(NULL,"\t"));
+        db->f5[i]->sample_rate = atof(strtok(NULL,"\t"));
+
+        for (int j = 0; j < (int)db->f5[i]->nsample; j++) { //check for int overflow
+            char *raw = strtok(NULL,"\t,");
+            assert(raw);
+            db->f5[i]->rawptr[j] = (double)atoi(raw);
+        }
+        free(record);
+
+        return 1;
+    }
+
+        if(db->f5[i]->nsample>0){
+
+        return 1;
+    }
+    else{
+        return 0;
+    }
 
 }
 
@@ -414,6 +476,13 @@ ret_status_t load_db(core_t* core, db_t* db) {
                     double rt = realtime() - t;
                     core->db_fast5_read_time += rt;
                     core->db_fast5_time += rt;                      
+                }
+                else if(core->opt.flag & F5C_RD_FASTT){
+                    t = realtime();        
+                    read_status=read_from_fastt(core, db, qname,i);
+                    double rt = realtime() - t;
+                    core->db_fast5_read_time += rt;
+                    core->db_fast5_time += rt;
                 }
                 else{    
                    read_status=read_from_fast5_files(core, db, qname,fast5_path_str,i);

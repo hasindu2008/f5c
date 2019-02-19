@@ -124,6 +124,7 @@ static ftidx_t *fti_build_core(BGZF *bgzf) {
             fprintf(stderr,"%s\n",linebuffer.s);
             line_num++;
             linebuffer.l=0;
+            seq_offset = bgzf_utell(bgzf);
             continue;
         }
         else{

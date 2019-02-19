@@ -13,6 +13,7 @@
 #include <htslib/sam.h>
 
 #include "fast5lite.h"
+#include "ftidx.h"
 #include "nanopolish_read_db.h"
 
 #define F5C_VERSION "0.1-beta"
@@ -32,10 +33,11 @@
 #define F5C_PRINT_BANDED_ALN 0x010 //print the event alignment
 #define F5C_PRINT_SCALING 0x020 //print the estimated scalings
 #define F5C_DISABLE_CUDA 0x040 //disable cuda (only when compile for cuda)
-//#define F5C_DEBUG_BRK 0x080 //break after the first batch //removed can be reused
+#define F5C_RD_FASTT 0x080 //read from a fastt file
 #define F5C_SEC_PROF 0x100 //profile section by section (only effective on the CPU mode)
 #define F5C_WR_RAW_DUMP 0x200 //to say if we should write the raw dump of the fast5
 #define F5C_RD_RAW_DUMP 0x400 //to say if we should read the raw dump fof the fast5
+
 
 
 /*flags for a read status (related to db_t->read_stat_flag)*/
@@ -314,6 +316,9 @@ typedef struct {
     // readbb
     ReadDB* readbb;
 
+    //fastt
+    ftidx_t *ftidx;
+
     // models
     model_t* model; //dna model
     model_t* cpgmodel;
@@ -413,7 +418,7 @@ typedef struct {
 db_t* init_db(core_t* core);
 ret_status_t load_db(core_t* dg, db_t* db);
 core_t* init_core(const char* bamfilename, const char* fastafile,
-                  const char* fastqfile, const char* tmpfile, opt_t opt,double realtime0);
+                  const char* fastqfile, const char* tmpfile, const char* fasttfilename, opt_t opt,double realtime0);
 void process_db(core_t* dg, db_t* db);
 void pthread_db(core_t* core, db_t* db, void (*func)(core_t*,db_t*,int));
 void align_db(core_t* core, db_t* db);

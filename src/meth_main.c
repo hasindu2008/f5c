@@ -79,6 +79,7 @@ static struct option long_options[] = {
     {"ultra-thresh",required_argument, 0, 0},      //27 the threadshold for skipping ultra long reads
     {"write-dump",required_argument, 0, 0},        //28 write the raw data as a dump
     {"read-dump",required_argument, 0, 0},         //29 read the raw data as a dump
+    {"fastt",required_argument, 0, 0},             //30 read from a fastt file
     {0, 0, 0, 0}};
 
 
@@ -193,6 +194,7 @@ int meth_main(int argc, char* argv[]) {
     char* fastafile = NULL;
     char* fastqfile = NULL;
     char *tmpfile = NULL;
+    char *fasttfilename = NULL;
 
     FILE *fp_help = stderr;
 
@@ -286,7 +288,11 @@ int meth_main(int argc, char* argv[]) {
             yes_or_no(&opt, F5C_WR_RAW_DUMP, longindex, optarg, 1);
         } else if(c == 0 && longindex == 29){ //read the raw dump of the fast5 files
             yes_or_no(&opt, F5C_RD_RAW_DUMP, longindex, optarg, 1);
-        }        
+        }  else if(c == 0 && longindex == 30){ //read from a fastt
+            fasttfilename=optarg;
+            assert(fasttfilename!=NULL);
+            yes_or_no(&opt, F5C_RD_FASTT, longindex, "yes", 1);
+        }         
     }
 
     if (fastqfile == NULL || bamfilename == NULL || fastafile == NULL || fp_help == stdout) {
@@ -326,6 +332,7 @@ int meth_main(int argc, char* argv[]) {
         fprintf(fp_help,"   --ultra-thresh [INT]       threshold to skip ultra long reads [%ld]\n",opt.ultra_thresh);
         fprintf(fp_help,"   --write-dump=yes|no        write the fast5 dump to a file or not\n");
         fprintf(fp_help,"   --read-dump=yes|no         read from a fast5 dump file or not\n");
+        fprintf(fp_help,"   --fastt FILE               read from a fastt file\n");
 #ifdef HAVE_CUDA
         fprintf(fp_help,"   - cuda-mem-frac FLOAT      Fraction of free GPU memory to allocate [0.9 (0.7 for tegra)]\n");
         fprintf(fp_help,"   --cuda-block-size\n");
@@ -337,7 +344,7 @@ int meth_main(int argc, char* argv[]) {
     }
 
     //initialise the core data structure
-    core_t* core = init_core(bamfilename, fastafile, fastqfile, tmpfile, opt,realtime0);
+    core_t* core = init_core(bamfilename, fastafile, fastqfile, tmpfile, fasttfilename, opt,realtime0);
 
     #ifdef ESL_LOG_SUM
         p7_FLogsumInit();
