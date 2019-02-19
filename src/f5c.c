@@ -291,7 +291,7 @@ static inline int read_from_fast5_dump(core_t *core, db_t *db , int32_t i){
 
 }
 
-static inline int read_from_fastt(core_t *core, db_t *db, std::string qname, int32_t i){
+static inline int read_from_fastt(core_t *core, db_t *db, std::string qname, std::string fast5_path_str, int32_t i){
 
     //return 1 if success, 0 if failed
     db->f5[i] = (fast5_t*)calloc(1, sizeof(fast5_t));
@@ -327,15 +327,17 @@ static inline int read_from_fastt(core_t *core, db_t *db, std::string qname, int
         }
         free(record);
 
-        return 1;
-    }
+        if (core->opt.flag & F5C_PRINT_RAW) {
+            printf(">%s\tPATH:%s\tLN:%llu\tDG:%.1f\tOF:%.1f\tRN:%.1f\tSR:%.1f\n", qname.c_str(), fast5_path_str.c_str(),
+                db->f5[i]->nsample,db->f5[i]->digitisation,db->f5[i]->offset,db->f5[i]->range,db->f5[i]->sample_rate);
+            uint32_t j = 0;
+            for (j = 0; j < db->f5[i]->nsample; j++) {
+                printf("%d\t", (int)db->f5[i]->rawptr[j]);
+            }
+            printf("\n");
+        }
 
-        if(db->f5[i]->nsample>0){
-
         return 1;
-    }
-    else{
-        return 0;
     }
 
 }
@@ -375,8 +377,8 @@ static inline int read_from_fast5_files(core_t *core, db_t *db, std::string qnam
         core->db_fast5_time += realtime() - t;
 
         if (core->opt.flag & F5C_PRINT_RAW) {
-            printf(">%s\tPATH:%s\tLN:%llu\n", qname.c_str(), fast5_path,
-                db->f5[i]->nsample);
+            printf(">%s\tPATH:%s\tLN:%llu\tDG:%.1f\tOF:%.1f\tRN:%.1f\tSR:%.1f\n", qname.c_str(), fast5_path,
+                db->f5[i]->nsample,db->f5[i]->digitisation,db->f5[i]->offset,db->f5[i]->range,db->f5[i]->sample_rate);
             uint32_t j = 0;
             for (j = 0; j < db->f5[i]->nsample; j++) {
                 printf("%d\t", (int)db->f5[i]->rawptr[j]);
@@ -479,7 +481,7 @@ ret_status_t load_db(core_t* core, db_t* db) {
                 }
                 else if(core->opt.flag & F5C_RD_FASTT){
                     t = realtime();        
-                    read_status=read_from_fastt(core, db, qname,i);
+                    read_status=read_from_fastt(core, db, qname,fast5_path_str,i);
                     double rt = realtime() - t;
                     core->db_fast5_read_time += rt;
                     core->db_fast5_time += rt;
