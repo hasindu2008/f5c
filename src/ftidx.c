@@ -121,7 +121,7 @@ static ftidx_t *fti_build_core(BGZF *bgzf) {
 
     while (bgzf_getline(bgzf, '\n', &linebuffer) >0 ) {
         if (linebuffer.s[0] == '#' || linebuffer.s[0] == '\n' || linebuffer.s[0] == '\r') { //comments and header
-            fprintf(stderr,"%s\n",linebuffer.s);
+            //fprintf(stderr,"%s\n",linebuffer.s);
             line_num++;
             linebuffer.l=0;
             seq_offset = bgzf_utell(bgzf);
@@ -130,7 +130,7 @@ static ftidx_t *fti_build_core(BGZF *bgzf) {
         else{
                 
                 char *name=strtok(linebuffer.s,"\t");
-                fprintf(stderr,"%s %ld\n",name,seq_offset);
+                //fprintf(stderr,"%s %ld\n",name,seq_offset);
                 if (fti_insert_index(idx, name, seq_len, line_len, char_len, seq_offset, qual_offset) != 0){
                     goto ftil;
                 }
