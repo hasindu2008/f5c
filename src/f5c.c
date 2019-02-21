@@ -298,7 +298,11 @@ static inline int read_from_fastt(core_t *core, db_t *db, std::string qname, std
     MALLOC_CHK(db->f5[i]);
 
     int len=0;
+    double t = realtime();
     char *record = fti_fetch(core->ftidx, qname.c_str(), &len);
+    double rt = realtime() - t;
+    core->db_fast5_read_time += rt;
+
     if(record==NULL || len <0){
         handle_bad_fast5(core, db, "" , qname);  
         return 0;
@@ -323,7 +327,7 @@ static inline int read_from_fastt(core_t *core, db_t *db, std::string qname, std
         for (int j = 0; j < (int)db->f5[i]->nsample; j++) { //check for int overflow
             char *raw = strtok(NULL,"\t,");
             assert(raw);
-            db->f5[i]->rawptr[j] = (double)atoi(raw);
+            db->f5[i]->rawptr[j] = atoi(raw);
         }
         free(record);
 
@@ -483,7 +487,7 @@ ret_status_t load_db(core_t* core, db_t* db) {
                     t = realtime();        
                     read_status=read_from_fastt(core, db, qname,fast5_path_str,i);
                     double rt = realtime() - t;
-                    core->db_fast5_read_time += rt;
+                    //core->db_fast5_read_time += rt;
                     core->db_fast5_time += rt;
                 }
                 else{    
