@@ -182,6 +182,7 @@ int fastt_main(int argc, char** argv){
                     exit(EXIT_FAILURE);  
                 }
                 printf("%s\n",record);
+				free(record);
             }
             fti_destroy(ftidx);        
         }

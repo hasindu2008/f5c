@@ -1,4 +1,8 @@
-/*  ftidx.c -- FASTA and FASTQ random access.
+/*  ftidx.c -- FASTT (FAST5 in TSV) random access.
+	adpapted from htslib/faidx.c by Hasindu Gamaarachchi <hasindu@unsw.edu.au>
+*/
+
+/*  faidx.c -- FASTA and FASTQ random access.
 
     Copyright (C) 2008, 2009, 2013-2018 Genome Research Ltd.
     Portions copyright (C) 2011 Broad Institute.
@@ -23,7 +27,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.  */
 
-#include <config.h>
+//#include <config.h>
 
 #include <ctype.h>
 #include <string.h>
@@ -40,7 +44,21 @@ DEALINGS IN THE SOFTWARE.  */
 #include "htslib/hfile.h"
 #include "htslib/khash.h"
 #include "htslib/kstring.h"
-#include "hts_internal.h"
+//#include "hts_internal.h"
+
+
+#define hts_log_warning(arg, ...)                                                      \
+    fprintf(stderr, "[%s::WARNING]\033[1;33m " arg "\033[0m\n", __func__,      \
+            __VA_ARGS__)
+#define hts_log_error(arg, ...)                                                        \
+    fprintf(stderr, "[%s::ERROR]\033[1;31m " arg "\033[0m\n", __func__,        \
+            __VA_ARGS__)
+#define hts_log_info(arg, ...)                                                         \
+    fprintf(stderr, "[%s::INFO]\033[1;34m " arg "\033[0m\n", __func__,         \
+            __VA_ARGS__)
+static inline int isspace_c(char c) { return isspace((unsigned char) c); }
+static inline int isdigit_c(char c) { return isdigit((unsigned char) c); }
+
 
 typedef struct {
     uint32_t line_len, line_blen;
@@ -65,7 +83,7 @@ struct __ftidx_t {
 static inline int fti_insert_index(ftidx_t *idx, const char *name, uint64_t len, uint32_t line_len, uint32_t line_blen, uint64_t seq_offset, uint64_t qual_offset)
 {
     if (!name) {
-        hts_log_error("Malformed line");
+        hts_log_error("%s","Malformed line");
         return -1;
     }
 
@@ -75,7 +93,7 @@ static inline int fti_insert_index(ftidx_t *idx, const char *name, uint64_t len,
     ftidx1_t *v = &kh_value(idx->hash, k);
 
     if (! absent) {
-        hts_log_warning("Ignoring duplicate sequence \"%s\" at byte offset %"PRIu64"", name, seq_offset);
+        hts_log_warning("Ignoring duplicate sequence \"%s\" at byte offset %" PRIu64 "", name, seq_offset);
         free(name_key);
         return 0;
     }
@@ -84,7 +102,7 @@ static inline int fti_insert_index(ftidx_t *idx, const char *name, uint64_t len,
         char **tmp;
         idx->m = idx->m? idx->m<<1 : 16;
         if (!(tmp = (char**)realloc(idx->name, sizeof(char*) * idx->m))) {
-            hts_log_error("Out of memory");
+            hts_log_error("%s","Out of memory");
             return -1;
         }
         idx->name = tmp;
@@ -103,18 +121,18 @@ static inline int fti_insert_index(ftidx_t *idx, const char *name, uint64_t len,
 static ftidx_t *fti_build_core(BGZF *bgzf) {
     kstring_t name = { 0, 0, NULL };
     kstring_t linebuffer = { 0, 0, NULL };
-    int c, read_done, line_num;
+    //int c, read_done, line_num;
     ftidx_t *idx;
     uint64_t seq_offset, qual_offset;
     uint64_t seq_len, qual_len;
     uint64_t char_len, cl, line_len, ll;
-    enum read_state {OUT_READ, IN_NAME, IN_SEQ, SEQ_END, IN_QUAL} state;
+    //enum read_state {OUT_READ, IN_NAME, IN_SEQ, SEQ_END, IN_QUAL} state;
 
     idx = (ftidx_t*)calloc(1, sizeof(ftidx_t));
     idx->hash = kh_init(s);
     idx->format = FTI_NONE;
 
-    state = OUT_READ, read_done = 0, line_num = 1;
+    //state = OUT_READ, read_done = 0, line_num = 1;
     seq_offset = qual_offset = seq_len = qual_len = char_len = cl = line_len = ll = 0;
 
     linebuffer.l=0;
@@ -122,7 +140,7 @@ static ftidx_t *fti_build_core(BGZF *bgzf) {
     while (bgzf_getline(bgzf, '\n', &linebuffer) >0 ) {
         if (linebuffer.s[0] == '#' || linebuffer.s[0] == '\n' || linebuffer.s[0] == '\r') { //comments and header
             //fprintf(stderr,"%s\n",linebuffer.s);
-            line_num++;
+            //line_num++;
             linebuffer.l=0;
             seq_offset = bgzf_utell(bgzf);
             continue;
@@ -136,7 +154,7 @@ static ftidx_t *fti_build_core(BGZF *bgzf) {
                 }
                 seq_len = qual_len = char_len = line_len = 0;
                 seq_offset = bgzf_utell(bgzf);
-                line_num++;
+                //line_num++;
                 linebuffer.l=0;
                 //name.l=0;
         }
@@ -148,7 +166,7 @@ static ftidx_t *fti_build_core(BGZF *bgzf) {
     //             switch (c) {
 
     //                 case '#':
-    //                     idx->format = FTI_FASTA;
+    //                     idx->format = FTI_FASTT;
     //                     state = IN_NAME;
     //                 break;
 
@@ -242,13 +260,13 @@ static int fti_save(const ftidx_t *fti, hFILE *fp) {
         assert(k < kh_end(fti->hash));
         x = kh_value(fti->hash, k);
 
-        if (fti->format == FTI_FASTA) {
+        if (fti->format == FTI_FASTT) {
             snprintf(buf, sizeof(buf),
-                 "\t%"PRIu64"\t%"PRIu64"\t%"PRIu32"\t%"PRIu32"\n",
+                 "\t%" PRIu64 "\t%" PRIu64 "\t%" PRIu32 "\t%" PRIu32 "\n",
                  x.len, x.seq_offset, x.line_blen, x.line_len);
         } else {
             snprintf(buf, sizeof(buf),
-                 "\t%"PRIu64"\t%"PRIu64"\t%"PRIu32"\t%"PRIu32"\t%"PRIu64"\n",
+                 "\t%" PRIu64 "\t%" PRIu64 "\t%" PRIu32 "\t%" PRIu32 "\t%" PRIu64 "\n",
                  x.len, x.seq_offset, x.line_blen, x.line_len, x.qual_offset);
         }
 
@@ -286,21 +304,21 @@ static ftidx_t *fti_read(hFILE *fp, const char *fname, int format)
             *p = 0; ++p;
         }
 
-        if (format == FTI_FASTA) {
-            n = sscanf(p, "%"SCNu64"%"SCNu64"%"SCNu32"%"SCNu32"", &len, &seq_offset, &line_blen, &line_len);
+        if (format == FTI_FASTT) {
+            n = sscanf(p, "%" SCNu64 "%" SCNu64 "%" SCNu32 "%" SCNu32 "", &len, &seq_offset, &line_blen, &line_len);
 
             if (n != 4) {
-                hts_log_error("Could not understand FASTA index %s line %zd", fname, lnum);
+                hts_log_error("Could not understand FASTT index %s line %zd", fname, lnum);
                 goto ftil;
             }
         } else {
-            n = sscanf(p, "%"SCNu64"%"SCNu64"%"SCNu32"%"SCNu32"%"SCNu64"", &len, &seq_offset, &line_blen, &line_len, &qual_offset);
+            n = sscanf(p, "%" SCNu64 "%" SCNu64 "%" SCNu32 "%" SCNu32 "%" SCNu64 "", &len, &seq_offset, &line_blen, &line_len, &qual_offset);
 
             if (n != 5) {
                 if (n == 4) {
-                    hts_log_error("Possibly this is a FASTA index, try using ftidx.  Problem in %s line %zd", fname, lnum);
+                    hts_log_error("Possibly this is a FASTT index, try using ftidx.  Problem in %s line %zd", fname, lnum);
                 } else {
-                    hts_log_error("Could not understand FASTQ index %s line %zd", fname, lnum);
+                    hts_log_error("Could not understand FASTB index %s line %zd", fname, lnum);
                 }
 
                 goto ftil;
@@ -347,7 +365,7 @@ static int fti_build3_core(const char *fn, const char *fnfti, const char *fngzi)
     hFILE *fp = NULL;
     ftidx_t *fti = NULL;
     int save_errno, res;
-    char *file_type;
+    const char *file_type;
 
     bgzf = bgzf_open(fn, "r");
 
@@ -358,7 +376,7 @@ static int fti_build3_core(const char *fn, const char *fnfti, const char *fngzi)
 
     if ( bgzf->is_compressed ) {
         if (bgzf_index_build_init(bgzf) != 0) {
-            hts_log_error("Failed to allocate bgzf index");
+            hts_log_error("%s","Failed to allocate bgzf index");
             goto ftil;
         }
     }
@@ -367,15 +385,15 @@ static int fti_build3_core(const char *fn, const char *fnfti, const char *fngzi)
 
     if ( !fti ) {
         if (bgzf->is_compressed && bgzf->is_gzip) {
-            hts_log_error("Cannot index files compressed with gzip, please use bgzip");
+            hts_log_error("%s","Cannot index files compressed with gzip, please use bgzip");
         }
         goto ftil;
     }
 
-    if (fti->format == FTI_FASTA) {
-        file_type   = "FASTA";
+    if (fti->format == FTI_FASTT) {
+        file_type   = "FASTT";
     } else {
-        file_type   = "FASTQ";
+        file_type   = "FASTB";
     }
 
     if (!fnfti) {
@@ -454,12 +472,12 @@ static ftidx_t *fti_load3_core(const char *fn, const char *fnfti, const char *fn
     hFILE *fp = NULL;
     ftidx_t *fti = NULL;
     int res, gzi_index_needed = 0;
-    char *file_type;
+    const char *file_type;
 
-    if (format == FTI_FASTA) {
-        file_type   = "FASTA";
+    if (format == FTI_FASTT) {
+        file_type   = "FASTT";
     } else {
-        file_type   = "FASTQ";
+        file_type   = "FASTB";
     }
 
     if (fn == NULL)
@@ -574,7 +592,7 @@ static ftidx_t *fti_load3_core(const char *fn, const char *fnfti, const char *fn
 
 ftidx_t *fti_load3(const char *fn, const char *fnfti, const char *fngzi,
                    int flags) {
-    return fti_load3_core(fn, fnfti, fngzi, flags, FTI_FASTA);
+    return fti_load3_core(fn, fnfti, fngzi, flags, FTI_FASTT);
 }
 
 
@@ -608,7 +626,7 @@ static char *fti_retrieve(const ftidx_t *fti, const ftidx1_t *val,
                          offset, SEEK_SET);
     if (ret < 0) {
         *len = -1;
-        hts_log_error("Failed to retrieve block. (Seeking in a compressed, .gzi unindexed, file?)");
+        hts_log_error("%s","Failed to retrieve block. (Seeking in a compressed, .gzi unindexed, file?)");
         return NULL;
     }
 
@@ -629,7 +647,9 @@ static char *fti_retrieve(const ftidx_t *fti, const ftidx1_t *val,
     if(ret<0){
         hts_log_error("Failed to retrieve block: %s",
             c == -1 ? "unexpected end of file" : "error reading file");
-        free(s);
+        if(linebuffer.s){
+            free(linebuffer.s);
+        }
         *len = -1;
         return NULL;
     }
