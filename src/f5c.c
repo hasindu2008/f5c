@@ -188,6 +188,14 @@ db_t* init_db(core_t* core) {
     db->f5 = (fast5_t**)malloc(sizeof(fast5_t*) * db->capacity_bam_rec);
     MALLOC_CHK(db->f5);
 
+    if(core->opt.flag & F5C_RD_FASTT){
+        db->f5_cache = (char**)(malloc(sizeof(char*) * db->capacity_bam_rec));
+        MALLOC_CHK(db->f5_cache);
+    }
+    else{
+        db->f5_cache=NULL;
+    }
+
     db->et = (event_table*)malloc(sizeof(event_table) * db->capacity_bam_rec);
     MALLOC_CHK(db->et);
 
@@ -303,43 +311,24 @@ static inline int read_from_fastt(core_t *core, db_t *db, std::string qname, std
     double rt = realtime() - t;
     core->db_fast5_read_time += rt;
 
-    if(record==NULL || len <0){
+    if(record==NULL || len <0){ //todo : should we free if len<0
         handle_bad_fast5(core, db, "" , qname);  
         return 0;
     }
     else{
+        db->f5_cache[i] = record;
         //printf("#read_id\tn_samples\tdigitisation\toffset\trange\tsample_rate\traw_signal\tnum_bases\tsequence\tfast5_path\n");
         //fprintf(stderr,"%s\n",record);
-        char *read_id = strtok(record,"\t");
-        assert(read_id!=NULL);
-        //fprintf(stderr,"%s\t%s\n",qname.c_str(),read_id);
-        assert(strcmp(read_id,qname.c_str())==0);
-        db->f5[i]->nsample = atoll(strtok(NULL,"\t"));  //n_samples
-        assert(db->f5[i]->nsample>0);
-        db->f5[i]->rawptr = (float*)calloc(db->f5[i]->nsample, sizeof(float));
-        MALLOC_CHK( db->f5[i]->rawptr);
 
-        db->f5[i]->digitisation = atof(strtok(NULL,"\t"));
-        db->f5[i]->offset = atof(strtok(NULL,"\t"));
-        db->f5[i]->range = atof(strtok(NULL,"\t"));
-        db->f5[i]->sample_rate = atof(strtok(NULL,"\t"));
-
-        for (int j = 0; j < (int)db->f5[i]->nsample; j++) { //check for int overflow
-            char *raw = strtok(NULL,"\t,");
-            assert(raw);
-            db->f5[i]->rawptr[j] = atoi(raw);
-        }
-        free(record);
-
-        if (core->opt.flag & F5C_PRINT_RAW) {
-            printf(">%s\tPATH:%s\tLN:%llu\tDG:%.1f\tOF:%.1f\tRN:%.1f\tSR:%.1f\n", qname.c_str(), fast5_path_str.c_str(),
-                db->f5[i]->nsample,db->f5[i]->digitisation,db->f5[i]->offset,db->f5[i]->range,db->f5[i]->sample_rate);
-            uint32_t j = 0;
-            for (j = 0; j < db->f5[i]->nsample; j++) {
-                printf("%d\t", (int)db->f5[i]->rawptr[j]);
-            }
-            printf("\n");
-        }
+        // if (core->opt.flag & F5C_PRINT_RAW) {
+        //     printf(">%s\tPATH:%s\tLN:%llu\tDG:%.1f\tOF:%.1f\tRN:%.1f\tSR:%.1f\n", qname.c_str(), fast5_path_str.c_str(),
+        //         db->f5[i]->nsample,db->f5[i]->digitisation,db->f5[i]->offset,db->f5[i]->range,db->f5[i]->sample_rate);
+        //     uint32_t j = 0;
+        //     for (j = 0; j < db->f5[i]->nsample; j++) {
+        //         printf("%d\t", (int)db->f5[i]->rawptr[j]);
+        //     }
+        //     printf("\n");
+        // }
 
         return 1;
     }
@@ -649,6 +638,31 @@ void pthread_db(core_t* core, db_t* db, void (*func)(core_t*,db_t*,int)){
 
 
 void event_single(core_t* core,db_t* db, int32_t i) {
+
+    if(core->opt.flag & F5C_RD_FASTT){
+
+        char *tmp_record = db->f5_cache[i];
+        char *read_id = strtok_r(tmp_record,"\t",&tmp_record);
+        assert(read_id!=NULL);
+        //fprintf(stderr,"%s\t%s\n",qname.c_str(),read_id);
+        assert(strcmp(read_id,bam_get_qname(db->bam_rec[i]))==0);
+        db->f5[i]->nsample = atoll(strtok_r(tmp_record,"\t",&tmp_record));  //n_samples
+        assert(db->f5[i]->nsample>0);
+        db->f5[i]->rawptr = (float*)calloc(db->f5[i]->nsample, sizeof(float));
+        MALLOC_CHK( db->f5[i]->rawptr);
+
+        db->f5[i]->digitisation = atof(strtok_r(tmp_record,"\t",&tmp_record));
+        db->f5[i]->offset = atof(strtok_r(tmp_record,"\t",&tmp_record));
+        db->f5[i]->range = atof(strtok_r(tmp_record,"\t",&tmp_record));
+        db->f5[i]->sample_rate = atof(strtok_r(tmp_record,"\t",&tmp_record));
+
+        for (int j = 0; j < (int)db->f5[i]->nsample; j++) { //check for int overflow
+            char *raw = strtok_r(tmp_record,"\t,",&tmp_record);
+            assert(raw);
+            db->f5[i]->rawptr[j] = atoi(raw);
+        }
+        free(db->f5_cache[i]);
+    }
 
     float* rawptr = db->f5[i]->rawptr;
     float range = db->f5[i]->range;
@@ -1101,6 +1115,9 @@ void free_db(db_t* db) {
     free(db->read_len);
     free(db->et);
     free(db->f5);
+    if(db->f5_cache){
+        free(db->f5_cache);
+    }
     free(db->scalings);
     free(db->event_align_pairs);
     free(db->n_event_align_pairs);
