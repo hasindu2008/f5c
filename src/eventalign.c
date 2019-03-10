@@ -11,9 +11,11 @@ struct EventAlignmentParameters
     EventAlignmentParameters()
     {
         //sr = NULL;
+        et = NULL;
         fai = NULL;
         hdr = NULL;
         record = NULL;
+        model = NULL;
         //strand_idx = NUM_STRANDS;
         
         alphabet = "";
@@ -25,9 +27,11 @@ struct EventAlignmentParameters
 
     // Mandatory
     //SquiggleRead* sr;
+    const event_table* et;
     const faidx_t* fai;
     const bam_hdr_t* hdr;
     const bam1_t* record;
+    model_t* model;
     //size_t strand_idx;
     
     // optional
@@ -39,16 +43,18 @@ struct EventAlignmentParameters
 
 
 
-std::vector<EventAlignment> align_read_to_ref(const EventAlignmentParameters& params)
+std::vector<EventAlignment> align_read_to_ref(const EventAlignmentParameters& params, char *ref)
 {
     // Sanity check input parameters
     //assert(params.sr != NULL);
+    assert(params.et != NULL);
     assert(params.fai != NULL);
     assert(params.hdr != NULL);
     assert(params.record != NULL);
+    assert(params.model != NULL);
     //assert(params.strand_idx < NUM_STRANDS);
     assert( (params.region_start == -1 && params.region_end == -1) || (params.region_start <= params.region_end));
-    //const PoreModel* pore_model = params.get_model();
+    //const PoreModel* pore_model = params.get_model(); // --hasindu this is model now
 
     std::vector<EventAlignment> alignment_output;
 
@@ -58,6 +64,8 @@ std::vector<EventAlignment> align_read_to_ref(const EventAlignmentParameters& pa
     // std::string ref_name(params.hdr->target_name[params.record->core.tid]);
     // std::string ref_seq = get_reference_region_ts(params.fai, ref_name.c_str(), ref_offset, 
     //                                               bam_endpos(params.record), &fetched_len);
+    // hasindu - a hack to get the reference sequence
+    std::string ref_seq = ref;
 
     // convert to upper case
     std::transform(ref_seq.begin(), ref_seq.end(), ref_seq.begin(), ::toupper);
@@ -70,6 +78,7 @@ std::vector<EventAlignment> align_read_to_ref(const EventAlignmentParameters& pa
     ref_seq =disambiguate(ref_seq);
     std::string rc_ref_seq = reverse_complement(ref_seq);
 
+    // --hasindu : this is already done outside of this function
     // Skip unmapped
     // if((params.record->core.flag & BAM_FUNMAP) != 0) {
     //     return alignment_output;
@@ -264,20 +273,20 @@ void realign_read(char* ref,
                   const bam1_t* record,
                   size_t read_idx,
                   int region_start,
-                  int region_end, event_table* events)
+                  int region_end, event_table* events, model_t* model)
 {
     // Load a squiggle read for the mapped read
     std::string read_name = bam_get_qname(record);
 
-    // load read
+    // load read -- hasindu : we have to get rid of this sr
     //SquiggleRead sr(read_name, read_db, opt::write_samples ? SRF_LOAD_RAW_SAMPLES : 0);
 
     if(opt::verbose > 1) {
         fprintf(stderr, "Realigning %s [%zu]\n",
-                read_name.c_str(), sr.events.n);
+                read_name.c_str(), events.n);
     }
 
-    //for(int strand_idx = 0; strand_idx < 2; ++strand_idx) {
+    //for(int strand_idx = 0; strand_idx < 2; ++strand_idx) { -- hasindu : only 1 stand in our case
 
         // Do not align this strand if it was not sequenced
         // if(!sr.has_events_for_strand(strand_idx)) {
@@ -285,18 +294,21 @@ void realign_read(char* ref,
         // }
 
         EventAlignmentParameters params;
-        //params.sr = &sr;
+        //params.sr = &sr; -- hasindu : we have to get rid of this sr
+        params.et = events; // hasindu : what is required inside the sr is to be added like this
+        params.model = model; // hasindu : what is required inside the sr is to be added like this
         params.fai = fai;
         params.hdr = hdr;
         params.record = record;
-       // params.strand_idx = strand_idx;
+       // params.strand_idx = strand_idx; -- hasindu : only 1 stand in our case
         
         params.read_idx = read_idx;
         params.region_start = region_start;
         params.region_end = region_end;
 
-        std::vector<EventAlignment> alignment = align_read_to_ref(params);
+        std::vector<EventAlignment> alignment = align_read_to_ref(params,ref);
 
+        //-- hasindu : output writing will be done outside of this function
         // EventalignSummary summary;
         // //if(writer.summary_fp != NULL) {
         //     summary = summarize_alignment(sr, strand_idx, params, alignment);
