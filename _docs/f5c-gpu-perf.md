@@ -9,8 +9,8 @@ We tested on a variety of different systems (covering embedded systems, laptops,
 |   System   name   |                 Info                |                   CPU                   | CPU   cores/threads |   RAM  |       GPU      |    GPU memory   |
 |:-----------------:|:-----------------------------------:|:---------------------------------------:|:-------------------:|:------:|:--------------:|:---------------:|
 | Jetson TX2        | NVIDIA Jetson TX2   embedded module | ARMv8 ARM Cortex-A57   + NVIDIA Denver2 | 6/6                 | 8 GB   | Tegra          | shared with RAM |
-| Acer E5 laptop    | Acer F5-573G                        | i7-7500U                                | 2/4                 | 8 GB   | Gefore 1050 Ti | 4 GB            |
-| XPS15 laptop      | Dell XPS 15   laptop                | i7-8750H                                | 6/12                | 16 GB  | Gefore 940M    | 4 GB            |
+| Acer E5 laptop    | Acer F5-573G                        | i7-7500U                                | 2/4                 | 8 GB   | Gefore 940M  | 4 GB            |
+| XPS15 laptop      | Dell XPS 15   laptop                | i7-8750H                                | 6/12                | 16 GB  | Gefore 1050 Ti   | 4 GB            |
 | Old   workstation | Unbranded Workstation               | i7-6700K                                | 4/8                 | 32 GB  | Tesla C2075    | 6 GB            |
 | HP workstation    | HP Z640 workstation                 | Xeon E5-1630                            | 4/8                 | 32 GB  | Kepler K40     | 12 GB           |
 | Dell server       | Dell server                         | Xeon Silver 4114                        | 20/40               | 376 GB | Tesla V100     | 16 GB           |
