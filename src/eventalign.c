@@ -1,43 +1,3 @@
-
-Conversation opened. 42 messages. All messages read.
-
-Skip to content
-Using Gmail with screen readers
-2 of 6,197
-Porting adaptive_banded_simple_event_align [was: Re: Biocomputing/algorithm/coding work]
-Inbox
-	x
-Roshan G. Ragel
-	
-	Jul 20, 2018, 8:01 AM
-Hi Gihan and Hiruna, The tool we are talking about is one called nanopolish. IIIR, it is used in a process called methylation in the genomic pipeline. If you ar
-39
-Hasindu Gamaarachchi
-	
-	Mar 25, 2019, 11:31 AM
-Thanks, I will check as soon as I get some free time.
-Hasindu Gamaarachchi
-	
-Attachments8:48 AM (1 hour ago)
-	
-to me
-Hi Hiruna,
-
-I did a few changes so that your eventalign.c is compatible with the current repository. Could you send a pull request to the https://github.com/hasindu2008/f5c/tree/eventalign
-so that you get the necessary credit for the work you did.
-fork a f5c
-checkout to eventalign branch
-put this attached eventalign.c  
-commit
-and send a pull request to the eventalign branch (not the master)
-Attachments area
-	
-Sure, I will do that.
-Done.
-No, I can't.
-	
-	
-
 #include <assert.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -48,12 +8,9 @@ No, I can't.
 #include "f5c.h"
 #include "f5cmisc.h"
 
-
 #define METHYLATED_SYMBOL 'M'
 
-
 typedef std::vector<AlignedPair> AlignedSegment;
-
 
 
 enum ProfileStateR9
@@ -882,5 +839,3 @@ void realign_read(char* ref,
     //}
 }
 
-eventalign.c
-Displaying eventalign.c.
