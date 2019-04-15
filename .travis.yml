@@ -1,5 +1,93 @@
 language: cpp
 compiler: g++
-before_install: sudo apt-get install libhdf5-dev zlib1g-dev -y
-script: autoreconf && ./scripts/install-hts.sh && ./configure && make && make test
 
+env:
+  - CUDA_HOME=/usr/local/cuda PATH=${CUDA_HOME}/bin:${PATH}
+
+jobs:
+  addons:
+    apt:
+      packages:
+        - zlib1g-dev
+  include:
+    - name: "Ubuntu 14 local hts"
+      dist: trusty
+      addons:
+        apt:
+          packages:
+            - libhdf5-dev
+      script: autoreconf && ./scripts/install-hts.sh && ./configure && make && make test
+    - name: "Ubuntu 16 install scripts"
+      dist: xenial
+      script: autoreconf && ./scripts/install-hdf5.sh 2> /dev/null &&./scripts/install-hts.sh && ./configure --enable-localhdf5 && make && make test
+    - name: "Ubuntu 16 pure make"
+      os: linux
+      dist: xenial
+      script: make && make test
+    - name: "OSX local hts"
+      os: osx
+      addons:
+        homebrew:
+          packages:
+            - hdf5
+      script: autoreconf && ./scripts/install-hts.sh && ./configure && make && make test              
+    - name: "OSX pure make"
+      os: osx
+      script: make && make test
+    - name: "Ubuntu 14 cuda 7.0"
+      dist: trusty
+      addons:
+        apt:
+          packages:
+            - libhdf5-dev
+      before_script: 
+        - wget http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1404/x86_64/cuda-repo-ubuntu1404_7.0-28_amd64.deb
+        - sudo dpkg -i cuda-repo-ubuntu1404_7.0-28_amd64.deb
+        - sudo apt-get update -qq
+        - sudo apt-get install -y cuda-drivers cuda-core-7-0 cuda-cudart-dev-7-0
+        - sudo apt-get clean
+        - sudo ln -s /usr/local/cuda-7.0/ ${CUDA_HOME}
+      script: autoreconf && ./scripts/install-hts.sh && ./configure && make cuda=1 
+    - name: "Ubuntu 14 cuda 6.5"
+      dist: trusty
+      before_script: 
+        - wget http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1404/x86_64/cuda-repo-ubuntu1404_7.0-28_amd64.deb
+        - sudo dpkg -i cuda-repo-ubuntu1404_7.0-28_amd64.deb
+        - sudo apt-get update -qq
+        - sudo apt-get install -y cuda-drivers cuda-core-6-5 cuda-cudart-dev-6-5
+        - sudo apt-get clean
+        - sudo ln -s /usr/local/cuda-6.5/ ${CUDA_HOME}
+      script: make cuda=1
+    - stage: deploy
+      name: "GitHub Release"
+      dist: trusty
+      before_script: 
+        - wget http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1404/x86_64/cuda-repo-ubuntu1404_7.0-28_amd64.deb
+        - sudo dpkg -i cuda-repo-ubuntu1404_7.0-28_amd64.deb
+        - sudo apt-get update -qq
+        - sudo apt-get install -y cuda-drivers cuda-core-6-5 cuda-cudart-dev-6-5
+        - sudo apt-get clean
+        - sudo ln -s /usr/local/cuda-6.5/ ${CUDA_HOME}
+      script:
+        - make dist
+        - mkdir -p f5c-${TRAVIS_TAG}
+        - make cuda=1 && mv f5c f5c-${TRAVIS_TAG}/f5c_x86_64_linux_cuda && make clean
+        - make && mv f5c f5c-${TRAVIS_TAG}/f5c_x86_64_linux
+        - cp -r README.md LICENSE docs f5c-${TRAVIS_TAG}/
+        - mkdir -p f5c-${TRAVIS_TAG}/scripts
+        - cp scripts/common.sh scripts/test.awk scripts/test.sh f5c-${TRAVIS_TAG}/scripts
+        - tar -zcf f5c-${TRAVIS_TAG}-binaries.tar.gz f5c-${TRAVIS_TAG}
+        - rm -rf f5c-${TRAVIS_TAG}
+      deploy:
+        provider: releases
+        api_key:
+          secure: KT3XFGJDQaN4EIbjRqAxnNFcG3fpkSFKct32bupVdlTMbzoI2c9oPyYKmUESyJODZML2BAwKV1knXrzhU/8o+vEDmTFdQ5fRNNHP8kcx6RVIZMSsJ+rF2DDl7sitr0rndyPbT97ACbsSZSdRiWK8MKo6YeMUJNkhuBOjXISFl4uiNezK0HeFCepQdWwB8W7De/1kgNQa9ZL6O7deiB+6DDZOVF/jr/YvIxCjytGwhFW6E5/EDHVmTt+9aXRXVgffzq9Ltt5oS30uYfWNJfAsk+81XEnuZ7GUGSyN4N77Xk2cI1LD3E8m1kMHksd34tn0A97nT4CPPI+WoUootzLDh29fUmSDPXbqwCGFDk8FTVUSAuwxZQQAESJrFv9fVl1vWTh3Bj8NkzXAHgmTtaBCxeIUhN+pBX3d7QQMYGpUHGGdIENGpfVi9vnnAYSsYs1foJtfuhw534ejju4laZ0bXVUE0w5AAKEw8H1xA+lS413ugKwAXEX6naFAD6NkZaX3ISSVeewIqtIW6UFCNqt/U++OY9vcwzFDbUq/wEjZtNRLzXzHzaObomRsOKqldje3FxH9p1QIPZXWgLBx8FhdFG6P+Nilhifq7Dcgx1dybKGTWOOurXrPKVgC9bLtXe/49LVMk5TirYtj2gXmlofi1SD52T9HpZVWH9haJ+Rnjso=
+        file_glob: true
+        file: f5c-*.tar.gz
+        skip_cleanup: true
+        on:
+          branch: master
+          repo: hasindu2008/f5c
+          tags: true
+      before_deploy:
+        - make clean

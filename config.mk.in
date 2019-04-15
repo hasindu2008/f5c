@@ -1,20 +1,16 @@
-
-
 LIBS = @LIBS@
 LDFLAGS = @LDFLAGS@
 CPPFLAGS = @CPPFLAGS@
 
+HDF5 = @hdf_tar_install@
+HTS = @hts_tar_install@
+
 ifeq "locallibhts-@locallibhts@" "locallibhts-yes"
-
-CPPFLAGS += -I./htslib
-LDFLAGS += htslib/libhts.a
-
+    CPPFLAGS += -I./htslib
+    LDFLAGS += htslib/libhts.a
 endif
 
-
 ifeq "locallibhdf5-@locallibhdf5@" "locallibhdf5-yes"
-
-CPPFLAGS += -I./hdf5/include/
-LDFLAGS += hdf5/lib/libhdf5.a -ldl
-
+    CPPFLAGS += -I./hdf5/include/
+    LDFLAGS += hdf5/lib/libhdf5.a -ldl
 endif
