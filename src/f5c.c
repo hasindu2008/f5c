@@ -733,6 +733,12 @@ void meth_single(core_t* core, db_t* db, int32_t i){
     if(!db->read_stat_flag[i]){
         calculate_methylation_for_read(db->site_score_map[i], db->fasta_cache[i], db->bam_rec[i], db->read_len[i], db->et[i].event, db->base_to_event_map[i],
         db->scalings[i], core->cpgmodel,db->events_per_base[i]);
+    
+        //hack
+        realign_read(db->fasta_cache[i],
+                  db->bam_rec[i],db->read_len[i],
+                  0,
+                  &(db->et[i]), core->model,db->base_to_event_map[i],db->scalings[i]);
     }
 }
 
@@ -828,6 +834,11 @@ void process_single(core_t* core, db_t* db,int32_t i) {
     calculate_methylation_for_read(db->site_score_map[i], db->fasta_cache[i], db->bam_rec[i], db->read_len[i], db->et[i].event, db->base_to_event_map[i],
         db->scalings[i], core->cpgmodel,db->events_per_base[i]);
 
+    //hack
+    realign_read(db->fasta_cache[i],
+                  db->bam_rec[i],db->read_len[i],
+                  0,
+                  &(db->et[i]), core->model,db->base_to_event_map[i],db->scalings[i]);    
 }
 
 void process_db(core_t* core, db_t* db) {

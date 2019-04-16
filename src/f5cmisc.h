@@ -42,6 +42,14 @@ float profile_hmm_score(const char *m_seq,const char *m_rc_seq, event_t* event, 
 void calculate_methylation_for_read(std::map<int, ScoredSite>* site_score_map, char* ref, bam1_t* record, int32_t read_length, event_t* event, index_pair_t* base_to_event_map,
 scalings_t scaling, model_t* cpgmodel,double events_per_base);
 
+void realign_read(char* ref,
+                 // const bam_hdr_t* hdr,
+                  const bam1_t* record, int32_t read_length,
+                  size_t read_idx,
+                  //int region_start,
+                  //int region_end, 
+                  event_table* events, model_t* model,index_pair_t* base_to_event_map,scalings_t scaling );
+
 #ifdef HAVE_CUDA
 void align_cuda(core_t* core, db_t* db);
 #endif

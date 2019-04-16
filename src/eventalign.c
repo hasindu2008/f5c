@@ -10,6 +10,16 @@
 
 #define METHYLATED_SYMBOL 'M'
 
+
+//copy a kmer from a reference
+static inline void kmer_cpy(char* dest, const char* src, uint32_t k) {
+    uint32_t i = 0;
+    for (i = 0; i < k; i++) {
+        dest[i] = src[i];
+    }
+    dest[i] = '\0';
+}
+
 typedef std::vector<AlignedPair> AlignedSegment;
 
 
@@ -156,6 +166,9 @@ static inline std::vector<HMMAlignmentState> profile_hmm_align(std::string fwd_s
             case HMT_FROM_SOFT:
                 assert(false);
                 break;
+            default:
+                assert(0);
+                break;    
         }
 
          // update row (event) idx only if this isn't a kmer skip, which is silent
@@ -497,8 +510,8 @@ struct EventAlignmentParameters
     {
         //sr = NULL;
         et = NULL;
-        fai = NULL;
-        hdr = NULL;
+        //fai = NULL;
+        //hdr = NULL;
         record = NULL;
         model = NULL;
         //strand_idx = NUM_STRANDS;
@@ -515,14 +528,15 @@ struct EventAlignmentParameters
     //necessary parameters inside sr
     index_pair_t* base_to_event_map;
     int32_t read_length;
+    scalings_t scalings;
 
 
     std::string ref_name;
 
     ///
     const event_table* et;
-    const faidx_t* fai;
-    const bam_hdr_t* hdr;
+    //const faidx_t* fai;
+    //const bam_hdr_t* hdr;
     const bam1_t* record;
     model_t* model;
     //size_t strand_idx;
@@ -543,8 +557,8 @@ struct EventAlignmentParameters
     // Sanity check input parameters
     //assert(params.sr != NULL);
     assert(params.et != NULL);
-    assert(params.fai != NULL);
-    assert(params.hdr != NULL);
+    //assert(params.fai != NULL);
+    //assert(params.hdr != NULL);
     assert(params.record != NULL);
     assert(params.model != NULL);
     //assert(params.strand_idx < NUM_STRANDS);
@@ -705,7 +719,7 @@ struct EventAlignmentParameters
                     
                     ea.ref_position = curr_start_ref + as.kmer_idx;
                     std::string ref__kmer = ref_seq.substr(ea.ref_position - ref_offset, k);
-                    strcpy(ea.ref_kmer, ref__kmer.c_str()); 
+                    kmer_cpy(ea.ref_kmer, ref__kmer.c_str(),KMER_SIZE); 
 
                     // event
                     ea.read_idx = params.read_idx;
@@ -721,16 +735,17 @@ struct EventAlignmentParameters
                         // since we are using one strand, the rc flag should be rc_flags[0] and removed calling get_kmer and replaced it with code inside
                         // from https://github.com/jts/nanopolish/blob/b9dc627e73816a415e4b96b14e8a8bf53622a6c9/src/hmm/nanopolish_hmm_input_sequence.h
                         // ea.model_kmer = ! rc_flags[0] ? fwd_subseq.substr(as.kmer_idx, k) : rc_subseq.substr(rc_subseq.length() - as.kmer_idx - k, k);
+                        //hasindu : strcpy is wrong, use kmer_cpy instead
                         if(rc_flags[0]){
                             std::string kmer_one = rc_subseq.substr(rc_subseq.length() - as.kmer_idx - k, k);
-                            strcpy(ea.ref_kmer, kmer_one.c_str());
+                            kmer_cpy(ea.model_kmer, kmer_one.c_str(), KMER_SIZE);
                         }
                         else{
                             std::string kmer_one = fwd_subseq.substr(as.kmer_idx, k);
-                            strcpy(ea.ref_kmer, kmer_one.c_str());
+                            kmer_cpy(ea.model_kmer, kmer_one.c_str(), KMER_SIZE);
                         }
                     } else {
-                        strcpy(ea.ref_kmer, std::string(k, 'N').c_str());
+                        kmer_cpy(ea.model_kmer, std::string(k, 'N').c_str(), KMER_SIZE);
                         // ea.model_kmer = std::string(k, 'N');
                     }
 
@@ -770,14 +785,155 @@ struct EventAlignmentParameters
 }
 
 
+
+
+// Summarize the event alignment for a read strand
+struct EventalignSummary
+{
+    EventalignSummary() {
+        num_events = 0;
+        num_steps = 0;
+        num_stays = 0;
+        num_skips = 0;
+        sum_z_score = 0;
+        sum_duration = 0;
+        alignment_edit_distance = 0;
+        reference_span = 0;
+    }
+
+    int num_events;
+    int num_steps;
+    int num_stays;
+    int num_skips;
+
+    double sum_duration;
+    double sum_z_score;
+    int alignment_edit_distance;
+    int reference_span;
+};
+
+// Return the duration of the specified event for one strand
+inline float get_duration(const event_table* events, uint32_t event_idx)
+{
+    assert(event_idx < events->n);
+    return (events->event)[event_idx].length;
+}
+
+//todo : can make more efficient using bit encoding
+static inline uint32_t get_rank(char base) {
+    if (base == 'A') { //todo: do we neeed simple alpha?
+        return 0;
+    } else if (base == 'C') {
+        return 1;
+    } else if (base == 'G') {
+        return 2;
+    } else if (base == 'T') {
+        return 3;
+    } else {
+        WARNING("A None ACGT base found : %c", base);
+        return 0;
+    }
+}
+
+// return the lexicographic rank of the kmer amongst all strings of
+// length k for this alphabet
+static inline uint32_t get_kmer_rank(const char* str, uint32_t k) {
+    //uint32_t p = 1;
+    uint32_t r = 0;
+
+    // from last base to first
+    for (uint32_t i = 0; i < k; ++i) {
+        //r += rank(str[k - i - 1]) * p;
+        //p *= size();
+        r += get_rank(str[k - i - 1]) << (i << 1);
+    }
+    return r;
+}
+
+
+
+inline float z_score(const event_table* events, model_t* models, scalings_t scaling,
+                     uint32_t kmer_rank,
+                     uint32_t event_idx,
+                     uint8_t strand)
+{
+
+    float unscaledLevel = (events->event)[event_idx].mean;
+    float level = unscaledLevel;
+    //float scaledLevel = unscaledLevel - time * scaling.shift;
+
+    //fprintf(stderr, "level %f\n",scaledLevel);
+    //GaussianParameters gp = read.get_scaled_gaussian_from_pore_model_state(pore_model, strand, kmer_rank);
+    float gp_mean =
+        scaling.scale * models[kmer_rank].level_mean + scaling.shift;
+    float gp_stdv = models[kmer_rank].level_stdv * 1; //scaling.var = 1;
+    return (level - gp_mean) / gp_stdv;
+}
+
+
+EventalignSummary summarize_alignment(uint32_t strand_idx,
+                                      const EventAlignmentParameters& params,
+                                      const std::vector<event_alignment_t>& alignments)
+{
+    EventalignSummary summary;
+
+    //assert(params.alphabet == "");
+    //const PoreModel* pore_model = params.get_model();
+    //uint32_t k = pore_model->k;
+    uint32_t k = KMER_SIZE;
+
+    size_t prev_ref_pos = std::string::npos;
+
+    // the number of unique reference positions seen in the alignment
+    //size_t num_unique_ref_pos = 0;
+
+    for(size_t i = 0; i < alignments.size(); ++i) {
+        const event_alignment_t& ea = alignments[i];
+
+        summary.num_events += 1;
+
+        // movement information
+        size_t ref_move = ea.ref_position - prev_ref_pos;
+        if(ref_move == 0) {
+            summary.num_stays += 1;
+        } else if(i != 0 && ref_move > 1) {
+            summary.num_skips += 1;
+        } else if(i != 0 && ref_move == 1) {
+            summary.num_steps += 1;
+        }
+
+        //todo
+        // event information
+        summary.sum_duration += get_duration(params.et, ea.event_idx);
+
+        //todo
+        if(ea.hmm_state == 'M') {
+            //fprintf(stderr,"%s\n",ea.model_kmer);
+            uint32_t rank = get_kmer_rank(ea.model_kmer, k);
+            double z = z_score(params.et, params.model, params.scalings, rank, ea.event_idx, 0);
+            //double z = 0;
+            summary.sum_z_score += z;
+        }
+
+        prev_ref_pos = ea.ref_position;
+    }
+
+    int nm = bam_aux2i(bam_aux_get(params.record, "NM"));
+    summary.alignment_edit_distance = nm;
+    if(!alignments.empty()) {
+        summary.reference_span = alignments.back().ref_position - alignments.front().ref_position + 1;
+    }
+    return summary;
+}
+
 // Realign the read in event space
 void realign_read(char* ref,
-                  const faidx_t* fai,
-                  const bam_hdr_t* hdr,
-                  const bam1_t* record,
+                 // const bam_hdr_t* hdr,
+                  const bam1_t* record,int32_t read_length,
                   size_t read_idx,
-                  int region_start,
-                  int region_end, event_table* events, model_t* model)
+                  //int region_start,
+                  //int region_end, 
+                  event_table* events, model_t* model, index_pair_t* base_to_event_map, scalings_t scalings)
 {
     // Load a squiggle read for the mapped read
     std::string read_name = bam_get_qname(record);
@@ -803,39 +959,50 @@ void realign_read(char* ref,
         //params.sr = &sr; -- hasindu : we have to get rid of this sr
         params.et = events; // hasindu : what is required inside the sr is to be added like this
         params.model = model; // hasindu : what is required inside the sr is to be added like this
-        params.fai = fai;
-        params.hdr = hdr;
+        //params.fai = fai;
+        //params.hdr = hdr;
         params.record = record;
        // params.strand_idx = strand_idx; -- hasindu : only 1 stand in our case
         
         params.read_idx = read_idx;
-        params.region_start = region_start;
-        params.region_end = region_end;
+        params.read_length = read_length;
+        //params.region_start = region_start;
+        //params.region_end = region_end;
+
+        params.region_start = -1;
+        params.region_end = -1;
+
+        params.base_to_event_map = base_to_event_map;
+        params.scalings = scalings;
 
         std::vector<event_alignment_t> alignment = align_read_to_ref(params,ref);
 
         //-- hasindu : output writing will be done outside of this function
-        // EventalignSummary summary;
-        // //if(writer.summary_fp != NULL) {
-        //     summary = summarize_alignment(sr, strand_idx, params, alignment);
-        // //}
+        EventalignSummary summary;
+        FILE* summary_fp = stderr;
+        if(summary_fp != NULL) {
+            summary = summarize_alignment(0, params, alignment);
+        }
 
+        //fprintf(summary_fp,"sfsafsaf\n");
         // if(opt::output_sam) {
-        //     emit_event_alignment_sam(writer.sam_fp, sr, hdr, record, alignment);
+        //     emit_event_alignment_sam(sam_fp, sr, hdr, record, alignment);
         // } else {
-        //     emit_event_alignment_tsv(writer.tsv_fp, sr, strand_idx, params, alignment);
+        //     emit_event_alignment_tsv(tsv_fp, sr, strand_idx, params, alignment);
         // }
 
-        // if(writer.summary_fp != NULL && summary.num_events > 0) {
-        //     assert(params.alphabet == "");
-        //     const PoreModel* pore_model = params.get_model();
-        //     SquiggleScalings& scalings = sr.scalings[strand_idx];
-        //     fprintf(writer.summary_fp, "%zu\t%s\t%s\t", read_idx, read_name.c_str(), sr.fast5_path.c_str());
-        //     fprintf(writer.summary_fp, "%s\t%s\t", pore_model->name.c_str(), strand_idx == 0 ? "template" : "complement");
-        //     fprintf(writer.summary_fp, "%d\t%d\t%d\t%d\t", summary.num_events, summary.num_steps, summary.num_skips, summary.num_stays);
-        //     fprintf(writer.summary_fp, "%.2lf\t%.3lf\t%.3lf\t%.3lf\t%.3lf\n", summary.sum_duration, scalings.shift, scalings.scale, scalings.drift, scalings.var);
-        // }
+        if(summary_fp != NULL && summary.num_events > 0) {
+            //assert(params.alphabet == "");
+            //const PoreModel* pore_model = params.get_model();
+            //SquiggleScalings& scalings = sr.scalings[strand_idx];
+            int strand_idx = 0;
+            fprintf(summary_fp, "%zu\t%s\t", read_idx, read_name.c_str());
+            fprintf(summary_fp, "%s\t%s\t", "dna", strand_idx == 0 ? "template" : "complement");
+            fprintf(summary_fp, "%d\t%d\t%d\t%d\t", summary.num_events, summary.num_steps, summary.num_skips, summary.num_stays);
+            fprintf(summary_fp, "%.2lf\t%.3lf\t%.3lf\t%.3lf\t%.3lf\n", summary.sum_duration/(4000.0), scalings.shift, scalings.scale, 0.0, scalings.var);
+        }
         
     //}
 }
 
+// /mnt/f/hasindu2008.git/nanopolish/nanopolish eventalign  -b test/ecoli_2kb_region/reads.sorted.bam -g test/ecoli_2kb_region/draft.fa -r test/ecoli_2kb_region/reads.fasta -t 1 --summary=test/ecoli_2kb_region/eventalign.summary.exp > test/ecoli_2kb_region/eventalign.exp
