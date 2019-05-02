@@ -82,6 +82,8 @@ typedef struct {
      */
     static inline int bgzf_getline(BGZF *fp, int delim, kstring_t *str){
         
+        str->m = 20*1024*1024;
+        str->s = (char *)malloc(sizeof(char)*20*1024*1024);
         str->l=getline(&(str->s),&(str->m),fp->fp);
         if(str->l==0 || str->m==0 || str->s==NULL ){
             hts_log_error("%s\n", "reading issue");
