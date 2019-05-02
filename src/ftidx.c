@@ -30,7 +30,7 @@ DEALINGS IN THE SOFTWARE.  */
 //#include <config.h>
 
 
-
+//#define BGFS_HFILE 1
 
 #include <ctype.h>
 #include <string.h>
@@ -293,6 +293,7 @@ static ftidx_t *fti_build_core(BGZF *bgzf) {
         else{
                 
                 char *name=strtok(linebuffer.s,"\t");
+                line_len=linebuffer.l;
                 //fprintf(stderr,"%s %ld\n",name,seq_offset);
                 if (fti_insert_index(idx, name, seq_len, line_len, char_len, seq_offset, qual_offset) != 0){
                     goto ftil;
