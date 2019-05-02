@@ -29,6 +29,9 @@ DEALINGS IN THE SOFTWARE.  */
 
 //#include <config.h>
 
+
+
+
 #include <ctype.h>
 #include <string.h>
 #include <stdlib.h>
@@ -39,13 +42,14 @@ DEALINGS IN THE SOFTWARE.  */
 #include <unistd.h>
 #include <assert.h>
 #include <getopt.h>
-#include "htslib/bgzf.h"
+#ifdef BGFS_HFILE
+    #include "htslib/bgzf.h"
+#endif
 #include "ftidx.h"
 #include "htslib/hfile.h"
 #include "htslib/khash.h"
 #include "htslib/kstring.h"
 //#include "hts_internal.h"
-
 
 #define hts_log_warning(arg, ...)                                                      \
     fprintf(stderr, "[%s::WARNING]\033[1;33m " arg "\033[0m\n", __func__,      \
@@ -58,6 +62,145 @@ DEALINGS IN THE SOFTWARE.  */
             __VA_ARGS__)
 static inline int isspace_c(char c) { return isspace((unsigned char) c); }
 static inline int isdigit_c(char c) { return isdigit((unsigned char) c); }
+
+
+#ifndef BGFS_HFILE
+
+typedef struct {
+    FILE *fp;
+    int is_compressed;
+    int is_gzip;
+} BGZF;    
+
+    /**
+     * Read one line from a BGZF file. It is faster than bgzf_getc()
+     *
+     * @param fp     BGZF file handler
+     * @param delim  delimitor
+     * @param str    string to write to; must be initialized
+     * @return       length of the string; -1 on end-of-file; <= -2 on error
+     */
+    static inline int bgzf_getline(BGZF *fp, int delim, kstring_t *str){
+        
+        str->l=getline(&(str->s),&(str->m),fp->fp);
+        if(str->l==0 || str->m==0 || str->s==NULL ){
+            hts_log_error("%s\n", "reading issue");
+            exit(1);
+        }
+    }
+
+    /**
+     *  Position in uncompressed BGZF
+     *
+     *  @param fp           BGZF file handler; must be opened for reading
+     *
+     *  Returns the current offset on success and -1 on error.
+     */
+    long bgzf_utell(BGZF *fp){
+        hts_log_error("%s\n", "Not implemented");
+        exit(1);
+    }
+
+ /**
+     * Close the BGZF and free all associated resources.
+     *
+     * @param fp    BGZF file handler
+     * @return      0 on success and -1 on error
+     */
+    int bgzf_close(BGZF *fp){
+        fclose(fp->fp);
+        free(fp);
+        //hts_log_error("%s\n", "Not implemented");
+        //exit(1);
+    }
+
+    /**
+     * Open the specified file for reading or writing.
+     */
+    BGZF* bgzf_open(const char* path, const char *mode){
+        BGZF *fp = (BGZF *)malloc(sizeof(BGZF));
+        fp->is_compressed=0;
+        fp->is_gzip=0;
+        fp->fp = fopen(path,mode);
+        if(fp->fp==NULL){
+            hts_log_error("File %s cannot be opened\n", path);
+            exit(1);
+        }
+        return fp;
+    }
+
+
+
+    /** Return the file's compression format
+     *
+     * @param fp  BGZF file handle
+     * @return    A small integer matching the corresponding
+     *            `enum htsCompression` value:
+     *   - 0 / `no_compression` if the file is uncompressed
+     *   - 1 / `gzip` if the file is plain GZIP-compressed
+     *   - 2 / `bgzf` if the file is BGZF-compressed
+     * @since 1.4
+     */
+    int bgzf_compression(BGZF *fp){
+        return 0;
+    }
+
+      /**
+     *  Position BGZF at the uncompressed offset
+     *
+     *  @param fp           BGZF file handler; must be opened for reading
+     *  @param uoffset      file offset in the uncompressed data
+     *  @param where        SEEK_SET supported atm
+     *
+     *  Returns 0 on success and -1 on error.
+     */
+    int bgzf_useek(BGZF *fp, long uoffset, int where)  {
+        return fseek(fp->fp, uoffset, SEEK_SET);
+        //hts_log_error("%s\n", "Not implemented");
+        //exit(1);  
+    }
+
+
+    /**
+     * Tell BGZF to build index while compressing.
+     *
+     * @param fp          BGZF file handler; can be opened for reading or writing.
+     *
+     * Returns 0 on success and -1 on error.
+     */
+    int bgzf_index_build_init(BGZF *fp){
+        hts_log_error("%s\n", "Not implemented");
+        exit(1);
+    }
+
+    /// Save BGZF index
+    /**
+     * @param fp          BGZF file handler
+     * @param bname       base name
+     * @param suffix      suffix to add to bname (can be NULL)
+     * @return 0 on success and -1 on error.
+     */
+    int bgzf_index_dump(BGZF *fp,
+                        const char *bname, const char *suffix) {
+        hts_log_error("%s\n", "Not implemented");
+        exit(1);
+                        }
+
+/// Load BGZF index
+    /**
+     * @param fp          BGZF file handler
+     * @param bname       base name
+     * @param suffix      suffix to add to bname (can be NULL)
+     * @return 0 on success and -1 on error.
+     */
+    int bgzf_index_load(BGZF *fp,
+                        const char *bname, const char *suffix){
+        hts_log_error("%s\n", "Not implemented");
+        exit(1);
+        }
+
+#endif
+
 
 
 typedef struct {
