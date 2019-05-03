@@ -91,6 +91,18 @@ typedef struct {
         }
     }
 
+    static inline size_t f5read(BGZF *fp, kstring_t *str, size_t num_elements){
+        str->m = num_elements;
+        str->s = (char *)malloc(sizeof(char)*str->m);
+        size_t ret=fread(str->s,1,num_elements,fp->fp);
+        str->l = ret;
+        if(ret!=num_elements){
+            fprintf(stderr,"Reading error has occurred :%s\n",strerror(errno));
+            exit(EXIT_FAILURE);
+        }
+        return ret;
+    } 
+
     /**
      *  Position in uncompressed BGZF
      *
@@ -784,8 +796,11 @@ static char *fti_retrieve(const ftidx_t *fti, const ftidx1_t *val,
     // }
 
     kstring_t linebuffer = { 0, 0, NULL };
+#ifdef BGFS_HFILE
     ret=bgzf_getline(fti->bgzf, '\n', &linebuffer);
-
+#else
+    ret=f5read(fti->bgzf, &linebuffer, val->line_len);
+#endif
 
     // while ( l < end - beg && (c=bgzf_getc(fti->bgzf))>=0 )
     //     if (isgraph(c)) s[l++] = c;
