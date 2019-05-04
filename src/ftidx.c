@@ -196,7 +196,13 @@ typedef struct {
      */
     int bgzf_useek(BGZF *fp, long uoffset, int where)  {
         #ifdef UN_BUFFERED
-            return lseek(fp->fd, uoffset, SEEK_SET);
+            long ret=lseek(fp->fd, uoffset, SEEK_SET);
+            if(ret>=0){
+                return 0;
+            }
+            else{
+                return -1;
+            }
         #else
             return fseek(fp->fp, uoffset, SEEK_SET);
         #endif
