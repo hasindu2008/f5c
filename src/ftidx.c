@@ -31,6 +31,7 @@ DEALINGS IN THE SOFTWARE.  */
 
 
 //#define BGFS_HFILE 1
+#define UN_BUFFERED 1
 
 #include <ctype.h>
 #include <string.h>
@@ -50,6 +51,10 @@ DEALINGS IN THE SOFTWARE.  */
 #include "htslib/khash.h"
 #include "htslib/kstring.h"
 //#include "hts_internal.h"
+#ifdef UN_BUFFERED
+#include <unistd.h>
+#include <fcntl.h>
+#endif
 
 #define hts_log_warning(arg, ...)                                                      \
     fprintf(stderr, "[%s::WARNING]\033[1;33m " arg "\033[0m\n", __func__,      \
@@ -67,7 +72,11 @@ static inline int isdigit_c(char c) { return isdigit((unsigned char) c); }
 #ifndef BGFS_HFILE
 
 typedef struct {
+
+    int fd;
+
     FILE *fp;
+
     int is_compressed;
     int is_gzip;
 } BGZF;    
@@ -94,7 +103,11 @@ typedef struct {
     static inline size_t f5read(BGZF *fp, kstring_t *str, size_t num_elements){
         str->m = num_elements;
         str->s = (char *)malloc(sizeof(char)*str->m);
+    #ifdef UN_BUFFERED
+        size_t ret=read(fp->fd,str->s,num_elements);
+    #else    
         size_t ret=fread(str->s,1,num_elements,fp->fp);
+    #endif
         str->l = ret;
         if(ret!=num_elements){
             fprintf(stderr,"Reading error has occurred :%s\n",strerror(errno));
@@ -122,7 +135,11 @@ typedef struct {
      * @return      0 on success and -1 on error
      */
     int bgzf_close(BGZF *fp){
+    #ifdef UN_BUFFERED
+        close(fp->fd);
+    #else   
         fclose(fp->fp);
+    #endif
         free(fp);
         //hts_log_error("%s\n", "Not implemented");
         //exit(1);
@@ -135,11 +152,20 @@ typedef struct {
         BGZF *fp = (BGZF *)malloc(sizeof(BGZF));
         fp->is_compressed=0;
         fp->is_gzip=0;
+    #ifdef UN_BUFFERED   
+        fp->fd = open(path,O_RDONLY );
+        if(fp->fd<0){
+            hts_log_error("File %s cannot be opened\n", path);
+            exit(1);
+        }
+    #else 
         fp->fp = fopen(path,mode);
         if(fp->fp==NULL){
             hts_log_error("File %s cannot be opened\n", path);
             exit(1);
         }
+    #endif
+
         return fp;
     }
 
@@ -169,7 +195,11 @@ typedef struct {
      *  Returns 0 on success and -1 on error.
      */
     int bgzf_useek(BGZF *fp, long uoffset, int where)  {
-        return fseek(fp->fp, uoffset, SEEK_SET);
+        #ifdef UN_BUFFERED
+            return lseek(fp->fd, uoffset, SEEK_SET);
+        #else
+            return fseek(fp->fp, uoffset, SEEK_SET);
+        #endif
         //hts_log_error("%s\n", "Not implemented");
         //exit(1);  
     }
