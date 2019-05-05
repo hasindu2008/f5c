@@ -311,11 +311,14 @@ static inline int read_from_fastt(core_t *core, db_t *db, std::string qname, std
     double t = realtime();
     #ifdef ASYNC
     char *record = fti_fetch_async(core->ftidx, qname.c_str(), &len,&aiocb[i]);
+    double rt = realtime() - t;
+    core->db_fast5_open_time += rt;
     #else
     char *record = fti_fetch(core->ftidx, qname.c_str(), &len);
-    #endif
     double rt = realtime() - t;
     core->db_fast5_read_time += rt;
+    #endif
+
 
     if(record==NULL || len <0){ //todo : should we free if len<0
         handle_bad_fast5(core, db, "" , qname);  
@@ -545,6 +548,7 @@ ret_status_t load_db(core_t* core, db_t* db) {
     assert(status.num_bases==db->sum_bases);
 
 #ifdef ASYNC
+    t=realtime();
     for (i = 0; i < db->n_bam_rec; i++) {
         int err;
         int ret;
@@ -562,6 +566,8 @@ ret_status_t load_db(core_t* core, db_t* db) {
             exit(1);
         }
     }
+    double rt = realtime() - t;
+    core->db_fast5_read_time += rt;
 
     free(aiocb);
 #endif
