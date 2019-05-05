@@ -127,6 +127,14 @@ core_t* init_core(const char* bamfilename, const char* fastafile,
     }
 #endif
 
+#ifdef ASYNC
+    struct aioinit ainit;
+    ainit.aio_threads=64;
+    ainit.aio_num=8096;
+    ainit.aio_idle_time=2;
+    aio_init(&ainit);
+#endif
+
     core->sum_bases=0;
     core->total_reads=0; //total number mapped entries in the bam file (after filtering based on flags, mapq etc)
     core->bad_fast5_file=0; //empty fast5 path returned by readdb, could not open fast5
