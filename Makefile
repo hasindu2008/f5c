@@ -4,7 +4,7 @@
 CC       = gcc
 CXX      = g++
 CFLAGS   += -g -rdynamic -Wall -O2 -std=c++11 
-LDFLAGS  += $(LIBS) -lpthread -lz
+LDFLAGS  += $(LIBS) -lpthread -lz -lrt
 BUILD_DIR = build
 
 BINARY = f5c
@@ -47,7 +47,7 @@ $(BUILD_DIR)/main.o: src/main.c src/f5cmisc.h src/error.h
 $(BUILD_DIR)/meth_main.o: src/meth_main.c src/f5c.h src/fast5lite.h src/f5cmisc.h src/logsum.h
 	$(CXX) $(CFLAGS) $(CPPFLAGS) $< -c -o $@
 
-$(BUILD_DIR)/f5c.o: src/f5c.c src/f5c.h src/fast5lite.h src/f5cmisc.h
+$(BUILD_DIR)/f5c.o: src/f5c.c src/f5c.h src/fast5lite.h src/f5cmisc.h src/ftidx.h
 	$(CXX) $(CFLAGS) $(CPPFLAGS) $< -c -o $@
 
 $(BUILD_DIR)/events.o: src/events.c src/f5c.h src/fast5lite.h src/f5cmisc.h src/fast5lite.h src/nanopolish_read_db.h src/ksort.h

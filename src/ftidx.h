@@ -42,6 +42,8 @@ htslib/faidx.h:
 extern "C" {
 #endif
 
+#define ASYNC 1
+
 /** @file
 
   Index FASTT files and extract lines given a read ID.
@@ -157,6 +159,9 @@ The returned sequence is allocated by `malloc()` family and should be destroyed
 by end users by calling `free()` on it.
 */
 char *fti_fetch(const ftidx_t *fti, const char *reg, int *len);
+#ifdef ASYNC
+    char *fti_fetch_async(const ftidx_t *fti, const char *reg, int *len,struct aiocb *aiocb);
+#endif
 
 /// Fetch the quality string for a region for FASTQ files
 /** @param  fti  Pointer to the ftidx_t struct

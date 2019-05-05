@@ -15,7 +15,9 @@
 #include "f5c.h"
 #include "f5cmisc.h"
 
-
+#ifdef ASYNC
+#include <aio.h>
+#endif
 /*
 todo :
 Error counter for consecutive failures in the skip unreadable mode
@@ -299,7 +301,7 @@ static inline int read_from_fast5_dump(core_t *core, db_t *db , int32_t i){
 
 }
 
-static inline int read_from_fastt(core_t *core, db_t *db, std::string qname, std::string fast5_path_str, int32_t i){
+static inline int read_from_fastt(core_t *core, db_t *db, std::string qname, std::string fast5_path_str, int32_t i,struct aiocb *aiocb){
 
     //return 1 if success, 0 if failed
     db->f5[i] = (fast5_t*)calloc(1, sizeof(fast5_t));
@@ -307,7 +309,11 @@ static inline int read_from_fastt(core_t *core, db_t *db, std::string qname, std
 
     int len=0;
     double t = realtime();
+    #ifdef ASYNC
+    char *record = fti_fetch_async(core->ftidx, qname.c_str(), &len,&aiocb[i]);
+    #else
     char *record = fti_fetch(core->ftidx, qname.c_str(), &len);
+    #endif
     double rt = realtime() - t;
     core->db_fast5_read_time += rt;
 
@@ -419,6 +425,11 @@ ret_status_t load_db(core_t* core, db_t* db) {
     db->bad_fast5_file = 0;
     db->ultra_long_skipped =0;
 
+    #ifdef ASYNC
+    struct aiocb *aiocb = (struct aiocb *)malloc(sizeof(struct aiocb)*db->capacity_bam_rec);
+    #else
+    struct aiocb *aiocb=NULL;
+    #endif
     ret_status_t status={0,0};
     int32_t i = 0;
     double t = 0;
@@ -474,7 +485,7 @@ ret_status_t load_db(core_t* core, db_t* db) {
                 }
                 else if(core->opt.flag & F5C_RD_FASTT){
                     t = realtime();        
-                    read_status=read_from_fastt(core, db, qname,fast5_path_str,i);
+                    read_status=read_from_fastt(core, db, qname,fast5_path_str,i,aiocb);
                     double rt = realtime() - t;
                     //core->db_fast5_read_time += rt;
                     core->db_fast5_time += rt;
@@ -531,6 +542,28 @@ ret_status_t load_db(core_t* core, db_t* db) {
     }
     status.num_reads=db->n_bam_rec;
     assert(status.num_bases==db->sum_bases);
+
+#ifdef ASYNC
+    for (i = 0; i < db->n_bam_rec; i++) {
+        int err;
+        int ret;
+        /* Wait until end of transaction */
+        while ((err = aio_error (&aiocb[i])) == EINPROGRESS);
+        err = aio_error(&aiocb[i]);
+        ret = aio_return(&aiocb[i]);
+        if (err != 0) {
+            fprintf(stderr, " Error at aio_error() : %s\n", strerror (err));
+            exit(1);
+        }
+
+        if (ret != aiocb[i].aio_nbytes) {
+            fprintf(stderr, " Error at aio_return()\n");
+            exit(1);
+        }
+    }
+
+    free(aiocb);
+#endif
 
     double load_end = realtime();
     core->load_db_time += (load_end-load_start);

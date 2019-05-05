@@ -16,6 +16,8 @@
 #include "ftidx.h"
 #include "nanopolish_read_db.h"
 
+//#define ASYNC 1
+
 #define F5C_VERSION "0.1-beta"
 
 /* hard coded numbers*/

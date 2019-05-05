@@ -56,6 +56,10 @@ DEALINGS IN THE SOFTWARE.  */
 #include <fcntl.h>
 #endif
 
+#ifdef ASYNC    
+    #include <aio.h>
+#endif
+
 #define hts_log_warning(arg, ...)                                                      \
     fprintf(stderr, "[%s::WARNING]\033[1;33m " arg "\033[0m\n", __func__,      \
             __VA_ARGS__)
@@ -98,6 +102,7 @@ typedef struct {
             hts_log_error("%s\n", "reading issue");
             exit(1);
         }
+        return str->l;
     }
 
     static inline size_t f5read(BGZF *fp, kstring_t *str, size_t num_elements){
@@ -115,6 +120,27 @@ typedef struct {
         }
         return ret;
     } 
+
+#ifdef ASYNC 
+static inline size_t f5read_async(BGZF *fp, kstring_t *str, size_t num_elements,struct aiocb *aiocb, uint64_t offset){
+        str->m = num_elements;
+        str->s = (char *)malloc(sizeof(char)*str->m);
+
+        aiocb->aio_fildes=fp->fd;
+        aiocb->aio_offset=offset;
+        aiocb->aio_buf=str->s;
+        aiocb->aio_nbytes=num_elements;
+
+        size_t ret=aio_read(aiocb);
+        if(ret<0){
+            fprintf(stderr,"Reading error has occurred :%s\n",strerror(errno));
+            exit(EXIT_FAILURE);
+        }        
+        str->l = num_elements;
+ 
+        return str->l;
+    } 
+#endif    
 
     /**
      *  Position in uncompressed BGZF
@@ -859,6 +885,51 @@ static char *fti_retrieve(const ftidx_t *fti, const ftidx1_t *val,
 }
 
 
+#ifdef ASYNC 
+static char *fti_retrieve_async(const ftidx_t *fti, const ftidx1_t *val,
+                          uint64_t offset, long beg, long end, int *len,struct aiocb *aiocb) {
+    char *s;
+    size_t l;
+    int c = 0;
+    // int ret = bgzf_useek(fti->bgzf,
+    //                      offset
+    //                      + beg / val->line_blen * val->line_len
+    //                      + beg % val->line_blen, SEEK_SET);
+
+
+    // l = 0;
+    // s = (char*)malloc((size_t) end - beg + 2);
+    // if (!s) {
+    //     *len = -1;
+    //     return NULL;
+    // }
+
+    kstring_t linebuffer = { 0, 0, NULL };
+
+    int ret=f5read_async(fti->bgzf, &linebuffer, val->line_len,aiocb,offset);
+
+
+    // while ( l < end - beg && (c=bgzf_getc(fti->bgzf))>=0 )
+    //     if (isgraph(c)) s[l++] = c;
+    // if (c < 0) {
+    if(ret<0){
+        hts_log_error("Failed to retrieve block: %s",
+            c == -1 ? "unexpected end of file" : "error reading file");
+        if(linebuffer.s){
+            free(linebuffer.s);
+        }
+        *len = -1;
+        return NULL;
+    }
+
+    l=linebuffer.l;
+    s=linebuffer.s;
+    //s[l] = '\0';
+    *len = l < INT_MAX ? l : INT_MAX;
+    return s;
+}
+#endif
+
 static int fti_get_val(const ftidx_t *fti, const char *str, int *len, ftidx1_t *val, long *fbeg, long *fend) {
     char *s, *ep;
     size_t i, l, k, name_end;
@@ -958,6 +1029,21 @@ char *fti_fetch(const ftidx_t *fti, const char *str, int *len)
     return fti_retrieve(fti, &val, val.seq_offset, beg, end, len);
 }
 
+#ifdef ASYNC    
+char *fti_fetch_async(const ftidx_t *fti, const char *str, int *len,struct aiocb *aiocb)
+{
+    ftidx1_t val;
+    long beg, end;
+
+    if (fti_get_val(fti, str, len, &val, &beg, &end)) {
+        return NULL;
+    }
+
+    // now retrieve the sequence
+    return fti_retrieve_async(fti, &val, val.seq_offset, beg, end, len,aiocb);
+
+}
+#endif
 
 char *fti_fetchqual(const ftidx_t *fti, const char *str, int *len) {
     ftidx1_t val;
