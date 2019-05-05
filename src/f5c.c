@@ -426,7 +426,8 @@ ret_status_t load_db(core_t* core, db_t* db) {
     db->ultra_long_skipped =0;
 
     #ifdef ASYNC
-    struct aiocb *aiocb = (struct aiocb *)malloc(sizeof(struct aiocb)*db->capacity_bam_rec);
+    struct aiocb *aiocb = (struct aiocb *)calloc(db->capacity_bam_rec,sizeof(struct aiocb));
+    MALLOC_CHK(aiocb);
     #else
     struct aiocb *aiocb=NULL;
     #endif
