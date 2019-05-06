@@ -75,9 +75,13 @@ static inline int isdigit_c(char c) { return isdigit((unsigned char) c); }
 
 #ifndef BGFS_HFILE
 
+
+#define AIO_FD_N 64
+
 typedef struct {
 
     int fd;
+    int fd_async[AIO_FD_N];
 
     FILE *fp;
 
@@ -122,11 +126,11 @@ typedef struct {
     } 
 
 #ifdef ASYNC 
-static inline size_t f5read_async(BGZF *fp, kstring_t *str, size_t num_elements,struct aiocb *aiocb, uint64_t offset){
+static inline size_t f5read_async(BGZF *fp, kstring_t *str, size_t num_elements,struct aiocb *aiocb, uint64_t offset, int i){
         str->m = num_elements;
         str->s = (char *)malloc(sizeof(char)*str->m);
 
-        aiocb->aio_fildes=fp->fd;
+        aiocb->aio_fildes=fp->fd_async[i%AIO_FD_N];
         aiocb->aio_offset=offset;
         aiocb->aio_buf=str->s;
         aiocb->aio_nbytes=num_elements;
@@ -166,9 +170,17 @@ static inline size_t f5read_async(BGZF *fp, kstring_t *str, size_t num_elements,
     #else   
         fclose(fp->fp);
     #endif
+    #ifdef ASYNC
+    for(int i=0;i<AIO_FD_N;i++){
+        close(fp->fd_async[i]);
+    }
+
+    #endif
+
         free(fp);
         //hts_log_error("%s\n", "Not implemented");
         //exit(1);
+        return 0;
     }
 
     /**
@@ -190,6 +202,17 @@ static inline size_t f5read_async(BGZF *fp, kstring_t *str, size_t num_elements,
             hts_log_error("File %s cannot be opened\n", path);
             exit(1);
         }
+    #endif
+
+    #ifdef ASYNC
+    for(int i=0;i<AIO_FD_N;i++){
+        fp->fd_async[i] = open(path,O_RDONLY );
+        if(fp->fd<0){
+            hts_log_error("File %s cannot be opened\n", path);
+            exit(1);
+        }
+    }
+
     #endif
 
         return fp;
@@ -887,7 +910,7 @@ static char *fti_retrieve(const ftidx_t *fti, const ftidx1_t *val,
 
 #ifdef ASYNC 
 static char *fti_retrieve_async(const ftidx_t *fti, const ftidx1_t *val,
-                          uint64_t offset, long beg, long end, int *len,struct aiocb *aiocb) {
+                          uint64_t offset, long beg, long end, int *len,struct aiocb *aiocb, int i) {
     char *s;
     size_t l;
     int c = 0;
@@ -906,7 +929,7 @@ static char *fti_retrieve_async(const ftidx_t *fti, const ftidx1_t *val,
 
     kstring_t linebuffer = { 0, 0, NULL };
 
-    int ret=f5read_async(fti->bgzf, &linebuffer, val->line_len,aiocb,offset);
+    int ret=f5read_async(fti->bgzf, &linebuffer, val->line_len,aiocb,offset,i);
 
 
     // while ( l < end - beg && (c=bgzf_getc(fti->bgzf))>=0 )
@@ -1030,7 +1053,7 @@ char *fti_fetch(const ftidx_t *fti, const char *str, int *len)
 }
 
 #ifdef ASYNC    
-char *fti_fetch_async(const ftidx_t *fti, const char *str, int *len,struct aiocb *aiocb)
+char *fti_fetch_async(const ftidx_t *fti, const char *str, int *len,struct aiocb *aiocb,int i)
 {
     ftidx1_t val;
     long beg, end;
@@ -1040,7 +1063,7 @@ char *fti_fetch_async(const ftidx_t *fti, const char *str, int *len,struct aiocb
     }
 
     // now retrieve the sequence
-    return fti_retrieve_async(fti, &val, val.seq_offset, beg, end, len,aiocb);
+    return fti_retrieve_async(fti, &val, val.seq_offset, beg, end, len,aiocb,i);
 
 }
 #endif

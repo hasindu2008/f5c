@@ -318,7 +318,7 @@ static inline int read_from_fastt(core_t *core, db_t *db, std::string qname, std
     int len=0;
     double t = realtime();
     #ifdef ASYNC
-    char *record = fti_fetch_async(core->ftidx, qname.c_str(), &len,&aiocb[i]);
+    char *record = fti_fetch_async(core->ftidx, qname.c_str(), &len,&aiocb[i],i);
     double rt = realtime() - t;
     core->db_fast5_open_time += rt;
     #else

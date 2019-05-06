@@ -160,7 +160,7 @@ by end users by calling `free()` on it.
 */
 char *fti_fetch(const ftidx_t *fti, const char *reg, int *len);
 #ifdef ASYNC
-    char *fti_fetch_async(const ftidx_t *fti, const char *reg, int *len,struct aiocb *aiocb);
+    char *fti_fetch_async(const ftidx_t *fti, const char *reg, int *len,struct aiocb *aiocb, int i);
 #endif
 
 /// Fetch the quality string for a region for FASTQ files
