@@ -19,7 +19,13 @@ jobs:
       script: autoreconf && ./scripts/install-hts.sh && ./configure && make && make test
     - name: "Ubuntu 16 install scripts"
       dist: xenial
-      script: autoreconf && ./scripts/install-hdf5.sh 2> /dev/null &&./scripts/install-hts.sh && ./configure --enable-localhdf5 && make && make test
+      addons:
+        apt:
+          packages:
+            - valgrind     
+      script: 
+        - autoreconf && ./scripts/install-hdf5.sh 2> /dev/null &&./scripts/install-hts.sh && ./configure --enable-localhdf5 && make && make test
+        - valgrind --leak-check=full --error-exitcode=1 ./f5c call-methylation -b test/ecoli_2kb_region/reads.sorted.bam -g test/ecoli_2kb_region/draft.fa -r test/ecoli_2kb_region/reads.fasta -t 8 -K 256 -B 2M > /dev/null
     - name: "Ubuntu 16 pure make"
       os: linux
       dist: xenial

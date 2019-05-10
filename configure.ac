@@ -85,6 +85,13 @@ if test "$enable_systemhts" = yes; then
 		  You can also download and install the latest release of htslib from http://www.htslib.org/download/.
 		  ])
 	fi
+	libhtsnew=yes
+	AC_CHECK_LIB([hts], [fail_load3], [], [libhtsnew=no])
+	if test $libhtsnew != yes; then
+		MSG_ERROR([System wide HTS library development files are old and does not support fail_load3! 
+		  You can also download and install the latest release of htslib from http://www.htslib.org/download/.
+		  ])
+	fi	
 
 else
 	libhts=yes
