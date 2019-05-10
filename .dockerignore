@@ -39,7 +39,7 @@ Thumbs.db
 
 # autotools #
 /aclocal.m4
-/src/config.h.in~
+/config.h.in~
 /Makefile.in
 /config.status
 /stamp-h1
@@ -51,13 +51,12 @@ Thumbs.db
 autom4te.cache
 /configure
 /config.h
-/src/config.h.in
+/config.h.in
 /config.mk
 
 #my
 /main
 /f5c
-/f5c_static
 /*.fast5
 *.fig
 /*.fa
@@ -69,6 +68,5 @@ autom4te.cache
 /htslib
 /hdf5
 /.vscode
-src/config.h
-test/ecoli_2kb_region/reads.fasta.index.readdb
-/profile.nvprof
+build/
+test/chr22_meth_example/

@@ -4,8 +4,8 @@
 AC_PREREQ([2.69])
 AC_INIT([f5c], [1.0], [hasindu@unsw.edu.au])
 #AM_INIT_AUTOMAKE([foreign])
-AC_CONFIG_SRCDIR([f5c.c])
-AC_CONFIG_HEADERS([config.h])
+AC_CONFIG_SRCDIR([src/f5c.c])
+AC_CONFIG_HEADERS([src/config.h])
 
 dnl Variant of AC_MSG_ERROR that ensures subsequent make(1) invocations fail
 dnl until the configuration error is resolved and configure is run again.
@@ -38,7 +38,7 @@ AC_SYS_LARGEFILE
 AC_FUNC_FSEEKO
 
 # Checks for header files.
-AC_CHECK_HEADERS([float.h inttypes.h stdint.h stdlib.h string.h sys/time.h unistd.h])
+AC_CHECK_HEADERS([float.h inttypes.h stdint.h stdlib.h string.h sys/time.h unistd.h execinfo.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_CHECK_HEADER_STDBOOL
@@ -70,6 +70,9 @@ Ubuntu Linux) or zlib-devel (on RPM-based Linux distributions or Cygwin)
 is installed.
 ])
 fi
+
+hdf_tar_install=autoconf
+hts_tar_install=autoconf
 
 locallibhts=no
 if test "$enable_systemhts" = yes; then
@@ -133,6 +136,8 @@ fi
 
 AC_SUBST([locallibhts])
 AC_SUBST([locallibhdf5])
+AC_SUBST([hdf_tar_install])
+AC_SUBST([hts_tar_install])
 
 
 
