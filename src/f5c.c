@@ -128,7 +128,7 @@ core_t* init_core(const char* bamfilename, const char* fastafile,
 
 void free_core(core_t* core) {
     free(core->model);
-    free(core->cpgmodel);
+    //free(core->cpgmodel);
     delete core->readbb;
     fai_destroy(core->fai);
     sam_itr_destroy(core->itr);
