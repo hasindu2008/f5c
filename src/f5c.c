@@ -738,7 +738,7 @@ void meth_single(core_t* core, db_t* db, int32_t i){
         realign_read(db->fasta_cache[i],
                   db->bam_rec[i],db->read_len[i],
                   0,
-                  &(db->et[i]), core->model,db->base_to_event_map[i],db->scalings[i]);
+                  &(db->et[i]), core->model,db->base_to_event_map[i],db->scalings[i],db->events_per_base[i]);
     }
 }
 
@@ -838,7 +838,7 @@ void process_single(core_t* core, db_t* db,int32_t i) {
     realign_read(db->fasta_cache[i],
                   db->bam_rec[i],db->read_len[i],
                   0,
-                  &(db->et[i]), core->model,db->base_to_event_map[i],db->scalings[i]);    
+                  &(db->et[i]), core->model,db->base_to_event_map[i],db->scalings[i],db->events_per_base[i]);    
 }
 
 void process_db(core_t* core, db_t* db) {

@@ -177,11 +177,13 @@ inline std::vector<BlockTransitions> calculate_transitions(uint32_t num_kmers, c
     //double read_events_per_base = data.read->events_per_base[data.strand];
     double read_events_per_base = events_per_base;
     for(uint32_t ki = 0; ki < num_kmers; ++ki) {
-
+        // if(ki == 0) fprintf(stderr, "double read_events_per_base = %f\n",read_events_per_base );
         // probability of skipping k_i from k_(i - 1)
         //float p_stay = 0.4;
         float p_stay = 1 - (1 / read_events_per_base);
+        // if(ki == 0) fprintf(stderr, "float p_stay = %f\n",p_stay );
 #ifndef USE_EXTERNAL_PARAMS
+        // fprintf(stderr, "ifndef USE_EXTERNAL_PARAMS float p_stay = %f\n",p_stay);
         float p_skip = 0.0025;
         float p_bad = 0.001;
         float p_bad_self = p_bad;
@@ -212,10 +214,10 @@ inline std::vector<BlockTransitions> calculate_transitions(uint32_t num_kmers, c
         // log-transform and store
         BlockTransitions& bt = transitions[ki];
 
-        bt.lp_mm_self = -0.841364;//log(p_mm_self);
+        bt.lp_mm_self = log(p_mm_self);
         bt.lp_mb = log(p_mb);
         bt.lp_mk = log(p_mk);
-        bt.lp_mm_next = -0.570261;//log(p_mm_next);
+        bt.lp_mm_next = log(p_mm_next);
 
         bt.lp_bb = log(p_bb);
         bt.lp_bk = log(p_bk);
@@ -1641,7 +1643,7 @@ void realign_read(char* ref,
                   size_t read_idx,
                   //int region_start,
                   //int region_end, 
-                  event_table* events, model_t* model, index_pair_t* base_to_event_map, scalings_t scalings)
+                  event_table* events, model_t* model, index_pair_t* base_to_event_map, scalings_t scalings,double events_per_base)
 {
     // Load a squiggle read for the mapped read
     std::string read_name = bam_get_qname(record);
@@ -1684,7 +1686,7 @@ void realign_read(char* ref,
         params.scalings = scalings;
 
 
-        params.events_per_base = 1.796117; // this is in the struct db_t. in nanopolish_arm this is the value they have calculate.
+        params.events_per_base = events_per_base; // this is in the struct db_t. in nanopolish_arm this is the value they have calculate.
 
 
         std::vector<event_alignment_t> alignment = align_read_to_ref(params,ref);
