@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include "matrix.h"
 #include <algorithm>
+#include <vector>
 
 #include <fstream>
 #include <string>
@@ -856,6 +857,12 @@ static inline std::vector<HMMAlignmentState> profile_hmm_align(
             case HMT_FROM_SOFT:
                 assert(false);
                 break;
+            case HMT_NUM_MOVEMENT_TYPES:
+                assert(0);
+                break;    
+            default:
+                assert(0);
+                break;    
         }
 
         // update row (event) idx only if this isn't a kmer skip, which is silent
@@ -1710,8 +1717,8 @@ void realign_read(char* ref,
             //const PoreModel* pore_model = params.get_model();
             //SquiggleScalings& scalings = sr.scalings[strand_idx];
             int strand_idx = 0;
-            // fprintf(summary_fp, "%zu\t%s\t", read_idx, read_name.c_str());
-            // fprintf(summary_fp, "%s\t%s\t", "dna", strand_idx == 0 ? "template" : "complement");
+             fprintf(summary_fp, "%zu\t%s\t", read_idx, read_name.c_str());
+             fprintf(summary_fp, "%s\t%s\t", "dna", strand_idx == 0 ? "template" : "complement");
             fprintf(summary_fp, "%d\t%d\t%d\t%d\t", summary.num_events, summary.num_steps, summary.num_skips, summary.num_stays);
             fprintf(summary_fp, "%.2lf\t%.3lf\t%.3lf\t%.3lf\t%.3lf\n", summary.sum_duration/(4000.0), scalings.shift, scalings.scale, 0.0, scalings.var);
         }
