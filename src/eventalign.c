@@ -5,11 +5,17 @@
 #include "matrix.h"
 #include <algorithm>
 
+#include <fstream>
+#include <string>
+#include <iostream>
+
 #include "f5c.h"
 #include "f5cmisc.h"
 
 #define METHYLATED_SYMBOL 'M'
 
+#define TRANS_START_TO_CLIP 0.5
+#define TRANS_CLIP_SELF 0.9
 
 //copy a kmer from a reference
 static inline void kmer_cpy(char* dest, const char* src, uint32_t k) {
@@ -56,6 +62,615 @@ struct HMMAlignmentState
     char state;
 };
 
+// Allocate a vector with the model probabilities of skipping the remaining
+// events after the alignment of event i
+inline std::vector<float> make_post_flanking(const uint32_t e_start,
+                                             const uint32_t num_events,
+                                             int8_t event_stride,
+                                             uint32_t event_stop_idx)
+{
+    // post_flank[i] means that the i-th event was the last one
+    // aligned and the remainder should be emitted from the background model
+    std::vector<float> post_flank(num_events, 0.0f);
+
+    // base case, all events aligned
+    post_flank[num_events - 1] = log(1 - TRANS_START_TO_CLIP);
+
+    if(num_events > 1) {
+        // base case, all events aligned but 1
+        {
+            uint32_t event_idx = e_start + (num_events - 1) * event_stride; // last event
+            assert(event_idx == event_stop_idx);
+            // post_flank[num_events - 2] = log(TRANS_START_TO_CLIP) + // transition from pre to background state
+            //                              log_probability_background(*data.read, event_idx, data.strand) + // emit from background
+            //                              log(1 - TRANS_CLIP_SELF); // transition to silent pre state
+            post_flank[num_events - 2] = log(TRANS_START_TO_CLIP) + // transition from pre to background state
+                                         -3.0f + // emit from background
+                                         log(1 - TRANS_CLIP_SELF); // transition to silent pre state
+        }
+
+        for(int i = num_events - 3; i >= 0; --i) {
+            //uint32_t event_idx = e_start + (i + 1) * event_stride;
+            // post_flank[i] = log(TRANS_CLIP_SELF) +
+            //                 log_probability_background(*data.read, event_idx, data.strand) + // emit from background
+            //                 post_flank[i + 1]; // this accounts for the transition from start, and to silent pre
+            post_flank[i] = log(TRANS_CLIP_SELF) +
+                            -3.0f + // emit from background
+                            post_flank[i + 1]; // this accounts for the transition from start, and to silent pre
+        }
+    }
+    return post_flank;
+}
+
+
+// Allocate a vector with the model probabilities of skipping the first i events
+inline std::vector<float> make_pre_flanking(const uint32_t e_start,
+                                            const uint32_t num_events,
+                                            int8_t event_stride)
+{
+    std::vector<float> pre_flank(num_events + 1, 0.0f);
+
+    // base cases
+
+    // no skipping
+    pre_flank[0] = log(1 - TRANS_START_TO_CLIP);
+
+    // skipping the first event
+    // this includes the transition probability into and out of the skip state
+    // pre_flank[1] = log(TRANS_START_TO_CLIP) + // transition from start to the background state
+    //                log_probability_background(*data.read, e_start, data.strand) + // emit from background
+    //                log(1 - TRANS_CLIP_SELF); // transition to silent pre state
+    pre_flank[1] = log(TRANS_START_TO_CLIP) + // transition from start to the background state
+                   -3.0f + // emit from background
+                   log(1 - TRANS_CLIP_SELF); // transition to silent pre state
+
+    // skip the remaining events
+    for(size_t i = 2; i < pre_flank.size(); ++i) {
+        //uint32_t event_idx = e_start + (i - 1) * event_stride;
+        // pre_flank[i] = log(TRANS_CLIP_SELF) +
+        //                log_probability_background(*data.read, event_idx, data.strand) + // emit from background
+        //                pre_flank[i - 1]; // this accounts for the transition from the start & to the silent pre
+        pre_flank[i] = log(TRANS_CLIP_SELF) +
+                       -3.0f + // emit from background
+                       pre_flank[i - 1]; // this accounts for the transition from the start & to the silent pre
+
+    }
+
+    return pre_flank;
+}
+
+// Pre-computed transitions from the previous block
+// into the current block of states. Log-scaled.
+struct BlockTransitions
+{
+    // Transition from m state (match event to k-mer)
+    float lp_mm_self;
+    float lp_mb;
+    float lp_mk;
+    float lp_mm_next;
+
+    // Transitions from b state (bad event that should be ignored)
+    float lp_bb;
+    float lp_bk;
+    float lp_bm_next; // movement to next k-mer
+    float lp_bm_self; // movement to k-mer that we came from
+
+    // Transitions from k state (no observation from k-mer)
+    float lp_kk;
+    float lp_km;
+};
+
+inline std::vector<BlockTransitions> calculate_transitions(uint32_t num_kmers, const char *m_seq,
+                                                                                const char *m_rc_seq,
+                                                                                event_t* event,
+                                                                                scalings_t scaling,
+                                                                                model_t* cpgmodel,
+                                                                                uint32_t event_start_idx,
+                                                                                uint32_t event_stop_idx,
+                                                                                uint8_t strand,
+                                                                                int8_t event_stride,
+                                                                                uint8_t rc,
+                                                                                double events_per_base)
+{
+    std::vector<BlockTransitions> transitions(num_kmers);
+
+    //double read_events_per_base = data.read->events_per_base[data.strand];
+    double read_events_per_base = events_per_base;
+    for(uint32_t ki = 0; ki < num_kmers; ++ki) {
+        // if(ki == 0) fprintf(stderr, "double read_events_per_base = %f\n",read_events_per_base );
+        // probability of skipping k_i from k_(i - 1)
+        //float p_stay = 0.4;
+        float p_stay = 1 - (1 / read_events_per_base);
+        // if(ki == 0) fprintf(stderr, "float p_stay = %f\n",p_stay );
+#ifndef USE_EXTERNAL_PARAMS
+        // fprintf(stderr, "ifndef USE_EXTERNAL_PARAMS float p_stay = %f\n",p_stay);
+        float p_skip = 0.0025;
+        float p_bad = 0.001;
+        float p_bad_self = p_bad;
+        float p_skip_self = 0.3;
+#else
+        extern float g_p_skip, g_p_skip_self, g_p_bad, g_p_bad_self;
+        float p_skip = g_p_skip;
+        float p_skip_self = g_p_skip_self;
+        float p_bad = g_p_bad;
+        float p_bad_self = g_p_bad_self;
+#endif
+        // transitions from match state in previous block
+        float p_mk = p_skip; // probability of not observing an event at all
+        float p_mb = p_bad; // probabilty of observing a bad event
+        float p_mm_self = p_stay; // probability of observing additional events from this k-mer
+        float p_mm_next = 1.0f - p_mm_self - p_mk - p_mb; // normal movement from state to state
+
+        // transitions from event split state in previous block
+        float p_bb = p_bad_self;
+        float p_bk, p_bm_next, p_bm_self;
+        p_bk = p_bm_next = p_bm_self = (1.0f - p_bb) / 3;
+
+        // transitions from kmer skip state in previous block
+        float p_kk = p_skip_self;
+        float p_km = 1.0f - p_kk;
+        // p_kb not needed, equivalent to B->K
+
+        // log-transform and store
+        BlockTransitions& bt = transitions[ki];
+
+        bt.lp_mm_self = log(p_mm_self);
+        bt.lp_mb = log(p_mb);
+        bt.lp_mk = log(p_mk);
+        bt.lp_mm_next = log(p_mm_next);
+
+        bt.lp_bb = log(p_bb);
+        bt.lp_bk = log(p_bk);
+        bt.lp_bm_next = log(p_bm_next);
+        bt.lp_bm_self = log(p_bm_self);
+
+        bt.lp_kk = log(p_kk);
+        bt.lp_km = log(p_km);
+    }
+
+    return transitions;
+}
+
+
+//todo : can make more efficient using bit encoding
+static inline uint32_t get_rank(char base) {
+    if (base == 'A') { //todo: do we neeed simple alpha?
+        return 0;
+    } else if (base == 'C') {
+        return 1;
+    } else if (base == 'G') {
+        return 2;
+    } else if (base == 'T') {
+        return 3;
+    } else {
+        WARNING("A None ACGT base found : %c", base);
+        return 0;
+    }
+}
+
+// // return the lexicographic rank of the kmer amongst all strings of
+// // length k for this alphabet
+// static inline uint32_t get_kmer_rank(const char* str, uint32_t k) {
+//     uint32_t p = 1;
+//     uint32_t r = 0;
+
+//     // from last base to first
+//     for (uint32_t i = 0; i < k; ++i) {
+//         //r += rank(str[k - i - 1]) * p;
+//         //p *= size();
+//         r += get_rank(str[k - i - 1]) * p;
+//         p *= 5;
+//     }
+//     return r;
+// }
+
+
+// return the lexicographic rank of the kmer amongst all strings of
+// length k for this alphabet
+static inline uint32_t get_kmer_rank(const char* str, uint32_t k) {
+    //uint32_t p = 1;
+    uint32_t r = 0;
+
+    // from last base to first
+    for (uint32_t i = 0; i < k; ++i) {
+        //r += rank(str[k - i - 1]) * p;
+        //p *= size();
+        r += get_rank(str[k - i - 1]) << (i << 1);
+    }
+    return r;
+}
+
+static inline float log_normal_pdf(float x, float gp_mean, float gp_stdv,
+                                   float gp_log_stdv) {
+    /*INCOMPLETE*/
+    float log_inv_sqrt_2pi = -0.918938f; // Natural logarithm
+    float a = (x - gp_mean) / gp_stdv;
+    return log_inv_sqrt_2pi - gp_log_stdv + (-0.5f * a * a);
+    // return 1;
+}
+
+static inline float log_probability_match_r9(scalings_t scaling,
+                                             model_t* models,
+                                             event_t* event, int event_idx,
+                                             uint32_t kmer_rank, uint8_t strand,
+                                             float sample_rate) {
+    // event level mean, scaled with the drift value
+    strand = 0;
+    assert(kmer_rank < 15625);
+    //float level = read.get_drift_scaled_level(event_idx, strand);
+
+    //float time =
+    //    (events.event[event_idx].start - events.event[0].start) / sample_rate;
+    float unscaledLevel = event[event_idx].mean;
+    float scaledLevel = unscaledLevel;
+    //float scaledLevel = unscaledLevel - time * scaling.shift;
+
+    //fprintf(stderr, "level %f\n",scaledLevel);
+    //GaussianParameters gp = read.get_scaled_gaussian_from_pore_model_state(pore_model, strand, kmer_rank);
+    float gp_mean =
+        scaling.scale * models[kmer_rank].level_mean + scaling.shift;
+    float gp_stdv = models[kmer_rank].level_stdv * scaling.var;
+    // float gp_stdv = 0;
+    // float gp_log_stdv = models[kmer_rank].level_log_stdv + scaling.log_var;
+    // if(models[kmer_rank].level_stdv <0.01 ){
+    //  fprintf(stderr,"very small std dev %f\n",models[kmer_rank].level_stdv);
+    // }
+#ifdef CACHED_LOG
+    float gp_log_stdv =
+        models[kmer_rank].level_log_stdv + scaling.log_var;
+#else
+    float gp_log_stdv =
+        log(models[kmer_rank].level_stdv) + log(scaling.var);
+#endif
+
+    float lp = log_normal_pdf(scaledLevel, gp_mean, gp_stdv, gp_log_stdv);
+    return lp;
+}
+
+
+// This function fills in a matrix with the result of running the HMM.
+// The templated ProfileHMMOutput class allows one to run either Viterbi
+// or the Forward algorithm.
+template<class ProfileHMMOutput>
+inline float profile_hmm_fill_generic_r9(const char *m_seq,
+                                         const char *m_rc_seq,
+                                        event_t* event,
+                                        scalings_t scaling,
+                                        model_t* cpgmodel,
+                                        uint32_t event_start_idx,
+                                        uint32_t event_stop_idx,
+                                        uint8_t strand,
+                                        int8_t event_stride,
+                                        uint8_t rc,
+                                        const uint32_t e_start,
+                                        double events_per_base,
+                                        uint32_t hmm_flags,
+                                        ProfileHMMOutput& output){
+    // PROFILE_FUNC("profile_hmm_fill_generic")
+    // HMMInputSequence sequence = _sequence;
+    // HMMInputData data = _data;
+    assert( (rc && event_stride == -1) || (!rc && event_stride == 1));
+
+#if HMM_REVERSE_FIX
+    fprintf(stderr, "HMM_REVERSE_FIX\n");
+    if(event_stride == -1) {
+        // sequence.swap();
+        char *temp = m_seq;
+        m_seq = m_rc_seq;
+        m_rc_seq = temp;
+        uint32_t tmp = event_stop_idx;
+        event_stop_idx = event_start_idx;
+        event_start_idx = tmp;
+        event_stride = 1;
+        rc = false;
+    }
+#endif
+
+    //e_start = event_start_idx;
+
+    // Calculate number of blocks
+    // A block of the HMM is a set of states for one kmer
+    uint32_t num_blocks = output.get_num_columns() / PSR9_NUM_STATES;
+    //fprintf(stderr,"%d %d\n",output.get_num_columns(),PSR9_NUM_STATES);
+    uint32_t last_event_row_idx = output.get_num_rows() - 1;
+
+    // Precompute the transition probabilites for each kmer block
+    uint32_t num_kmers = num_blocks - 2; // two terminal blocks
+    uint32_t last_kmer_idx = num_kmers - 1;
+
+
+
+
+    std::vector<BlockTransitions> transitions = calculate_transitions(num_kmers,
+                                                                        m_seq,
+                                                                        m_rc_seq,
+                                                                        event,
+                                                                        scaling,
+                                                                        cpgmodel,
+                                                                        event_start_idx,
+                                                                        event_stop_idx,
+                                                                        strand,
+                                                                        event_stride,
+                                                                        rc,
+                                                                        events_per_base);
+
+    // fprintf(stderr, "std::vector<BlockTransitions> transitions len = %d\n",transitions.size());
+
+    // std::ofstream wBlockTransitions("wBlockTransitions");
+    // for(size_t i = 0; i < transitions.size(); i++){
+    //     BlockTransitions b = transitions[i];
+    //     wBlockTransitions << b.lp_mm_self << " " << b.lp_mb << " " << b.lp_mk << " " << b.lp_mm_next << "\n";
+    //     wBlockTransitions << b.lp_bm_self << " " << b.lp_bb << " " << b.lp_bk << " " << b.lp_bm_next << "\n";
+    //     wBlockTransitions << b.lp_km << " " << b.lp_kk << "\n";
+    // }
+    // Precompute kmer ranks
+    // const uint32_t k = data.pore_model->k;
+    //const uint32_t k = KMER_SIZE;
+    // Make sure the HMMInputSequence's alphabet matches the state space of the read
+
+
+    ////change start
+
+    // assert( data.pore_model->states.size() == sequence.get_num_kmer_ranks(k) );
+
+    std::vector<uint32_t> kmer_ranks(num_kmers);
+
+    //todo : pre-calculate
+    int32_t seq_len = strlen(m_seq);
+
+    // std::ofstream wkmer_ranks("wkmer_ranks");
+    //check : this might be reverse cmplement kmer rnak
+    for(size_t ki = 0; ki < num_kmers; ++ki){
+        const char* substring = 0;
+        if(rc==0){
+            substring=m_seq+ki;
+        }
+        else{
+            substring=m_rc_seq+seq_len-ki-KMER_SIZE;
+        }
+
+        // kmer_ranks[ki] = sequence.get_kmer_rank(ki, k, data.rc);
+        kmer_ranks[ki] = get_kmer_rank(substring,KMER_SIZE);
+        // wkmer_ranks << kmer_ranks[ki] << " ";
+    }
+
+
+    ///change over
+
+    size_t num_events = output.get_num_rows() - 1;
+
+    std::vector<float> pre_flank = make_pre_flanking(e_start, num_events,event_stride);
+    std::vector<float> post_flank = make_post_flanking(e_start, num_events,event_stride,event_stop_idx);
+
+
+    // std::ofstream wpre_flank("wpre_flank");
+    // for(size_t i = 0; i < pre_flank.size(); i++){
+    //     wpre_flank << pre_flank[i] << " ";
+    // }
+    // std::ofstream wpost_flank("wpost_flank");
+    // for(size_t i = 0; i < post_flank.size(); i++){
+    //     wpost_flank << post_flank[i] << " ";
+    // }
+
+    // The model is currently constrainted to always transition
+    // from the terminal/clipped state to the first kmer (and from the
+    // last kmer to the terminal/clipping state so these are log(1.0).
+    // They are kept as variables as it might be relaxed later.
+    float lp_sm, lp_ms;
+    lp_sm = lp_ms = 0.0f;
+
+    // the penalty is controlled by the transition probability
+    float BAD_EVENT_PENALTY = 0.0f;
+    // std::ofstream wlp_emission_m("wlp_emission_m");
+    // fprintf(stderr, "num_blocks = %d\n",num_blocks);
+    // Fill in matrix
+    size_t tester_inside = 0;
+
+    for(uint32_t row = 1; row < output.get_num_rows(); row++) {
+    // for(uint32_t row = 1; row < 2; row++) {
+        // Skip the first block which is the start state, it was initialized above
+        // Similarily skip the last block, which is calculated in the terminate() function
+        for(uint32_t block = 1; block < num_blocks - 1; block++) {
+// for(uint32_t block = 1; block < 3; block++) {
+            // retrieve transitions
+            uint32_t kmer_idx = block - 1;
+            BlockTransitions& bt = transitions[kmer_idx];
+
+            uint32_t prev_block = block - 1;
+            uint32_t prev_block_offset = PSR9_NUM_STATES * prev_block;
+            uint32_t curr_block_offset = PSR9_NUM_STATES * block;
+            // fprintf(stderr, "prev_block = %d prev_block_offset= %d curr_block_offset= %d \n",prev_block,prev_block_offset,curr_block_offset);
+            // Emission probabilities
+            uint32_t event_idx = e_start + (row - 1) * event_stride;
+            uint32_t rank = kmer_ranks[kmer_idx];
+            // fprintf(stderr, "event_idx = %d rank= %d \n",event_idx,rank);
+            // float lp_emission_m = log_probability_match_r9(*data.read, *data.pore_model, rank, event_idx, data.strand);
+            float lp_emission_m =
+                log_probability_match_r9(scaling, cpgmodel, event, event_idx,rank, strand, 0);
+            // wlp_emission_m << lp_emission_m << " ";
+            // fprintf(stderr, "float lp_emission_m = %f\n",lp_emission_m );
+
+            //fprintf(stderr,"m_seq %s, event_idx %d, kmer_rank %d, log prob : %f\n",m_seq,event_idx,rank,lp_emission_m);
+            //fprintf(stderr,"e_start %d, row %d, event_stride %d, block %d, num_block %d\n",e_start,row,event_stride,block,num_blocks);
+            float lp_emission_b = BAD_EVENT_PENALTY;
+            HMMUpdateScores scores;
+
+            // state PSR9_MATCH
+            scores.x[HMT_FROM_SAME_M] = bt.lp_mm_self + output.get(row - 1, curr_block_offset + PSR9_MATCH);
+            scores.x[HMT_FROM_PREV_M] = bt.lp_mm_next + output.get(row - 1, prev_block_offset + PSR9_MATCH);
+            scores.x[HMT_FROM_SAME_B] = bt.lp_bm_self + output.get(row - 1, curr_block_offset + PSR9_BAD_EVENT);
+            scores.x[HMT_FROM_PREV_B] = bt.lp_bm_next + output.get(row - 1, prev_block_offset + PSR9_BAD_EVENT);
+            scores.x[HMT_FROM_PREV_K] = bt.lp_km + output.get(row - 1, prev_block_offset + PSR9_KMER_SKIP);
+
+            // m_s is the probability of going from the start state
+            // to this kmer. The start state is (currently) only
+            // allowed to go to the first kmer. If ALLOW_PRE_CLIP
+            // is defined, we allow all events before this one to be skipped,
+            // with a penalty;
+            scores.x[HMT_FROM_SOFT] = (kmer_idx == 0 &&
+                                        (event_idx == e_start ||
+                                             (hmm_flags & HAF_ALLOW_PRE_CLIP))) ? lp_sm + pre_flank[row - 1] : -INFINITY;
+            // fprintf(stderr, "%f %f %f %f %f %f %f \n",scores.x[0],scores.x[1],scores.x[2],scores.x[3],scores.x[4],scores.x[5]);                           
+
+            output.update_cell(row, curr_block_offset + PSR9_MATCH, scores, lp_emission_m);
+            // fprintf(stderr, "cell value = %f\n",output.get(row, curr_block_offset + PSR9_MATCH));
+    
+            // state PSR9_BAD_EVENT
+            scores.x[HMT_FROM_SAME_M] = bt.lp_mb + output.get(row - 1, curr_block_offset + PSR9_MATCH);
+            scores.x[HMT_FROM_PREV_M] = -INFINITY; // not allowed
+            scores.x[HMT_FROM_SAME_B] = bt.lp_bb + output.get(row - 1, curr_block_offset + PSR9_BAD_EVENT);
+            scores.x[HMT_FROM_PREV_B] = -INFINITY;
+            scores.x[HMT_FROM_PREV_K] = -INFINITY;
+            scores.x[HMT_FROM_SOFT] = -INFINITY;
+            // fprintf(stderr, "%f %f %f %f %f %f %f \n",scores.x[0],scores.x[1],scores.x[2],scores.x[3],scores.x[4],scores.x[5]);                           
+            output.update_cell(row, curr_block_offset + PSR9_BAD_EVENT, scores, lp_emission_b);
+            // fprintf(stderr, "cell value = %f\n",output.get(row, curr_block_offset + PSR9_BAD_EVENT));
+
+
+            // state PSR9_KMER_SKIP
+            scores.x[HMT_FROM_SAME_M] = -INFINITY;
+            scores.x[HMT_FROM_PREV_M] = bt.lp_mk + output.get(row, prev_block_offset + PSR9_MATCH);
+            scores.x[HMT_FROM_SAME_B] = -INFINITY;
+            scores.x[HMT_FROM_PREV_B] = bt.lp_bk + output.get(row, prev_block_offset + PSR9_BAD_EVENT);
+            scores.x[HMT_FROM_PREV_K] = bt.lp_kk + output.get(row, prev_block_offset + PSR9_KMER_SKIP);
+            scores.x[HMT_FROM_SOFT] = -INFINITY;
+            output.update_cell(row, curr_block_offset + PSR9_KMER_SKIP, scores, 0.0f); // no emission
+
+            // If POST_CLIP is enabled we allow the last kmer to transition directly
+            // to the end after any event. Otherwise we only allow it from the
+            // last kmer/event match.
+                tester_inside++;
+            if(kmer_idx == last_kmer_idx && ( (hmm_flags & HAF_ALLOW_POST_CLIP) || row == last_event_row_idx)) {
+                // fprintf(stderr, "inside\n");    
+                float lp1 = lp_ms + output.get(row, curr_block_offset + PSR9_MATCH) + post_flank[row - 1];
+                float lp2 = lp_ms + output.get(row, curr_block_offset + PSR9_BAD_EVENT) + post_flank[row - 1];
+                float lp3 = lp_ms + output.get(row, curr_block_offset + PSR9_KMER_SKIP) + post_flank[row - 1];
+
+                output.update_end(lp1, row, curr_block_offset + PSR9_MATCH);
+                output.update_end(lp2, row, curr_block_offset + PSR9_BAD_EVENT);
+                output.update_end(lp3, row, curr_block_offset + PSR9_KMER_SKIP);
+            }
+
+#ifdef DEBUG_LOCAL_ALIGNMENT
+            fprintf(stderr, "%s\n","DEBUG_LOCAL_ALIGNMENT" );
+            printf("[%d %d] start: %.2lf  pre: %.2lf fm: %.2lf\n", event_idx, kmer_idx, m_s + lp_emission_m, pre_flank[row - 1], output.get(row, curr_block_offset + PSR9_MATCH));
+            printf("[%d %d]   end: %.2lf post: %.2lf\n", event_idx, kmer_idx, lp_end, post_flank[row - 1]);
+#endif
+
+#ifdef DEBUG_FILL
+            fprintf(stderr, "%s\n","DEBUG_FILL" );
+            printf("Row %u block %u\n", row, block);
+
+            printf("\tPSR9_MATCH -- Transitions: [%.3lf %.3lf %.3lf %.3lf %.3lf] Prev: [%.2lf %.2lf %.2lf %.2lf %.2lf] out: %.2lf\n",
+                    bt.lp_mm_self, bt.lp_mm_next, bt.lp_bm_self, bt.lp_bm_next, bt.lp_km,
+                    output.get(row - 1, prev_block_offset + PSR9_MATCH),
+                    output.get(row - 1, curr_block_offset + PSR9_MATCH),
+                    output.get(row - 1, prev_block_offset + PSR9_BAD_EVENT),
+                    output.get(row - 1, curr_block_offset + PSR9_BAD_EVENT),
+                    output.get(row - 1, prev_block_offset + PSR9_KMER_SKIP),
+                    output.get(row, curr_block_offset + PSR9_MATCH));
+            printf("\tPSR9_BAD_EVENT -- Transitions: [%.3lf %.3lf] Prev: [%.2lf %.2lf] out: %.2lf\n",
+                    bt.lp_mb, bt.lp_bb,
+                    output.get(row - 1, curr_block_offset + PSR9_MATCH),
+                    output.get(row - 1, curr_block_offset + PSR9_BAD_EVENT),
+                    output.get(row, curr_block_offset + PSR9_BAD_EVENT));
+
+            printf("\tPSR9_KMER_SKIP -- Transitions: [%.3lf %.3lf %.3lf] Prev: [%.2lf %.2lf %.2lf] sum: %.2lf\n",
+                    bt.lp_mk, bt.lp_bk, bt.lp_kk,
+                    output.get(row, prev_block_offset + PSR9_MATCH),
+                    output.get(row, prev_block_offset + PSR9_BAD_EVENT),
+                    output.get(row, prev_block_offset + PSR9_KMER_SKIP),
+                    output.get(row, curr_block_offset + PSR9_KMER_SKIP));
+
+            printf("\tEMISSION: %.2lf %.2lf\n", lp_emission_m, lp_emission_b);
+#endif
+        }
+    }
+    // fprintf(stderr, "output.get_end() = %f\n",output.get_end() );
+        // fprintf(stderr, "tester_inside = %d\n",tester_inside );
+
+    // std::ofstream woutput_mat("woutput_mat");
+    // for(size_t i = 0 ; i < output.get_num_rows(); i++){
+    //     for(size_t j = 0 ; j < output.get_num_columns(); j++){
+    //         woutput_mat << output.get(i,j) << " ";
+    //     }
+    // }    
+    return output.get_end();
+}
+
+
+
+
+// Output writer for the Viterbi Algorithm
+class ProfileHMMViterbiOutputR9
+{
+    public:
+        ProfileHMMViterbiOutputR9(FloatMatrix* pf, UInt8Matrix* pb) : p_fm(pf), p_bm(pb), lp_end(-INFINITY) {}
+        
+        inline void update_cell(uint32_t row, uint32_t col, const HMMUpdateScores& scores, float lp_emission)
+        {
+            // probability update
+            float max = scores.x[0];
+            uint8_t from = 0;
+            for(auto i = 1; i < HMT_NUM_MOVEMENT_TYPES; ++i) {
+                max = scores.x[i] > max ? scores.x[i] : max;
+                from = max == scores.x[i] ? i : from;
+            }
+
+            set(*p_fm, row, col, max + lp_emission);
+            set(*p_bm, row, col, from);
+        }
+        
+        // add in the probability of ending the alignment at row,col
+        inline void update_end(float v, uint32_t row, uint32_t col)
+        {
+            if(v > lp_end) {
+                lp_end = v;
+                end_row = row;
+                end_col = col;
+            }
+        }
+
+        // get the log probability stored at a particular row/column
+        inline float get(uint32_t row, uint32_t col) const
+        {
+            return ::get(*p_fm, row, col);
+        }
+
+        // get the log probability for the end state
+        inline float get_end() const
+        {
+            return lp_end;
+        }
+        
+        // get the row/col that lead to the end state
+        inline void get_end_cell(uint32_t& row, uint32_t& col)
+        {
+            row = end_row;
+            col = end_col;
+        }
+
+        inline size_t get_num_columns() const
+        {
+            return p_fm->n_cols;
+        }
+
+        inline size_t get_num_rows() const
+        {
+            return p_fm->n_rows;
+        }
+    
+    private:
+        ProfileHMMViterbiOutputR9(); // not allowed
+
+        FloatMatrix* p_fm;
+        UInt8Matrix* p_bm;
+
+        float lp_end;
+        uint32_t end_row;
+        uint32_t end_col;
+};
+
 static inline void profile_hmm_forward_initialize_r9(FloatMatrix& fm)
 {
     // initialize forward calculation
@@ -74,7 +689,15 @@ static inline void profile_hmm_forward_initialize_r9(FloatMatrix& fm)
 static inline char ps2char(ProfileStateR9 ps) { return "KBMNS"[ps]; }
 
 
-static inline std::vector<HMMAlignmentState> profile_hmm_align(std::string fwd_subseq,std::string rc_subseq,
+static inline std::vector<HMMAlignmentState> profile_hmm_align(
+    std::string fwd_subseq,
+    std::string rc_subseq,
+    event_t* event,
+    scalings_t scaling,
+    model_t* cpgmodel,
+    double events_per_base,
+    uint8_t strand,
+    uint8_t rc,
     uint32_t k, //KMER_SIZE
     uint32_t e_start, //curr_start_event;
     uint32_t e_end, //input_event_stop_idx
@@ -91,19 +714,80 @@ static inline std::vector<HMMAlignmentState> profile_hmm_align(std::string fwd_s
     assert(n_events >= 2);
     uint32_t n_rows = n_events + 1;
     // Allocate a matrix to hold the HMM result
+    // fprintf(stderr, "n_states = %d\n",n_states);
     FloatMatrix vm;
     allocate_matrix(vm, n_rows, n_states);
     UInt8Matrix bm;
     allocate_matrix(bm, n_rows, n_states);
+    // fprintf(stderr, "n_kmers = %d n_states = %d\n",n_kmers,n_states);
+    // std::ofstream wfile_bm("wbfile_bm");
+    // for(size_t i = 0; i < n_rows; i++){
+    //     for(size_t j = 0; j < n_states; j++){
+    //         wfile_bm << get(bm, i, j);
+    //     }
+    // }
+    ProfileHMMViterbiOutputR9 output(&vm, &bm);
+    //printing output
+    // std::ofstream woutput_mat("woutput_mat");
+    // for(size_t i = 0 ; i < n_rows; i++){
+    //     for(size_t j = 0 ; j < n_states; j++){
+    //         woutput_mat << output.get(i,j) << " ";
+    //     }
+    // }
 
-    profile_hmm_forward_initialize_r9(vm);
+    profile_hmm_forward_initialize_r9(vm);//profile_hmm_viterbi_initialize_r9(vm);
+    uint32_t hmm_flags = 0; // as in nanopolish
+
+    // std::ofstream wfile_vm("wvfile_vm");
+    // for(size_t i = 0; i < n_rows; i++){
+    //     for(size_t j = 0; j < n_states; j++){
+    //         wfile_vm << get(vm, i, j);
+    //     }
+    // }
+
+
+    // std::ofstream woutput_mat_2("woutput_mat_2");
+    // for(size_t i = 0 ; i < n_rows; i++){
+    //     for(size_t j = 0 ; j < n_states; j++){
+    //         woutput_mat_2 << output.get(i,j) << " ";
+    //     }
+    // }
+
+    profile_hmm_fill_generic_r9(fwd_subseq.c_str(),
+                                rc_subseq.c_str(),
+                                event,
+                                scaling,
+                                cpgmodel,
+                                e_start,
+                                e_end,
+                                strand,     
+                                event_stride,
+                                rc,
+                                e_start,
+                                events_per_base,
+                                hmm_flags,
+                                output);
+    // std::ofstream woutput_mat_3("woutput_mat_3");
+    // for(size_t i = 0 ; i < n_rows; i++){
+    //     for(size_t j = 0 ; j < n_states; j++){
+    //         woutput_mat_3 << output.get(i,j) << " ";
+    //     }
+    // }
+   
+
+
    //? profile_hmm_fill_generic_r9(sequence, data, e_start, flags, output);
      // Traverse the backtrack matrix to compute the results
     int traversal_stride = event_stride;
 
+
+
+    // checking if the vars are the same
+
 #if HMM_REVERSE_FIX
     // Hack to support the fixed HMM
     // TODO: clean up
+    fprintf(stderr, "HMM_REVERSE_FIX\n");
     traversal_stride = 1;
     if(event_stride == -1) {
         e_start = event_stop_idx;
@@ -113,17 +797,22 @@ static inline std::vector<HMMAlignmentState> profile_hmm_align(std::string fwd_s
     // start from the last event matched to the last kmer
     uint32_t row = n_rows - 1;
     uint32_t col = PSR9_NUM_STATES * n_kmers + PSR9_MATCH;
+    // fprintf(stderr, "row = %d\n",row);
+    size_t tester_j = 0;
+    // std::ofstream wrow("wrow");
 
     while(row > 0) {
-        
+        tester_j++;
         uint32_t event_idx = e_start + (row - 1) * traversal_stride;
         uint32_t block = col / PSR9_NUM_STATES;
         uint32_t kmer_idx = block - 1;
         ProfileStateR9 curr_ps = (ProfileStateR9) (col % PSR9_NUM_STATES);
 
 #if DEBUG_BACKTRACK
+        fprintf(stderr, "DEBUG_BACKTRACK\n");
         printf("backtrace %zu %zu coord: (%zu, %zu, %zu) state: %d\n", event_idx, kmer_idx, row, col, block, curr_ps);
 #endif
+
         assert(block > 0);
         assert(get(vm, row, col) != -INFINITY);
 
@@ -139,10 +828,11 @@ static inline std::vector<HMMAlignmentState> profile_hmm_align(std::string fwd_s
         // Update the event (row) and k-mer using the backtrack matrix
         HMMMovementType movement = (HMMMovementType)get(bm, row, col);
         if(movement == HMT_FROM_SOFT) {
+            // fprintf(stderr, "HMT_FROM_SOFT , row = %d \n", row);
             break;
         }
-
-         // update kmer_idx and state
+        
+        // update kmer_idx and state
         ProfileStateR9 next_ps;
         switch(movement) {
             case HMT_FROM_SAME_M: 
@@ -166,18 +856,19 @@ static inline std::vector<HMMAlignmentState> profile_hmm_align(std::string fwd_s
             case HMT_FROM_SOFT:
                 assert(false);
                 break;
-            default:
-                assert(0);
-                break;    
         }
 
-         // update row (event) idx only if this isn't a kmer skip, which is silent
+        // update row (event) idx only if this isn't a kmer skip, which is silent
         if(curr_ps != PSR9_KMER_SKIP) {
             row -= 1;
+            // fprintf(stderr, "inside row = %d\n",row);
         }
+            // wrow << row << " ";
 
         col = PSR9_NUM_STATES * (kmer_idx + 1) + next_ps;
     }
+    // fprintf(stderr, "row = %d\n",row);
+    // fprintf(stderr, "tester_j = %d\n",tester_j);    
 
 #if HMM_REVERSE_FIX
 // change the strand of the kmer indices if we aligned to the reverse strand
@@ -540,6 +1231,8 @@ struct EventAlignmentParameters
     const bam1_t* record;
     model_t* model;
     //size_t strand_idx;
+
+    double events_per_base;
     
     // optional
     std::string alphabet;
@@ -576,13 +1269,15 @@ struct EventAlignmentParameters
     //                                               bam_endpos(params.record), &fetched_len);
     // hasindu - a hack to get the reference sequence
     std::string ref_seq = ref;
+    // fprintf(stderr, "std::string ref_seq len = %d\n",ref_seq.length());
+
+    
 
     // convert to upper case
     std::transform(ref_seq.begin(), ref_seq.end(), ref_seq.begin(), ::toupper);
     
     // k from read pore model
     const uint32_t k = KMER_SIZE;
-
     // If the reference sequence contains ambiguity codes
     // switch them to the lexicographically lowest base
     ref_seq =disambiguate(ref_seq);
@@ -596,11 +1291,23 @@ struct EventAlignmentParameters
 
     // Get the read-to-reference aligned segments
     std::vector<AlignedSegment> aligned_segments = get_aligned_segments_two_params(params.record,1);
+    // fprintf(stderr, "std::vector<AlignedSegment> aligned_segments len= %d\n",aligned_segments.size());
+    // fprintf(stderr, "std::vector<AlignedPair> aligned_segments[0] len= %d\n",aligned_segments[0].size());
+
+    // std::ofstream file_wrong("wfile_worng");
+    // for(size_t i = 0; i < aligned_segments[0].size(); i++){
+    //     int ref_pos_0 = aligned_segments[0][i].ref_pos;
+    //     int read_pos_0 = aligned_segments[0][i].read_pos;
+    //     file_wrong  << ref_pos_0 << " " << read_pos_0 << "\n" ;
+    // }
+
+
     for(size_t segment_idx = 0; segment_idx < aligned_segments.size(); ++segment_idx) {
 
         AlignedSegment& aligned_pairs = aligned_segments[segment_idx];
 
         if(params.region_start != -1 && params.region_end != -1) {
+            fprintf(stderr, "params.region_start = %d params.region_end = %d\n",params.region_start,params.region_end);
             trim_aligned_pairs_to_ref_region(aligned_pairs, params.region_start, params.region_end);
         }
 
@@ -635,11 +1342,20 @@ struct EventAlignmentParameters
 
         int curr_start_event = first_event;
         int curr_start_ref = aligned_pairs.front().ref_pos;
-        int curr_pair_idx = 0;
 
+//before while starts let's check all the vars
+        // fprintf(stderr, "do_base_rc =  %s\n", do_base_rc ? "true" : "false");
+        // fprintf(stderr, "first_event = %d last_event = %d\n",first_event,last_event);
+        // fprintf(stderr, "forward =  %s\n", forward ? "true" : "false");
+        // fprintf(stderr, "curr_start_event = %d curr_start_ref = %d\n",curr_start_event,curr_start_ref);
+
+
+
+        int curr_pair_idx = 0;
+        size_t tester_i = 0;
         while( (forward && curr_start_event < last_event) ||
                (!forward && curr_start_event > last_event)) {
-
+        // while(tester_i == 0 ){
             // Get the index of the aligned pair approximately align_stride away
             int end_pair_idx = get_end_pair(aligned_pairs, curr_start_ref + align_stride, curr_pair_idx);
         
@@ -659,6 +1375,11 @@ struct EventAlignmentParameters
             assert(fwd_subseq.length() == rc_subseq.length());
 
      //?       HMMInputSequence hmm_sequence(fwd_subseq, rc_subseq, pore_model->pmalphabet);
+
+            //lets print the things used to build hmm_sequence
+            // std::ofstream wfile("wfile");
+            // wfile << fwd_subseq << "\n";
+            // wfile << rc_subseq << "\n";
             
             // Require a minimum amount of sequence to align to
             if(fwd_subseq.length() < 2 * k) {
@@ -676,11 +1397,39 @@ struct EventAlignmentParameters
             if(abs((int)curr_start_event - input_event_stop_idx < 2))
                 break;
 
+            uint8_t input_strand = 0;
 
 
             int8_t event_stride = curr_start_event < input_event_stop_idx ? 1 : -1;  
-            std::vector<HMMAlignmentState> event_alignment = profile_hmm_align(fwd_subseq, rc_subseq, k,curr_start_event,input_event_stop_idx,event_stride);
             
+            // fprintf(stderr, "event_stride =  %d\n",event_stride);
+            uint8_t input_rc = rc_flags[input_strand];
+
+            std::vector<HMMAlignmentState> event_alignment = profile_hmm_align(
+                fwd_subseq, //std::string fwd_subseq,
+                rc_subseq,  //std::string rc_subseq,
+                params.et->event,  //event_t* event,
+                params.scalings,     //scalings_t scaling,
+                params.model,    //model_t* cpgmodel,
+                params.events_per_base, // double events_per_base
+                input_strand,  //uint8_t strand,
+                input_rc,   //uint8_t rc,
+                k,  //uint32_t k, //KMER_SIZE
+                curr_start_event,   //uint32_t e_start, //curr_start_event;
+                input_event_stop_idx,   //uint32_t e_end, //input_event_stop_idx
+                event_stride);  //int8_t event_stride) // event_stride 
+            
+
+
+            // fprintf(stderr, "std::vector<HMMAlignmentState> event_alignment len= %d\n",event_alignment.size());
+
+            // std::ofstream wfile("wfile");
+            // for(size_t i = 0; i < event_alignment.size(); i++){
+            //     char state = event_alignment[i].state;
+            //     wfile << state ;//<< " " << read_pos_0 << "\n" ;
+            // }
+
+
             // Output alignment
             size_t num_output = 0;
             size_t event_align_idx = 0;
@@ -688,28 +1437,14 @@ struct EventAlignmentParameters
             // If we aligned to the last event, output everything and stop
             bool last_section = end_pair_idx == (int)aligned_pairs.size() - 1;
 
-            /*
-            // Don't allow the segment to end on an E state or else we get alignment
-            // artifacts at the segment boundary
-            if(!last_section) {
-                size_t last_match_index = event_alignment.size() - 1;
-                while(event_alignment[last_match_index].state != 'M') {
-                    last_match_index -= 1;
-                }
-
-                event_alignment.resize(last_match_index + 1);
-                if(event_alignment.empty()) {
-                    break;
-                }
-                assert(event_alignment.back().state == 'M');
-            }
-            */
+           
 
             int last_event_output = 0;
             int last_ref_kmer_output = 0;
-
+            
             for(; event_align_idx < event_alignment.size() && 
                   (num_output < output_stride || last_section); event_align_idx++) {
+
 
                 HMMAlignmentState& as = event_alignment[event_align_idx];
                 if(as.state != 'K' && (int)as.event_idx != curr_start_event) {
@@ -759,7 +1494,6 @@ struct EventAlignmentParameters
                     num_output += 1;
                 }
             }
-
             // Advance the pair iterator to the ref base
             curr_start_event = last_event_output;
             curr_start_ref = last_ref_kmer_output;
@@ -778,9 +1512,12 @@ struct EventAlignmentParameters
             if(num_output == 0) {
                 break;
             }
+            tester_i++;
         } // for realignmentsegment
+        // fprintf(stderr, "tester_i = %d\n",tester_i);
     } // for bam aligned segment
-
+    // fprintf(stderr, "alignment_output len = %d\n",alignment_output.size());
+    // assert(alignment_output.size() == 4451);
     return alignment_output;
 }
 
@@ -819,36 +1556,9 @@ inline float get_duration(const event_table* events, uint32_t event_idx)
     return (events->event)[event_idx].length;
 }
 
-//todo : can make more efficient using bit encoding
-static inline uint32_t get_rank(char base) {
-    if (base == 'A') { //todo: do we neeed simple alpha?
-        return 0;
-    } else if (base == 'C') {
-        return 1;
-    } else if (base == 'G') {
-        return 2;
-    } else if (base == 'T') {
-        return 3;
-    } else {
-        WARNING("A None ACGT base found : %c", base);
-        return 0;
-    }
-}
 
-// return the lexicographic rank of the kmer amongst all strings of
-// length k for this alphabet
-static inline uint32_t get_kmer_rank(const char* str, uint32_t k) {
-    //uint32_t p = 1;
-    uint32_t r = 0;
 
-    // from last base to first
-    for (uint32_t i = 0; i < k; ++i) {
-        //r += rank(str[k - i - 1]) * p;
-        //p *= size();
-        r += get_rank(str[k - i - 1]) << (i << 1);
-    }
-    return r;
-}
+
 
 
 
@@ -933,7 +1643,7 @@ void realign_read(char* ref,
                   size_t read_idx,
                   //int region_start,
                   //int region_end, 
-                  event_table* events, model_t* model, index_pair_t* base_to_event_map, scalings_t scalings)
+                  event_table* events, model_t* model, index_pair_t* base_to_event_map, scalings_t scalings,double events_per_base)
 {
     // Load a squiggle read for the mapped read
     std::string read_name = bam_get_qname(record);
@@ -975,6 +1685,10 @@ void realign_read(char* ref,
         params.base_to_event_map = base_to_event_map;
         params.scalings = scalings;
 
+
+        params.events_per_base = events_per_base; // this is in the struct db_t. in nanopolish_arm this is the value they have calculate.
+
+
         std::vector<event_alignment_t> alignment = align_read_to_ref(params,ref);
 
         //-- hasindu : output writing will be done outside of this function
@@ -996,8 +1710,8 @@ void realign_read(char* ref,
             //const PoreModel* pore_model = params.get_model();
             //SquiggleScalings& scalings = sr.scalings[strand_idx];
             int strand_idx = 0;
-            fprintf(summary_fp, "%zu\t%s\t", read_idx, read_name.c_str());
-            fprintf(summary_fp, "%s\t%s\t", "dna", strand_idx == 0 ? "template" : "complement");
+            // fprintf(summary_fp, "%zu\t%s\t", read_idx, read_name.c_str());
+            // fprintf(summary_fp, "%s\t%s\t", "dna", strand_idx == 0 ? "template" : "complement");
             fprintf(summary_fp, "%d\t%d\t%d\t%d\t", summary.num_events, summary.num_steps, summary.num_skips, summary.num_stays);
             fprintf(summary_fp, "%.2lf\t%.3lf\t%.3lf\t%.3lf\t%.3lf\n", summary.sum_duration/(4000.0), scalings.shift, scalings.scale, 0.0, scalings.var);
         }
