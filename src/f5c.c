@@ -735,6 +735,7 @@ void meth_single(core_t* core, db_t* db, int32_t i){
         db->scalings[i], core->cpgmodel,db->events_per_base[i]);
     
         //hack
+        fprintf(stderr, "hack inside meth_single\n");
         realign_read(db->fasta_cache[i],
                   db->bam_rec[i],db->read_len[i],
                   0,
@@ -837,7 +838,7 @@ void process_single(core_t* core, db_t* db,int32_t i) {
     //hack
     realign_read(db->fasta_cache[i],
                   db->bam_rec[i],db->read_len[i],
-                  0,
+                  i,
                   &(db->et[i]), core->model,db->base_to_event_map[i],db->scalings[i],db->events_per_base[i]);    
 }
 

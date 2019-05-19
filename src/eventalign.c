@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include "matrix.h"
 #include <algorithm>
+#include <vector>
 
 #include <fstream>
 #include <string>
@@ -349,6 +350,7 @@ inline float profile_hmm_fill_generic_r9(const char *m_seq,
     // PROFILE_FUNC("profile_hmm_fill_generic")
     // HMMInputSequence sequence = _sequence;
     // HMMInputData data = _data;
+
     assert( (rc && event_stride == -1) || (!rc && event_stride == 1));
 
 #if HMM_REVERSE_FIX
@@ -856,6 +858,12 @@ static inline std::vector<HMMAlignmentState> profile_hmm_align(
             case HMT_FROM_SOFT:
                 assert(false);
                 break;
+            case HMT_NUM_MOVEMENT_TYPES:
+                assert(0);
+                break;    
+            default:
+                assert(0);
+                break;    
         }
 
         // update row (event) idx only if this isn't a kmer skip, which is silent
@@ -1355,6 +1363,7 @@ struct EventAlignmentParameters
         size_t tester_i = 0;
         while( (forward && curr_start_event < last_event) ||
                (!forward && curr_start_event > last_event)) {
+            
         // while(tester_i == 0 ){
             // Get the index of the aligned pair approximately align_stride away
             int end_pair_idx = get_end_pair(aligned_pairs, curr_start_ref + align_stride, curr_pair_idx);
@@ -1394,9 +1403,10 @@ struct EventAlignmentParameters
             // is that we can get segments that have very few alignable events. We
             // just stop processing them for now
             int input_event_stop_idx = get_closest_event_to(curr_end_read, params.base_to_event_map, params.read_length-KMER_SIZE + 1);
-            if(abs((int)curr_start_event - input_event_stop_idx < 2))
+            
+            // fprintf(stderr, "input_event_stop_idx = %d curr_start_event = %d\n",input_event_stop_idx, curr_start_event);
+            if(abs((int)curr_start_event - input_event_stop_idx) < 2)
                 break;
-
             uint8_t input_strand = 0;
 
 
@@ -1404,7 +1414,6 @@ struct EventAlignmentParameters
             
             // fprintf(stderr, "event_stride =  %d\n",event_stride);
             uint8_t input_rc = rc_flags[input_strand];
-
             std::vector<HMMAlignmentState> event_alignment = profile_hmm_align(
                 fwd_subseq, //std::string fwd_subseq,
                 rc_subseq,  //std::string rc_subseq,
@@ -1689,7 +1698,10 @@ void realign_read(char* ref,
         params.events_per_base = events_per_base; // this is in the struct db_t. in nanopolish_arm this is the value they have calculate.
 
 
+
         std::vector<event_alignment_t> alignment = align_read_to_ref(params,ref);
+
+
 
         //-- hasindu : output writing will be done outside of this function
         EventalignSummary summary;
@@ -1705,18 +1717,35 @@ void realign_read(char* ref,
         //     emit_event_alignment_tsv(tsv_fp, sr, strand_idx, params, alignment);
         // }
 
+        // if(summary_fp != NULL)
+        //     fprintf(stderr, "debug summary_fp != NULL alignment.size() = %d \n",alignment.size());
+        
+        // if(summary.num_events > 0)
+        //     fprintf(stderr, "debug summary.num_events > 0 read_idx = %d \n",read_idx);
+        
         if(summary_fp != NULL && summary.num_events > 0) {
-            //assert(params.alphabet == "");
-            //const PoreModel* pore_model = params.get_model();
-            //SquiggleScalings& scalings = sr.scalings[strand_idx];
+            // write(append) f5c eventalign summary
+            std::ofstream f5c_event_align("test/ecoli_2kb_region/f5c_event_align.summary",std::ofstream::out | std::ofstream::app);
             int strand_idx = 0;
-            // fprintf(summary_fp, "%zu\t%s\t", read_idx, read_name.c_str());
-            // fprintf(summary_fp, "%s\t%s\t", "dna", strand_idx == 0 ? "template" : "complement");
-            fprintf(summary_fp, "%d\t%d\t%d\t%d\t", summary.num_events, summary.num_steps, summary.num_skips, summary.num_stays);
-            fprintf(summary_fp, "%.2lf\t%.3lf\t%.3lf\t%.3lf\t%.3lf\n", summary.sum_duration/(4000.0), scalings.shift, scalings.scale, 0.0, scalings.var);
+            f5c_event_align << read_idx << "\t";
+            f5c_event_align << read_name.c_str() << "\t";
+            // f5c_event_align << "dna" << "\t";
+            f5c_event_align << "template" << "\t";
+            f5c_event_align << summary.num_events << "\t";
+            f5c_event_align << summary.num_steps << "\t";
+            f5c_event_align << summary.num_skips << "\t";
+            f5c_event_align << summary.num_stays << "\t";
+            f5c_event_align << summary.sum_duration/(4000.0) << "\t";
+            f5c_event_align << scalings.shift << "\t";
+            f5c_event_align << scalings.scale << "\t";
+            f5c_event_align << 0.0 << "\t";
+            f5c_event_align << scalings.var << "\n";
+            //  fprintf(summary_fp, "%zu\t%s\t", read_idx, read_name.c_str());
+            //  fprintf(summary_fp, "%s\t%s\t", "dna", strand_idx == 0 ? "template" : "complement");
+            // fprintf(summary_fp, "%d\t%d\t%d\t%d\t", summary.num_events, summary.num_steps, summary.num_skips, summary.num_stays);
+            // fprintf(summary_fp, "%.2lf\t%.3lf\t%.3lf\t%.3lf\t%.3lf\n", summary.sum_duration/(4000.0), scalings.shift, scalings.scale, 0.0, scalings.var);
         }
         
     //}
 }
 
-// /mnt/f/hasindu2008.git/nanopolish/nanopolish eventalign  -b test/ecoli_2kb_region/reads.sorted.bam -g test/ecoli_2kb_region/draft.fa -r test/ecoli_2kb_region/reads.fasta -t 1 --summary=test/ecoli_2kb_region/eventalign.summary.exp > test/ecoli_2kb_region/eventalign.exp
