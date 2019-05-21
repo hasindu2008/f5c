@@ -200,7 +200,18 @@ int fastt_main(int argc, char** argv){
 
         if (argc-optind < 1 || fp_help==stdout) {
             fprintf(fp_help,
-                "Usage: f5c fastt [OPTIONS] [fast5_dir] [...]\n");        
+                "Usage: f5c fastt [OPTIONS] [fast5_dir/query] [...]\n\n"
+                "Convert fast5 to fastt :\n"
+                "   f5c fastt [fast5_dir1] [...]\n"
+                "       multiple directories can be optionally provided and each will be recursively searched for fast5\n"
+                "       eg : f5c fastt fast_dir1 fast5_dir2 > reads.fastt\n"
+                "\nIndex a fastt : \n"
+                "   f5c fastt -i <reads.fastt|reads.fastt.gz>\n"
+                "       Create a fastt index for random accesses\n"
+                "\nQuery : \n"
+                "   f5c fastt -i <reads.fastt|reads.fastt.gz> [readsID1 readID3 ...]\n"
+                "       Extracts entries specified by readID from a fastt\n"
+                );        
             if(fp_help == stdout){
                 exit(EXIT_SUCCESS);
             }
