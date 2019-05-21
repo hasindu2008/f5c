@@ -1728,8 +1728,6 @@ void realign_read(char* ref,
         
         if(summary_fp != NULL && summary.num_events > 0) {
             // write(append) f5c eventalign summary
-<<<<<<< HEAD
-            
             FILE * f5c_event_align_summary = fopen("test/ecoli_2kb_region/f5c_event_align.summary","a");
             fprintf(f5c_event_align_summary, "%d\t",read_idx);
             fprintf(f5c_event_align_summary, "%s\t",read_name.c_str());
@@ -1749,28 +1747,7 @@ void realign_read(char* ref,
             fprintf(summary_fp, "%s\t%s\t", "dna", strand_idx == 0 ? "template" : "complement");
             fprintf(summary_fp, "%d\t%d\t%d\t%d\t", summary.num_events, summary.num_steps, summary.num_skips, summary.num_stays);
             fprintf(summary_fp, "%.2lf\t%.3lf\t%.3lf\t%.3lf\t%.3lf\n", summary.sum_duration/(4000.0), scalings.shift, scalings.scale, 0.0, scalings.var);
-=======
-            std::ofstream f5c_event_align("test/ecoli_2kb_region/f5c_event_align.summary",std::ofstream::out | std::ofstream::app);
-            int strand_idx = 0;
-            f5c_event_align << read_idx << "\t";
-            f5c_event_align << read_name.c_str() << "\t";
-            // f5c_event_align << "dna" << "\t";
-            f5c_event_align << "template" << "\t";
-            f5c_event_align << summary.num_events << "\t";
-            f5c_event_align << summary.num_steps << "\t";
-            f5c_event_align << summary.num_skips << "\t";
-            f5c_event_align << summary.num_stays << "\t";
-            f5c_event_align << summary.sum_duration/(4000.0) << "\t";
-            f5c_event_align << scalings.shift << "\t";
-            f5c_event_align << scalings.scale << "\t";
-            f5c_event_align << 0.0 << "\t";
-            f5c_event_align << scalings.var << "\n";
-            //  fprintf(summary_fp, "%zu\t%s\t", read_idx, read_name.c_str());
-            //  fprintf(summary_fp, "%s\t%s\t", "dna", strand_idx == 0 ? "template" : "complement");
-            // fprintf(summary_fp, "%d\t%d\t%d\t%d\t", summary.num_events, summary.num_steps, summary.num_skips, summary.num_stays);
-            // fprintf(summary_fp, "%.2lf\t%.3lf\t%.3lf\t%.3lf\t%.3lf\n", summary.sum_duration/(4000.0), scalings.shift, scalings.scale, 0.0, scalings.var);
 
->>>>>>> 078aa6460ba778fb2ce7f42f40841c810c4abbdb
         }
         
     //}
