@@ -5,8 +5,9 @@
 #include "matrix.h"
 #include <algorithm>
 #include <vector>
+#include <string>
 
-#include <fstream>
+    #include <fstream>
 #include <string>
 #include <iostream>
 
@@ -1652,7 +1653,9 @@ void realign_read(char* ref,
                   size_t read_idx,
                   //int region_start,
                   //int region_end, 
-                  event_table* events, model_t* model, index_pair_t* base_to_event_map, scalings_t scalings,double events_per_base)
+                  event_table* events, model_t* model, index_pair_t* base_to_event_map, scalings_t scalings,
+                  double events_per_base,
+                  const char* model_file)
 {
     // Load a squiggle read for the mapped read
     std::string read_name = bam_get_qname(record);
@@ -1725,25 +1728,26 @@ void realign_read(char* ref,
         
         if(summary_fp != NULL && summary.num_events > 0) {
             // write(append) f5c eventalign summary
-            std::ofstream f5c_event_align("test/ecoli_2kb_region/f5c_event_align.summary",std::ofstream::out | std::ofstream::app);
-            int strand_idx = 0;
-            f5c_event_align << read_idx << "\t";
-            f5c_event_align << read_name.c_str() << "\t";
-            // f5c_event_align << "dna" << "\t";
-            f5c_event_align << "template" << "\t";
-            f5c_event_align << summary.num_events << "\t";
-            f5c_event_align << summary.num_steps << "\t";
-            f5c_event_align << summary.num_skips << "\t";
-            f5c_event_align << summary.num_stays << "\t";
-            f5c_event_align << summary.sum_duration/(4000.0) << "\t";
-            f5c_event_align << scalings.shift << "\t";
-            f5c_event_align << scalings.scale << "\t";
-            f5c_event_align << 0.0 << "\t";
-            f5c_event_align << scalings.var << "\n";
-            //  fprintf(summary_fp, "%zu\t%s\t", read_idx, read_name.c_str());
-            //  fprintf(summary_fp, "%s\t%s\t", "dna", strand_idx == 0 ? "template" : "complement");
-            // fprintf(summary_fp, "%d\t%d\t%d\t%d\t", summary.num_events, summary.num_steps, summary.num_skips, summary.num_stays);
-            // fprintf(summary_fp, "%.2lf\t%.3lf\t%.3lf\t%.3lf\t%.3lf\n", summary.sum_duration/(4000.0), scalings.shift, scalings.scale, 0.0, scalings.var);
+            
+            FILE * f5c_event_align_summary = fopen("test/ecoli_2kb_region/f5c_event_align.summary","a");
+            fprintf(f5c_event_align_summary, "%d\t",read_idx);
+            fprintf(f5c_event_align_summary, "%s\t",read_name.c_str());
+            fprintf(f5c_event_align_summary, "%s\t","template");
+            fprintf(f5c_event_align_summary, "%d\t",summary.num_events);
+            fprintf(f5c_event_align_summary, "%d\t",summary.num_steps);
+            fprintf(f5c_event_align_summary, "%d\t",summary.num_skips);
+            fprintf(f5c_event_align_summary, "%d\t",summary.num_stays);
+            fprintf(f5c_event_align_summary, "%.2lf\t",summary.sum_duration/(4000.0));
+            fprintf(f5c_event_align_summary, "%.3lf\t",scalings.shift);
+            fprintf(f5c_event_align_summary, "%.3lf\t",scalings.scale);
+            fprintf(f5c_event_align_summary, "%.3lf\t",0.0);
+            fprintf(f5c_event_align_summary, "%.3lf\n",scalings.var);
+
+            size_t strand_idx = 0;
+            fprintf(summary_fp, "%zu\t%s\t", read_idx, read_name.c_str());
+            fprintf(summary_fp, "%s\t%s\t", "dna", strand_idx == 0 ? "template" : "complement");
+            fprintf(summary_fp, "%d\t%d\t%d\t%d\t", summary.num_events, summary.num_steps, summary.num_skips, summary.num_stays);
+            fprintf(summary_fp, "%.2lf\t%.3lf\t%.3lf\t%.3lf\t%.3lf\n", summary.sum_duration/(4000.0), scalings.shift, scalings.scale, 0.0, scalings.var);
         }
         
     //}

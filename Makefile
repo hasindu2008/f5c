@@ -159,3 +159,6 @@ uninstall:
 
 test: $(BINARY)
 	./scripts/test.sh
+
+test_eventalign: $(BINARY)
+	./scripts/test_eventalign.sh
