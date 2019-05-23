@@ -735,11 +735,10 @@ void meth_single(core_t* core, db_t* db, int32_t i){
         db->scalings[i], core->cpgmodel,db->events_per_base[i]);
     
         //hack
-        fprintf(stderr, "hack inside meth_single\n");
         realign_read(db->fasta_cache[i],
                   db->bam_rec[i],db->read_len[i],
-                  0,
-                  &(db->et[i]), core->model,db->base_to_event_map[i],db->scalings[i],db->events_per_base[i],core->opt.model_file);
+                  i,
+                  &(db->et[i]), core->model,db->base_to_event_map[i],db->scalings[i],db->events_per_base[i]);
     }
 }
 
@@ -839,10 +838,9 @@ void process_single(core_t* core, db_t* db,int32_t i) {
     realign_read(db->fasta_cache[i],
                   db->bam_rec[i],db->read_len[i],
                   i,
-                  &(db->et[i]), core->model,db->base_to_event_map[i],db->scalings[i],db->events_per_base[i],core->opt.model_file);    
+                  &(db->et[i]), core->model,db->base_to_event_map[i],db->scalings[i],db->events_per_base[i]);    
 }
 
-#include <fstream>
 void process_db(core_t* core, db_t* db) {
 
     double process_start = realtime();
@@ -893,14 +891,6 @@ void process_db(core_t* core, db_t* db) {
 
     }
     else{
-
-        // hack! as for now initialize the file "f5c_event_align.summary" here
-
-        FILE * f5c_event_align_summary = fopen("test/ecoli_2kb_region/f5c_event_align.summary","w");
-        fprintf(f5c_event_align_summary,"read_index\tread_name\tfast5_path\tmodel_name\tstrand\tnum_events\t");
-        fprintf(f5c_event_align_summary,"num_steps\tnum_skips\tnum_stays\ttotal_duration\tshift\tscale\tdrift\tvar\n");
-        fclose(f5c_event_align_summary);
-
         if (core->opt.num_thread == 1) {
             int32_t i=0;
             for (i = 0; i < db->n_bam_rec; i++) {

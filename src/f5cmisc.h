@@ -48,7 +48,7 @@ void realign_read(char* ref,
                   size_t read_idx,
                   //int region_start,
                   //int region_end, 
-                  event_table* events, model_t* model,index_pair_t* base_to_event_map,scalings_t scaling,double events_per_base,const char* model_file);
+                  event_table* events, model_t* model,index_pair_t* base_to_event_map,scalings_t scaling,double events_per_base );
 
 //basically the functions in nanopolish_profile_hmm_r9.*
 float profile_hmm_score_r9(const char *m_seq,
