@@ -57,12 +57,12 @@ handle_tests() {
 
 execute_test() {
 	echo "---------------------------------------------------------execute_test"
-	tail -n +2 ${testdir}/eventalign.summary.exp | awk '{print $2"\t"$5"\t"$6"\t"$7"\t"$8"\t"$9"\t"$10"\t"$11"\t"$12"\t"$13}'  | sort -g > ${testdir}/nanopolish.summary.txt
-	cat ${testdir}/f5c_event_align.summary | awk '{print $2"\t"$6"\t"$7"\t"$8"\t"$9"\t"$10"\t"$11"\t"$12"\t"$13"\t"$14}'  | sort -g > ${testdir}/f5c.summary.txt
+	tail -n +2 ${testdir}/eventalign.summary.exp | awk '{print $2"\t"$5"\t"$6"\t"$7"\t"$8"\t"$9"\t"$10"\t"$11"\t"$12"\t"$13}'  > ${testdir}/nanopolish.summary.txt
+	tail -n +2 ${testdir}/f5c_event_align.summary.txt | awk '{print $2"\t"$6"\t"$7"\t"$8"\t"$9"\t"$10"\t"$11"\t"$12"\t"$13"\t"$14}' > ${testdir}/f5c.summary.txt
 	join ${testdir}/nanopolish.summary.txt ${testdir}/f5c.summary.txt > ${testdir}/joined_results.txt
 	awk -f  scripts/test_eventalign.awk ${testdir}/joined_results.txt || die "${file}: Validation failed"
 
-	# sort -g -o ${testdir}/f5c_event_align_sorted.summary ${testdir}/f5c_event_align.summary
+	# sort -g -o ${testdir}/f5c_event_align_sorted.summary ${testdir}/f5c_event_align.summary.txt
 	# join ${testdir}/f5c_event_align_sorted.summary ${testdir}/eventalign.summary.exp > ${testdir}/joined_results.txt
 	# awk -f  scripts/test_eventalign.awk ${testdir}/joined_results.txt > ${testdir}/should_be_empty.txt
 
@@ -84,7 +84,7 @@ execute_test() {
 }
 
 mode_test() {
-	cmd="${exepath} call-methylation -b ${bamfile} -g ${ref} -r ${reads} -t ${threads} -K $batchsize -B $max_bases"
+	cmd="${exepath} eventalign -b ${bamfile} -g ${ref} -r ${reads} -t ${threads} -K $batchsize -B $max_bases"
 
 	case $1 in
 		valgrind) valgrind $cmd > /dev/null;;
@@ -151,12 +151,13 @@ done
 
 if [ -z "$mode" ]; then
 	if [ $testdir = test/chr22_meth_example ]; then
-		${exepath} call-methylation -b ${bamfile} -g ${ref} -r ${reads} -t "$threads" -K "$batchsize" -B "$max_bases" > ${testdir}/result.txt
+		${exepath} eventalign -b ${bamfile} -g ${ref} -r ${reads} -t "$threads" -K "$batchsize" -B "$max_bases" > ${testdir}/result.txt
 		execute_test
 	else
-		test -e ${testdir}/f5c_event_align.summary && rm ${testdir}/f5c_event_align.summary
+		#test -e ${testdir}/f5c_event_align.summary.txt && rm ${testdir}/f5c_event_align.summary.txt
 		${exepath} index -d ${testdir}/fast5_files ${testdir}/reads.fasta
-		${exepath} call-methylation -b ${bamfile} -g ${ref} -r ${reads} --secondary=yes --min-mapq=0 -B "$max_bases" > ${testdir}/result.txt
+		${exepath} eventalign -b ${bamfile} -g ${ref} -r ${reads} --secondary=yes --min-mapq=0 -B "$max_bases" > ${testdir}/result.txt
+		mv f5c_event_align.summary.txt ${testdir}/f5c_event_align.summary.txt
 		execute_test
 	fi
 else

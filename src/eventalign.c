@@ -244,8 +244,10 @@ static inline uint32_t get_rank(char base) {
         return 2;
     } else if (base == 'T') {
         return 3;
+    } else if (base == 'N') {
+        return 0;        
     } else {
-        WARNING("A None ACGT base found : %c", base);
+        WARNING("A None ACGTN base found : %c", base);
         return 0;
     }
 }
@@ -1534,30 +1536,6 @@ struct EventAlignmentParameters
 
 
 
-// Summarize the event alignment for a read strand
-struct EventalignSummary
-{
-    EventalignSummary() {
-        num_events = 0;
-        num_steps = 0;
-        num_stays = 0;
-        num_skips = 0;
-        sum_z_score = 0;
-        sum_duration = 0;
-        alignment_edit_distance = 0;
-        reference_span = 0;
-    }
-
-    int num_events;
-    int num_steps;
-    int num_stays;
-    int num_skips;
-
-    double sum_duration;
-    double sum_z_score;
-    int alignment_edit_distance;
-    int reference_span;
-};
 
 // Return the duration of the specified event for one strand
 inline float get_duration(const event_table* events, uint32_t event_idx)
@@ -1565,10 +1543,6 @@ inline float get_duration(const event_table* events, uint32_t event_idx)
     assert(event_idx < events->n);
     return (events->event)[event_idx].length;
 }
-
-
-
-
 
 
 
@@ -1586,7 +1560,7 @@ inline float z_score(const event_table* events, model_t* models, scalings_t scal
     //GaussianParameters gp = read.get_scaled_gaussian_from_pore_model_state(pore_model, strand, kmer_rank);
     float gp_mean =
         scaling.scale * models[kmer_rank].level_mean + scaling.shift;
-    float gp_stdv = models[kmer_rank].level_stdv * 1; //scaling.var = 1;
+    float gp_stdv = models[kmer_rank].level_stdv * scaling.var; //scaling.var = 1;
     return (level - gp_mean) / gp_stdv;
 }
 
@@ -1596,6 +1570,15 @@ EventalignSummary summarize_alignment(uint32_t strand_idx,
                                       const std::vector<event_alignment_t>& alignments)
 {
     EventalignSummary summary;
+ 
+    summary.num_events = 0;
+    summary.num_steps = 0;
+    summary.num_stays = 0;
+    summary.num_skips = 0;
+    summary.sum_z_score = 0;
+    summary.sum_duration = 0;
+    summary.alignment_edit_distance = 0;
+    summary.reference_span = 0;
 
     //assert(params.alphabet == "");
     //const PoreModel* pore_model = params.get_model();
@@ -1646,9 +1629,163 @@ EventalignSummary summarize_alignment(uint32_t strand_idx,
     return summary;
 }
 
+
+
+void emit_event_alignment_tsv_header(FILE* fp, int8_t print_read_names, int8_t write_samples)
+{
+    fprintf(fp, "%s\t%s\t%s\t%s\t%s\t", "contig", "position", "reference_kmer",
+            (print_read_names? "read_name" : "read_index"), "strand");
+    fprintf(fp, "%s\t%s\t%s\t%s\t", "event_index", "event_level_mean", "event_stdv", "event_length");
+    fprintf(fp, "%s\t%s\t%s\t%s", "model_kmer", "model_mean", "model_stdv", "standardized_level");
+
+    if(write_samples) {
+        fprintf(fp, "\t%s", "samples");
+    }
+    fprintf(fp, "\n");
+}
+
+//event_mean = get_fully_scaled_level(ea.event_idx, ea.strand_idx);
+// Return the observed current level after correcting for drift, shift and scale
+inline float get_fully_scaled_level(const event_table* events,scalings_t scalings, uint32_t event_idx){
+    float level = (events->event)[event_idx].mean;
+    //float time = get_duration(events, event_idx)/ sample_rate;
+
+    //float get_drift_scaled_level =  level - time * scalings.drift;
+    //todo : is drift 0?
+    float get_drift_scaled_level =  level ;
+    return (get_drift_scaled_level - scalings.shift) / scalings.scale;   
+}
+
+inline model_t get_scaled_gaussian_from_pore_model_state(const event_table* events, model_t* models, scalings_t scaling,
+                     uint32_t kmer_rank,
+                     uint32_t event_idx)
+{
+    float gp_mean =
+    scaling.scale * models[kmer_rank].level_mean + scaling.shift;
+    float gp_stdv = models[kmer_rank].level_stdv * scaling.var; 
+
+    model_t scaled_model;
+    scaled_model.level_mean = gp_mean;
+    scaled_model.level_stdv = gp_stdv;
+
+    return scaled_model;
+}
+
+//
+// std::vector<float> get_scaled_samples_for_event((const event_table* events,scalings_t scaling, uint32_t event_idx, float sample_rate) const
+// {
+//     double event_start_time = (events->event)[event_idx].start_time;
+//     double event_duration = (events->event)[event_idx].duration;
+
+//     size_t start_idx = this->get_sample_index_at_time(event_start_time * this->sample_rate);
+//     size_t end_idx = this->get_sample_index_at_time((event_start_time + event_duration) * this->sample_rate);
+
+//     std::vector<float> out;
+//     for(size_t i = start_idx; i < end_idx; ++i) {
+//         double curr_sample_time = (this->sample_start_time + i) / this->sample_rate;
+//         //fprintf(stderr, "event_start: %.5lf sample start: %.5lf curr: %.5lf rate: %.2lf\n", event_start_time, this->sample_start_time / this->sample_rate, curr_sample_time, this->sample_rate);
+//         double s = this->samples[i];
+//         // apply scaling corrections
+//         double scaled_s = s - this->scalings[strand_idx].shift;
+//         assert(curr_sample_time >= (this->sample_start_time / this->sample_rate));
+//         scaled_s -= (curr_sample_time - (this->sample_start_time / this->sample_rate)) * this->scalings[strand_idx].drift;
+//         scaled_s /= this->scalings[strand_idx].scale;
+//         out.push_back(scaled_s);
+//     }
+//     return out;
+// }
+
+void emit_event_alignment_tsv(FILE* fp,
+                              uint32_t strand_idx,
+                              const event_table* et, model_t* model, scalings_t scalings,
+                              const std::vector<event_alignment_t>& alignments, 
+                              int8_t print_read_names, int8_t scale_events, int8_t write_samples,
+                              char* read_name, char *ref_name)
+{
+    //assert(params.alphabet == "");
+    //const PoreModel* pore_model = params.get_model();
+    //uint32_t k = pore_model->k;
+    for(size_t i = 0; i < alignments.size(); ++i) {
+
+        const event_alignment_t& ea = alignments[i];
+
+        // basic information
+        if (!print_read_names)
+        {
+            fprintf(fp, "%s\t%d\t%s\t%d\t%c\t",
+                    ref_name, //ea.ref_name.c_str(),
+                    ea.ref_position,
+                    ea.ref_kmer,
+                    ea.read_idx,
+                    't'); //"tc"[ea.strand_idx]); 
+        }
+        else
+        {
+            fprintf(fp, "%s\t%d\t%s\t%s\t%c\t",
+                    ref_name, //ea.ref_name.c_str(),
+                    ea.ref_position,
+                    ea.ref_kmer,
+                    read_name, //sr.read_name.c_str(),
+                    't'); //"tc"[ea.strand_idx]);
+        }
+
+        // event information
+        float event_mean = (et->event)[ea.event_idx].mean;
+        float event_stdv = (et->event)[ea.event_idx].stdv;
+        float event_duration = get_duration(et, ea.event_idx);
+        uint32_t rank = get_kmer_rank(ea.model_kmer, KMER_SIZE);
+        float model_mean = 0.0;
+        float model_stdv = 0.0;
+
+        if(scale_events) {
+
+            // scale reads to the model
+            event_mean = get_fully_scaled_level(et, scalings,ea.event_idx);
+
+            // unscaled model parameters
+            if(ea.hmm_state != 'B') {
+                model_t model1 = model[rank];
+                model_mean = model1.level_mean;
+                model_stdv = model1.level_stdv;
+            }
+        } else {
+
+            // scale model to the reads
+            if(ea.hmm_state != 'B') {
+                
+                model_t model1 = get_scaled_gaussian_from_pore_model_state(et, model, scalings, rank, ea.event_idx );
+                model_mean = model1.level_mean;
+                model_stdv = model1.level_stdv;
+            }
+        }
+
+        float standard_level = (event_mean - model_mean) / (sqrt(scalings.var) * model_stdv);
+        fprintf(fp, "%d\t%.2lf\t%.3lf\t%.5lf\t", ea.event_idx, event_mean, event_stdv, event_duration);
+        fprintf(fp, "%s\t%.2lf\t%.2lf\t%.2lf", ea.model_kmer,
+                                               model_mean,
+                                               model_stdv,
+                                               standard_level);
+
+        if(write_samples) {
+            assert(0);
+            //todo : implement this
+            // std::vector<float> samples = get_scaled_samples_for_event(ea.strand_idx, ea.event_idx);
+            // std::stringstream sample_ss;
+            // std::copy(samples.begin(), samples.end(), std::ostream_iterator<float>(sample_ss, ","));
+
+            // // remove training comma
+            // std::string sample_str = sample_ss.str();
+            // sample_str.resize(sample_str.size() - 1);
+            // fprintf(fp, "\t%s", sample_str.c_str());
+        }
+        fprintf(fp, "\n");
+    }
+}
+
+
 // Realign the read in event space
-void realign_read(char* ref,
-                 // const bam_hdr_t* hdr,
+void realign_read(std::vector<event_alignment_t>* event_alignment_result,EventalignSummary *summary, FILE *summary_fp, char* ref,
+                  const bam_hdr_t* hdr,
                   const bam1_t* record,int32_t read_length,
                   size_t read_idx,
                   //int region_start,
@@ -1702,15 +1839,17 @@ void realign_read(char* ref,
 
 
         std::vector<event_alignment_t> alignment = align_read_to_ref(params,ref);
-
+        *event_alignment_result = alignment;
 
 
         //-- hasindu : output writing will be done outside of this function
-        EventalignSummary summary;
-        FILE* summary_fp = fopen("test/ecoli_2kb_region/f5c_event_align.summary","a");
-        F_CHK(summary_fp,"test/ecoli_2kb_region/f5c_event_align.summary");
+        //EventalignSummary summary;
+        //FILE* summary_fp = fopen("test/ecoli_2kb_region/f5c_event_align.summary","a");
+        //F_CHK(summary_fp,"test/ecoli_2kb_region/f5c_event_align.summary");
+        //todo : fix this 
+        //FILE *summary_fp = stderr;
         if(summary_fp != NULL) {
-            summary = summarize_alignment(0, params, alignment);
+            *summary = summarize_alignment(0, params, alignment);
         }
 
         //fprintf(summary_fp,"sfsafsaf\n");
@@ -1719,6 +1858,8 @@ void realign_read(char* ref,
         // } else {
         //     emit_event_alignment_tsv(tsv_fp, sr, strand_idx, params, alignment);
         // }
+        //emit_event_alignment_tsv(stdout,0,events,model,scalings,alignment, 1, 1, 0,
+        //                      bam_get_qname(record), hdr->target_name[record->core.tid]);
 
         // if(summary_fp != NULL)
         //     fprintf(stderr, "debug summary_fp != NULL alignment.size() = %d \n",alignment.size());
@@ -1726,15 +1867,15 @@ void realign_read(char* ref,
         // if(summary.num_events > 0)
         //     fprintf(stderr, "debug summary.num_events > 0 read_idx = %d \n",read_idx);
         
-        if(summary_fp != NULL && summary.num_events > 0) {
-            size_t strand_idx = 0;
-            fprintf(summary_fp, "%zu\t%s\t", read_idx, read_name.c_str());
-            fprintf(summary_fp, "%s\t%s\t%s\t",".", "dna", strand_idx == 0 ? "template" : "complement");
-            fprintf(summary_fp, "%d\t%d\t%d\t%d\t", summary.num_events, summary.num_steps, summary.num_skips, summary.num_stays);
-            fprintf(summary_fp, "%.2lf\t%.3lf\t%.3lf\t%.3lf\t%.3lf\n", summary.sum_duration/(4000.0), scalings.shift, scalings.scale, 0.0, scalings.var);
+        // if(summary_fp != NULL && summary.num_events > 0) {
+        //     size_t strand_idx = 0;
+        //     fprintf(summary_fp, "%zu\t%s\t", read_idx, read_name.c_str());
+        //     fprintf(summary_fp, "%s\t%s\t%s\t",".", "dna", strand_idx == 0 ? "template" : "complement");
+        //     fprintf(summary_fp, "%d\t%d\t%d\t%d\t", summary.num_events, summary.num_steps, summary.num_skips, summary.num_stays);
+        //     fprintf(summary_fp, "%.2lf\t%.3lf\t%.3lf\t%.3lf\t%.3lf\n", summary.sum_duration/(4000.0), scalings.shift, scalings.scale, 0.0, scalings.var);
 
-        }
-        fclose(summary_fp);
+        // }
+        // fclose(summary_fp);
         
     //}
 }

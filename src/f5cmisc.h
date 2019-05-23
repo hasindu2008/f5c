@@ -42,8 +42,16 @@ float profile_hmm_score(const char *m_seq,const char *m_rc_seq, event_t* event, 
 void calculate_methylation_for_read(std::map<int, ScoredSite>* site_score_map, char* ref, bam1_t* record, int32_t read_length, event_t* event, index_pair_t* base_to_event_map,
 scalings_t scaling, model_t* cpgmodel,double events_per_base);
 
-void realign_read(char* ref,
-                 // const bam_hdr_t* hdr,
+void emit_event_alignment_tsv(FILE* fp,
+                              uint32_t strand_idx,
+                              const event_table* et, model_t* model, scalings_t scalings,
+                              const std::vector<event_alignment_t>& alignments, 
+                              int8_t print_read_names, int8_t scale_events, int8_t write_samples,
+                              char* read_name, char *ref_name);
+void emit_event_alignment_tsv_header(FILE* fp, int8_t print_read_names, int8_t write_samples);
+
+void realign_read(std::vector<event_alignment_t>* event_alignment_result, EventalignSummary *summary, FILE *summary_fp,char* ref,
+                  const bam_hdr_t* hdr,
                   const bam1_t* record, int32_t read_length,
                   size_t read_idx,
                   //int region_start,
@@ -131,3 +139,4 @@ static inline void print_size(const char* name, uint64_t bytes)
 
 
 #endif
+
