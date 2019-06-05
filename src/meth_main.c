@@ -37,6 +37,7 @@ main thread
 TODO :
 --print-* options should take a filename
 a step controller if one requires to perform only upto a certain step such as alignment, ignoring the reset
+--the names of functions and variablrs starting with meth_ are confusing as it stands for both meth and event now. should be fixed later
 */
 
 /*

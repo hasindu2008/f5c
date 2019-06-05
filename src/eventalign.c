@@ -7,12 +7,18 @@
 #include <vector>
 #include <string>
 
-    #include <fstream>
+#include <fstream>
 #include <string>
 #include <iostream>
 
 #include "f5c.h"
 #include "f5cmisc.h"
+
+/*
+Code is adapted from Nanopolish eventalign module
+Contains redundant code (duplicated code from meth.c and hmm.c) at the moment
+Requires a thorough cleanup when everything is optimised
+*/
 
 #define METHYLATED_SYMBOL 'M'
 
