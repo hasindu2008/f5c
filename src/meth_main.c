@@ -536,7 +536,7 @@ int meth_main(int argc, char* argv[], int8_t mode) {
         #endif
         fprintf(stderr, "\n[%s]     - Estimate scaling time: %.3f sec",
                 __func__, core->est_scale_time);
-        fprintf(stderr, "\n[%s]     - Call methylation time: %.3f sec",
+        fprintf(stderr, "\n[%s]     - HMM time: %.3f sec",
                 __func__, core->meth_time);
 
     }
