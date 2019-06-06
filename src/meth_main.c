@@ -37,6 +37,7 @@ main thread
 TODO :
 --print-* options should take a filename
 a step controller if one requires to perform only upto a certain step such as alignment, ignoring the reset
+--the names of functions and variablrs starting with meth_ are confusing as it stands for both meth and event now. should be fixed later
 */
 
 /*
@@ -179,7 +180,8 @@ void* pthread_post_processor(void* voidargs){
     pthread_exit(0);
 }
 
-int meth_main(int argc, char* argv[]) {
+//todo : need to print error message and arg check with respect to eventalign
+int meth_main(int argc, char* argv[], int8_t mode) {
 
     double realtime0 = realtime();
 
@@ -337,16 +339,25 @@ int meth_main(int argc, char* argv[]) {
     }
 
     //initialise the core data structure
-    core_t* core = init_core(bamfilename, fastafile, fastqfile, tmpfile, opt,realtime0);
+    core_t* core = init_core(bamfilename, fastafile, fastqfile, tmpfile, opt,realtime0,mode);
 
     #ifdef ESL_LOG_SUM
         p7_FLogsumInit();
     #endif
 
     //print the header
-    fprintf(stdout, "chromosome\tstart\tend\tread_name\t"
+    if(mode==0){
+        fprintf(stdout, "chromosome\tstart\tend\tread_name\t"
                                  "log_lik_ratio\tlog_lik_methylated\tlog_lik_unmethylated\t"
                                  "num_calling_strands\tnum_cpgs\tsequence\n");
+    }
+    else if(mode==1){
+        if(core->event_summary_fp!=NULL){
+            fprintf(core->event_summary_fp,"read_index\tread_name\tfast5_path\tmodel_name\tstrand\tnum_events\t");
+            fprintf(core->event_summary_fp,"num_steps\tnum_skips\tnum_stays\ttotal_duration\tshift\tscale\tdrift\tvar\n");
+        }
+        emit_event_alignment_tsv_header(stdout, 1, 0);
+    }
     int32_t counter=0;
 
  #ifdef IO_PROC_NO_INTERLEAVE   //If input, processing and output are not interleaved (serial mode)
@@ -526,7 +537,7 @@ int meth_main(int argc, char* argv[]) {
         #endif
         fprintf(stderr, "\n[%s]     - Estimate scaling time: %.3f sec",
                 __func__, core->est_scale_time);
-        fprintf(stderr, "\n[%s]     - Call methylation time: %.3f sec",
+        fprintf(stderr, "\n[%s]     - HMM time: %.3f sec",
                 __func__, core->meth_time);
 
     }
