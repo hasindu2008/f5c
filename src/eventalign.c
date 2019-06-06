@@ -7,7 +7,7 @@
 #include <vector>
 #include <string>
 
-#include <fstream>
+    #include <fstream>
 #include <string>
 #include <iostream>
 
@@ -1848,6 +1848,8 @@ void realign_read(std::vector<event_alignment_t>* event_alignment_result,Evental
         *event_alignment_result = alignment;
 
 
+
+
         //-- hasindu : output writing will be done outside of this function
         //EventalignSummary summary;
         //FILE* summary_fp = fopen("test/ecoli_2kb_region/f5c_event_align.summary","a");
@@ -1881,8 +1883,7 @@ void realign_read(std::vector<event_alignment_t>* event_alignment_result,Evental
         //     fprintf(summary_fp, "%.2lf\t%.3lf\t%.3lf\t%.3lf\t%.3lf\n", summary.sum_duration/(4000.0), scalings.shift, scalings.scale, 0.0, scalings.var);
 
         // }
-        // fclose(summary_fp);
-        
+        // fclose(summary_fp);        
     //}
 }
 

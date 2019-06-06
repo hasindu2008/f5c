@@ -85,7 +85,6 @@ execute_test() {
 
 mode_test() {
 	cmd="${exepath} eventalign -b ${bamfile} -g ${ref} -r ${reads} -t ${threads} -K $batchsize -B $max_bases"
-
 	case $1 in
 		valgrind) valgrind $cmd > /dev/null;;
 		gdb) gdb --args "$cmd";;
