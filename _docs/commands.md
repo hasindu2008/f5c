@@ -2,6 +2,18 @@
 title: Commands and options
 ---
 
+## Available f5c tools
+
+```
+Usage: f5c <command> [options]
+
+command:
+         index               Build an index mapping from basecalled reads to the signals measured by the sequencer (same as nanopolish index)
+         call-methylation    Classify nucleotides as methylated or not (optimised nanopolish call-methylation)
+         meth-freq           Calculate methylation frequency at genomic CpG sites (optimised nanopolish calculate_methylation_frequency.py)
+         eventalign          Align nanopore events to reference k-mers (optimised nanopolish eventalign)
+```
+
 ### Indexing
 
 ```
@@ -52,7 +64,7 @@ advanced options:
    --cuda-mem-frac FLOAT      fraction of free GPU memory to allocate [0.9 (0.7 for tegra)]
 ```
 
-### Calculate methylation frequency
+### Calculate methylation frequency (experimental, not thoroughly tested)
 ```
 Usage: meth-freq [options...]
 
