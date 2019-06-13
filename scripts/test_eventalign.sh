@@ -7,11 +7,14 @@ set -e
 
 # defaults
 exepath=./f5c
-testdir=test/ecoli_2kb_region
+# testdir=test/ecoli_2kb_region
+testdir=test/chr22_meth_example
 
 bamfile=${testdir}/reads.sorted.bam
-ref=${testdir}/draft.fa
-reads=${testdir}/reads.fasta
+# ref=${testdir}/draft.fa
+ref=${testdir}/humangenome.fa
+# reads=${testdir}/reads.fasta
+reads=${testdir}/reads.fastq
 batchsize=256
 max_bases=2M
 if command -v nproc > /dev/null; then
@@ -150,15 +153,14 @@ done
 
 if [ -z "$mode" ]; then
 	if [ $testdir = test/chr22_meth_example ]; then
-		${exepath} eventalign -b ${bamfile} -g ${ref} -r ${reads} -t "$threads" -K "$batchsize" -B "$max_bases" > ${testdir}/result.txt
-		execute_test
+		# ${exepath} index -d ${testdir}/fast5_files ${testdir}/reads.fastq
+		${exepath} eventalign -b ${bamfile} -g ${ref} -r ${reads} --secondary=yes --min-mapq=0 -t "$threads" -K "$batchsize" -B "$max_bases" > ${testdir}/result.txt
 	else
 		#test -e ${testdir}/f5c_event_align.summary.txt && rm ${testdir}/f5c_event_align.summary.txt
-		${exepath} index -d ${testdir}/fast5_files ${testdir}/reads.fasta
 		${exepath} eventalign -b ${bamfile} -g ${ref} -r ${reads} --secondary=yes --min-mapq=0 -B "$max_bases" > ${testdir}/result.txt
+	fi
 		mv f5c_event_align.summary.txt ${testdir}/f5c_event_align.summary.txt
 		execute_test
-	fi
 else
 	mode_test "$@"
 fi
