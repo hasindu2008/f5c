@@ -919,7 +919,7 @@ void process_db(core_t* core, db_t* db) {
         double meth_end = realtime();
         core->meth_time += (meth_end-meth_start);
 
-        fprintf(stderr, "[%s::%.3f*%.2f] Methylation calling done\n", __func__,
+        fprintf(stderr, "[%s::%.3f*%.2f] HMM done\n", __func__,
                 realtime() - realtime0, cputime() / (realtime() - realtime0));
 
 
