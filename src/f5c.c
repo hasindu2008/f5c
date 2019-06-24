@@ -920,7 +920,7 @@ void process_db(core_t* core, db_t* db) {
         double meth_end = realtime();
         core->meth_time += (meth_end-meth_start);
 
-        fprintf(stderr, "[%s::%.3f*%.2f] Methylation calling done\n", __func__,
+        fprintf(stderr, "[%s::%.3f*%.2f] HMM done\n", __func__,
                 realtime() - realtime0, cputime() / (realtime() - realtime0));
 
 
@@ -1045,7 +1045,7 @@ void output_db(core_t* core, db_t* db) {
                     fprintf(summary_fp, "%d\t%s\t", i, qname);
                     fprintf(summary_fp, "%s\t%s\t%s\t",".", "dna", strand_idx == 0 ? "template" : "complement");
                     fprintf(summary_fp, "%d\t%d\t%d\t%d\t", summary.num_events, summary.num_steps, summary.num_skips, summary.num_stays);
-                    fprintf(summary_fp, "%.2lf\t%.3lf\t%.3lf\t%.3lf\t%.3lf\n", summary.sum_duration/(4000.0), scalings.shift, scalings.scale, 0.0, scalings.var);
+                    fprintf(summary_fp, "%.2lf\t%.3lf\t%.3lf\t%.3lf\t%.3lf\n", summary.sum_duration/(db->f5[i]->sample_rate), scalings.shift, scalings.scale, 0.0, scalings.var);
                 }
                 std::vector<event_alignment_t> *event_alignment_result = db->event_alignment_result[i];
                  emit_event_alignment_tsv(stdout,0,&(db->et[i]),core->model,db->scalings[i],*event_alignment_result, 1, 0, 0,

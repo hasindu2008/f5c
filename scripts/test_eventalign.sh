@@ -48,9 +48,9 @@ download_test_set() {
 
 
 handle_tests() {
-	numfailed=$(wc -l < ${testdir}/floatdiff.txt)
-	numcases=$(wc -l < ${testdir}/meth_float.txt)
-	numres=$(wc -l < ${testdir}/result_float.txt)
+	numfailed=$(cat  ${testdir}/joined_diff.txt | awk '{print $NF}' | sort -u -k1,1 | wc -l)
+	numcases=$(wc -l < ${testdir}/nanopolish.summary.txt)
+	numres=$(wc -l < ${testdir}/f5c.summary.txt)
 	echo "$numfailed of $numcases test cases deviated."
 	missing=$(echo "$numcases-$numres" | bc)
 	echo "$missing entries in the truthset are missing in the testset"
@@ -59,11 +59,17 @@ handle_tests() {
 }
 
 execute_test() {
-	echo "---------------------------------------------------------execute_test"
-	tail -n +2 ${testdir}/eventalign.summary.exp | awk '{print $2"\t"$5"\t"$6"\t"$7"\t"$8"\t"$9"\t"$10"\t"$11"\t"$12"\t"$13}'  > ${testdir}/nanopolish.summary.txt
-	tail -n +2 ${testdir}/f5c_event_align.summary.txt | awk '{print $2"\t"$6"\t"$7"\t"$8"\t"$9"\t"$10"\t"$11"\t"$12"\t"$13"\t"$14}' > ${testdir}/f5c.summary.txt
-	join ${testdir}/nanopolish.summary.txt ${testdir}/f5c.summary.txt > ${testdir}/joined_results.txt
-	awk -f  scripts/test_eventalign.awk ${testdir}/joined_results.txt || die "${file}: Validation failed"
+	if [ $testdir = test/chr22_meth_example ]; then
+		tail -n +2 ${testdir}/eventalign.summary.exp | awk '{print $2"\t"$5"\t"$6"\t"$7"\t"$8"\t"$9"\t"$10"\t"$11"\t"$12"\t"$13}'  > ${testdir}/nanopolish.summary.txt
+		tail -n +2 ${testdir}/f5c_event_align.summary.txt | awk '{print $2"\t"$6"\t"$7"\t"$8"\t"$9"\t"$10"\t"$11"\t"$12"\t"$13"\t"$14}'  > ${testdir}/f5c.summary.txt
+		join ${testdir}/nanopolish.summary.txt ${testdir}/f5c.summary.txt > ${testdir}/joined_results.txt
+		awk -f  scripts/test_eventalign.awk ${testdir}/joined_results.txt > ${testdir}/joined_diff.txt || handle_tests "${file}"
+	else	
+		tail -n +2 ${testdir}/eventalign.summary.exp | awk '{print $2"\t"$5"\t"$6"\t"$7"\t"$8"\t"$9"\t"$10"\t"$11"\t"$12"\t"$13}' > ${testdir}/nanopolish.summary.txt
+		tail -n +2 ${testdir}/f5c_event_align.summary.txt | awk '{print $2"\t"$6"\t"$7"\t"$8"\t"$9"\t"$10"\t"$11"\t"$12"\t"$13"\t"$14}' > ${testdir}/f5c.summary.txt
+		join ${testdir}/nanopolish.summary.txt ${testdir}/f5c.summary.txt > ${testdir}/joined_results.txt
+		awk -f  scripts/test_eventalign.awk ${testdir}/joined_results.txt || die "${file}: Validation failed"
+	fi
 
 	# sort -g -o ${testdir}/f5c_event_align_sorted.summary ${testdir}/f5c_event_align.summary.txt
 	# join ${testdir}/f5c_event_align_sorted.summary ${testdir}/eventalign.summary.exp > ${testdir}/joined_results.txt
