@@ -875,7 +875,6 @@ void process_single(core_t* core, db_t* db,int32_t i) {
     }
 }
 
-#include <fstream>
 void process_db(core_t* core, db_t* db) {
 
     double process_start = realtime();
