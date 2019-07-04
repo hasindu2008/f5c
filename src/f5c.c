@@ -953,7 +953,7 @@ void output_db(core_t* core, db_t* db) {
                    (int)db->et[i].start, (int)db->et[i].end);
             uint32_t j = 0;
             for (j = 0; j < db->et[i].n; j++) {
-                printf("{%d,%f,%f,%f}\t", (int)db->et[i].event[j].start,
+                printf("{%d,%zu,%f,%f}\t", (int)db->et[i].event[j].start,
                        db->et[i].event[j].length, db->et[i].event[j].mean,
                        db->et[i].event[j].stdv);
             }

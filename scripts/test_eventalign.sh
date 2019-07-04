@@ -8,10 +8,13 @@ set -e
 # defaults
 exepath=./f5c
 testdir=test/ecoli_2kb_region
+# testdir=test/chr22_meth_example
 
 bamfile=${testdir}/reads.sorted.bam
 ref=${testdir}/draft.fa
+# ref=${testdir}/humangenome.fa
 reads=${testdir}/reads.fasta
+# reads=${testdir}/reads.fastq
 batchsize=256
 max_bases=2M
 if command -v nproc > /dev/null; then
@@ -56,17 +59,30 @@ handle_tests() {
 }
 
 execute_test() {
+	echo "---------------------------------------------------------compare summaries"
+	tail -n +2 ${testdir}/eventalign.summary.exp | awk '{print $2"\t"$5"\t"$6"\t"$7"\t"$8"\t"$9"\t"$10"\t"$11"\t"$12"\t"$13}'  > ${testdir}/nanopolish.summary.txt
+	tail -n +2 ${testdir}/f5c_event_align.summary.txt | awk '{print $2"\t"$6"\t"$7"\t"$8"\t"$9"\t"$10"\t"$11"\t"$12"\t"$13"\t"$14}' > ${testdir}/f5c.summary.txt
+	join ${testdir}/nanopolish.summary.txt ${testdir}/f5c.summary.txt > ${testdir}/joined_summary.txt
+
 	if [ $testdir = test/chr22_meth_example ]; then
-		tail -n +2 ${testdir}/eventalign.summary.exp | awk '{print $2"\t"$5"\t"$6"\t"$7"\t"$8"\t"$9"\t"$10"\t"$11"\t"$12"\t"$13}'  > ${testdir}/nanopolish.summary.txt
-		tail -n +2 ${testdir}/f5c_event_align.summary.txt | awk '{print $2"\t"$6"\t"$7"\t"$8"\t"$9"\t"$10"\t"$11"\t"$12"\t"$13"\t"$14}'  > ${testdir}/f5c.summary.txt
-		join ${testdir}/nanopolish.summary.txt ${testdir}/f5c.summary.txt > ${testdir}/joined_results.txt
 		awk -f  scripts/test_eventalign.awk ${testdir}/joined_results.txt > ${testdir}/joined_diff.txt || handle_tests "${file}"
 	else	
-		tail -n +2 ${testdir}/eventalign.summary.exp | awk '{print $2"\t"$5"\t"$6"\t"$7"\t"$8"\t"$9"\t"$10"\t"$11"\t"$12"\t"$13}' > ${testdir}/nanopolish.summary.txt
-		tail -n +2 ${testdir}/f5c_event_align.summary.txt | awk '{print $2"\t"$6"\t"$7"\t"$8"\t"$9"\t"$10"\t"$11"\t"$12"\t"$13"\t"$14}' > ${testdir}/f5c.summary.txt
-		join ${testdir}/nanopolish.summary.txt ${testdir}/f5c.summary.txt > ${testdir}/joined_results.txt
 		awk -f  scripts/test_eventalign.awk ${testdir}/joined_results.txt || die "${file}: Validation failed"
 	fi
+
+
+	echo "---------------------------------------------------------compare full results"
+
+	if [ $testdir = test/chr22_meth_example ]; then
+		echo "not yet tested"
+	else	
+		tail -n +2 ${testdir}/eventalign.exp | awk 		'{print $1"\t"$2"\t"$3"\t"$5"\t"$6"\t"$7"\t"$8"\t"$9"\t"$10"\t"$11"\t"$12"\t"$13"\t"$14}'  > ${testdir}/nanopolish.txt
+		tail -n +2 ${testdir}/f5c_event_align.txt | awk '{print $1"\t"$2"\t"$3"\t"$5"\t"$6"\t"$7"\t"$8"\t"$10"\t"$11"\t"$12"\t"$13"\t"$14}' > ${testdir}/f5c.txt
+		paste ${testdir}/nanopolish.txt ${testdir}/f5c.txt > ${testdir}/joined_results.txt
+		awk -f  scripts/test_eventalign.awk ${testdir}/joined_results.txt || die "${file}: Validation failed"
+	fi
+
+
 
 	# sort -g -o ${testdir}/f5c_event_align_sorted.summary ${testdir}/f5c_event_align.summary.txt
 	# join ${testdir}/f5c_event_align_sorted.summary ${testdir}/eventalign.summary.exp > ${testdir}/joined_results.txt
@@ -91,7 +107,6 @@ execute_test() {
 
 mode_test() {
 	cmd="${exepath} eventalign -b ${bamfile} -g ${ref} -r ${reads} -t ${threads} -K $batchsize -B $max_bases"
-
 	case $1 in
 		valgrind) valgrind $cmd > /dev/null;;
 		gdb) gdb --args "$cmd";;
@@ -157,16 +172,14 @@ done
 
 if [ -z "$mode" ]; then
 	if [ $testdir = test/chr22_meth_example ]; then
-		${exepath} eventalign -b ${bamfile} -g ${ref} -r ${reads} -t "$threads" -K "$batchsize" -B "$max_bases" --secondary=yes --min-mapq=0 > ${testdir}/result.txt
-		mv f5c_event_align.summary.txt ${testdir}/f5c_event_align.summary.txt
-		execute_test
+		# ${exepath} index -d ${testdir}/fast5_files ${testdir}/reads.fastq
+		${exepath} eventalign -b ${bamfile} -g ${ref} -r ${reads} --secondary=yes --min-mapq=0 -t "$threads" -K "$batchsize" -B "$max_bases" > ${testdir}/f5c_event_align.txt
 	else
 		#test -e ${testdir}/f5c_event_align.summary.txt && rm ${testdir}/f5c_event_align.summary.txt
-		${exepath} index -d ${testdir}/fast5_files ${testdir}/reads.fasta
-		${exepath} eventalign -b ${bamfile} -g ${ref} -r ${reads} --secondary=yes --min-mapq=0 -B "$max_bases" > ${testdir}/result.txt
-		mv f5c_event_align.summary.txt ${testdir}/f5c_event_align.summary.txt
-		execute_test
+		${exepath} eventalign -b ${bamfile} -g ${ref} -r ${reads} --secondary=yes --min-mapq=0 -B "$max_bases" > ${testdir}/f5c_event_align.txt
 	fi
+		cp f5c_event_align.summary.txt ${testdir}/f5c_event_align.summary.txt
+		execute_test
 else
 	mode_test "$@"
 fi

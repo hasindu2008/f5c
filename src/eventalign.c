@@ -1879,10 +1879,8 @@ void realign_read(std::vector<event_alignment_t>* event_alignment_result,Evental
         //     fprintf(summary_fp, "%s\t%s\t%s\t",".", "dna", strand_idx == 0 ? "template" : "complement");
         //     fprintf(summary_fp, "%d\t%d\t%d\t%d\t", summary.num_events, summary.num_steps, summary.num_skips, summary.num_stays);
         //     fprintf(summary_fp, "%.2lf\t%.3lf\t%.3lf\t%.3lf\t%.3lf\n", summary.sum_duration/(4000.0), scalings.shift, scalings.scale, 0.0, scalings.var);
-
         // }
-        // fclose(summary_fp);
-        
+        // fclose(summary_fp);        
     //}
 }
 
