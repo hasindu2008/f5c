@@ -95,7 +95,7 @@ typedef struct {
 // a single event : adapted from taken from scrappie
 typedef struct {
     uint64_t start;
-    size_t length; //todo : cant be made int?
+    float length; //todo : cant be made int?
     float mean;
     float stdv;
     //int32_t pos;   //todo : always -1 can be removed
