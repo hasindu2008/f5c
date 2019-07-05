@@ -1,4 +1,4 @@
-	#!/bin/sh
+#!/bin/sh
 
 # exit when command fails
 set -e
@@ -69,6 +69,7 @@ handle_tests2() {
 
 execute_test() {
 	echo "---------------------------------------------------------compare summaries"
+	test -e ${testdir}/eventalign.summary.exp || wget "http://genome.cse.unsw.edu.au/tmp/eventalign.summary.exp" -O ${testdir}/eventalign.summary.exp 
 	tail -n +2 ${testdir}/eventalign.summary.exp | awk '{print $2"\t"$5"\t"$6"\t"$7"\t"$8"\t"$9"\t"$10"\t"$11"\t"$12"\t"$13}' > ${testdir}/nanopolish.summary.txt
 	tail -n +2 ${testdir}/f5c_event_align.summary.txt | awk '{print $2"\t"$6"\t"$7"\t"$8"\t"$9"\t"$10"\t"$11"\t"$12"\t"$13"\t"$14}' > ${testdir}/f5c.summary.txt
 	join ${testdir}/nanopolish.summary.txt ${testdir}/f5c.summary.txt > ${testdir}/joined_results.txt
@@ -78,39 +79,19 @@ execute_test() {
 		awk -f  scripts/test_eventalign_summary.awk ${testdir}/joined_results.txt || die "${file}: Validation failed"
 	fi
 
-
 	echo "---------------------------------------------------------compare full results"
-
 	if [ $testdir = test/chr22_meth_example ]; then
-		echo "not yet tested"
-	else	
+		echo "event by event test not implemented not yet implemented!"
+	else
+		test -d ${testdir}_big_testresults || mkdir ${testdir}_big_testresults/
+		test -e ${testdir}_big_testresults/eventalign.exp || wget "http://genome.cse.unsw.edu.au/tmp/eventalign.exp.gz" -O ${testdir}_big_testresults/eventalign.exp.gz 
+		test -e ${testdir}_big_testresults/eventalign.exp || gunzip ${testdir}_big_testresults/eventalign.exp.gz
 		tail -n +2 ${testdir}_big_testresults/eventalign.exp | awk 		'{print $1"\t"$2"\t"$3"\t"$5"\t"$6"\t"$7"\t"$8"\t"$10"\t"$11"\t"$12"\t"$13"\t"$14}'  > ${testdir}/nanopolish.txt
-		tail -n +2 ${testdir}/f5c_event_align.txt | awk '{print $1"\t"$2"\t"$3"\t"$5"\t"$6"\t"$7"\t"$8"\t"$10"\t"$11"\t"$12"\t"$13"\t"$14}' > ${testdir}/f5c.txt
+		tail -n +2 ${testdir}/result.txt | awk '{print $1"\t"$2"\t"$3"\t"$5"\t"$6"\t"$7"\t"$8"\t"$10"\t"$11"\t"$12"\t"$13"\t"$14}' > ${testdir}/f5c.txt
 		paste ${testdir}/nanopolish.txt ${testdir}/f5c.txt > ${testdir}/joined_results.txt
 		awk -f  scripts/test_eventalign.awk ${testdir}/joined_results.txt > ${testdir}/joined_diff.txt || handle_tests2 "${file}"
 	fi
 
-
-
-	# sort -g -o ${testdir}/f5c_event_align_sorted.summary ${testdir}/f5c_event_align.summary.txt
-	# join ${testdir}/f5c_event_align_sorted.summary ${testdir}/eventalign.summary.exp > ${testdir}/joined_results.txt
-	# awk -f  scripts/test_eventalign.awk ${testdir}/joined_results.txt > ${testdir}/should_be_empty.txt
-
-	# if [ $testdir = test/chr22_meth_example ]; then
-	# 	grep -w "chr20" ${testdir}/result.txt | awk '{print $1$2$3$4$8$9$10"\t"$5"\t"$6"\t"$7}' > ${testdir}/result_float.txt
-	# 	grep -w "chr20" ${testdir}/meth.exp | awk '{print $1$2$3$4$8$9$10"\t"$5"\t"$6"\t"$7}'  > ${testdir}/meth_float.txt
-
-	# 	join  ${testdir}/result_float.txt ${testdir}/meth_float.txt | awk -v thresh=0.1 -f scripts/test.awk > ${testdir}/floatdiff.txt || handle_tests "${file}"
-	# else	
-	# 	tail -n +2 ${testdir}/result.txt | awk '{print $1,$2,$3,$4,$8,$9,$10}' > ${testdir}/result_exact.txt
-	# 	awk '{print $1,$2,$3,$4,$8,$9,$10}' ${testdir}/meth.exp > ${testdir}/meth_exact.txt
-	# 	diff -q ${testdir}/meth_exact.txt ${testdir}/result_exact.txt || die "diff ${testdir}/result_exact.txt ${testdir}/meth_exact.txt failed" 
-
-	# 	tail -n +2  ${testdir}/result.txt | awk '{print $1$2$3$4$8$9$10"\t"$5"\t"$6"\t"$7}' > ${testdir}/result_float.txt
-	# 	awk '{print $1$2$3$4$8$9$10"\t"$5"\t"$6"\t"$7}' ${testdir}/meth.exp > ${testdir}/meth_float.txt	
-
-	# 	join -a 1 -a 2 ${testdir}/result_float.txt ${testdir}/meth_float.txt | awk -v thresh=0.1 -f scripts/test.awk > ${testdir}/floatdiff.txt || die "${file}: Validation failed" 
-	# fi	
 }
 
 mode_test() {
