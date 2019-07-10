@@ -782,8 +782,8 @@ static inline void load_balance_advisor(core_t* core, int32_t state){
             switch (core->previous) {
                 case MEM_S1_EPK_INC_MAX_DEC_AVG     : INFO("%s","GPU event arrays under-utilised. Consider increasing --max-epk or (decreasing --avg-epk)");   break;
                 case MEM_S2_EPK_DEC_MAX_INC_AVG     : INFO("%s", "GPU read arrays under-utilised. Consider decreasing --max-epk or (increasing --avg-epk)");   break;
-                case MEM_S3_INC_B                   : INFO("%s","GPU arrays under-utilised. consider  increasing -B");   break;
-                case MEM_S4_INC_K                   : INFO("%s","GPU arrays under-utilised. consider  increasing -K");   break;
+                case MEM_S3_INC_B                   : INFO("%s","GPU arrays under-utilised. consider increasing -B");   break;
+                case MEM_S4_INC_K                   : INFO("%s","GPU arrays under-utilised. consider increasing -K");   break;
                 case LB_INC_MAX_LF                  : INFO("%s","CPU got too much work. Consider increasing --cuda-max-lf");   break;
                 case LB_INC_MAX_EPK                 : INFO("%s", "CPU got too much work. consider increasing --cuda-max-epk");   break;
                 case LB_DEC_MAX_LF_EPK              : INFO("%s", "GPU got too much work. consider decreasing --cuda-max-lf or --cuda-max-epk");   break;
@@ -872,7 +872,7 @@ void load_balance(core_t *core, db_t *db, double cpu_process_time,double gpu_pro
                     if (core->opt.verbosity>1) INFO("%s", "GPU arrays are not fully utilised. If this message repeats, consider increasing the --batchsize (-K option)");
                 }
                 else{
-                    if (core->opt.verbosity>1) fprintf(stderr,"[%s] Unhandled exception\n",__func__);
+                    if (core->opt.verbosity>1) INFO("%s", "Unhandled exception\n");
                 }
             }
         }
@@ -884,27 +884,39 @@ void load_balance(core_t *core, db_t *db, double cpu_process_time,double gpu_pro
     if(factor>thresh_factor){ //cpu too much time
         if (core->opt.verbosity>1) fprintf(stderr,"[%s] CPU too much time\n",__func__);
 
-        if(stat_n_gpu_mem_out > db->n_bam_rec * thresh_reads){ //gpu run out of memory
-            if (core->opt.verbosity>1) INFO("%s", "CPU did most work. If this message repeats, consider decreasing -K or -B");
-        }
+        if(stat_n_gpu_mem_out > db->n_bam_rec * thresh_reads || 
+            stat_n_ultra_long_reads> db->n_bam_rec * thresh_reads || 
+            stat_n_too_many_events > db->n_bam_rec * thresh_reads){
 
-        if(stat_n_ultra_long_reads> db->n_bam_rec * thresh_reads){ //ultra long reads
+            if(stat_n_gpu_mem_out > db->n_bam_rec * thresh_reads){ //gpu run out of memory
+                if (core->opt.verbosity>1) INFO("%s", "CPU did most work. If this message repeats, consider decreasing -K or -B");
+            }
+            else{
+                if(stat_n_ultra_long_reads> db->n_bam_rec * thresh_reads){ //ultra long reads
                     //load_balance_advisor(core,LB_INC_MAX_LF);
                     if (core->opt.verbosity>1) INFO("%s","CPU got too many very long reads to process. If this message repeats, consider increasing --cuda-max-lf");
-        }
+                }
+                else{
+                    if(stat_n_too_many_events > db->n_bam_rec * thresh_reads){//reads with too many events
+                                //load_balance_advisor(core,LB_INC_MAX_EPK);
+                                if (core->opt.verbosity>1) INFO("%s","CPU got too many over segmented reads to process. If this message repeats, consider  increasing --cuda-max-epk");
+                    }
+                    else{
+                        if (core->opt.verbosity>1) INFO("%s", "Impossible exception\n");
+                    }
+                }
 
-        if(stat_n_too_many_events > db->n_bam_rec * thresh_reads){//reads with too many events
-                    //load_balance_advisor(core,LB_INC_MAX_EPK);
-                    if (core->opt.verbosity>1) INFO("%s","CPU got too many over segmented reads to process. If this message repeats, consider  increasing --cuda-max-epk");
+            }
         }
-
-           
+        else{
+            if (core->opt.verbosity>1) INFO("%s", "CPU took too much time. If this message repeats, consider using --skip-ultra or decreasing --ultra-thresh or increasing number of CPU threads. If you tried all that means your CPU is not powerful enough to match the GPU and just ignore.");
+        }
 
     }
     
     else if(factor<-thresh_factor){ //gpu too much time
         //load_balance_advisor(core,LB_DEC_MAX_LF_EPK);
-        if (core->opt.verbosity>1) INFO("%s", "GPU got too much work. If this message repeats, consider decreasing --cuda-max-lf or --cuda-max-epk");
+        if (core->opt.verbosity>1) INFO("%s", "GPU got too much work. If this message repeats, consider increasing --ultra-thresh or decreasing --cuda-max-lf or decreasing --cuda-max-epk. If you tried all that means your GPU is not powerful enough to match the CPU and just ignore.");
     }
     else{
         if (core->opt.verbosity>1) fprintf(stderr,"[%s] No load balancing required\n",__func__);
