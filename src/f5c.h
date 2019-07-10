@@ -395,9 +395,11 @@ typedef struct {
     double align_cuda_preprocess;
     double align_cuda_total_kernel;
 
-    //perf stats
-    int32_t previous;
-    int32_t previous_count;
+    //perf stats (can reduce to 16 bit integers)
+    int32_t previous_mem;
+    int32_t previous_count_mem;
+    int32_t previous_load;
+    int32_t previous_count_load;
 
 #endif
 
