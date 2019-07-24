@@ -782,14 +782,11 @@ static inline void load_balance_advisor(core_t* core, int32_t state){
         core->previous_count_load++;
         if(core->previous_count_load>3){
             switch (core->previous_load) {
-                case LB_T1_DEC_K                    : INFO("%s","CPU got too much work. Consider decreasing -K");   break;
-                case LB_T2_INC_MAX_LF               : INFO("%s","CPU got too much work. Consider increasing --cuda-max-lf");   break;
-                case LB_T3_INC_MAX_EPK              : INFO("%s", "CPU got too much work. Consider increasing --cuda-max-epk");   break;
-                case LB_T4_DEC_ULTRA_INC_T_CPU      : INFO("%s", "CPU got too much work. Consider using --skip-ultra or decreasing --ultra-thresh or increasing number of CPU threads. If you tried all that means your CPU is not powerful enough to match the GPU and just ignore.");   break;
-                // case CPU_INC_MAX_EPK    : INFO("%s", "CPU got too much work. consider increasing --cuda-max-epk");   break;
-                case LB_T5_DEC_MAX_LF_EPK           : INFO("%s", "GPU got too much work. Consider increasing --ultra-thresh or decreasing --cuda-max-lf or decreasing --cuda-max-epk. If you tried all that means your GPU is not powerful enough to match the CPU and just ignore.");   break;
-                // case GPU_INC_K          : INFO("%s", "GPU arrays are not fully utilised. consider increasing the --batchsize (-K option)");   break;
-                // case GPU_INC_B          : INFO("%s", "GPU arrays are not fully utilised. consider increasing the --max-bases (-B option)");   break;
+                case LB_T1_DEC_K                    : INFO("%s","CPU got too much work. Try decreasing -K. See http://bit.ly/f5cperf");   break;
+                case LB_T2_INC_MAX_LF               : INFO("%s","CPU got too much work. Try increasing --cuda-max-lf. See http://bit.ly/f5cperf");   break;
+                case LB_T3_INC_MAX_EPK              : INFO("%s", "CPU got too much work. Try increasing --cuda-max-epk. See http://bit.ly/f5cperf");   break;
+                case LB_T4_DEC_ULTRA_INC_T_CPU      : INFO("%s", "CPU got too much work. Try --skip-ultra, decreasing --ultra-thresh or increasing -t. If not, CPU is too weaker than GPU, just ignore. See http://bit.ly/f5cperf");   break;
+                case LB_T5_DEC_MAX_LF_EPK           : INFO("%s", "GPU got too much work. Try increasing --ultra-thresh, decreasing --cuda-max-lf, decreasing --cuda-max-epk. If not, CPU is too powerful than GPU, just ignore. See http://bit.ly/f5cperf");   break;
                 default :
                     break;
 
@@ -871,10 +868,10 @@ static inline void memory_balance_advisor(core_t* core, int32_t state){
         core->previous_count_mem++;
         if(core->previous_count_mem>3){
             switch (core->previous_mem) {
-                case MEM_S1_EPK_INC_MAX_DEC_AVG     : INFO("%s","GPU event arrays under-utilised. Consider increasing --max-epk or (decreasing --avg-epk)");   break;
-                case MEM_S2_EPK_DEC_MAX_INC_AVG     : INFO("%s", "GPU read arrays under-utilised. Consider decreasing --max-epk or (increasing --avg-epk)");   break;
-                case MEM_S3_INC_B                   : INFO("%s","GPU arrays under-utilised. consider increasing -B");   break;
-                case MEM_S4_INC_K                   : INFO("%s","GPU arrays under-utilised. consider increasing -K");   break;
+                case MEM_S1_EPK_INC_MAX_DEC_AVG     : INFO("%s","GPU event arrays under-utilised. Try increasing --max-epk or (decreasing --avg-epk). See http://bit.ly/f5cperf");   break;
+                case MEM_S2_EPK_DEC_MAX_INC_AVG     : INFO("%s", "GPU read arrays under-utilised. Try decreasing --max-epk or (increasing --avg-epk). See http://bit.ly/f5cperf");   break;
+                case MEM_S3_INC_B                   : INFO("%s","GPU arrays under-utilised. Try increasing -B. See http://bit.ly/f5cperf");   break;
+                case MEM_S4_INC_K                   : INFO("%s","GPU arrays under-utilised. Try increasing -K. See http://bit.ly/f5cperf");   break;
                 default :
                     break;
 
