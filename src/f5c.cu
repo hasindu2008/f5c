@@ -187,6 +187,10 @@ void init_cuda(core_t* core){
         WARNING("Your GPU can accommodate upto %.1fM bases. Consider increasing -B option (currently %.1fM) for better performance!",
         core->cuda->max_sum_read_len/(1000.0*1000.0), core->opt.batch_size_bases/((1000.0*1000.0)));
     }
+    else if(num_bases_gap<-500000){
+        WARNING("Your GPU can accommodate only %.1fM bases. Consider decreasing -B option (currently %.1fM) for better performance!",
+        core->cuda->max_sum_read_len/(1000.0*1000.0), core->opt.batch_size_bases/((1000.0*1000.0)));
+    }
 
 
 #endif
@@ -765,11 +769,11 @@ static inline int8_t if_on_gpu(core_t* core, db_t* db, int32_t i){
 
 
 
-#define LB_INC_K_B 1
-#define LB_INC_MAX_LF 2
-#define LB_INC_MAX_EPK 3
-#define LB_DEC_ULTRA_INC_T_CPU 4
-#define LB_DEC_MAX_LF_EPK 5
+#define LB_T1_DEC_K 0
+#define LB_T2_INC_MAX_LF 1
+#define LB_T3_INC_MAX_EPK 2
+#define LB_T4_DEC_ULTRA_INC_T_CPU 3
+#define LB_T5_DEC_MAX_LF_EPK 4
 
 
 
@@ -778,11 +782,12 @@ static inline void load_balance_advisor(core_t* core, int32_t state){
         core->previous_count_load++;
         if(core->previous_count_load>3){
             switch (core->previous_load) {
-                case LB_INC_MAX_LF                  : INFO("%s","CPU got too much work. Consider increasing --cuda-max-lf");   break;
-                case LB_INC_MAX_EPK                 : INFO("%s", "CPU got too much work. consider increasing --cuda-max-epk");   break;
-                case LB_DEC_MAX_LF_EPK              : INFO("%s", "GPU got too much work. consider decreasing --cuda-max-lf or --cuda-max-epk");   break;
+                case LB_T1_DEC_K                    : INFO("%s","CPU got too much work. Consider decreasing -K");   break;
+                case LB_T2_INC_MAX_LF               : INFO("%s","CPU got too much work. Consider increasing --cuda-max-lf");   break;
+                case LB_T3_INC_MAX_EPK              : INFO("%s", "CPU got too much work. Consider increasing --cuda-max-epk");   break;
+                case LB_T4_DEC_ULTRA_INC_T_CPU      : INFO("%s", "CPU got too much work. Consider using --skip-ultra or decreasing --ultra-thresh or increasing number of CPU threads. If you tried all that means your CPU is not powerful enough to match the GPU and just ignore.");   break;
                 // case CPU_INC_MAX_EPK    : INFO("%s", "CPU got too much work. consider increasing --cuda-max-epk");   break;
-                // case GPU_DEC_MAX_EPK_LF : INFO("%s", "GPU got too much work. consider decreasing --cuda-max-epk or --cuda-max-lf");   break;
+                case LB_T5_DEC_MAX_LF_EPK           : INFO("%s", "GPU got too much work. Consider increasing --ultra-thresh or decreasing --cuda-max-lf or decreasing --cuda-max-epk. If you tried all that means your GPU is not powerful enough to match the CPU and just ignore.");   break;
                 // case GPU_INC_K          : INFO("%s", "GPU arrays are not fully utilised. consider increasing the --batchsize (-K option)");   break;
                 // case GPU_INC_B          : INFO("%s", "GPU arrays are not fully utilised. consider increasing the --max-bases (-B option)");   break;
                 default :
@@ -819,17 +824,17 @@ void load_balance(core_t *core, db_t *db, double cpu_process_time,double gpu_pro
             stat_n_too_many_events > db->n_bam_rec * thresh_reads){
 
             if(stat_n_gpu_mem_out > db->n_bam_rec * thresh_reads){ //gpu run out of memory
-                load_balance_advisor(core,LB_INC_K_B);
+                load_balance_advisor(core,LB_T1_DEC_K);
                 if (core->opt.verbosity>1) INFO("%s", "CPU did most work. If this message repeats, consider decreasing -K or -B");
             }
             else{
                 if(stat_n_ultra_long_reads> db->n_bam_rec * thresh_reads){ //ultra long reads
-                    load_balance_advisor(core,LB_INC_MAX_LF);
+                    load_balance_advisor(core,LB_T2_INC_MAX_LF);
                     if (core->opt.verbosity>1) INFO("%s","CPU got too many very long reads to process. If this message repeats, consider increasing --cuda-max-lf");
                 }
                 else{
                     if(stat_n_too_many_events > db->n_bam_rec * thresh_reads){//reads with too many events
-                                load_balance_advisor(core,LB_INC_MAX_EPK);
+                                load_balance_advisor(core,LB_T3_INC_MAX_EPK);
                                 if (core->opt.verbosity>1) INFO("%s","CPU got too many over segmented reads to process. If this message repeats, consider  increasing --cuda-max-epk");
                     }
                     else{
@@ -840,14 +845,14 @@ void load_balance(core_t *core, db_t *db, double cpu_process_time,double gpu_pro
             }
         }
         else{
-            load_balance_advisor(core,LB_DEC_ULTRA_INC_T_CPU);
+            load_balance_advisor(core,LB_T4_DEC_ULTRA_INC_T_CPU);
             if (core->opt.verbosity>1) INFO("%s", "CPU took too much time. If this message repeats, consider using --skip-ultra or decreasing --ultra-thresh or increasing number of CPU threads. If you tried all that means your CPU is not powerful enough to match the GPU and just ignore.");
         }
 
     }
     
     else if(factor<-thresh_factor){ //gpu too much time
-        load_balance_advisor(core,LB_DEC_MAX_LF_EPK);
+        load_balance_advisor(core,LB_T5_DEC_MAX_LF_EPK);
         if (core->opt.verbosity>1) INFO("%s", "GPU got too much work. If this message repeats, consider increasing --ultra-thresh or decreasing --cuda-max-lf or decreasing --cuda-max-epk. If you tried all that means your GPU is not powerful enough to match the CPU and just ignore.");
     }
     else{
