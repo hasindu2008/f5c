@@ -184,11 +184,11 @@ void init_cuda(core_t* core){
     STDERR("Max GPU capacity %.1fM bases",core->cuda->max_sum_read_len/(1000.0*1000.0));
     int64_t  num_bases_gap = core->cuda->max_sum_read_len - core->opt.batch_size_bases;
     if(num_bases_gap>500000){
-        WARNING("Your GPU can accommodate upto %.1fM bases. Consider increasing -B option (currently %.1fM) for better performance!",
+        INFO("Your GPU can accommodate upto %.1fM bases. You may increase -B option (currently %.1fM) for better performance!",
         core->cuda->max_sum_read_len/(1000.0*1000.0), core->opt.batch_size_bases/((1000.0*1000.0)));
     }
     else if(num_bases_gap<-500000){
-        WARNING("Your GPU can accommodate only %.1fM bases. Consider decreasing -B option (currently %.1fM) for better performance!",
+        INFO("Your GPU can accommodate only %.1fM bases. You may decrease -B option (currently %.1fM) for better performance!",
         core->cuda->max_sum_read_len/(1000.0*1000.0), core->opt.batch_size_bases/((1000.0*1000.0)));
     }
 
@@ -785,8 +785,8 @@ static inline void load_balance_advisor(core_t* core, int32_t state){
                 case LB_T1_DEC_K                    : INFO("%s","CPU got too much work. Try decreasing -K. See http://bit.ly/f5cperf");   break;
                 case LB_T2_INC_MAX_LF               : INFO("%s","CPU got too much work. Try increasing --cuda-max-lf. See http://bit.ly/f5cperf");   break;
                 case LB_T3_INC_MAX_EPK              : INFO("%s", "CPU got too much work. Try increasing --cuda-max-epk. See http://bit.ly/f5cperf");   break;
-                case LB_T4_DEC_ULTRA_INC_T_CPU      : INFO("%s", "CPU got too much work. Try --skip-ultra, decreasing --ultra-thresh or increasing -t. If not, CPU is too weaker than GPU, just ignore. See http://bit.ly/f5cperf");   break;
-                case LB_T5_DEC_MAX_LF_EPK           : INFO("%s", "GPU got too much work. Try increasing --ultra-thresh, decreasing --cuda-max-lf, decreasing --cuda-max-epk. If not, CPU is too powerful than GPU, just ignore. See http://bit.ly/f5cperf");   break;
+                case LB_T4_DEC_ULTRA_INC_T_CPU      : INFO("%s", "CPU got too much work. Try --skip-ultra, decreasing --ultra-thresh or increasing -t. Else, CPU is too weaker than GPUa and just ignore. See http://bit.ly/f5cperf");   break;
+                case LB_T5_DEC_MAX_LF_EPK           : INFO("%s", "GPU got too much work. Try increasing --ultra-thresh, decreasing --cuda-max-lf, decreasing --cuda-max-epk. Else, CPU is too powerful than GPU and just ignore. See http://bit.ly/f5cperf");   break;
                 default :
                     break;
 
