@@ -64,7 +64,7 @@ advanced options:
    --cuda-mem-frac FLOAT      fraction of free GPU memory to allocate [0.9 (0.7 for tegra)]
 ```
 
-### Calculate methylation frequency (experimental, not thoroughly tested)
+### Calculate methylation frequency
 ```
 Usage: meth-freq [options...]
 
