@@ -22,6 +22,7 @@
 // TODO : a number of inefficient mallocs are done in this code, which can be removed
 // for example getline can use a onetime buffer
 // need to check for empty newline chars
+// todo : can improve peak memory by disk based sorting - futuristic next level
 
 static const char usage[] = "Usage: %s [options...]\n"
                             "\n"
@@ -271,7 +272,7 @@ int freq_main(int argc, char **argv) {
 
             while (cg_pos != -1) {
                 char* key = make_key(c, s + cg_pos - first_cg_pos, s + cg_pos - first_cg_pos);
-                const char* sg = "split_groups";
+                const char* sg = "split-group";
                 update_call_stats(sites, key, 1, is_methylated, (char*)sg);
                 char* substring = strstr(sequence + cg_pos + 1, "CG");
                 cg_pos = substring == NULL ? -1 : substring - sequence;
