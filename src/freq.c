@@ -98,7 +98,7 @@ int cmp_key(const void* a, const void* b) {
     char** toks_a = split_key(key_a, KEY_SIZE);
     char** toks_b = split_key(key_b, KEY_SIZE);
 
-    bool chromosome_neq = strcmp(toks_a[0], toks_b[0]);
+    int chromosome_neq = strcmp(toks_a[0], toks_b[0]);
 
     if (chromosome_neq) {
         for (int i = 0; i < KEY_SIZE; i++) {
@@ -286,7 +286,7 @@ int freq_main(int argc, char **argv) {
         free(record);
     }
 
-    printf("#chromosome\tstart\tend\tnum_cpgs_in_group\tcalled_sites\tcalled_sites_methylated\tmethylated_frequency\tgroup_sequence\n");
+    printf("chromosome\tstart\tend\tnum_cpgs_in_group\tcalled_sites\tcalled_sites_methylated\tmethylated_frequency\tgroup_sequence\n");
 
     char** sorted_keys = ALLOC(char*, kh_size(sites));
     int size = 0;
