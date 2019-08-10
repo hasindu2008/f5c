@@ -23,7 +23,9 @@ docs:
         url:    /docs/commands
       - title:  Examples
         url:    /docs/example-usage
-  - title:      Performance
+      - title:  Performance guidelines
+        url:    /docs/f5c-perf-hints       
+  - title:      Miscellaneous
     children:
       - title:  F5C CPU performance
         url:    /docs/f5c-cpu-perf
