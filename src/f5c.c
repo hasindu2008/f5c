@@ -315,15 +315,15 @@ static inline int read_from_fast5_files(core_t *core, db_t *db, std::string qnam
     int8_t success=0;
 
     double t = realtime();
-    hid_t hdf5_file = fast5_open(fast5_path);
+    fast5_file_t fast5_file = fast5_open(fast5_path);
     double ot = realtime() - t;
     core->db_fast5_open_time += ot;
     core->db_fast5_time += ot;
-    if (hdf5_file >= 0) {
+    if (fast5_file.hdf5_file >= 0) {
         db->f5[i] = (fast5_t*)calloc(1, sizeof(fast5_t));
         MALLOC_CHK(db->f5[i]);
         t = realtime();
-        int32_t ret=fast5_read(hdf5_file, db->f5[i]);
+        int32_t ret=fast5_read(fast5_file, db->f5[i],qname);
         double rt = realtime() - t;
         core->db_fast5_read_time += rt;
         core->db_fast5_time += rt;
@@ -337,7 +337,7 @@ static inline int read_from_fast5_files(core_t *core, db_t *db, std::string qnam
             return 0;
         }
         t = realtime();
-        fast5_close(hdf5_file);
+        fast5_close(fast5_file);
         core->db_fast5_time += realtime() - t;
 
         if (core->opt.flag & F5C_PRINT_RAW) {

@@ -77,6 +77,7 @@ namespace opt
 }
 //static std::ostream* os_p;
 
+//
 void index_file_from_map(ReadDB& read_db, const std::string& fn, const std::map<std::string, std::string>& fast5_to_read_name_map)
 {
     //PROFILE_FUNC("index_file_from_map")
@@ -97,6 +98,7 @@ void index_file_from_map(ReadDB& read_db, const std::string& fn, const std::map<
     }
 } // process_file
 
+//
 void index_file_from_fast5(ReadDB& read_db, const std::string& fn, const std::map<std::string, std::string>& fast5_to_read_name_map)
 {
     //PROFILE_FUNC("index_file_from_fast5")
@@ -104,20 +106,37 @@ void index_file_from_fast5(ReadDB& read_db, const std::string& fn, const std::ma
     char* fast5_path =(char*)malloc(fn.size()+1);
     strcpy(fast5_path, fn.c_str());
 
-    hid_t hdf5_file = fast5_open(fast5_path);
+    fast5_file_t f5_file =  fast5_open(fast5_path);
+    hid_t hdf5_file = f5_file.hdf5_file;
     if(hdf5_file < 0) {
         fprintf(stderr, "could not open fast5 file: %s\n", fast5_path);
     }
 
-    std::string read_id = fast5_get_read_id(hdf5_file);
-    if(read_id != "") {
-        read_db.add_signal_path(read_id, fn);
+    if(f5_file.is_multi_fast5) {
+    #ifndef SINGLE_FAST5_ONLY
+        std::vector<std::string> read_groups = fast5_get_multi_read_groups(f5_file);
+        std::string prefix = "read_";
+        for(size_t group_idx = 0; group_idx < read_groups.size(); ++group_idx) {
+            std::string group_name = read_groups[group_idx];
+            if(group_name.find(prefix) == 0) {
+                std::string read_id = group_name.substr(prefix.size());
+                read_db.add_signal_path(read_id, fn);
+            }
+        }
+    #else
+        assert(0);
+    #endif    
+    } else {
+        std::string read_id = fast5_get_read_id_single_fast5(f5_file);
+        if(read_id != "") {
+            read_db.add_signal_path(read_id, fn);
+        }
     }
     free(fast5_path);
+    fast5_close(f5_file);
+} 
 
-    fast5_close(hdf5_file);
-} // process_file
-
+//
 void index_path(ReadDB& read_db, const std::string& path, const std::map<std::string, std::string>& fast5_to_read_name_map)
 {
     fprintf(stderr, "[readdb] indexing %s\n", path.c_str());
@@ -164,6 +183,7 @@ void process_summary_fofn()
     }
 }
 
+//
 void exit_bad_header(const std::string& str, const std::string& filename)
 {
     fprintf(stderr, "Could not find %s column in the header of %s\n", str.c_str(), filename.c_str());
@@ -286,7 +306,6 @@ void parse_index_options(int argc, char** argv)
 int index_main(int argc, char** argv)
 {
     parse_index_options(argc, argv);
-
 
     // Read a map from fast5 files to read name from the sequencing summary files (if any)
     process_summary_fofn();
