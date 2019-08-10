@@ -1,3 +1,10 @@
+/* @f5c
+**
+** f5c interface 
+** @author: Hasindu Gamaarachchi (hasindu@unsw.edu.au)
+** @@
+******************************************************************************/
+
 #include <assert.h>
 #include <math.h>
 #include <pthread.h>
@@ -12,10 +19,11 @@
 /*
 todo :
 Error counter for consecutive failures in the skip unreadable mode
+not all the memory allocations are needed for eventalign mode
 */
 
 core_t* init_core(const char* bamfilename, const char* fastafile,
-                  const char* fastqfile, const char* tmpfile, opt_t opt,double realtime0) {
+                  const char* fastqfile, const char* tmpfile, opt_t opt,double realtime0, int8_t mode) {
     core_t* core = (core_t*)malloc(sizeof(core_t));
     MALLOC_CHK(core);
 
@@ -116,6 +124,14 @@ core_t* init_core(const char* bamfilename, const char* fastafile,
     core->failed_calibration_reads=0;
     core->failed_alignment_reads=0;
 
+    //eventalign related
+    core->mode = mode;
+    if(mode==1){
+        core->event_summary_fp = fopen("f5c_event_align.summary.txt","w");
+        F_CHK(core->event_summary_fp,"f5c_event_align.summary.txt");
+    }
+
+
     return core;
 }
 
@@ -139,6 +155,10 @@ void free_core(core_t* core) {
         free_cuda(core);
     }
 #endif
+    //eventalign related
+    if(core->mode==1){
+        fclose(core->event_summary_fp);
+    }    
     free(core);
 }
 
@@ -211,6 +231,21 @@ db_t* init_db(core_t* core) {
     db->total_reads=0;
     db->bad_fast5_file=0;
     db->ultra_long_skipped=0;
+
+    //eventalign related
+    if(core->mode==1){
+        db->eventalign_summary = (EventalignSummary *)malloc(sizeof(EventalignSummary) * db->capacity_bam_rec);
+        db->event_alignment_result = (std::vector<event_alignment_t> **)malloc(sizeof(std::vector<event_alignment_t> *) * db->capacity_bam_rec);
+        MALLOC_CHK(db->event_alignment_result);
+        for (i = 0; i < db->capacity_bam_rec; ++i) {
+            db->event_alignment_result[i] = new std::vector<event_alignment_t> ;
+            NULL_CHK(db->event_alignment_result[i]);
+        }
+    }
+    else{
+        db->eventalign_summary = NULL;
+        db->event_alignment_result = NULL;
+    }
 
     return db;
 }
@@ -724,8 +759,16 @@ void align_db(core_t* core, db_t* db) {
 
 void meth_single(core_t* core, db_t* db, int32_t i){
     if(!db->read_stat_flag[i]){
-        calculate_methylation_for_read(db->site_score_map[i], db->fasta_cache[i], db->bam_rec[i], db->read_len[i], db->et[i].event, db->base_to_event_map[i],
-        db->scalings[i], core->cpgmodel,db->events_per_base[i]);
+        if(core->mode==0){
+            calculate_methylation_for_read(db->site_score_map[i], db->fasta_cache[i], db->bam_rec[i], db->read_len[i], db->et[i].event, db->base_to_event_map[i],
+            db->scalings[i], core->cpgmodel,db->events_per_base[i]);
+        }
+        else if (core->mode==1){
+            realign_read(db->event_alignment_result[i], &(db->eventalign_summary[i]),core->event_summary_fp, db->fasta_cache[i],core->m_hdr,
+                  db->bam_rec[i],db->read_len[i],
+                  i,
+                  &(db->et[i]), core->model,db->base_to_event_map[i],db->scalings[i],db->events_per_base[i]);
+        }
     }
 }
 
@@ -818,9 +861,18 @@ void process_single(core_t* core, db_t* db,int32_t i) {
         return;
     }
 
-    calculate_methylation_for_read(db->site_score_map[i], db->fasta_cache[i], db->bam_rec[i], db->read_len[i], db->et[i].event, db->base_to_event_map[i],
-        db->scalings[i], core->cpgmodel,db->events_per_base[i]);
+    if(core->mode==0){
+        calculate_methylation_for_read(db->site_score_map[i], db->fasta_cache[i], db->bam_rec[i], db->read_len[i], db->et[i].event, db->base_to_event_map[i],
+            db->scalings[i], core->cpgmodel,db->events_per_base[i]);
+    }
 
+    else if(core->mode==1){
+        //hack
+        realign_read(db->event_alignment_result[i], &(db->eventalign_summary[i]),core->event_summary_fp,db->fasta_cache[i],core->m_hdr,
+                  db->bam_rec[i],db->read_len[i],
+                  i,
+                  &(db->et[i]), core->model,db->base_to_event_map[i],db->scalings[i],db->events_per_base[i]);    
+    }
 }
 
 void process_db(core_t* core, db_t* db) {
@@ -867,7 +919,7 @@ void process_db(core_t* core, db_t* db) {
         double meth_end = realtime();
         core->meth_time += (meth_end-meth_start);
 
-        fprintf(stderr, "[%s::%.3f*%.2f] Methylation calling done\n", __func__,
+        fprintf(stderr, "[%s::%.3f*%.2f] HMM done\n", __func__,
                 realtime() - realtime0, cputime() / (realtime() - realtime0));
 
 
@@ -951,26 +1003,44 @@ void output_db(core_t* core, db_t* db) {
         if(!db->read_stat_flag[i]){
             char* qname = bam_get_qname(db->bam_rec[i]);
             char* contig = core->m_hdr->target_name[db->bam_rec[i]->core.tid];
-            std::map<int, ScoredSite> *site_score_map = db->site_score_map[i];
+            
+            if(core->mode==0) {
+                std::map<int, ScoredSite> *site_score_map = db->site_score_map[i];
+                // write all sites for this read
+                for(auto iter = site_score_map->begin(); iter != site_score_map->end(); ++iter) {
 
-            // write all sites for this read
-            for(auto iter = site_score_map->begin(); iter != site_score_map->end(); ++iter) {
+                    const ScoredSite& ss = iter->second;
+                    double sum_ll_m = ss.ll_methylated[0]; //+ ss.ll_methylated[1];
+                    double sum_ll_u = ss.ll_unmethylated[0]; //+ ss.ll_unmethylated[1];
+                    double diff = sum_ll_m - sum_ll_u;
 
-                const ScoredSite& ss = iter->second;
-                double sum_ll_m = ss.ll_methylated[0]; //+ ss.ll_methylated[1];
-                double sum_ll_u = ss.ll_unmethylated[0]; //+ ss.ll_unmethylated[1];
-                double diff = sum_ll_m - sum_ll_u;
+                    // fprintf(stderr, "%s\t%d\t%d\t", ss.chromosome.c_str(), ss.start_position, ss.end_position);
+                    // fprintf(stderr, "%s\t%.2lf\t", qname, diff);
+                    // fprintf(stderr, "%.2lf\t%.2lf\t", sum_ll_m, sum_ll_u);
+                    // fprintf(stderr, "%d\t%d\t%s\n", ss.strands_scored, ss.n_cpg, ss.sequence.c_str());
 
-                // fprintf(stderr, "%s\t%d\t%d\t", ss.chromosome.c_str(), ss.start_position, ss.end_position);
-                // fprintf(stderr, "%s\t%.2lf\t", qname, diff);
-                // fprintf(stderr, "%.2lf\t%.2lf\t", sum_ll_m, sum_ll_u);
-                // fprintf(stderr, "%d\t%d\t%s\n", ss.strands_scored, ss.n_cpg, ss.sequence.c_str());
+                    printf("%s\t%d\t%d\t", contig, ss.start_position, ss.end_position);
+                    printf("%s\t%.2lf\t", qname, diff);
+                    printf("%.2lf\t%.2lf\t", sum_ll_m, sum_ll_u);
+                    printf("%d\t%d\t%s\n", ss.strands_scored, ss.n_cpg, ss.sequence.c_str());
 
-                printf("%s\t%d\t%d\t", contig, ss.start_position, ss.end_position);
-                printf("%s\t%.2lf\t", qname, diff);
-                printf("%.2lf\t%.2lf\t", sum_ll_m, sum_ll_u);
-                printf("%d\t%d\t%s\n", ss.strands_scored, ss.n_cpg, ss.sequence.c_str());
+                }
+            }
 
+            else if(core->mode==1){
+                FILE* summary_fp = core->event_summary_fp;
+                EventalignSummary summary = db->eventalign_summary[i];
+                scalings_t scalings = db->scalings[i];
+                if(summary_fp != NULL && summary.num_events > 0) {
+                    size_t strand_idx = 0;
+                    fprintf(summary_fp, "%d\t%s\t", i, qname);
+                    fprintf(summary_fp, "%s\t%s\t%s\t",".", "dna", strand_idx == 0 ? "template" : "complement");
+                    fprintf(summary_fp, "%d\t%d\t%d\t%d\t", summary.num_events, summary.num_steps, summary.num_skips, summary.num_stays);
+                    fprintf(summary_fp, "%.2lf\t%.3lf\t%.3lf\t%.3lf\t%.3lf\n", summary.sum_duration/(db->f5[i]->sample_rate), scalings.shift, scalings.scale, 0.0, scalings.var);
+                }
+                std::vector<event_alignment_t> *event_alignment_result = db->event_alignment_result[i];
+                 emit_event_alignment_tsv(stdout,0,&(db->et[i]),core->model,db->scalings[i],*event_alignment_result, 1, 0, 0,
+                              qname, contig);
             }
         }
         else{
@@ -1005,6 +1075,11 @@ void free_db_tmp(db_t* db) {
         free(db->base_to_event_map[i]);
         delete db->site_score_map[i];
         db->site_score_map[i] = new std::map<int, ScoredSite>;
+        
+        if(db->event_alignment_result){ //eventalign related
+            delete db->event_alignment_result[i];
+            db->event_alignment_result[i] = new std::vector<event_alignment_t>;
+        }
     }
 }
 
@@ -1031,6 +1106,17 @@ void free_db(db_t* db) {
         delete db->site_score_map[i];
     }
     free(db->site_score_map);
+    //eventalign related
+    if(db->eventalign_summary){
+        free(db->eventalign_summary);
+    }
+    if(db->event_alignment_result){
+        for (i = 0; i < db->capacity_bam_rec; ++i) {
+            delete db->event_alignment_result[i];
+        }
+        free(db->event_alignment_result);        
+    }
+
     free(db);
 }
 

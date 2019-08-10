@@ -17,7 +17,9 @@ OBJ = $(BUILD_DIR)/main.o \
       $(BUILD_DIR)/model.o \
       $(BUILD_DIR)/align.o \
       $(BUILD_DIR)/meth.o \
-      $(BUILD_DIR)/hmm.o
+      $(BUILD_DIR)/hmm.o \
+      $(BUILD_DIR)/freq.o \
+      $(BUILD_DIR)/eventalign.o
 
 PREFIX = /usr/local
 VERSION = `git describe --tags`
@@ -68,6 +70,12 @@ $(BUILD_DIR)/meth.o: src/meth.c src/f5c.h src/fast5lite.h src/f5cmisc.h
 $(BUILD_DIR)/hmm.o: src/hmm.c src/f5c.h src/fast5lite.h src/f5cmisc.h src/matrix.h src/logsum.h
 	$(CXX) $(CFLAGS) $(CPPFLAGS) $< -c -o $@
 
+$(BUILD_DIR)/freq.o: src/freq.c src/khash.h
+	$(CXX) $(CFLAGS) $(CPPFLAGS) $< -c -o $@	
+
+$(BUILD_DIR)/eventalign.o: src/eventalign.c
+	$(CXX) $(CFLAGS) $(CPPFLAGS) $< -c -o $@
+	
 # cuda stuff
 $(BUILD_DIR)/gpucode.o: $(CUDA_OBJ)
 	$(NVCC) $(CUDA_CFLAGS) -dlink $^ -o $@ 
@@ -111,7 +119,7 @@ $(BUILD_DIR)/lib/libhdf5.a:
 	make install
 
 clean: 
-	rm -rf $(BINARY) $(BUILD_DIR)/*.o
+	rm -rf $(BINARY) $(BUILD_DIR)/*.o calculate_methylation_frequency
 
 # Delete all gitignored files (but not directories)
 distclean: clean
@@ -151,3 +159,6 @@ uninstall:
 
 test: $(BINARY)
 	./scripts/test.sh
+
+test_eventalign: $(BINARY)
+	./scripts/test_eventalign.sh

@@ -1,3 +1,10 @@
+/* @f5c
+**
+** main 
+** @author: Hasindu Gamaarachchi (hasindu@unsw.edu.au)
+** @@
+******************************************************************************/
+
 #include <stdlib.h>
 #include <unistd.h>
 #include <stdio.h>
@@ -32,15 +39,18 @@ void sig_handler(int sig) {
     exit(EXIT_FAILURE);
 }
 
-int meth_main(int argc, char* argv[]);
+int meth_main(int argc, char* argv[], int8_t mode);
 int index_main(int argc, char** argv);
+int freq_main(int argc, char **argv);
 
 int print_usage(){
 
     fprintf(stderr,"Usage: f5c <command> [options]\n\n");
     fprintf(stderr,"command:\n");
     fprintf(stderr,"         index               Build an index mapping from basecalled reads to the signals measured by the sequencer (same as nanopolish index)\n");
-    fprintf(stderr,"         call-methylation    Classify nucleotides as methylated or not (optimised version of nanopolish call-methylation)\n\n");
+    fprintf(stderr,"         call-methylation    Classify nucleotides as methylated or not (optimised nanopolish call-methylation)\n");
+    fprintf(stderr,"         meth-freq           Calculate methylation frequency at genomic CpG sites (optimised nanopolish calculate_methylation_frequency.py)\n");
+    fprintf(stderr,"         eventalign          Align nanopore events to reference k-mers (optimised nanopolish eventalign)\n\n");
 
 
     exit(EXIT_FAILURE);
@@ -61,7 +71,13 @@ int main(int argc, char* argv[]){
         ret=index_main(argc-1, argv+1);
     }
     else if(strcmp(argv[1],"call-methylation")==0){
-        ret=meth_main(argc-1, argv+1);
+        ret=meth_main(argc-1, argv+1,0);
+    }
+    else if(strcmp(argv[1],"eventalign")==0){
+        ret=meth_main(argc-1, argv+1,1);
+    }    
+    else if(strcmp(argv[1],"meth-freq")==0){
+        ret=freq_main(argc-1, argv+1);
     }
     else{
         fprintf(stderr,"[f5c] Unrecognised command %s\n",argv[1]);

@@ -1,3 +1,10 @@
+/* @f5c
+**
+** f5c interface 
+** @author: Hasindu Gamaarachchi (hasindu@unsw.edu.au)
+** @@
+******************************************************************************/
+
 #ifndef F5C_H
 #define F5C_H
 
@@ -7,6 +14,9 @@
 
 #include "fast5lite.h"
 #include "nanopolish_read_db.h"
+
+//required for eventalign
+#include <vector>
 
 #define F5C_VERSION "0.1-beta"
 
@@ -199,6 +209,34 @@ struct ScoredSite
     static bool sort_by_position(const ScoredSite& a, const ScoredSite& b) { return a.start_position < b.start_position; }
 };
 
+//eventalign related
+// Summarize the event alignment for a read strand
+typedef struct 
+{
+    // //cleanup this part    
+    // EventalignSummary() {
+    //     num_events = 0;
+    //     num_steps = 0;
+    //     num_stays = 0;
+    //     num_skips = 0;
+    //     sum_z_score = 0;
+    //     sum_duration = 0;
+    //     alignment_edit_distance = 0;
+    //     reference_span = 0;
+    // }
+
+    int num_events;
+    int num_steps;
+    int num_stays;
+    int num_skips;
+
+    double sum_duration;
+    double sum_z_score;
+    int alignment_edit_distance;
+    int reference_span;
+}EventalignSummary;
+
+
 
 // a data batch (dynamic data based on the reads)
 typedef struct {
@@ -249,6 +287,13 @@ typedef struct {
     int64_t total_reads; //total number mapped entries in the bam file (after filtering based on flags, mapq etc)
     int64_t bad_fast5_file; //empty fast5 path returned by readdb, could not open fast5
     int64_t ultra_long_skipped; //ultra long reads that are skipped
+
+    //eventalign related
+    EventalignSummary *eventalign_summary;
+    //another extremely ugly hack till converted to C
+    //TODO : convert this to a C array and get rid of include <vector>
+    std::vector<event_alignment_t> **event_alignment_result;
+
 
 } db_t;
 
@@ -350,9 +395,11 @@ typedef struct {
     double align_cuda_preprocess;
     double align_cuda_total_kernel;
 
-    //perf stats
-    int32_t previous;
-    int32_t previous_count;
+    //perf stats (can reduce to 16 bit integers)
+    int32_t previous_mem;
+    int32_t previous_count_mem;
+    int32_t previous_load;
+    int32_t previous_count_load;
 
 #endif
 
@@ -364,6 +411,10 @@ typedef struct {
     int64_t qc_fail_reads;
     int64_t failed_calibration_reads;
     int64_t failed_alignment_reads;
+
+    //eventalign related
+    int8_t mode;
+    FILE *event_summary_fp;
 
 
 } core_t;
@@ -406,7 +457,7 @@ typedef struct {
 db_t* init_db(core_t* core);
 ret_status_t load_db(core_t* dg, db_t* db);
 core_t* init_core(const char* bamfilename, const char* fastafile,
-                  const char* fastqfile, const char* tmpfile, opt_t opt,double realtime0);
+                  const char* fastqfile, const char* tmpfile, opt_t opt,double realtime0, int8_t mode);
 void process_db(core_t* dg, db_t* db);
 void pthread_db(core_t* core, db_t* db, void (*func)(core_t*,db_t*,int));
 void align_db(core_t* core, db_t* db);
