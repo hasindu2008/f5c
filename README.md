@@ -4,6 +4,8 @@ An optimised re-implementation of the call-methylation module in [Nanopolish](ht
 
 First the reads have to be indexed using `f5c index`. Then invoke `f5c call-methylation` to detect methylated cytosine bases. Finally, you may use `f5c meth-freq` to obtain methylation frequencies. The results are almost the same as from nanopolish except a few differences due to floating point approximations.
 
+*Full Documentation* : [https://hasindu2008.github.io/f5c/docs/overview](https://hasindu2008.github.io/f5c/docs/overview)
+
 [![Build Status](https://travis-ci.org/hasindu2008/f5c.svg?branch=master)](https://travis-ci.org/hasindu2008/f5c)
 
 ## Quick start
