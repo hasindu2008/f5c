@@ -1,12 +1,14 @@
 header:
   - title:      Docs
-    url:        /docs/quick-start
+    url:        /docs/overview
   # - title:      About
     # url:        /about/
 
 docs:
   - title:      Overview
-    url:        /docs/overview
+    children:
+      - title:  Overview
+        url:    /docs/overview      
   - title:      Installation
     children:
       - title:  Quick Start
