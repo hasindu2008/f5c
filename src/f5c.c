@@ -206,11 +206,11 @@ db_t* init_db(core_t* core) {
         sizeof(event_alignment_t*) * db->capacity_bam_rec);
     MALLOC_CHK(db->event_alignment);
     db->n_event_alignment =
-        (int32_t*)malloc(sizeof(int32_t*) * db->capacity_bam_rec);
+        (int32_t*)malloc(sizeof(int32_t) * db->capacity_bam_rec);
     MALLOC_CHK(db->n_event_alignment);
 
     db->events_per_base =
-        (double*)malloc(sizeof(double*) * db->capacity_bam_rec);
+        (double*)malloc(sizeof(double) * db->capacity_bam_rec);
     MALLOC_CHK(db->events_per_base);
 
     db->base_to_event_map =
