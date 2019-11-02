@@ -58,31 +58,36 @@ echo "Default test"
 make clean && make
 "${exepath}" call-methylation -b "${bamfile}" -g "${ref}" -r "${reads}" -t "${NCPU}"  -K1024 -v5 > ${testdir}/result.txt 2> default.log
 evaluate
+echo ""
 
 echo "sectional benchmark"
 "${exepath}" call-methylation -b "${bamfile}" -g "${ref}" -r "${reads}" -t "${NCPU}"  -K1024 -v5 --profile=yes > ${testdir}/result.txt 2> profile.log
 evaluate
+echo ""
 
 echo "NO IO PROC INTERLEAVE test"
 make clean &&  CFLAGS+="-DIO_PROC_NO_INTERLEAVE=1" make
 "${exepath}" call-methylation -b "${bamfile}" -g "${ref}" -r "${reads}" -t "${NCPU}"  -K1024 -v5 > ${testdir}/result.txt 2> no_io_proc.log
 evaluate
+echo ""
 
 echo "CUDA test"
 make clean && make cuda=1
 "${exepath}" call-methylation -b "${bamfile}" -g "${ref}" -r "${reads}" -t "${NCPU}"  -K256 -v5 > ${testdir}/result.txt 2> default_cuda.log
 evaluate
+echo ""
 
 echo "CUDA test : cuda disabled"
 make clean && make cuda=1
 "${exepath}" call-methylation -b "${bamfile}" -g "${ref}" -r "${reads}" -t "${NCPU}"  -K256 -v5 --disable-cuda=yes > ${testdir}/result.txt 2> cuda_disabled.log
 evaluate
-
+echo ""
 
 echo "CUDA test : dynamic malloc"
 make clean && CFLAGS_CUDA+="-DCUDA_DYNAMIC_MALLOC=1" make cuda=1
 "${exepath}" call-methylation -b "${bamfile}" -g "${ref}" -r "${reads}" -t "${NCPU}"  -K256 -v5 > ${testdir}/result.txt 2> cuda_malloc.log
 evaluate
+echo ""
 
 echo "bad fast5 file"
 mv test/chr22_meth_example/fast5_files/DEAMERNANOPORE_20161117_FNFAB43577_MN16450_sequencing_run_MA_821_R9_4_NA12878_11_17_16_88738_ch1_read445_strand.fast5 test/chr22_meth_example/fast5_files/a.fast5
@@ -90,5 +95,6 @@ make clean && make
 "${exepath}" call-methylation -b "${bamfile}" -g "${ref}" -r "${reads}" -t "${NCPU}"  -K1024 -v5 > ${testdir}/result.txt 2> badfast5.log
 mv test/chr22_meth_example/fast5_files/a.fast5 test/chr22_meth_example/fast5_files/DEAMERNANOPORE_20161117_FNFAB43577_MN16450_sequencing_run_MA_821_R9_4_NA12878_11_17_16_88738_ch1_read445_strand.fast5
 evaluate
+echo ""
 
 exit 0

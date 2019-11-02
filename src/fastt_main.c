@@ -57,39 +57,47 @@ int fast5_to_fastt(std::string fast5_path_str){
 
     fast5_t f5;
 
-    hid_t hdf5_file = fast5_open(fast5_path);
-    if (hdf5_file >= 0) {
-        int32_t ret=fast5_read(hdf5_file, &f5);
-        if(ret<0){
-            WARNING("Fast5 file [%s] is unreadable and will be skipped", fast5_path_str.c_str());
-            bad_fast5_file++;
-            fast5_close(hdf5_file);
-            free(fast5_path);
-            return 0;
-        }
-        std::string read_id = fast5_get_read_id(hdf5_file);
-        if (read_id==""){
-            WARNING("Fast5 file [%s] does not have a read ID and will be skipped", fast5_path_str.c_str());
-            bad_fast5_file++;
-            fast5_close(hdf5_file);
-            free(fast5_path);   
-            return 0;         
-        }
-        fast5_close(hdf5_file);
+    fast5_file_t fast5_file = fast5_open(fast5_path);
 
-        //printf("@read_id\tn_samples\tdigitisation\toffset\trange\tsample_rate\traw_signal\tnum_bases\tsequence\nfast5_path");
+    if (fast5_file.hdf5_file >= 0) {
+        
+        if(fast5_file.is_multi_fast5) { 
+            fprintf(stderr,"fastt not yet implemented for multi-fast5\n");
+            exit(1);
+        }
+        else{
+            int32_t ret=fast5_read_single_fast5(fast5_file, &f5);
+            if(ret<0){
+                WARNING("Fast5 file [%s] is unreadable and will be skipped", fast5_path_str.c_str());
+                bad_fast5_file++;
+                fast5_close(fast5_file);
+                free(fast5_path);
+                return 0;
+            }
+            std::string read_id = fast5_get_read_id_single_fast5(fast5_file);
+            if (read_id==""){
+                WARNING("Fast5 file [%s] does not have a read ID and will be skipped", fast5_path_str.c_str());
+                bad_fast5_file++;
+                fast5_close(fast5_file);
+                free(fast5_path);   
+                return 0;         
+            }
+            fast5_close(fast5_file);
 
-        printf("%s\t%lld\t%.1f\t%.1f\t%.1f\t%.1f\t", read_id.c_str(), 
-                f5.nsample,f5.digitisation, f5.offset, f5.range, f5.sample_rate);
-        uint32_t j = 0;
-        for (j = 0; j < f5.nsample-1; j++) {
-            printf("%d,", (int)f5.rawptr[j]);
+            //printf("@read_id\tn_samples\tdigitisation\toffset\trange\tsample_rate\traw_signal\tnum_bases\tsequence\nfast5_path");
+
+            printf("%s\t%lld\t%.1f\t%.1f\t%.1f\t%.1f\t", read_id.c_str(), 
+                    f5.nsample,f5.digitisation, f5.offset, f5.range, f5.sample_rate);
+            uint32_t j = 0;
+            for (j = 0; j < f5.nsample-1; j++) {
+                printf("%d,", (int)f5.rawptr[j]);
+            }
+            if(j<f5.nsample){
+                printf("%d", (int)f5.rawptr[j]);
+                j++;
+            }
+            printf("\t%d\t%s\t%s\n",0,".",fast5_path);
         }
-        if(j<f5.nsample){
-            printf("%d", (int)f5.rawptr[j]);
-            j++;
-        }
-        printf("\t%d\t%s\t%s\n",0,".",fast5_path);
     }
     else{
         WARNING("Fast5 file [%s] is unreadable and will be skipped", fast5_path_str.c_str());

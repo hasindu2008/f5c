@@ -16,11 +16,13 @@ OBJ = $(BUILD_DIR)/main.o \
       $(BUILD_DIR)/nanopolish_index.o \
       $(BUILD_DIR)/fastt_main.o \
 	  $(BUILD_DIR)/ftidx.o \
+      $(BUILD_DIR)/nanopolish_fast5_io.o \
       $(BUILD_DIR)/model.o \
       $(BUILD_DIR)/align.o \
       $(BUILD_DIR)/meth.o \
       $(BUILD_DIR)/hmm.o \
-      $(BUILD_DIR)/freq.o
+      $(BUILD_DIR)/freq.o \
+      $(BUILD_DIR)/eventalign.o
 
 PREFIX = /usr/local
 VERSION = `git describe --tags`
@@ -65,6 +67,9 @@ $(BUILD_DIR)/fastt_main.o: src/fastt_main.c src/f5c.h src/fast5lite.h src/f5cmis
 $(BUILD_DIR)/ftidx.o: src/ftidx.c src/ftidx.h
 	$(CXX) $(CFLAGS) $(CPPFLAGS) $< -c -o $@	
 
+$(BUILD_DIR)/nanopolish_fast5_io.o: src/nanopolish_fast5_io.c src/fast5lite.h
+	$(CXX) $(CFLAGS) $(CPPFLAGS) $< -c -o $@
+
 $(BUILD_DIR)/model.o: src/model.c src/model.h src/f5c.h src/fast5lite.h src/f5cmisc.h
 	$(CXX) $(CFLAGS) $(CPPFLAGS) $< -c -o $@
 
@@ -79,6 +84,9 @@ $(BUILD_DIR)/hmm.o: src/hmm.c src/f5c.h src/fast5lite.h src/f5cmisc.h src/matrix
 
 $(BUILD_DIR)/freq.o: src/freq.c src/khash.h
 	$(CXX) $(CFLAGS) $(CPPFLAGS) $< -c -o $@	
+
+$(BUILD_DIR)/eventalign.o: src/eventalign.c
+	$(CXX) $(CFLAGS) $(CPPFLAGS) $< -c -o $@
 	
 # cuda stuff
 $(BUILD_DIR)/gpucode.o: $(CUDA_OBJ)
@@ -123,7 +131,7 @@ $(BUILD_DIR)/lib/libhdf5.a:
 	make install
 
 clean: 
-	rm -rf $(BINARY) $(BUILD_DIR)/*.o calculate_methylation_frequency
+	rm -rf $(BINARY) $(BUILD_DIR)/*.o
 
 # Delete all gitignored files (but not directories)
 distclean: clean
@@ -163,3 +171,6 @@ uninstall:
 
 test: $(BINARY)
 	./scripts/test.sh
+
+test_eventalign: $(BINARY)
+	./scripts/test_eventalign.sh

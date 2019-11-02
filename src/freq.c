@@ -12,6 +12,7 @@
 #include <math.h>
 #include <string.h>
 #include <getopt.h>
+#include "error.h"
 #include "khash.h"
 
 #define KEY_SIZE 3
@@ -22,11 +23,13 @@
 // TODO : a number of inefficient mallocs are done in this code, which can be removed
 // for example getline can use a onetime buffer
 // need to check for empty newline chars
+// todo : can improve peak memory by disk based sorting - futuristic next level
 
 static const char usage[] = "Usage: %s [options...]\n"
                             "\n"
                             "  -c [float]        Call threshold. Default is 2.5.\n"
                             "  -i [file]         Input file. Read from stdin if not specified.\n"
+                            "  -o [file]         Output file. Write to stdout if not specified.\n"
                             "  -s                Split groups\n";
 
 struct site_stats {
@@ -98,7 +101,7 @@ int cmp_key(const void* a, const void* b) {
     char** toks_a = split_key(key_a, KEY_SIZE);
     char** toks_b = split_key(key_b, KEY_SIZE);
 
-    bool chromosome_neq = strcmp(toks_a[0], toks_b[0]);
+    int chromosome_neq = strcmp(toks_a[0], toks_b[0]);
 
     if (chromosome_neq) {
         for (int i = 0; i < KEY_SIZE; i++) {
@@ -203,7 +206,7 @@ int freq_main(int argc, char **argv) {
     //extern char* optarg;
     //extern int optind, optopt;
 
-    while ((c = getopt(argc, argv, "c:i:s")) != -1) {
+    while ((c = getopt(argc, argv, "c:i:o:s")) != -1) {
         switch(c) {
             case 'c':
                 /* TODO handle overflow when calling strtod */
@@ -229,9 +232,20 @@ int freq_main(int argc, char **argv) {
                       fprintf(stderr, "Unrecognized option: -%c\n", optopt);
                       fprintf(stderr, usage, argv[0]);
                       exit(EXIT_FAILURE);
+            case 'o':
+                    if (strcmp(optarg, "-") != 0) {
+                        if (freopen(optarg, "wb", stdout) == NULL) {
+                            ERROR("failed to write the output to file %s : %s",optarg, strerror(errno));
+                            exit(EXIT_FAILURE);
+                        }
+                    }                   
             default:
                       break;
         }
+    }
+
+    if(input==stdin){
+        fprintf(stderr,"Scanning the input from stdin ...\n");
     }
 
     khash_t(str)* sites = kh_init(str);
@@ -271,7 +285,7 @@ int freq_main(int argc, char **argv) {
 
             while (cg_pos != -1) {
                 char* key = make_key(c, s + cg_pos - first_cg_pos, s + cg_pos - first_cg_pos);
-                const char* sg = "split_groups";
+                const char* sg = "split-group";
                 update_call_stats(sites, key, 1, is_methylated, (char*)sg);
                 char* substring = strstr(sequence + cg_pos + 1, "CG");
                 cg_pos = substring == NULL ? -1 : substring - sequence;
@@ -286,7 +300,7 @@ int freq_main(int argc, char **argv) {
         free(record);
     }
 
-    printf("#chromosome\tstart\tend\tnum_cpgs_in_group\tcalled_sites\tcalled_sites_methylated\tmethylated_frequency\tgroup_sequence\n");
+    printf("chromosome\tstart\tend\tnum_cpgs_in_group\tcalled_sites\tcalled_sites_methylated\tmethylated_frequency\tgroup_sequence\n");
 
     char** sorted_keys = ALLOC(char*, kh_size(sites));
     int size = 0;

@@ -37,6 +37,7 @@ main thread
 TODO :
 --print-* options should take a filename
 a step controller if one requires to perform only upto a certain step such as alignment, ignoring the reset
+--the names of functions and variablrs starting with meth_ are confusing as it stands for both meth and event now. should be fixed later
 */
 
 /*
@@ -79,7 +80,8 @@ static struct option long_options[] = {
     {"ultra-thresh",required_argument, 0, 0},      //27 the threadshold for skipping ultra long reads
     {"write-dump",required_argument, 0, 0},        //28 write the raw data as a dump
     {"read-dump",required_argument, 0, 0},         //29 read the raw data as a dump
-    {"fastt",required_argument, 0, 0},             //30 read from a fastt file
+    {"output",required_argument, 0, 'o'},          //30 output to a file [stdout]
+    {"fastt",required_argument, 0, 0},             //31 read from a fastt file
     {0, 0, 0, 0}};
 
 
@@ -180,13 +182,14 @@ void* pthread_post_processor(void* voidargs){
     pthread_exit(0);
 }
 
-int meth_main(int argc, char* argv[]) {
+//todo : need to print error message and arg check with respect to eventalign
+int meth_main(int argc, char* argv[], int8_t mode) {
 
     double realtime0 = realtime();
 
     //signal(SIGSEGV, sig_handler);
 
-    const char* optstring = "r:b:g:t:B:K:v:hV";
+    const char* optstring = "r:b:g:t:B:K:v:o:hV";
     int longindex = 0;
     int32_t c = -1;
 
@@ -232,7 +235,7 @@ int meth_main(int argc, char* argv[]) {
             opt.verbosity = atoi(optarg);
         }
         else if (c=='V'){
-            fprintf(stderr,"F5C %s\n",F5C_VERSION);
+            fprintf(stdout,"F5C %s\n",F5C_VERSION);
             exit(EXIT_SUCCESS);
         }
         else if (c=='h'){
@@ -288,17 +291,24 @@ int meth_main(int argc, char* argv[]) {
             yes_or_no(&opt, F5C_WR_RAW_DUMP, longindex, optarg, 1);
         } else if(c == 0 && longindex == 29){ //read the raw dump of the fast5 files
             yes_or_no(&opt, F5C_RD_RAW_DUMP, longindex, optarg, 1);
-        }  else if(c == 0 && longindex == 30){ //read from a fastt
+        } else if(c=='o'){
+			if (strcmp(optarg, "-") != 0) {
+				if (freopen(optarg, "wb", stdout) == NULL) {
+					ERROR("failed to write the output to file %s : %s",optarg, strerror(errno));
+					exit(EXIT_FAILURE);
+				}
+			}
+        } else if(c == 0 && longindex == 31){ //read from a fastt
             fasttfilename=optarg;
             assert(fasttfilename!=NULL);
             yes_or_no(&opt, F5C_RD_FASTT, longindex, "yes", 1);
-        }         
+        }   
     }
 
     if (fastqfile == NULL || bamfilename == NULL || fastafile == NULL || fp_help == stdout) {
         fprintf(
             fp_help,
-            "Usage: f5c call-methylation [OPTIONS] -r reads.fa -b alignments.bam -g genome.fa\n");
+            "Usage: f5c %s [OPTIONS] -r reads.fa -b alignments.bam -g genome.fa\n",mode==1 ? "eventalign" : "call-methylation");
         fprintf(fp_help,"   -r FILE                    fastq/fasta read file\n");
         fprintf(fp_help,"   -b FILE                    sorted bam file\n");
         fprintf(fp_help,"   -g FILE                    reference genome\n");
@@ -306,6 +316,7 @@ int meth_main(int argc, char* argv[]) {
         fprintf(fp_help,"   -K INT                     batch size (max number of reads loaded at once) [%d]\n",opt.batch_size);
         fprintf(fp_help,"   -B FLOAT[K/M/G]            max number of bases loaded at once [%.1fM]\n",opt.batch_size_bases/(float)(1000*1000));
         fprintf(fp_help,"   -h                         help\n");
+        fprintf(fp_help,"   -o FILE                    output to file [stdout]\n");
         fprintf(fp_help,"   --min-mapq INT             minimum mapping quality [%d]\n",opt.min_mapq);
         fprintf(fp_help,"   --secondary=yes|no         consider secondary mappings or not [%s]\n",(opt.flag&F5C_SECONDARY_YES)?"yes":"no");
         fprintf(fp_help,"   --skip-unreadable=yes|no   skip any unreadable fast5 or terminate program [%s]\n",(opt.flag&F5C_SKIP_UNREADABLE?"yes":"no"));
@@ -344,16 +355,25 @@ int meth_main(int argc, char* argv[]) {
     }
 
     //initialise the core data structure
-    core_t* core = init_core(bamfilename, fastafile, fastqfile, tmpfile, fasttfilename, opt,realtime0);
+    core_t* core = init_core(bamfilename, fastafile, fastqfile, tmpfile, fasttfilename, opt,realtime0,mode);
 
     #ifdef ESL_LOG_SUM
         p7_FLogsumInit();
     #endif
 
     //print the header
-    fprintf(stdout, "chromosome\tstart\tend\tread_name\t"
+    if(mode==0){
+        fprintf(stdout, "chromosome\tstart\tend\tread_name\t"
                                  "log_lik_ratio\tlog_lik_methylated\tlog_lik_unmethylated\t"
                                  "num_calling_strands\tnum_cpgs\tsequence\n");
+    }
+    else if(mode==1){
+        if(core->event_summary_fp!=NULL){
+            fprintf(core->event_summary_fp,"read_index\tread_name\tfast5_path\tmodel_name\tstrand\tnum_events\t");
+            fprintf(core->event_summary_fp,"num_steps\tnum_skips\tnum_stays\ttotal_duration\tshift\tscale\tdrift\tvar\n");
+        }
+        emit_event_alignment_tsv_header(stdout, 1, 0);
+    }
     int32_t counter=0;
 
  #ifdef IO_PROC_NO_INTERLEAVE   //If input, processing and output are not interleaved (serial mode)
@@ -533,7 +553,7 @@ int meth_main(int argc, char* argv[]) {
         #endif
         fprintf(stderr, "\n[%s]     - Estimate scaling time: %.3f sec",
                 __func__, core->est_scale_time);
-        fprintf(stderr, "\n[%s]     - Call methylation time: %.3f sec",
+        fprintf(stderr, "\n[%s]     - HMM time: %.3f sec",
                 __func__, core->meth_time);
 
     }
