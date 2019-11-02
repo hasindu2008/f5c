@@ -233,7 +233,7 @@ int meth_main(int argc, char* argv[], int8_t mode) {
             opt.verbosity = atoi(optarg);
         }
         else if (c=='V'){
-            fprintf(stderr,"F5C %s\n",F5C_VERSION);
+            fprintf(stdout,"F5C %s\n",F5C_VERSION);
             exit(EXIT_SUCCESS);
         }
         else if (c=='h'){
