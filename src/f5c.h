@@ -81,6 +81,7 @@ typedef struct {
     int64_t batch_size_bases;   //max bases loaded at once
 
     int32_t num_thread;
+    int32_t num_io_thread;
     int8_t verbosity;
     int32_t debug_break;
     int64_t ultra_thresh;

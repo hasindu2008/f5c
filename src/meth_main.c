@@ -82,6 +82,7 @@ static struct option long_options[] = {
     {"read-dump",required_argument, 0, 0},         //29 read the raw data as a dump
     {"output",required_argument, 0, 'o'},          //30 output to a file [stdout]
     {"fastt",required_argument, 0, 0},             //31 read from a fastt file
+    {"iot",required_argument, 0, 0},             //32 number of I/O threads
     {0, 0, 0, 0}};
 
 
@@ -302,7 +303,14 @@ int meth_main(int argc, char* argv[], int8_t mode) {
             fasttfilename=optarg;
             assert(fasttfilename!=NULL);
             yes_or_no(&opt, F5C_RD_FASTT, longindex, "yes", 1);
-        }   
+        }
+        else if (c == 0 && longindex == 32) { //number of I/O threads
+            opt.num_io_thread = atoi(optarg);
+            if (opt.num_io_thread < 1) {
+                ERROR("Number of threads should larger than 0. You entered %d", opt.num_io_thread);
+                exit(EXIT_FAILURE);
+            }
+        }        
     }
 
     if (fastqfile == NULL || bamfilename == NULL || fastafile == NULL || fp_help == stdout) {
@@ -344,6 +352,8 @@ int meth_main(int argc, char* argv[], int8_t mode) {
         fprintf(fp_help,"   --write-dump=yes|no        write the fast5 dump to a file or not\n");
         fprintf(fp_help,"   --read-dump=yes|no         read from a fast5 dump file or not\n");
         fprintf(fp_help,"   --fastt FILE               read from a fastt file\n");
+        fprintf(fp_help,"   --iot NUM                  number of I/O threads [%d]\n",opt.num_io_thread);
+
 #ifdef HAVE_CUDA
         fprintf(fp_help,"   - cuda-mem-frac FLOAT      Fraction of free GPU memory to allocate [0.9 (0.7 for tegra)]\n");
         fprintf(fp_help,"   --cuda-block-size\n");

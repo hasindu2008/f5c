@@ -18,6 +18,9 @@
 #ifdef ASYNC
 #include <aio.h>
 #endif
+
+//#define OLD_IO //IO with no profiling
+
 /*
 todo :
 Error counter for consecutive failures in the skip unreadable mode
@@ -281,6 +284,7 @@ db_t* init_db(core_t* core) {
     return db;
 }
 
+
 static inline void handle_bad_fast5(core_t* core, db_t* db,std::string fast5_path_str, std::string qname){
     db->bad_fast5_file++;
     if (core->opt.flag & F5C_SKIP_UNREADABLE) {
@@ -311,6 +315,7 @@ static inline void f5read(FILE* fp, void *buf, size_t element_size, size_t num_e
 	}
 }
 
+#ifdef OLD_IO
 
 static inline int read_from_fast5_dump(core_t *core, db_t *db , int32_t i){
 
@@ -451,7 +456,7 @@ static inline int read_from_fast5_files(core_t *core, db_t *db, std::string qnam
     return 1;
 }
 
-ret_status_t load_db1(core_t* core, db_t* db) {
+ret_status_t load_db(core_t* core, db_t* db) {
 
     double load_start = realtime();
 
@@ -614,6 +619,7 @@ ret_status_t load_db1(core_t* core, db_t* db) {
     return status;
 }
 
+#else
 
 static inline int read_from_fast5_files2(core_t *core, db_t *db, std::string qname, std::string fast5_path_str, int32_t i){
     char* fast5_path =
@@ -637,10 +643,12 @@ static inline int read_from_fast5_files2(core_t *core, db_t *db, std::string qna
         //core->db_fast5_read_time += rt;
         //core->db_fast5_time += rt;
         if(ret<0){
+            ERROR("%s","Fast5 errors may cause crashes in I/O profile mode");
             handle_bad_fast5(core, db,fast5_path,qname);
             if(core->opt.flag & F5C_WR_RAW_DUMP){
                 //hsize_t tmp_nsample = 0;
                 //f5write(core->raw_dump,&tmp_nsample, sizeof(hsize_t), 1);
+                ERROR("%s","Writing to raw dump is unsupported in I/O profile mode");
                 assert(0);
             }
             free(fast5_path);
@@ -651,6 +659,7 @@ static inline int read_from_fast5_files2(core_t *core, db_t *db, std::string qna
         //core->db_fast5_time += realtime() - t;
 
         if (core->opt.flag & F5C_PRINT_RAW) {
+            ERROR("%s","Printing data unsupported in I/O profile mode");
             assert(0);
             printf(">%s\tPATH:%s\tLN:%llu\tDG:%.1f\tOF:%.1f\tRN:%.1f\tSR:%.1f\n", qname.c_str(), fast5_path,
                 db->f5[i]->nsample,db->f5[i]->digitisation,db->f5[i]->offset,db->f5[i]->range,db->f5[i]->sample_rate);
@@ -661,6 +670,7 @@ static inline int read_from_fast5_files2(core_t *core, db_t *db, std::string qna
             printf("\n");
         }
         if(core->opt.flag & F5C_WR_RAW_DUMP){
+            ERROR("%s","Writing to raw dump is unsupported in I/O profile mode");
             assert(0);
             //write the fast5 dump to the binary file pointer core->raw_dump
             f5write(core->raw_dump,&(db->f5[i]->nsample), sizeof(hsize_t), 1);
@@ -677,8 +687,10 @@ static inline int read_from_fast5_files2(core_t *core, db_t *db, std::string qna
         //core->db_fasta_time += realtime() - t;
         success=1;
     } else {
+        ERROR("%s","Fast5 errors may cause crashes in I/O profile mode");
         handle_bad_fast5(core, db,fast5_path,qname);
         if(core->opt.flag & F5C_WR_RAW_DUMP){
+            ERROR("%s","Writing to raw dump is unsupported in I/O profile mode");
             assert(0);
             hsize_t tmp_nsample = 0;
             f5write(core->raw_dump,&tmp_nsample, sizeof(hsize_t), 1);
@@ -709,18 +721,21 @@ void* pthread_single2(void* voidargs) {
 
 
 void pthread_db2(core_t* core, db_t* db, void (*func)(core_t*,db_t*,int)){
+    
+    INFO("Running with %d IO threads",core->opt.num_io_thread);
+
     //create threads
-    pthread_t tids[core->opt.num_thread];
-    pthread_arg_t pt_args[core->opt.num_thread];
+    pthread_t tids[core->opt.num_io_thread];
+    pthread_arg_t pt_args[core->opt.num_io_thread];
     int32_t t, ret;
     int32_t i = 0;
-    int32_t num_thread = core->opt.num_thread;
-    int32_t step = (db->n_bam_rec + num_thread - 1) / num_thread;
+    int32_t num_io_thread = core->opt.num_io_thread;
+    int32_t step = (db->n_bam_rec + num_io_thread - 1) / num_io_thread;
     //todo : check for higher num of threads than the data
     //current works but many threads are created despite
 
     //set the data structures
-    for (t = 0; t < num_thread; t++) {
+    for (t = 0; t < num_io_thread; t++) {
         pt_args[t].core = core;
         pt_args[t].db = db;
         pt_args[t].starti = i;
@@ -736,14 +751,14 @@ void pthread_db2(core_t* core, db_t* db, void (*func)(core_t*,db_t*,int)){
     }
 
     //create threads
-    for(t = 0; t < core->opt.num_thread; t++){
+    for(t = 0; t < core->opt.num_io_thread; t++){
         ret = pthread_create(&tids[t], NULL, pthread_single2,
                                 (void*)(&pt_args[t]));
         NEG_CHK(ret);
     }
 
     //pthread joining
-    for (t = 0; t < core->opt.num_thread; t++) {
+    for (t = 0; t < core->opt.num_io_thread; t++) {
         int ret = pthread_join(tids[t], NULL);
         NEG_CHK(ret);
     }
@@ -756,6 +771,7 @@ void read_fast5_single(core_t* core, db_t* db, int i){
     std::string qname = bam_get_qname(db->bam_rec[i]);
     std::string fast5_path_str = core->readbb->get_signal_path(qname);
     if (core->opt.flag & F5C_RD_RAW_DUMP){
+        ERROR("%s","Reading from raw dump is unsupported in I/O profile mode");
         assert(0);
         // t = realtime();                  
         // read_status=read_from_fast5_dump(core, db,i);     
@@ -769,6 +785,7 @@ void read_fast5_single(core_t* core, db_t* db, int i){
         // double rt = realtime() - t;
         // //core->db_fast5_read_time += rt;
         // core->db_fast5_time += rt;
+        ERROR("%s","Reading from fastt is unsupported in I/O profile mode");
         assert(0);
     }
     else{    
@@ -783,7 +800,8 @@ void read_fast5_single(core_t* core, db_t* db, int i){
 
 void read_fast5_db(core_t* core, db_t* db){ 
 
-    if (core->opt.num_thread == 1) {
+    if (core->opt.num_io_thread == 1) {
+        INFO("%s","Running with 1 IO threads");
         int i;
         for (i = 0; i < db->n_bam_rec; i++) {
             read_fast5_single(core, db, i);
@@ -794,7 +812,7 @@ void read_fast5_db(core_t* core, db_t* db){
     }     
 }
 
-ret_status_t load_db2(core_t* core, db_t* db) {
+ret_status_t load_db(core_t* core, db_t* db) {
 
     double load_start = realtime();
 
@@ -906,10 +924,10 @@ ret_status_t load_db2(core_t* core, db_t* db) {
     status.num_reads=db->n_bam_rec;
     assert(status.num_bases==db->sum_bases);
 
+    //read the fast5 batch
     t=realtime();
     read_fast5_db(core,db);
-    double rt1 = realtime() - t;
-    core->db_fast5_read_time += rt1;
+    core->db_fast5_time += realtime() - t;
 
 #ifdef ASYNC
     t=realtime();
@@ -942,14 +960,8 @@ ret_status_t load_db2(core_t* core, db_t* db) {
     return status;
 }
 
+#endif
 
-ret_status_t load_db(core_t* core, db_t* db) {
-    #ifdef OLD_IO
-        return load_db(core, db);
-    #else
-        return load_db2(core, db);
-    #endif    
-}
 
 #ifdef WORK_STEAL
 static inline int32_t steal_work(pthread_arg_t* all_args, int32_t n_threads)
@@ -1603,6 +1615,7 @@ void init_opt(opt_t* opt) {
     opt->batch_size = 512;
     opt->batch_size_bases = 2*1000*1000;
     opt->num_thread = 8;
+    opt->num_io_thread = 1;
 #ifndef HAVE_CUDA
     opt->flag |= F5C_DISABLE_CUDA;
     opt->batch_size_bases = 5*1000*1000;
