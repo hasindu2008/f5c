@@ -451,7 +451,7 @@ static inline int read_from_fast5_files(core_t *core, db_t *db, std::string qnam
     return 1;
 }
 
-ret_status_t load_db(core_t* core, db_t* db) {
+ret_status_t load_db1(core_t* core, db_t* db) {
 
     double load_start = realtime();
 
@@ -612,6 +612,343 @@ ret_status_t load_db(core_t* core, db_t* db) {
     core->load_db_time += (load_end-load_start);
 
     return status;
+}
+
+
+static inline int read_from_fast5_files2(core_t *core, db_t *db, std::string qname, std::string fast5_path_str, int32_t i){
+    char* fast5_path =
+        (char*)malloc(fast5_path_str.size() + 10); // is +10 needed? do errorcheck
+    strcpy(fast5_path, fast5_path_str.c_str());
+
+    //fprintf(stderr,"readname : %s\n",qname.c_str());
+    int8_t success=0;
+
+    //double t = realtime();
+    fast5_file_t fast5_file = fast5_open(fast5_path);
+    //double ot = realtime() - t;
+    //core->db_fast5_open_time += ot;
+    //core->db_fast5_time += ot;
+    if (fast5_file.hdf5_file >= 0) {
+        db->f5[i] = (fast5_t*)calloc(1, sizeof(fast5_t));
+        MALLOC_CHK(db->f5[i]);
+        //t = realtime();
+        int32_t ret=fast5_read(fast5_file, db->f5[i],qname);
+        //double rt = realtime() - t;
+        //core->db_fast5_read_time += rt;
+        //core->db_fast5_time += rt;
+        if(ret<0){
+            handle_bad_fast5(core, db,fast5_path,qname);
+            if(core->opt.flag & F5C_WR_RAW_DUMP){
+                //hsize_t tmp_nsample = 0;
+                //f5write(core->raw_dump,&tmp_nsample, sizeof(hsize_t), 1);
+                assert(0);
+            }
+            free(fast5_path);
+            return 0;
+        }
+        //t = realtime();
+        fast5_close(fast5_file);
+        //core->db_fast5_time += realtime() - t;
+
+        if (core->opt.flag & F5C_PRINT_RAW) {
+            assert(0);
+            printf(">%s\tPATH:%s\tLN:%llu\tDG:%.1f\tOF:%.1f\tRN:%.1f\tSR:%.1f\n", qname.c_str(), fast5_path,
+                db->f5[i]->nsample,db->f5[i]->digitisation,db->f5[i]->offset,db->f5[i]->range,db->f5[i]->sample_rate);
+            uint32_t j = 0;
+            for (j = 0; j < db->f5[i]->nsample; j++) {
+                printf("%d\t", (int)db->f5[i]->rawptr[j]);
+            }
+            printf("\n");
+        }
+        if(core->opt.flag & F5C_WR_RAW_DUMP){
+            assert(0);
+            //write the fast5 dump to the binary file pointer core->raw_dump
+            f5write(core->raw_dump,&(db->f5[i]->nsample), sizeof(hsize_t), 1);
+            f5write(core->raw_dump,db->f5[i]->rawptr, sizeof(float), db->f5[i]->nsample);
+            f5write(core->raw_dump,&(db->f5[i]->digitisation), sizeof(float), 1);
+            f5write(core->raw_dump,&(db->f5[i]->offset), sizeof(float), 1);
+            f5write(core->raw_dump,&(db->f5[i]->range), sizeof(float), 1);
+            f5write(core->raw_dump,&(db->f5[i]->sample_rate), sizeof(float), 1);
+        }
+
+        //db->n_bam_rec++;
+        //t = realtime();
+        //status.num_bases += read_length;
+        //core->db_fasta_time += realtime() - t;
+        success=1;
+    } else {
+        handle_bad_fast5(core, db,fast5_path,qname);
+        if(core->opt.flag & F5C_WR_RAW_DUMP){
+            assert(0);
+            hsize_t tmp_nsample = 0;
+            f5write(core->raw_dump,&tmp_nsample, sizeof(hsize_t), 1);
+        }
+        return 0;
+    }
+    free(fast5_path);
+    assert(success==1);
+    return 1;
+}
+
+
+
+void* pthread_single2(void* voidargs) {
+    int32_t i;
+    pthread_arg_t* args = (pthread_arg_t*)voidargs;
+    db_t* db = args->db;
+    core_t* core = args->core;
+
+
+    for (i = args->starti; i < args->endi; i++) {
+        args->func(core,db,i);
+    }
+
+    //fprintf(stderr,"Thread %d done\n",(myargs->position)/THREADS);
+    pthread_exit(0);
+}
+
+
+void pthread_db2(core_t* core, db_t* db, void (*func)(core_t*,db_t*,int)){
+    //create threads
+    pthread_t tids[core->opt.num_thread];
+    pthread_arg_t pt_args[core->opt.num_thread];
+    int32_t t, ret;
+    int32_t i = 0;
+    int32_t num_thread = core->opt.num_thread;
+    int32_t step = (db->n_bam_rec + num_thread - 1) / num_thread;
+    //todo : check for higher num of threads than the data
+    //current works but many threads are created despite
+
+    //set the data structures
+    for (t = 0; t < num_thread; t++) {
+        pt_args[t].core = core;
+        pt_args[t].db = db;
+        pt_args[t].starti = i;
+        i += step;
+        if (i > db->n_bam_rec) {
+            pt_args[t].endi = db->n_bam_rec;
+        } else {
+            pt_args[t].endi = i;
+        }
+        pt_args[t].func=func;
+        //fprintf(stderr,"t%d : %d-%d\n",t,pt_args[t].starti,pt_args[t].endi);
+
+    }
+
+    //create threads
+    for(t = 0; t < core->opt.num_thread; t++){
+        ret = pthread_create(&tids[t], NULL, pthread_single2,
+                                (void*)(&pt_args[t]));
+        NEG_CHK(ret);
+    }
+
+    //pthread joining
+    for (t = 0; t < core->opt.num_thread; t++) {
+        int ret = pthread_join(tids[t], NULL);
+        NEG_CHK(ret);
+    }
+}
+
+
+void read_fast5_single(core_t* core, db_t* db, int i){
+
+    int8_t read_status = 0;    
+    std::string qname = bam_get_qname(db->bam_rec[i]);
+    std::string fast5_path_str = core->readbb->get_signal_path(qname);
+    if (core->opt.flag & F5C_RD_RAW_DUMP){
+        assert(0);
+        // t = realtime();                  
+        // read_status=read_from_fast5_dump(core, db,i);     
+        // double rt = realtime() - t;
+        // core->db_fast5_read_time += rt;
+        // core->db_fast5_time += rt;                      
+    }
+    else if(core->opt.flag & F5C_RD_FASTT){
+        // t = realtime();        
+        // read_status=read_from_fastt(core, db, qname,fast5_path_str,i,aiocb);
+        // double rt = realtime() - t;
+        // //core->db_fast5_read_time += rt;
+        // core->db_fast5_time += rt;
+        assert(0);
+    }
+    else{    
+        read_status=read_from_fast5_files2(core, db, qname,fast5_path_str,i);
+    }
+    if(read_status!=1){
+        assert(0);
+    }
+
+
+}
+
+void read_fast5_db(core_t* core, db_t* db){ 
+
+    if (core->opt.num_thread == 1) {
+        int i;
+        for (i = 0; i < db->n_bam_rec; i++) {
+            read_fast5_single(core, db, i);
+        }
+    }
+    else {
+        pthread_db2(core, db, read_fast5_single);
+    }     
+}
+
+ret_status_t load_db2(core_t* core, db_t* db) {
+
+    double load_start = realtime();
+
+    // get bams
+    bam1_t* record;
+    int32_t result = 0;
+    db->n_bam_rec = 0;
+    db->sum_bases = 0;
+    db->total_reads = 0;
+    db->bad_fast5_file = 0;
+    db->ultra_long_skipped =0;
+
+    #ifdef ASYNC
+    struct aiocb *aiocb = (struct aiocb *)calloc(db->capacity_bam_rec,sizeof(struct aiocb));
+    MALLOC_CHK(aiocb);
+    #else
+    struct aiocb *aiocb=NULL;
+    #endif
+    ret_status_t status={0,0};
+    int32_t i = 0;
+    double t = 0;
+    while (db->n_bam_rec < db->capacity_bam_rec && status.num_bases<core->opt.batch_size_bases) {
+        i=db->n_bam_rec;
+        record = db->bam_rec[i];
+        t = realtime();
+        result = sam_itr_next(core->m_bam_fh, core->itr, record);
+        core->db_bam_time += realtime() - t;
+
+        if (result < 0) {
+            break;
+        } else {
+            if ((record->core.flag & BAM_FUNMAP) == 0 &&
+                record->core.qual >= core->opt.min_mapq) {
+                // printf("%s\t%d\n",bam_get_qname(db->bam_rec[db->n_bam_rec]),result);
+
+                if(!(core->opt.flag & F5C_SECONDARY_YES)){
+                    if((record->core.flag & BAM_FSECONDARY)){
+                        continue;
+                    }
+                }
+
+                db->total_reads++; // candidate read
+
+                std::string qname = bam_get_qname(record);
+                t = realtime();
+                //todo : make efficient (redudantly accessed below, can be combined with it?)
+                int64_t read_length=core->readbb->get_read_sequence(qname).size();
+                std::string fast5_path_str = core->readbb->get_signal_path(qname);
+                core->db_fasta_time += realtime() - t;
+
+                //skipping ultra-long-reads
+                if(core->ultra_long_tmp!=NULL && read_length > core->opt.ultra_thresh){
+                    db->ultra_long_skipped++;
+                    int ret_wr=sam_write1(core->ultra_long_tmp,core->m_hdr,record);
+                    NEG_CHK(ret_wr);  
+                    continue;
+                }
+
+                if(fast5_path_str==""){
+                    handle_bad_fast5(core, db,fast5_path_str,qname);
+                    continue;
+                }
+                
+                db->n_bam_rec++;
+                status.num_bases += read_length;
+            }
+
+        }
+    }
+    // fprintf(stderr,"%s:: %d queries read\n",__func__,db->n_bam_rec);
+
+    // get ref sequences (todo can make efficient by taking the the start and end of the sorted bam)
+    for (i = 0; i < db->n_bam_rec; i++) {
+        bam1_t* record = db->bam_rec[i];
+        char* ref_name = core->m_hdr->target_name[record->core.tid];
+        // printf("refname : %s\n",ref_name);
+        int32_t ref_start_pos = record->core.pos;
+        int32_t ref_end_pos = bam_endpos(record);
+        assert(ref_end_pos >= ref_start_pos);
+
+        // Extract the reference sequence for this region
+        int32_t fetched_len = 0;
+        t = realtime();
+        char* refseq = faidx_fetch_seq(core->fai, ref_name, ref_start_pos, ref_end_pos, &fetched_len); // todo : error handle?
+        core->db_fasta_time += realtime() - t;
+        db->fasta_cache[i] = refseq;
+        // printf("seq : %s\n",db->fasta_cache[i]);
+
+        // get the fast5
+
+        std::string qname = bam_get_qname(db->bam_rec[i]);
+        t = realtime();
+        std::string read_seq = core->readbb->get_read_sequence(qname);
+        core->db_fasta_time += realtime() - t;
+
+        //get the read in ascci
+        db->read[i] =
+            (char*)malloc(read_seq.size() + 1); // todo : is +1 needed? do errorcheck
+        strcpy(db->read[i], read_seq.c_str());
+        db->read_len[i] = strlen(db->read[i]);
+        db->sum_bases += db->read_len[i];
+
+        db->read_stat_flag[i] = 0; //reset the flag
+    }
+    // fprintf(stderr,"%s:: %d fast5 read\n",__func__,db->n_bam_rec);
+    if(core->opt.verbosity>1){
+        STDERR("Average read len %.0f",db->sum_bases/(float)db->n_bam_rec);
+    }
+    status.num_reads=db->n_bam_rec;
+    assert(status.num_bases==db->sum_bases);
+
+    t=realtime();
+    read_fast5_db(core,db);
+    double rt1 = realtime() - t;
+    core->db_fast5_read_time += rt1;
+
+#ifdef ASYNC
+    t=realtime();
+    for (i = 0; i < db->n_bam_rec; i++) {
+        int err;
+        int ret;
+        /* Wait until end of transaction */
+        while ((err = aio_error (&aiocb[i])) == EINPROGRESS);
+        err = aio_error(&aiocb[i]);
+        ret = aio_return(&aiocb[i]);
+        if (err != 0) {
+            fprintf(stderr, " Error at aio_error() : %s\n", strerror (err));
+            exit(1);
+        }
+
+        if (ret != aiocb[i].aio_nbytes) {
+            fprintf(stderr, " Error at aio_return()\n");
+            exit(1);
+        }
+    }
+    double rt = realtime() - t;
+    core->db_fast5_read_time += rt;
+
+    free(aiocb);
+#endif
+
+    double load_end = realtime();
+    core->load_db_time += (load_end-load_start);
+
+    return status;
+}
+
+
+ret_status_t load_db(core_t* core, db_t* db) {
+    #ifdef OLD_IO
+        return load_db(core, db);
+    #else
+        return load_db2(core, db);
+    #endif    
 }
 
 #ifdef WORK_STEAL
