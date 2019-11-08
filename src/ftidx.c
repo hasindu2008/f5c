@@ -30,6 +30,7 @@ DEALINGS IN THE SOFTWARE.  */
 //#include <config.h>
 
 
+//to be used with care with ASYNC option in ftidx.h
 #define BGFS_HFILE 1
 //#define UN_BUFFERED 1
 

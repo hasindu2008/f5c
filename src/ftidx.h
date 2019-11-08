@@ -42,7 +42,8 @@ htslib/faidx.h:
 extern "C" {
 #endif
 
-//#define ASYNC 1
+
+//#define ASYNC 1 //enable this for ASYNCHRONOUS I/O. Need BGFS_HFILE disabled and UN_BUFFERED enabled in ftidx.c
 
 /** @file
 
