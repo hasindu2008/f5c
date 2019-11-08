@@ -42,7 +42,7 @@ htslib/faidx.h:
 extern "C" {
 #endif
 
-#define ASYNC 1
+//#define ASYNC 1
 
 /** @file
 
