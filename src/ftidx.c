@@ -30,8 +30,8 @@ DEALINGS IN THE SOFTWARE.  */
 //#include <config.h>
 
 
-//#define BGFS_HFILE 1
-#define UN_BUFFERED 1
+#define BGFS_HFILE 1
+//#define UN_BUFFERED 1
 
 #include <ctype.h>
 #include <string.h>
@@ -361,6 +361,20 @@ static inline int fti_insert_index(ftidx_t *idx, const char *name, uint64_t len,
 
 
 static ftidx_t *fti_build_core(BGZF *bgzf) {
+	
+#ifdef ASYNC
+	fprintf(stderr,"%s","Recompile with ASYNC option off to build an index\n");
+	exit(1);
+#endif	
+#ifdef UN_BUFFERED
+	fprintf(stderr,"%s","Recompile with UN_BUFFERED option off to build an index\n");
+	exit(1);
+#endif
+#ifndef BGFS_HFILE
+	fprintf(stderr,"%s","Recompile with BGFS_HFILE option on to build an index\n");
+	exit(1);
+#endif
+	
     kstring_t name = { 0, 0, NULL };
     kstring_t linebuffer = { 0, 0, NULL };
     //int c, read_done, line_num;
