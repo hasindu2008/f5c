@@ -21,8 +21,6 @@
 
 #define F5C_VERSION "0.2-beta-dirty"
 
-//#define ASYNC 1
-
 /* hard coded numbers*/
 #define KMER_SIZE 6 //hard coded for now; todo : change to dynamic?
 #define NUM_KMER 4096   //num k-mers for 6-mers DNA
