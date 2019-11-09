@@ -21,6 +21,11 @@
 
 //#define OLD_IO //IO with no profiling
 
+#ifndef OLD_IO 
+    #include <sys/wait.h>
+    #include <unistd.h>
+#endif
+
 /*
 todo :
 Error counter for consecutive failures in the skip unreadable mode
@@ -798,18 +803,334 @@ void read_fast5_single(core_t* core, db_t* db, int i){
 
 }
 
+
+
+
+static inline int read_from_fast5_files2_fork(core_t *core, db_t *db, std::string qname, std::string fast5_path_str, int32_t i,FILE *pipefp){
+    char* fast5_path =
+        (char*)malloc(fast5_path_str.size() + 10); // is +10 needed? do errorcheck
+    strcpy(fast5_path, fast5_path_str.c_str());
+
+    //fprintf(stderr,"readname : %s\n",qname.c_str());, 
+    int8_t success=0;
+
+    //double t = realtime();
+    fast5_file_t fast5_file = fast5_open(fast5_path);
+    //double ot = realtime() - t;
+    //core->db_fast5_open_time += ot;
+    //core->db_fast5_time += ot;
+    if (fast5_file.hdf5_file >= 0) {
+        db->f5[i] = (fast5_t*)calloc(1, sizeof(fast5_t));
+        MALLOC_CHK(db->f5[i]);
+        //t = realtime();
+        int32_t ret=fast5_read(fast5_file, db->f5[i],qname);
+        //double rt = realtime() - t;
+        //core->db_fast5_read_time += rt;
+        //core->db_fast5_time += rt;
+        if(ret<0){
+            ERROR("%s","Fast5 errors may cause crashes in I/O profile mode");
+            handle_bad_fast5(core, db,fast5_path,qname);
+            if(core->opt.flag & F5C_WR_RAW_DUMP){
+                //hsize_t tmp_nsample = 0;
+                //f5write(core->raw_dump,&tmp_nsample, sizeof(hsize_t), 1);
+                ERROR("%s","Writing to raw dump is unsupported in I/O profile mode");
+                assert(0);
+            }
+            free(fast5_path);
+            return 0;
+        }
+        //t = realtime();
+        fast5_close(fast5_file);
+        //core->db_fast5_time += realtime() - t;
+
+        if (core->opt.flag & F5C_PRINT_RAW) {
+            ERROR("%s","Printing data unsupported in I/O profile mode");
+            assert(0);
+            printf(">%s\tPATH:%s\tLN:%llu\tDG:%.1f\tOF:%.1f\tRN:%.1f\tSR:%.1f\n", qname.c_str(), fast5_path,
+                db->f5[i]->nsample,db->f5[i]->digitisation,db->f5[i]->offset,db->f5[i]->range,db->f5[i]->sample_rate);
+            uint32_t j = 0;
+            for (j = 0; j < db->f5[i]->nsample; j++) {
+                printf("%d\t", (int)db->f5[i]->rawptr[j]);
+            }
+            printf("\n");
+        }
+        if(core->opt.flag & F5C_WR_RAW_DUMP){
+            ERROR("%s","Writing to raw dump is unsupported in I/O profile mode");
+            assert(0);
+            //write the fast5 dump to the binary file pointer core->raw_dump
+            f5write(core->raw_dump,&(db->f5[i]->nsample), sizeof(hsize_t), 1);
+            f5write(core->raw_dump,db->f5[i]->rawptr, sizeof(float), db->f5[i]->nsample);
+            f5write(core->raw_dump,&(db->f5[i]->digitisation), sizeof(float), 1);
+            f5write(core->raw_dump,&(db->f5[i]->offset), sizeof(float), 1);
+            f5write(core->raw_dump,&(db->f5[i]->range), sizeof(float), 1);
+            f5write(core->raw_dump,&(db->f5[i]->sample_rate), sizeof(float), 1);
+        }
+
+        //db->n_bam_rec++;
+        //t = realtime();
+        //status.num_bases += read_length;
+        //core->db_fasta_time += realtime() - t;
+        success=1;
+    } else {
+        ERROR("%s","Fast5 errors may cause crashes in I/O profile mode");
+        handle_bad_fast5(core, db,fast5_path,qname);
+        if(core->opt.flag & F5C_WR_RAW_DUMP){
+            ERROR("%s","Writing to raw dump is unsupported in I/O profile mode");
+            assert(0);
+            hsize_t tmp_nsample = 0;
+            f5write(core->raw_dump,&tmp_nsample, sizeof(hsize_t), 1);
+        }
+        return 0;
+    }
+    free(fast5_path);
+    assert(success==1);
+
+    //write to the pipe
+
+    f5write(pipefp,&(db->f5[i]->nsample), sizeof(hsize_t), 1);
+    f5write(pipefp,db->f5[i]->rawptr, sizeof(float), db->f5[i]->nsample);
+    f5write(pipefp,&(db->f5[i]->digitisation), sizeof(float), 1);
+    f5write(pipefp,&(db->f5[i]->offset), sizeof(float), 1);
+    f5write(pipefp,&(db->f5[i]->range), sizeof(float), 1);
+    f5write(pipefp,&(db->f5[i]->sample_rate), sizeof(float), 1);
+
+    return 1;
+}
+
+
+
+
+void read_fast5_single_fork(core_t* core, db_t* db, int i, FILE *pipefp){
+
+    int8_t read_status = 0;    
+    std::string qname = bam_get_qname(db->bam_rec[i]);
+    std::string fast5_path_str = core->readbb->get_signal_path(qname);
+    if (core->opt.flag & F5C_RD_RAW_DUMP){
+        ERROR("%s","Reading from raw dump is unsupported in I/O profile mode");
+        assert(0);
+        // t = realtime();                  
+        // read_status=read_from_fast5_dump(core, db,i);     
+        // double rt = realtime() - t;
+        // core->db_fast5_read_time += rt;
+        // core->db_fast5_time += rt;                      
+    }
+    else if(core->opt.flag & F5C_RD_FASTT){
+        // t = realtime();        
+        // read_status=read_from_fastt(core, db, qname,fast5_path_str,i,aiocb);
+        // double rt = realtime() - t;
+        // //core->db_fast5_read_time += rt;
+        // core->db_fast5_time += rt;
+        ERROR("%s","Reading from fastt is unsupported in I/O profile mode");
+        assert(0);
+    }
+    else{    
+        read_status=read_from_fast5_files2_fork(core, db, qname,fast5_path_str,i, pipefp);
+    }
+    if(read_status!=1){
+        assert(0);
+    }
+
+
+}
+
+
+
+
+void fork_single2(void* voidargs, FILE *pipefp) {
+    int32_t i;
+    pthread_arg_t* args = (pthread_arg_t*)voidargs;
+    db_t* db = args->db;
+    core_t* core = args->core;
+
+
+    for (i = args->starti; i < args->endi; i++) {
+        read_fast5_single_fork(core,db,i,pipefp);
+    }
+
+    //fprintf(stderr,"Thread %d done\n",(myargs->position)/THREADS);
+    //pthread_exit(0);
+}
+
+typedef struct {
+    core_t* core;
+    db_t* db;
+    int32_t starti;
+    int32_t endi;
+    int pid;
+    int pipefd;
+} pthread_fork_arg_t;
+
+
+void *readpipes(void *voidargs){
+    
+    pthread_fork_arg_t *args = (pthread_fork_arg_t *)voidargs;
+    //core_t* core = args->core;
+    db_t* db = args->db;
+    int pid = args->pid;
+    int pipefd = args->pipefd;
+    int starti = args->starti;
+    int endi = args->endi;
+
+    INFO("waiting for %d",pid );
+
+    FILE *pipefp = fdopen(pipefd,"r");
+    F_CHK(pipefp,"pipe");
+    //read from the pipe
+    int i;
+    for(i = starti; i < endi; i++){
+        
+        db->f5[i] = (fast5_t*)calloc(1, sizeof(fast5_t));
+        MALLOC_CHK(db->f5[i]);
+        f5read(pipefp,&(db->f5[i]->nsample), sizeof(hsize_t), 1);
+
+        if(db->f5[i]->nsample>0){
+            db->f5[i]->rawptr = (float*)calloc(db->f5[i]->nsample, sizeof(float));
+            MALLOC_CHK( db->f5[i]->rawptr);
+            f5read(pipefp,db->f5[i]->rawptr, sizeof(float), db->f5[i]->nsample);
+            f5read(pipefp,&(db->f5[i]->digitisation), sizeof(float), 1);
+            f5read(pipefp,&(db->f5[i]->offset), sizeof(float), 1);
+            f5read(pipefp,&(db->f5[i]->range), sizeof(float), 1);
+            f5read(pipefp,&(db->f5[i]->sample_rate), sizeof(float), 1);
+        }
+
+    }
+    fclose(pipefp);
+    close(pipefd);
+    int status,w;
+    
+    
+    do {
+        w = waitpid(pid, &status, WUNTRACED | WCONTINUED);
+        if (w == -1) {
+            ERROR("%s","waitpid failed");
+            perror("");
+            exit(EXIT_FAILURE);
+        }
+
+        if (WIFEXITED(status)) {
+            printf("exited, status=%d\n", WEXITSTATUS(status));
+        } else if (WIFSIGNALED(status)) {
+            printf("killed by signal %d\n", WTERMSIG(status));
+        } else if (WIFSTOPPED(status)) {
+            printf("stopped by signal %d\n", WSTOPSIG(status));
+        } else if (WIFCONTINUED(status)) {
+            printf("continued\n");
+        }
+    } while (!WIFEXITED(status) && !WIFSIGNALED(status)); 
+
+    
+    pthread_exit(0);
+
+}
+
+
+void fork_db2(core_t* core, db_t* db){
+    
+    INFO("Running with %d IO procs",core->opt.num_io_proc);
+
+    //create threads
+    pthread_t tids[core->opt.num_io_proc];
+    pid_t pids[core->opt.num_io_proc];
+    int pipefd[core->opt.num_io_proc][2];
+    pthread_fork_arg_t pt_args[core->opt.num_io_proc];
+    int32_t t, ret;
+    int32_t i = 0;
+    int32_t num_io_proc = core->opt.num_io_proc;
+    int32_t step = (db->n_bam_rec + num_io_proc - 1) / num_io_proc;
+    //todo : check for higher num of threads than the data
+    //current works but many threads are created despite
+
+    //set the data structures
+    for (t = 0; t < num_io_proc; t++) {
+        pt_args[t].core = core;
+        pt_args[t].db = db;
+        pt_args[t].starti = i;
+        i += step;
+        if (i > db->n_bam_rec) {
+            pt_args[t].endi = db->n_bam_rec;
+        } else {
+            pt_args[t].endi = i;
+        }
+        //pt_args[t].func=func;
+        //fprintf(stderr,"t%d : %d-%d\n",t,pt_args[t].starti,pt_args[t].endi);
+
+    }
+
+    //create processes
+    for(t = 0; t < core->opt.num_io_proc; t++){
+
+        if (pipe(pipefd[t]) == -1) {
+            perror("pipe");
+            exit(EXIT_FAILURE);
+        }
+        pids[t] = fork();
+        if(pids[t]==-1){
+            ERROR("%s","Fork failed");
+            perror("");
+            exit(EXIT_FAILURE);
+        }
+        if(pids[t]==0){ //child
+            INFO("%s","child spawned");
+            close(pipefd[t][0]); //close read end
+            FILE *pipefp = fdopen(pipefd[t][1],"w");
+            F_CHK(pipefp,"pipe");
+            fork_single2((void*)(&pt_args[t]),pipefp);
+            fclose(pipefp);
+            close(pipefd[t][1]);
+
+            INFO("%s","child done");
+            exit(EXIT_SUCCESS);
+        }
+        if(pids[t]>0){
+            close(pipefd[t][1]); //close write end
+        }
+        INFO("%s", "Process created");
+    }
+
+
+    //create threads
+    for(t = 0; t < core->opt.num_io_proc; t++){
+        pt_args[t].pid = pids[t];
+        pt_args[t].pipefd = pipefd[t][0];
+
+        ret = pthread_create(&tids[t], NULL, readpipes,
+                                (void*)(&pt_args[t]));
+        NEG_CHK(ret);
+
+    }
+
+    //pthread joining
+    for (t = 0; t < core->opt.num_io_proc; t++) {
+        int ret = pthread_join(tids[t], NULL);
+        NEG_CHK(ret);
+    }
+
+        
+     
+
+    //exit(EXIT_SUCCESS);
+}
+
 void read_fast5_db(core_t* core, db_t* db){ 
 
-    if (core->opt.num_io_thread == 1) {
-        INFO("%s","Running with 1 IO threads");
-        int i;
-        for (i = 0; i < db->n_bam_rec; i++) {
-            read_fast5_single(core, db, i);
+    if (core->opt.num_io_proc == 1) {
+        if (core->opt.num_io_thread == 1) {
+            INFO("%s","Running with 1 IO threads");
+            int i;
+            for (i = 0; i < db->n_bam_rec; i++) {
+                read_fast5_single(core, db, i);
+            }
+        }
+        else {
+            pthread_db2(core, db, read_fast5_single);
         }
     }
-    else {
-        pthread_db2(core, db, read_fast5_single);
-    }     
+    else{
+        if(core->opt.num_io_thread>1){
+            WARNING("%s","Note that --iot is ineffective with --iop");
+        }
+        fork_db2(core, db);
+    }
 }
 
 ret_status_t load_db(core_t* core, db_t* db) {
@@ -1616,6 +1937,7 @@ void init_opt(opt_t* opt) {
     opt->batch_size_bases = 2*1000*1000;
     opt->num_thread = 8;
     opt->num_io_thread = 1;
+    opt->num_io_proc = 1;
 #ifndef HAVE_CUDA
     opt->flag |= F5C_DISABLE_CUDA;
     opt->batch_size_bases = 5*1000*1000;

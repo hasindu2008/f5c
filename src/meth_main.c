@@ -83,6 +83,7 @@ static struct option long_options[] = {
     {"output",required_argument, 0, 'o'},          //30 output to a file [stdout]
     {"fastt",required_argument, 0, 0},             //31 read from a fastt file
     {"iot",required_argument, 0, 0},             //32 number of I/O threads
+    {"iop",required_argument, 0, 0},             //33 number of I/O procs
     {0, 0, 0, 0}};
 
 
@@ -310,7 +311,14 @@ int meth_main(int argc, char* argv[], int8_t mode) {
                 ERROR("Number of threads should larger than 0. You entered %d", opt.num_io_thread);
                 exit(EXIT_FAILURE);
             }
-        }        
+        }
+        else if (c == 0 && longindex == 33) { //number of I/O procs
+            opt.num_io_proc = atoi(optarg);
+            if (opt.num_io_proc < 1) {
+                ERROR("Number of processes should larger than 0. You entered %d", opt.num_io_proc);
+                exit(EXIT_FAILURE);
+            }
+        }                  
     }
 
     if (fastqfile == NULL || bamfilename == NULL || fastafile == NULL || fp_help == stdout) {
@@ -353,6 +361,7 @@ int meth_main(int argc, char* argv[], int8_t mode) {
         fprintf(fp_help,"   --read-dump=yes|no         read from a fast5 dump file or not\n");
         fprintf(fp_help,"   --fastt FILE               read from a fastt file\n");
         fprintf(fp_help,"   --iot NUM                  number of I/O threads [%d]\n",opt.num_io_thread);
+        fprintf(fp_help,"   --iop NUM                  number of I/O processes [%d]\n",opt.num_io_proc);
 
 #ifdef HAVE_CUDA
         fprintf(fp_help,"   - cuda-mem-frac FLOAT      Fraction of free GPU memory to allocate [0.9 (0.7 for tegra)]\n");

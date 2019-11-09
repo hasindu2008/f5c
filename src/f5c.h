@@ -82,6 +82,7 @@ typedef struct {
 
     int32_t num_thread;
     int32_t num_io_thread;
+    int32_t num_io_proc;
     int8_t verbosity;
     int32_t debug_break;
     int64_t ultra_thresh;
