@@ -997,7 +997,7 @@ void *readpipes(void *voidargs){
     fclose(pipefp);
     close(pipefd);
     int status,w;
-    
+
     
     do {
         w = waitpid(pid, &status, WUNTRACED | WCONTINUED);
@@ -1056,6 +1056,8 @@ void fork_db2(core_t* core, db_t* db){
 
     }
 
+    double rt;
+    rt = realtime();
     //create processes
     for(t = 0; t < core->opt.num_io_proc; t++){
 
@@ -1086,7 +1088,7 @@ void fork_db2(core_t* core, db_t* db){
         }
         INFO("%s", "Process created");
     }
-
+    core->db_fast5_open_time += realtime() - rt;
 
     //create threads
     for(t = 0; t < core->opt.num_io_proc; t++){
@@ -1099,11 +1101,13 @@ void fork_db2(core_t* core, db_t* db){
 
     }
 
+    rt = realtime();
     //pthread joining
     for (t = 0; t < core->opt.num_io_proc; t++) {
         int ret = pthread_join(tids[t], NULL);
         NEG_CHK(ret);
     }
+    core->db_fast5_read_time += realtime() - rt;
 
         
      
