@@ -320,32 +320,6 @@ static inline void f5read(FILE* fp, void *buf, size_t element_size, size_t num_e
 	}
 }
 
-#ifdef OLD_IO
-
-static inline int read_from_fast5_dump(core_t *core, db_t *db , int32_t i){
-
-    //return 1 if success, 0 if failed
-    db->f5[i] = (fast5_t*)calloc(1, sizeof(fast5_t));
-    MALLOC_CHK(db->f5[i]);
-
-    f5read(core->raw_dump,&(db->f5[i]->nsample), sizeof(hsize_t), 1);
-
-    if(db->f5[i]->nsample>0){
-        db->f5[i]->rawptr = (float*)calloc(db->f5[i]->nsample, sizeof(float));
-        MALLOC_CHK( db->f5[i]->rawptr);
-        f5read(core->raw_dump,db->f5[i]->rawptr, sizeof(float), db->f5[i]->nsample);
-        f5read(core->raw_dump,&(db->f5[i]->digitisation), sizeof(float), 1);
-        f5read(core->raw_dump,&(db->f5[i]->offset), sizeof(float), 1);
-        f5read(core->raw_dump,&(db->f5[i]->range), sizeof(float), 1);
-        f5read(core->raw_dump,&(db->f5[i]->sample_rate), sizeof(float), 1);
-        return 1;
-    }
-    else{
-        return 0;
-    }
-
-
-}
 
 static inline int read_from_fastt(core_t *core, db_t *db, std::string qname, std::string fast5_path_str, int32_t i,struct aiocb *aiocb){
 
@@ -387,6 +361,34 @@ static inline int read_from_fastt(core_t *core, db_t *db, std::string qname, std
 
         return 1;
     }
+
+}
+
+
+#ifdef OLD_IO
+
+static inline int read_from_fast5_dump(core_t *core, db_t *db , int32_t i){
+
+    //return 1 if success, 0 if failed
+    db->f5[i] = (fast5_t*)calloc(1, sizeof(fast5_t));
+    MALLOC_CHK(db->f5[i]);
+
+    f5read(core->raw_dump,&(db->f5[i]->nsample), sizeof(hsize_t), 1);
+
+    if(db->f5[i]->nsample>0){
+        db->f5[i]->rawptr = (float*)calloc(db->f5[i]->nsample, sizeof(float));
+        MALLOC_CHK( db->f5[i]->rawptr);
+        f5read(core->raw_dump,db->f5[i]->rawptr, sizeof(float), db->f5[i]->nsample);
+        f5read(core->raw_dump,&(db->f5[i]->digitisation), sizeof(float), 1);
+        f5read(core->raw_dump,&(db->f5[i]->offset), sizeof(float), 1);
+        f5read(core->raw_dump,&(db->f5[i]->range), sizeof(float), 1);
+        f5read(core->raw_dump,&(db->f5[i]->sample_rate), sizeof(float), 1);
+        return 1;
+    }
+    else{
+        return 0;
+    }
+
 
 }
 
@@ -804,6 +806,34 @@ void read_fast5_single(core_t* core, db_t* db, int i){
 }
 
 
+void read_fastt_single(core_t* core, db_t* db, int i, struct aiocb *aiocb){
+
+    int8_t read_status = 0;    
+    std::string qname = bam_get_qname(db->bam_rec[i]);
+    std::string fast5_path_str = core->readbb->get_signal_path(qname);
+    if (core->opt.flag & F5C_RD_RAW_DUMP){
+        ERROR("%s","Reading from raw dump is unsupported in I/O profile mode");
+        assert(0);
+        // t = realtime();                  
+        // read_status=read_from_fast5_dump(core, db,i);     
+        // double rt = realtime() - t;
+        // core->db_fast5_read_time += rt;
+        // core->db_fast5_time += rt;                      
+    }
+    
+        // t = realtime();        
+    read_status=read_from_fastt(core, db, qname,fast5_path_str,i,aiocb);
+        // double rt = realtime() - t;
+        // //core->db_fast5_read_time += rt;
+        // core->db_fast5_time += rt;
+
+
+    if(read_status!=1){
+        assert(0);
+    }
+
+
+}
 
 
 static inline int read_from_fast5_files2_fork(core_t *core, db_t *db, std::string qname, std::string fast5_path_str, int32_t i,FILE *pipefp){
@@ -1115,21 +1145,42 @@ void fork_db2(core_t* core, db_t* db){
     //exit(EXIT_SUCCESS);
 }
 
-void read_fast5_db(core_t* core, db_t* db){ 
+void read_fast5_db(core_t* core, db_t* db,struct aiocb *aiocb){ 
 
     if (core->opt.num_io_proc == 1) {
         if (core->opt.num_io_thread == 1) {
             INFO("%s","Running with 1 IO threads");
             int i;
             for (i = 0; i < db->n_bam_rec; i++) {
-                read_fast5_single(core, db, i);
+                if(core->opt.flag & F5C_RD_FASTT){
+                    read_fastt_single(core, db, i,aiocb);
+                }
+                else{
+                    read_fast5_single(core, db, i);
+                }
             }
         }
         else {
+            if (core->opt.flag & F5C_RD_RAW_DUMP){
+                ERROR("%s","Reading from raw dump is unsupported in multi thread I/O profile mode");
+                exit(EXIT_FAILURE);                     
+            }   
+            if(core->opt.flag & F5C_RD_FASTT){
+                ERROR("%s","Reading from fastt is unsupported in multi thread I/O profile mode");
+                exit(EXIT_FAILURE); 
+            }
             pthread_db2(core, db, read_fast5_single);
         }
     }
     else{
+        if (core->opt.flag & F5C_RD_RAW_DUMP){
+            ERROR("%s","Reading from raw dump is unsupported in multi process I/O profile mode");
+            exit(EXIT_FAILURE);                     
+        }
+        if(core->opt.flag & F5C_RD_FASTT){
+            ERROR("%s","Reading from fastt is unsupported in multi process I/O profile mode");
+            exit(EXIT_FAILURE); 
+        }
         if(core->opt.num_io_thread>1){
             WARNING("%s","Note that --iot is ineffective with --iop");
         }
@@ -1251,7 +1302,7 @@ ret_status_t load_db(core_t* core, db_t* db) {
 
     //read the fast5 batch
     t=realtime();
-    read_fast5_db(core,db);
+    read_fast5_db(core,db, aiocb);
     core->db_fast5_time += realtime() - t;
 
 #ifdef ASYNC
@@ -1275,7 +1326,7 @@ ret_status_t load_db(core_t* core, db_t* db) {
     }
     double rt = realtime() - t;
     core->db_fast5_read_time += rt;
-
+    core->db_fast5_time += rt;
     free(aiocb);
 #endif
 
