@@ -81,6 +81,9 @@ static inline int read_from_fast5_files2(char *qname_str, char *fast5_path, FILE
             ERROR("%s","Flushing the pipe failed");
             exit(EXIT_FAILURE);
         }
+
+        free(f5->rawptr);
+        free(f5);
         //STDERR("wrote to pipe %s : %lld samples",qname_str,f5->nsample);
     } else {
         ERROR("%s","Fast5 causes crashes with --iop");
@@ -194,14 +197,18 @@ void init_iop(core_t* core,opt_t opt){
             close(pipefd_p2c[i][0]);
 
             if(opt.verbosity>1){
-                INFO("%s","child : child done");
+                INFO("%s","child : child is exiting");
             }
+
+            //TODO : free the datastructures allocated in the children such as core
+            //TODO : error handling of parent in case a child crashes and vice versa
+
             exit(EXIT_SUCCESS);
         }
         if(core->pids[i]>0){ //parent
             close(pipefd_c2p[i][1]); //close write end of child to parent
             close(pipefd_p2c[i][0]); //close read end of parent to child
-            if(core->opt.verbosity>1){
+            if(opt.verbosity>1){
                 STDERR("parent : child process with pid %d created", core->pids[i]); 
             }
 
@@ -223,42 +230,50 @@ void free_iop(core_t* core,opt_t opt){
 
     int i;
     for(i=0;i<opt.num_iop;i++){
-        kill(core->pids[i], SIGTERM);
-    }
-
-    //todo : handle the kill if termination fails
-
-    // int status,w;
-    // for(i=0;i<opt.num_iop;i++){
-    //     INFO("parent : waiting for child with pid %d",core->pids[i]);
-
-    //     do {
-    //         w = waitpid(core->pids[i], &status, WUNTRACED | WCONTINUED);
-    //         if (w == -1) {
-    //             ERROR("%s","waitpid failed");
-    //             perror("");
-    //             exit(EXIT_FAILURE);
-    //         }
-
-    //         if (WIFEXITED(status)) {
-    //             printf("exited, status=%d\n", WEXITSTATUS(status));
-    //         } else if (WIFSIGNALED(status)) {
-    //             printf("killed by signal %d\n", WTERMSIG(status));
-    //         } else if (WIFSTOPPED(status)) {
-    //             printf("stopped by signal %d\n", WSTOPSIG(status));
-    //         } else if (WIFCONTINUED(status)) {
-    //             printf("continued\n");
-    //         }
-    //     } while (!WIFEXITED(status) && !WIFSIGNALED(status));
-    // } 
-
-
-    for(i=0;i<opt.num_iop;i++){
         fclose(core->pipefp_p2c[i]);
         fclose(core->pipefp_c2p[i]);
         close(core->pipefd_p2c[i]);
         close(core->pipefd_p2c[i]);
     }
+
+    int status,w;
+    for(i=0;i<opt.num_iop;i++){
+        
+        if(core->opt.verbosity>1){
+            STDERR("parent : Waiting for child with pid %d",core->pids[i]);
+        }
+
+        do {
+            w = waitpid(core->pids[i], &status, WUNTRACED | WCONTINUED);
+            if (w == -1) {
+                ERROR("%s","waitpid failed");
+                perror("");
+                exit(EXIT_FAILURE);
+            }
+
+            if(core->opt.verbosity>1){
+                if (WIFEXITED(status)) {
+                    STDERR("child process %d exited, status=%d", core->pids[i], WEXITSTATUS(status));
+                } else if (WIFSIGNALED(status)) {
+                    STDERR("child process %d killed by signal %d", core->pids[i], WTERMSIG(status));
+                } else if (WIFSTOPPED(status)) {
+                    STDERR("child process %d stopped by signal %d", core->pids[i], WSTOPSIG(status));
+                } else if (WIFCONTINUED(status)) {
+                    STDERR("child process %d continued",core->pids[i]);
+                }
+            }
+        } while (!WIFEXITED(status) && !WIFSIGNALED(status));
+    } 
+    
+    //TODO incase graceful exit fails kill the children 
+
+    // //int i;
+    // for(i=0;i<opt.num_iop;i++){
+    //     kill(core->pids[i], SIGTERM);
+    // }
+
+    //TODO : handle the kill if termination fails
+
 
     free(core->pipefd_c2p);
     free(core->pipefd_p2c);
