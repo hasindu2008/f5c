@@ -1050,13 +1050,13 @@ void *readpipes(void *voidargs){
         }
 
         if (WIFEXITED(status)) {
-            printf("exited, status=%d\n", WEXITSTATUS(status));
+            fprintf(stderr,"exited, status=%d\n", WEXITSTATUS(status));
         } else if (WIFSIGNALED(status)) {
-            printf("killed by signal %d\n", WTERMSIG(status));
+            fprintf(stderr,"killed by signal %d\n", WTERMSIG(status));
         } else if (WIFSTOPPED(status)) {
-            printf("stopped by signal %d\n", WSTOPSIG(status));
+            fprintf(stderr,"stopped by signal %d\n", WSTOPSIG(status));
         } else if (WIFCONTINUED(status)) {
-            printf("continued\n");
+            fprintf(stderr,"continued\n");
         }
     } while (!WIFEXITED(status) && !WIFSIGNALED(status)); 
 
