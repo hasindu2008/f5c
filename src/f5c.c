@@ -19,7 +19,7 @@
 #include <aio.h>
 #endif
 
-//#define OLD_IO //IO with no profiling
+//#define OLD_IO //IO with no profiling :  disables --iot and --iop
 
 #ifndef OLD_IO 
     #include <sys/wait.h>
@@ -628,6 +628,12 @@ ret_status_t load_db(core_t* core, db_t* db) {
 
 #else
 
+//I/O related functions for I/O profile mode
+
+
+/*************** Start of multiple I/O thread based fast5 reading *****************************/
+
+//read a single read/fast5 in the I/O profiling mode
 static inline int read_from_fast5_files2(core_t *core, db_t *db, std::string qname, std::string fast5_path_str, int32_t i){
     char* fast5_path =
         (char*)malloc(fast5_path_str.size() + 10); // is +10 needed? do errorcheck
@@ -710,7 +716,7 @@ static inline int read_from_fast5_files2(core_t *core, db_t *db, std::string qna
 }
 
 
-
+//I/O thread handler
 void* pthread_single2(void* voidargs) {
     int32_t i;
     pthread_arg_t* args = (pthread_arg_t*)voidargs;
@@ -726,7 +732,7 @@ void* pthread_single2(void* voidargs) {
     pthread_exit(0);
 }
 
-
+//divide I/O work and spawn I/O threads
 void pthread_db2(core_t* core, db_t* db, void (*func)(core_t*,db_t*,int)){
     
     INFO("Running with %d IO threads",core->opt.num_io_thread);
@@ -772,6 +778,8 @@ void pthread_db2(core_t* core, db_t* db, void (*func)(core_t*,db_t*,int)){
 }
 
 
+
+//just a wrapper : read a single read/fast5 in the I/O profiling mode 
 void read_fast5_single(core_t* core, db_t* db, int i){
 
     int8_t read_status = 0;    
@@ -801,11 +809,12 @@ void read_fast5_single(core_t* core, db_t* db, int i){
     if(read_status!=1){
         assert(0);
     }
-
-
 }
 
+/************ End of multiple I/O thread based fast5 reading *****************************/
 
+
+//read a single fastt entry in I/O profile mode (used by read_fast5_db for single thread based read only)
 void read_fastt_single(core_t* core, db_t* db, int i, struct aiocb *aiocb){
 
     int8_t read_status = 0;    
@@ -836,6 +845,9 @@ void read_fastt_single(core_t* core, db_t* db, int i, struct aiocb *aiocb){
 }
 
 
+/**********************start of Multi process approach **********************/
+
+//the actual work done by a child for a particular read
 static inline int read_from_fast5_files2_fork(core_t *core, db_t *db, std::string qname, std::string fast5_path_str, int32_t i,FILE *pipefp){
     char* fast5_path =
         (char*)malloc(fast5_path_str.size() + 10); // is +10 needed? do errorcheck
@@ -929,7 +941,7 @@ static inline int read_from_fast5_files2_fork(core_t *core, db_t *db, std::strin
 
 
 
-
+//just a wrapper for error check
 void read_fast5_single_fork(core_t* core, db_t* db, int i, FILE *pipefp){
 
     int8_t read_status = 0;    
@@ -965,7 +977,7 @@ void read_fast5_single_fork(core_t* core, db_t* db, int i, FILE *pipefp){
 
 
 
-
+//just a wrapper that represents what a child process does
 void fork_single2(void* voidargs, FILE *pipefp) {
     int32_t i;
     pthread_arg_t* args = (pthread_arg_t*)voidargs;
@@ -978,7 +990,6 @@ void fork_single2(void* voidargs, FILE *pipefp) {
     }
 
     //fprintf(stderr,"Thread %d done\n",(myargs->position)/THREADS);
-    //pthread_exit(0);
 }
 
 typedef struct {
@@ -991,6 +1002,7 @@ typedef struct {
 } pthread_fork_arg_t;
 
 
+//interprocess communication threads 
 void *readpipes(void *voidargs){
     
     pthread_fork_arg_t *args = (pthread_fork_arg_t *)voidargs;
@@ -1054,6 +1066,7 @@ void *readpipes(void *voidargs){
 }
 
 
+//load fast5 batch through forking processes : divide work, spawn children process
 void fork_db2(core_t* core, db_t* db){
     
     INFO("Running with %d IO procs",core->opt.num_io_proc);
@@ -1139,12 +1152,14 @@ void fork_db2(core_t* core, db_t* db){
     }
     core->db_fast5_read_time += realtime() - rt;
 
-        
-     
-
-    //exit(EXIT_SUCCESS);
+    
 }
 
+/***************End of Multi process approach **************/
+
+
+
+//responsible for multiplexing the mode of reading for reading a batch of fast5
 void read_fast5_db(core_t* core, db_t* db,struct aiocb *aiocb){ 
 
     if (core->opt.num_io_proc == 1) {
@@ -1188,6 +1203,7 @@ void read_fast5_db(core_t* core, db_t* db,struct aiocb *aiocb){
     }
 }
 
+//load db that isolates fast5 loading from the rest of the I/O
 ret_status_t load_db(core_t* core, db_t* db) {
 
     double load_start = realtime();
@@ -1300,10 +1316,12 @@ ret_status_t load_db(core_t* core, db_t* db) {
     status.num_reads=db->n_bam_rec;
     assert(status.num_bases==db->sum_bases);
 
-    //read the fast5 batch
+    
+    //read the fast5 batch (this is the critical difference in the I/O profile mode)
     t=realtime();
     read_fast5_db(core,db, aiocb);
     core->db_fast5_time += realtime() - t;
+    /***************************************/
 
 #ifdef ASYNC
     t=realtime();
@@ -1335,6 +1353,8 @@ ret_status_t load_db(core_t* core, db_t* db) {
 
     return status;
 }
+
+//End of I/O functions
 
 #endif
 
