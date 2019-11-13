@@ -182,6 +182,14 @@ void init_iop(core_t* core,opt_t opt){
             close(pipefd_c2p[i][0]); //close read end of child to parent
             close(pipefd_p2c[i][1]); //close write end of parent to child
 
+            int j = 0;
+            for(j=0;j<i;j++){
+                fclose(core->pipefp_p2c[j]);
+                fclose(core->pipefp_c2p[j]);
+                close(core->pipefd_p2c[j]);
+                close(core->pipefd_c2p[j]);
+            }
+
             FILE *pipefp_c2p = fdopen(pipefd_c2p[i][1],"w");
             F_CHK(pipefp_c2p,"child : pipefp child to parent");
             FILE *pipefp_p2c = fdopen(pipefd_p2c[i][0],"r");
@@ -195,6 +203,13 @@ void init_iop(core_t* core,opt_t opt){
 
             close(pipefd_c2p[i][1]);
             close(pipefd_p2c[i][0]);
+
+            free(core->pids);
+            free(core->pipefd_p2c);
+            free(core->pipefd_c2p);
+            free(core->pipefp_p2c);
+            free(core->pipefp_c2p);
+            free(core);
 
             if(opt.verbosity>1){
                 INFO("%s","child : child is exiting");
@@ -230,10 +245,18 @@ void free_iop(core_t* core,opt_t opt){
 
     int i;
     for(i=0;i<opt.num_iop;i++){
-        fclose(core->pipefp_p2c[i]);
-        fclose(core->pipefp_c2p[i]);
+        int ret = fclose(core->pipefp_p2c[i]);
+        if(ret!=0){
+            WARNING("%s","Closeing the pipe p2c failed");
+            perror("");
+        }
+        ret = fclose(core->pipefp_c2p[i]);
+        if(ret!=0){
+            WARNING("%s","Closeing the pipe c2p failed");
+            perror("");
+        }
         close(core->pipefd_p2c[i]);
-        close(core->pipefd_p2c[i]);
+        close(core->pipefd_c2p[i]);
     }
 
     int status,w;
