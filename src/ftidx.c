@@ -206,6 +206,7 @@ static inline size_t f5read_async(BGZF *fp, kstring_t *str, size_t num_elements,
     #endif
 
     #ifdef ASYNC
+    fprintf(stderr,"Performing Asynchronous I/O with %d IO threads", AIO_FD_N);
     for(int i=0;i<AIO_FD_N;i++){
         fp->fd_async[i] = open(path,O_RDONLY );
         if(fp->fd<0){

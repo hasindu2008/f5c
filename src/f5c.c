@@ -142,6 +142,7 @@ core_t* init_core(const char* bamfilename, const char* fastafile,
     ainit.aio_num=8096;
     ainit.aio_idle_time=2;
     aio_init(&ainit);
+    INFO("Maximum I/O threads in posix I/O set to %d",ainit.aio_threads);
 #endif
 
     core->sum_bases=0;
@@ -1164,7 +1165,12 @@ void read_fast5_db(core_t* core, db_t* db,struct aiocb *aiocb){
 
     if (core->opt.num_io_proc == 1) {
         if (core->opt.num_io_thread == 1) {
-            INFO("%s","Running with 1 IO threads");
+            if(core->opt.flag & F5C_RD_FASTT){
+                INFO("%s","Running using FASTT mode");    
+            }
+            else{
+                INFO("%s","Running with 1 IO thread");
+            }
             int i;
             for (i = 0; i < db->n_bam_rec; i++) {
                 if(core->opt.flag & F5C_RD_FASTT){
