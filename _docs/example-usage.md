@@ -14,4 +14,7 @@ f5c call-methylation -b chr22_meth_example/reads.sorted.bam -g chr22_meth_exampl
 
 #calculate methylation frequency
 f5c meth-freq -i chr22_meth_example/result.tsv > chr22_meth_example/freq.tsv
+
+#perform event alignment
+f5c eventalign -b chr22_meth_example/reads.sorted.bam -g chr22_meth_example/humangenome.fa -r chr22_meth_example/reads.fastq > chr22_meth_example/events.tsv
 ```
