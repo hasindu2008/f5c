@@ -17,7 +17,7 @@ BEGIN {status=0}
 	|| $10!=$21 \
 	|| abs($11-$22) > 0.02) 
 	{print "f5c - nanopolish mismatch at line " NR; status=1}}
-END {if (status > 0) {exit 1}}
+END {if (status > 1) {exit 1}}
 
 
 #check contig	[tig00000001]

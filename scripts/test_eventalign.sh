@@ -91,6 +91,7 @@ execute_test() {
 		awk -f  scripts/test_eventalign.awk ${testdir}/joined_results.txt > ${testdir}/joined_diff.txt || handle_tests2 "${file}"
 	fi
 
+
 }
 
 mode_test() {
@@ -109,7 +110,7 @@ mode_test() {
 
 help_msg() {
 	echo "Test script for f5c."
-	echo "Usage: f5c_dir/script/test.sh [-c] [-b bam file] [-g reference genome] [-r fastq/fasta read] mode"
+	echo "Usage: f5c_dir/script/test_eventalign.sh [-c] [-b bam file] [-g reference genome] [-r fastq/fasta read] mode"
 	echo
 	echo "mode                 one of: valgrind/gdb/cpu/cuda/echo"
 	echo
