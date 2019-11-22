@@ -5,19 +5,9 @@ env:
   - CUDA_HOME=/usr/local/cuda PATH=${CUDA_HOME}/bin:${PATH}
 
 jobs:
-  addons:
-    apt:
-      packages:
-        - zlib1g-dev
   include:
-    - name: "arm64 build"
-      arch: arm64
-      addons:
-        apt:
-          packages:
-            - zlib1g-dev
-      script: autoreconf && ./scripts/install-hdf5.sh 2> /dev/null &&./scripts/install-hts.sh && ./configure --enable-localhdf5 && make && make test
     - name: "Ubuntu 14 local hts"
+      os: linux
       dist: trusty
       addons:
         apt:
@@ -26,6 +16,7 @@ jobs:
       script: autoreconf && ./scripts/install-hts.sh && ./configure && make && make test
     - name: "Ubuntu 16 install scripts"
       dist: xenial
+      os: linux
       addons:
         apt:
           packages:
@@ -49,6 +40,7 @@ jobs:
       os: osx
       script: make && make test
     - name: "Ubuntu 14 cuda 7.0"
+      os: linux
       dist: trusty
       addons:
         apt:
@@ -63,6 +55,7 @@ jobs:
         - sudo ln -s /usr/local/cuda-7.0/ ${CUDA_HOME}
       script: autoreconf && ./scripts/install-hts.sh && ./configure && make cuda=1 
     - name: "Ubuntu 14 cuda 6.5"
+      os: linux
       dist: trusty
       before_script: 
         - wget http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1404/x86_64/cuda-repo-ubuntu1404_7.0-28_amd64.deb
@@ -72,8 +65,17 @@ jobs:
         - sudo apt-get clean
         - sudo ln -s /usr/local/cuda-6.5/ ${CUDA_HOME}
       script: make cuda=1
+    - name: "arm64 build"
+      arch: arm64
+      os: linux
+      addons:
+        apt:
+          packages:
+            - zlib1g-dev
+      script: autoreconf && ./scripts/install-hdf5.sh 2> /dev/null &&./scripts/install-hts.sh && ./configure --enable-localhdf5 && make && make test    
     - stage: deploy
       name: "GitHub Release"
+      os: linux
       dist: trusty
       before_script: 
         - wget http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1404/x86_64/cuda-repo-ubuntu1404_7.0-28_amd64.deb
