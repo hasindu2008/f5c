@@ -39,9 +39,10 @@ Usage: f5c call-methylation [OPTIONS] -r reads.fa -b alignments.bam -g genome.fa
    -K INT                     batch size (max number of reads loaded at once) [512]
    -B FLOAT[K/M/G]            max number of bases loaded at once [2.0M]
    -h                         help
+   -o FILE                    output to file [stdout]
+   --iop [INT]                number of I/O processes to read fast5 files [1]
    --min-mapq INT             minimum mapping quality [30]
    --secondary=yes|no         consider secondary mappings or not [no]
-   --skip-unreadable=yes|no   skip any unreadable fast5 or terminate program [yes]
    --verbose INT              verbosity level [0]
    --version                  print version
    --disable-cuda=yes|no      disable running on CUDA [no]
@@ -51,6 +52,7 @@ Usage: f5c call-methylation [OPTIONS] -r reads.fa -b alignments.bam -g genome.fa
    --cuda-max-epk FLOAT       reads with events per kmer <= cuda_max_epk on GPU, rest on CPU [5.0]
 advanced options:
    --kmer-model FILE          custom k-mer model file
+   --skip-unreadable=yes|no   skip any unreadable fast5 or terminate program [yes]
    --print-events=yes|no      prints the event table
    --print-banded-aln=yes|no  prints the event alignment
    --print-scaling=yes|no     prints the estimated scalings
@@ -74,7 +76,7 @@ Usage: meth-freq [options...]
   ```
 
 
-### Aligning events (experimental, not thoroughly tested)
+### Aligning events
 
 ```
 Usage: f5c eventalign [OPTIONS] -r reads.fa -b alignments.bam -g genome.fa
@@ -85,9 +87,9 @@ Usage: f5c eventalign [OPTIONS] -r reads.fa -b alignments.bam -g genome.fa
    -K INT                     batch size (max number of reads loaded at once) [512]
    -B FLOAT[K/M/G]            max number of bases loaded at once [2.0M]
    -h                         help
+   -o FILE                    output to file [stdout]
    --min-mapq INT             minimum mapping quality [30]
    --secondary=yes|no         consider secondary mappings or not [no]
-   --skip-unreadable=yes|no   skip any unreadable fast5 or terminate program [yes]
    --verbose INT              verbosity level [0]
    --version                  print version
    --disable-cuda=yes|no      disable running on CUDA [no]
@@ -97,6 +99,7 @@ Usage: f5c eventalign [OPTIONS] -r reads.fa -b alignments.bam -g genome.fa
    --cuda-max-epk FLOAT       reads with events per kmer <= cuda_max_epk on GPU, rest on CPU [5.0]
 advanced options:
    --kmer-model FILE          custom k-mer model file
+   --skip-unreadable=yes|no   skip any unreadable fast5 or terminate program [yes]
    --print-events=yes|no      prints the event table
    --print-banded-aln=yes|no  prints the event alignment
    --print-scaling=yes|no     prints the estimated scalings
