@@ -140,7 +140,7 @@ void index_path(ReadDB& read_db, const std::string& path, const std::multimap<st
             }
 
             std::string full_fn = path + "/" + fn;
-            bool is_fast5 = full_fn.find(".fast5") != -1;
+            bool is_fast5 = full_fn.find(".fast5") != std::string::npos;
             bool in_map = fast5_to_read_name_map.find(fn) != fast5_to_read_name_map.end();
 
             // JTS 04/19: is_directory is painfully slow so we first check if the file is in the name map
@@ -204,8 +204,8 @@ void parse_sequencing_summary(const std::string& filename, std::multimap<std::st
 
     const std::string READ_NAME_STR = "read_id";
     const std::string FILENAME_STR = "filename";
-    size_t filename_idx = -1;
-    size_t read_name_idx = -1;
+    size_t filename_idx = SIZE_MAX;
+    size_t read_name_idx = SIZE_MAX;
 
     for(size_t i = 0; i < fields.size(); ++i) {
         if(fields[i] == READ_NAME_STR) {
@@ -217,11 +217,11 @@ void parse_sequencing_summary(const std::string& filename, std::multimap<std::st
         }
     }
 
-    if(filename_idx == -1) {
+    if(filename_idx == SIZE_MAX ) {
         exit_bad_header(FILENAME_STR, filename);
     }
 
-    if(read_name_idx == -1) {
+    if(read_name_idx == SIZE_MAX ) {
         exit_bad_header(READ_NAME_STR, filename);
     }
 

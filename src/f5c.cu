@@ -183,11 +183,11 @@ void init_cuda(core_t* core){
 
     STDERR("Max GPU capacity %.1fM bases",core->cuda->max_sum_read_len/(1000.0*1000.0));
     int64_t  num_bases_gap = core->cuda->max_sum_read_len - core->opt.batch_size_bases;
-    if(num_bases_gap>500000){
+    if(num_bases_gap> 0.25*core->cuda->max_sum_read_len){
         INFO("Your GPU can accommodate upto %.1fM bases. You may increase -B option (currently %.1fM) for better performance!",
         core->cuda->max_sum_read_len/(1000.0*1000.0), core->opt.batch_size_bases/((1000.0*1000.0)));
     }
-    else if(num_bases_gap<-500000){
+    else if(num_bases_gap< -0.25*core->cuda->max_sum_read_len){
         INFO("Your GPU can accommodate only %.1fM bases. You may decrease -B option (currently %.1fM) for better performance!",
         core->cuda->max_sum_read_len/(1000.0*1000.0), core->opt.batch_size_bases/((1000.0*1000.0)));
     }
