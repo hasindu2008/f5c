@@ -36,6 +36,11 @@ ifdef cuda
     CPPFLAGS += -DHAVE_CUDA=1
 endif
 
+ifdef asan
+	CFLAGS += -fsanitize=address -fno-omit-frame-pointer
+	LDFLAGS += -fsanitize=address -fno-omit-frame-pointer
+endif
+
 .PHONY: clean distclean format test install uninstall
 
 $(BINARY): src/config.h $(HTS_LIB) $(HDF5_LIB) $(OBJ)

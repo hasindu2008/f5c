@@ -22,7 +22,7 @@ fi
 # execution mode (valgrind/gdb/cpu/cuda/echo)
 mode=
 testset_url="http://genome.cse.unsw.edu.au/tmp/f5c_ecoli_2kb_region_multifast5_test.tgz"
-fallback_url="https://ndownloader.figshare.com/files/13784075?private_link=b04e3976eaed2225b848"
+fallback_url=""
 
 # download test set given url
 #
@@ -123,11 +123,11 @@ do
 		   bamfile=${testdir}/reads.sorted.bam
 		   ref=test/chr22_meth_example/humangenome.fa
 		   reads=${testdir}/reads.fastq
-		   testset_url="http://genome.cse.unsw.edu.au/tmp/f5c_na12878_test.tgz"
-		   fallback_url="https://ndownloader.figshare.com/files/13784792?private_link=5dd2077f1041412a9518";;
+		   testset_url="http://genome.cse.unsw.edu.au/tmp/f5c_na12878_multifast5_test.tgz"
+		   fallback_url="";;
 		K) batchsize="$OPTARG";;
 		B) max_bases="$OPTARG";;
-		d) download_test_set "http://genome.cse.unsw.edu.au/tmp/f5c_na12878_test.tgz" "https://ndownloader.figshare.com/files/13784792?private_link=5dd2077f1041412a9518"
+		d) download_test_set "http://genome.cse.unsw.edu.au/tmp/f5c_na12878_multifast5_test.tgz" ""
 		   exit 0;;
 		h) help_msg
 		   exit 0;;

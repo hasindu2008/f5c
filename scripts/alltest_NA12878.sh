@@ -97,4 +97,10 @@ mv test/chr22_meth_example/fast5_files/a.fast5 test/chr22_meth_example/fast5_fil
 evaluate
 echo ""
 
+echo "IOP test : I/O processes"
+make clean && make cuda=1
+"${exepath}" call-methylation -b "${bamfile}" -g "${ref}" -r "${reads}" -t "${NCPU}"  -K256 -v5 --iop8 > ${testdir}/result.txt 2> cuda_malloc.log
+evaluate
+echo ""
+
 exit 0
