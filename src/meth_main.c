@@ -325,10 +325,9 @@ int meth_main(int argc, char* argv[], int8_t mode) {
         fprintf(fp_help,"   -B FLOAT[K/M/G]            max number of bases loaded at once [%.1fM]\n",opt.batch_size_bases/(float)(1000*1000));
         fprintf(fp_help,"   -h                         help\n");
         fprintf(fp_help,"   -o FILE                    output to file [stdout]\n");
+        fprintf(fp_help,"   --iop [INT]                number of I/O processes to read fast5 files [%d]\n",opt.num_iop);        
         fprintf(fp_help,"   --min-mapq INT             minimum mapping quality [%d]\n",opt.min_mapq);
         fprintf(fp_help,"   --secondary=yes|no         consider secondary mappings or not [%s]\n",(opt.flag&F5C_SECONDARY_YES)?"yes":"no");
-        fprintf(fp_help,"   --skip-unreadable=yes|no   skip any unreadable fast5 or terminate program [%s]\n",(opt.flag&F5C_SKIP_UNREADABLE?"yes":"no"));
-        fprintf(fp_help,"   --iop [INT]                number of I/O processes to read fast5 files [%d]\n",opt.num_iop);
         fprintf(fp_help,"   --verbose INT              verbosity level [%d]\n",opt.verbosity);
         fprintf(fp_help,"   --version                  print version\n");
 #ifdef HAVE_CUDA
@@ -340,6 +339,7 @@ int meth_main(int argc, char* argv[], int8_t mode) {
 #endif
         fprintf(fp_help,"advanced options:\n");
         fprintf(fp_help,"   --kmer-model FILE          custom k-mer model file\n");
+        fprintf(fp_help,"   --skip-unreadable=yes|no   skip any unreadable fast5 or terminate program [%s]\n",(opt.flag&F5C_SKIP_UNREADABLE?"yes":"no"));
         fprintf(fp_help,"   --print-events=yes|no      prints the event table\n");
         fprintf(fp_help,"   --print-banded-aln=yes|no  prints the event alignment\n");
         fprintf(fp_help,"   --print-scaling=yes|no     prints the estimated scalings\n");
