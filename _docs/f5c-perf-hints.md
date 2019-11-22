@@ -1,7 +1,16 @@
 ---
-title: F5C CPU-GPU performance hints
+title: F5C performance hints
 chart: true
 ---
+
+# Fast5 I/O
+
+--iop option can be used to specify the number of I/O processes. Useful for a RAID system.
+Moving fast5 files to an SSD storage will also help.
+
+
+# CPU-GPU processing
+
 
 The default parameters may not give the best performance for atypical datasets. If a drastic performance impact was detected, f5c will print parameter tuning suggestions. The tunable parameters in f5c that affects performance are as follows.
 
