@@ -91,7 +91,7 @@ f5c meth-freq -i chr22_meth_example/result.tsv > chr22_meth_example/freq.tsv
 f5c eventalign -b chr22_meth_example/reads.sorted.bam -g chr22_meth_example/humangenome.fa -r chr22_meth_example/reads.fastq > chr22_meth_example/events.tsv
 ```
 
-## Acknowledgement
+## Acknowledgement 
 This reuses code and methods from [Nanopolish](https://github.com/jts/nanopolish).
 The event detection code is from Oxford Nanopore's [Scrappie basecaller](https://github.com/nanoporetech/scrappie).
 Some code snippets have been taken from [Minimap2](https://github.com/lh3/minimap2) and [Samtools](http://samtools.sourceforge.net/).
