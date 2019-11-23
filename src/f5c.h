@@ -18,7 +18,7 @@
 //required for eventalign
 #include <vector>
 
-#define F5C_VERSION "0.1-beta"
+#define F5C_VERSION "0.2-beta-dirty"
 
 /* hard coded numbers*/
 #define KMER_SIZE 6 //hard coded for now; todo : change to dynamic?
@@ -79,6 +79,7 @@ typedef struct {
     int64_t batch_size_bases;   //max bases loaded at once
 
     int32_t num_thread;
+    int32_t num_iop;
     int8_t verbosity;
     int32_t debug_break;
     int64_t ultra_thresh;
@@ -416,6 +417,12 @@ typedef struct {
     int8_t mode;
     FILE *event_summary_fp;
 
+    //IO proc related
+    pid_t *pids;
+    int *pipefd_p2c;
+    int *pipefd_c2p;
+    FILE **pipefp_p2c;
+    FILE **pipefp_c2p;
 
 } core_t;
 
@@ -426,6 +433,7 @@ typedef struct {
     int32_t starti;
     int32_t endi;
     void (*func)(core_t*,db_t*,int);
+    int32_t thread_index;
 #ifdef WORK_STEAL
     void *all_pthread_args;
 #endif
@@ -463,7 +471,7 @@ void pthread_db(core_t* core, db_t* db, void (*func)(core_t*,db_t*,int));
 void align_db(core_t* core, db_t* db);
 void align_single(core_t* core, db_t* db, int32_t i);
 void output_db(core_t* core, db_t* db);
-void free_core(core_t* core);
+void free_core(core_t* core,opt_t opt);
 void free_db_tmp(db_t* db);
 void free_db(db_t* db);
 void init_opt(opt_t* opt);

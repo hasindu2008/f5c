@@ -9,7 +9,6 @@ die() {
 
 test(){
     testdir=$1
-#~/nanopolish/scripts/calculate_methylation_frequency.py -i $testdir/meth.txt >  $testdir/freq.exp  
 
     echo "Test for $testdir"
 
@@ -19,7 +18,7 @@ test(){
         echo -e "chromosome\tstart\tend\tread_name\tlog_lik_ratio\tlog_lik_methylated\tlog_lik_unmethylated\tnum_calling_strands\tnum_cpgs\tsequence" > $testdir/meth.txt
         cat $testdir/meth.exp >> $testdir/meth.txt	
         
-        echo "valgrind checl"
+        echo "valgrind check"
         valgrind --leak-check=full --error-exitcode=1 ./f5c meth-freq -i $testdir/meth.txt > $testdir/freq.txt || die "valgrind verification failed" 
 	
         echo ""
@@ -36,11 +35,27 @@ test(){
     echo ""
 }
 
+help_msg() {
+	echo "Test script for f5c."
+	echo "Usage: f5c_dir/script/test_methfreq.sh [-c]"
+	echo "-h                   Show this help message."
+}
 
 testdir=test/ecoli_2kb_region
+
+# parse options
+while getopts ch opt
+do
+	case $opt in
+		c) testdir=test/chr22_meth_example;;
+        h) help_msg
+		   exit 0;;
+		?) printf "Usage: %s [-c]\n" "$0"
+		   exit 2;;
+	esac
+done
+
 test "$testdir"
 
-testdir=test/chr22_meth_example
-test "$testdir"
 
 

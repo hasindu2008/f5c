@@ -80,6 +80,8 @@ static struct option long_options[] = {
     {"ultra-thresh",required_argument, 0, 0},      //27 the threadshold for skipping ultra long reads
     {"write-dump",required_argument, 0, 0},        //28 write the raw data as a dump
     {"read-dump",required_argument, 0, 0},         //29 read the raw data as a dump
+    {"output",required_argument, 0, 'o'},          //30 output to a file [stdout]
+    {"iop",required_argument, 0, 0},               //31 number of I/O processes
     {0, 0, 0, 0}};
 
 
@@ -180,6 +182,13 @@ void* pthread_post_processor(void* voidargs){
     pthread_exit(0);
 }
 
+void slow_fast5_warn(core_t *core){
+
+    if(core->db_fast5_time  > core->process_db_time * 1.5){
+        INFO("%s","Fast5 reading took more time than processing. Try increasing --iop. See http://bit.ly/f5cperf");
+    }
+}
+
 //todo : need to print error message and arg check with respect to eventalign
 int meth_main(int argc, char* argv[], int8_t mode) {
 
@@ -187,7 +196,7 @@ int meth_main(int argc, char* argv[], int8_t mode) {
 
     //signal(SIGSEGV, sig_handler);
 
-    const char* optstring = "r:b:g:t:B:K:v:hV";
+    const char* optstring = "r:b:g:t:B:K:v:o:hV";
     int longindex = 0;
     int32_t c = -1;
 
@@ -232,7 +241,7 @@ int meth_main(int argc, char* argv[], int8_t mode) {
             opt.verbosity = atoi(optarg);
         }
         else if (c=='V'){
-            fprintf(stderr,"F5C %s\n",F5C_VERSION);
+            fprintf(stdout,"F5C %s\n",F5C_VERSION);
             exit(EXIT_SUCCESS);
         }
         else if (c=='h'){
@@ -288,7 +297,20 @@ int meth_main(int argc, char* argv[], int8_t mode) {
             yes_or_no(&opt, F5C_WR_RAW_DUMP, longindex, optarg, 1);
         } else if(c == 0 && longindex == 29){ //read the raw dump of the fast5 files
             yes_or_no(&opt, F5C_RD_RAW_DUMP, longindex, optarg, 1);
-        }        
+        } else if(c=='o'){
+			if (strcmp(optarg, "-") != 0) {
+				if (freopen(optarg, "wb", stdout) == NULL) {
+					ERROR("failed to write the output to file %s : %s",optarg, strerror(errno));
+					exit(EXIT_FAILURE);
+				}
+			}
+        } else if (c == 0 && longindex == 31) {  //I/O procs
+            opt.num_iop = atoi(optarg);
+            if (opt.num_iop < 1) {
+                ERROR("Number of I/O processes should be larger than 0. You entered %d", opt.num_iop);
+                exit(EXIT_FAILURE);
+            }
+        }
     }
 
     if (fastqfile == NULL || bamfilename == NULL || fastafile == NULL || fp_help == stdout) {
@@ -302,9 +324,10 @@ int meth_main(int argc, char* argv[], int8_t mode) {
         fprintf(fp_help,"   -K INT                     batch size (max number of reads loaded at once) [%d]\n",opt.batch_size);
         fprintf(fp_help,"   -B FLOAT[K/M/G]            max number of bases loaded at once [%.1fM]\n",opt.batch_size_bases/(float)(1000*1000));
         fprintf(fp_help,"   -h                         help\n");
+        fprintf(fp_help,"   -o FILE                    output to file [stdout]\n");
+        fprintf(fp_help,"   --iop [INT]                number of I/O processes to read fast5 files [%d]\n",opt.num_iop);        
         fprintf(fp_help,"   --min-mapq INT             minimum mapping quality [%d]\n",opt.min_mapq);
         fprintf(fp_help,"   --secondary=yes|no         consider secondary mappings or not [%s]\n",(opt.flag&F5C_SECONDARY_YES)?"yes":"no");
-        fprintf(fp_help,"   --skip-unreadable=yes|no   skip any unreadable fast5 or terminate program [%s]\n",(opt.flag&F5C_SKIP_UNREADABLE?"yes":"no"));
         fprintf(fp_help,"   --verbose INT              verbosity level [%d]\n",opt.verbosity);
         fprintf(fp_help,"   --version                  print version\n");
 #ifdef HAVE_CUDA
@@ -314,10 +337,9 @@ int meth_main(int argc, char* argv[], int8_t mode) {
         fprintf(fp_help,"   --cuda-avg-epk FLOAT       average number of events per kmer - for allocating GPU arrays [%.1f]\n",opt.cuda_avg_events_per_kmer);
         fprintf(fp_help,"   --cuda-max-epk FLOAT       reads with events per kmer <= cuda_max_epk on GPU, rest on CPU [%.1f]\n",opt.cuda_max_avg_events_per_kmer);
 #endif
-
-
         fprintf(fp_help,"advanced options:\n");
         fprintf(fp_help,"   --kmer-model FILE          custom k-mer model file\n");
+        fprintf(fp_help,"   --skip-unreadable=yes|no   skip any unreadable fast5 or terminate program [%s]\n",(opt.flag&F5C_SKIP_UNREADABLE?"yes":"no"));
         fprintf(fp_help,"   --print-events=yes|no      prints the event table\n");
         fprintf(fp_help,"   --print-banded-aln=yes|no  prints the event alignment\n");
         fprintf(fp_help,"   --print-scaling=yes|no     prints the estimated scalings\n");
@@ -388,6 +410,8 @@ int meth_main(int argc, char* argv[], int8_t mode) {
         //free temporary
         free_db_tmp(db);
 
+        slow_fast5_warn(core);
+
         if(opt.debug_break==counter){
             break;
         }
@@ -424,6 +448,7 @@ int meth_main(int argc, char* argv[], int8_t mode) {
                 realtime() - realtime0, cputime() / (realtime() - realtime0),
                 tid_p);
             }
+            slow_fast5_warn(core);
         }
         first_flag_p=1;
 
@@ -558,7 +583,7 @@ int meth_main(int argc, char* argv[], int8_t mode) {
 #endif
 
     //free the core data structure
-    free_core(core);
+    free_core(core,opt);
 
 
     return 0;

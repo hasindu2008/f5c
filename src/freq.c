@@ -12,6 +12,7 @@
 #include <math.h>
 #include <string.h>
 #include <getopt.h>
+#include "error.h"
 #include "khash.h"
 
 #define KEY_SIZE 3
@@ -28,6 +29,7 @@ static const char usage[] = "Usage: %s [options...]\n"
                             "\n"
                             "  -c [float]        Call threshold. Default is 2.5.\n"
                             "  -i [file]         Input file. Read from stdin if not specified.\n"
+                            "  -o [file]         Output file. Write to stdout if not specified.\n"
                             "  -s                Split groups\n";
 
 struct site_stats {
@@ -204,7 +206,7 @@ int freq_main(int argc, char **argv) {
     //extern char* optarg;
     //extern int optind, optopt;
 
-    while ((c = getopt(argc, argv, "c:i:s")) != -1) {
+    while ((c = getopt(argc, argv, "c:i:o:s")) != -1) {
         switch(c) {
             case 'c':
                 /* TODO handle overflow when calling strtod */
@@ -230,9 +232,20 @@ int freq_main(int argc, char **argv) {
                       fprintf(stderr, "Unrecognized option: -%c\n", optopt);
                       fprintf(stderr, usage, argv[0]);
                       exit(EXIT_FAILURE);
+            case 'o':
+                    if (strcmp(optarg, "-") != 0) {
+                        if (freopen(optarg, "wb", stdout) == NULL) {
+                            ERROR("failed to write the output to file %s : %s",optarg, strerror(errno));
+                            exit(EXIT_FAILURE);
+                        }
+                    }                   
             default:
                       break;
         }
+    }
+
+    if(input==stdin){
+        fprintf(stderr,"Scanning the input from stdin ...\n");
     }
 
     khash_t(str)* sites = kh_init(str);

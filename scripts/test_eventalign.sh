@@ -53,6 +53,7 @@ handle_tests() {
 	echo "$missing entries in the truthset are missing in the testset"
 	failp=$(echo "$numfailed/$numcases" | bc)
 	[ "$failp" -gt 0 ] && die "${1}: Validation failed"
+	echo "Validation passed"
 }
 
 handle_tests2() {
@@ -64,33 +65,34 @@ handle_tests2() {
 	echo "$missing entries in the truthset are missing in the testset"
 	failp=$(echo "$numfailed/$numcases" | bc)
 	[ "$failp" -gt 0 ] && die "${1}: Validation failed"
+	echo "Validation passed"
 }
 
 
 execute_test() {
-	echo "---------------------------------------------------------compare summaries"
-	test -e ${testdir}/eventalign.summary.exp || wget "http://genome.cse.unsw.edu.au/tmp/eventalign.summary.exp" -O ${testdir}/eventalign.summary.exp 
+	echo "----------------comparing summaries---------------------------------------------"
 	tail -n +2 ${testdir}/eventalign.summary.exp | awk '{print $2"\t"$5"\t"$6"\t"$7"\t"$8"\t"$9"\t"$10"\t"$11"\t"$12"\t"$13}' > ${testdir}/nanopolish.summary.txt
 	tail -n +2 ${testdir}/f5c_event_align.summary.txt | awk '{print $2"\t"$6"\t"$7"\t"$8"\t"$9"\t"$10"\t"$11"\t"$12"\t"$13"\t"$14}' > ${testdir}/f5c.summary.txt
 	join ${testdir}/nanopolish.summary.txt ${testdir}/f5c.summary.txt > ${testdir}/joined_results.txt
-	if [ $testdir = test/chr22_meth_example ]; then
-		awk -f  scripts/test_eventalign_summary.awk ${testdir}/joined_results.txt > ${testdir}/joined_diff.txt || handle_tests "${file}"
-	else	
-		awk -f  scripts/test_eventalign_summary.awk ${testdir}/joined_results.txt || die "${file}: Validation failed"
-	fi
-
-	echo "---------------------------------------------------------compare full results"
+	#if [ $testdir = test/chr22_meth_example ]; then
+	awk -f  scripts/test_eventalign_summary.awk ${testdir}/joined_results.txt > ${testdir}/joined_diff.txt || handle_tests "${file}"
+	#else	
+	#	awk -f  scripts/test_eventalign_summary.awk ${testdir}/joined_results.txt || die "${file}: Validation failed"
+	#fi
+	echo "----------------summaries are good---------------------------------------------"
+	echo "----------------comparing full results-------------------------------------------"
 	if [ $testdir = test/chr22_meth_example ]; then
 		echo "event by event test not implemented not yet implemented!"
 	else
 		test -d ${testdir}_big_testresults || mkdir ${testdir}_big_testresults/
-		test -e ${testdir}_big_testresults/eventalign.exp || wget "http://genome.cse.unsw.edu.au/tmp/eventalign.exp.gz" -O ${testdir}_big_testresults/eventalign.exp.gz 
+		test -e ${testdir}_big_testresults/eventalign.exp || wget "http://genome.cse.unsw.edu.au/tmp/f5c_ecoli_2kb_region_test_eventalign.exp.gz" -O ${testdir}_big_testresults/eventalign.exp.gz 
 		test -e ${testdir}_big_testresults/eventalign.exp || gunzip ${testdir}_big_testresults/eventalign.exp.gz
 		tail -n +2 ${testdir}_big_testresults/eventalign.exp | awk 		'{print $1"\t"$2"\t"$3"\t"$5"\t"$6"\t"$7"\t"$8"\t"$10"\t"$11"\t"$12"\t"$13"\t"$14}'  > ${testdir}/nanopolish.txt
 		tail -n +2 ${testdir}/result.txt | awk '{print $1"\t"$2"\t"$3"\t"$5"\t"$6"\t"$7"\t"$8"\t"$10"\t"$11"\t"$12"\t"$13"\t"$14}' > ${testdir}/f5c.txt
 		paste ${testdir}/nanopolish.txt ${testdir}/f5c.txt > ${testdir}/joined_results.txt
 		awk -f  scripts/test_eventalign.awk ${testdir}/joined_results.txt > ${testdir}/joined_diff.txt || handle_tests2 "${file}"
 	fi
+
 
 }
 
@@ -110,7 +112,7 @@ mode_test() {
 
 help_msg() {
 	echo "Test script for f5c."
-	echo "Usage: f5c_dir/script/test.sh [-c] [-b bam file] [-g reference genome] [-r fastq/fasta read] mode"
+	echo "Usage: f5c_dir/script/test_eventalign.sh [-c] [-b bam file] [-g reference genome] [-r fastq/fasta read] mode"
 	echo
 	echo "mode                 one of: valgrind/gdb/cpu/cuda/echo"
 	echo

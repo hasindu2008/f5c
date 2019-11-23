@@ -7,7 +7,7 @@ set -e
 
 # defaults
 exepath=./f5c
-testdir=test/ecoli_2kb_region
+testdir=test/ecoli_2kb_region_multifast5
 
 bamfile=${testdir}/reads.sorted.bam
 ref=${testdir}/draft.fa
@@ -21,8 +21,8 @@ else
 fi
 # execution mode (valgrind/gdb/cpu/cuda/echo)
 mode=
-testset_url="http://genome.cse.unsw.edu.au/tmp/f5c_ecoli_2kb_region_test.tgz"
-fallback_url="https://ndownloader.figshare.com/files/13784075?private_link=b04e3976eaed2225b848"
+testset_url="http://genome.cse.unsw.edu.au/tmp/f5c_ecoli_2kb_region_multifast5_test.tgz"
+fallback_url=""
 
 # download test set given url
 #
@@ -58,7 +58,7 @@ handle_tests() {
 
 execute_test() {
 
-	if [ $testdir = test/chr22_meth_example ]; then
+	if [ $testdir = test/chr22_meth_example_multifast5 ]; then
 		grep -w "chr20" ${testdir}/result.txt | awk '{print $1$2$3$4$8$9$10"\t"$5"\t"$6"\t"$7}' > ${testdir}/result_float.txt
 		grep -w "chr20" ${testdir}/meth.exp | awk '{print $1$2$3$4$8$9$10"\t"$5"\t"$6"\t"$7}'  > ${testdir}/meth_float.txt
 
@@ -77,7 +77,7 @@ execute_test() {
 
 mode_test() {
 
-	if [ $testdir = test/chr22_meth_example ]; then
+	if [ $testdir = test/chr22_meth_example_multifast5 ]; then
 		cmd="${exepath} call-methylation -b ${bamfile} -g ${ref} -r ${reads} -t ${threads} -K $batchsize -B $max_bases"
 	else
 		cmd="${exepath} call-methylation -b ${bamfile} -g ${ref} -r ${reads} -t ${threads} -K $batchsize -B $max_bases --secondary=yes --min-mapq=0"
@@ -97,18 +97,18 @@ mode_test() {
 
 help_msg() {
 	echo "Test script for f5c."
-	echo "Usage: f5c_dir/script/test.sh [-c] [-b bam file] [-g reference genome] [-r fastq/fasta read] mode"
+	echo "Usage: f5c_dir/script/test_multifast5.sh [-c] [-b bam file] [-g reference genome] [-r fastq/fasta read] mode"
 	echo
 	echo "mode                 one of: valgrind/gdb/cpu/cuda/echo"
 	echo
-	echo "-c                   Uses chr22_meth_example test set."
+	echo "-c                   Uses chr22_meth_example_multifast5 test set."
 	echo "-b [bam file]        Same as f5c -b."
 	echo "-K [n]               Same as f5c -K."
 	echo "-B [n]               Same as f5c -B."
 	echo "-r [read file]       Same as f5c -r."
 	echo "-g [ref genome]      Same as f5c -g."
 	echo "-t [n]               Number of threads."
-	echo "-d                   Download chr22_meth_example data set and exit."
+	echo "-d                   Download chr22_meth_example_multifast5 data set and exit."
 	echo "-h                   Show this help message."
 }
 
@@ -120,15 +120,15 @@ do
 		g) ref="$OPTARG";;
 		r) reads="$OPTARG";;
 		t) threads="$OPTARG";;
-		c) testdir=test/chr22_meth_example
+		c) testdir=test/chr22_meth_example_multifast5
 		   bamfile=${testdir}/reads.sorted.bam
-		   ref=${testdir}/humangenome.fa
+		   ref=test/chr22_meth_example/humangenome.fa
 		   reads=${testdir}/reads.fastq
-		   testset_url="http://genome.cse.unsw.edu.au/tmp/f5c_na12878_test.tgz"
-		   fallback_url="https://ndownloader.figshare.com/files/13784792?private_link=5dd2077f1041412a9518";;
+		   testset_url="http://genome.cse.unsw.edu.au/tmp/f5c_na12878_multifast5_test.tgz"
+		   fallback_url="";;
 		K) batchsize="$OPTARG";;
 		B) max_bases="$OPTARG";;
-		d) download_test_set "http://genome.cse.unsw.edu.au/tmp/f5c_na12878_test.tgz" "https://ndownloader.figshare.com/files/13784792?private_link=5dd2077f1041412a9518"
+		d) download_test_set "http://genome.cse.unsw.edu.au/tmp/f5c_na12878_multifast5_test.tgz" ""
 		   exit 0;;
 		h) help_msg
 		   exit 0;;
@@ -147,7 +147,7 @@ for file in ${bamfile} ${ref} ${reads}; do
 done
 
 if [ -z "$mode" ]; then
-	if [ $testdir = test/chr22_meth_example ]; then
+	if [ $testdir = test/chr22_meth_example_multifast5 ]; then
 		${exepath} call-methylation -b ${bamfile} -g ${ref} -r ${reads} -t "$threads" -K "$batchsize" -B "$max_bases" > ${testdir}/result.txt
 		execute_test
 	else

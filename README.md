@@ -1,10 +1,12 @@
 # f5c
 
-An optimised re-implementation of the call-methylation module in [Nanopolish](https://github.com/jts/nanopolish). Given a set of basecalled Nanopore reads and the raw signals, f5c detects the methylated cytosine bases. f5c can optionally utilise NVIDIA graphics cards for acceleration.
+An optimised re-implementation of the *call-methylation* and *eventalign* modules in [Nanopolish](https://github.com/jts/nanopolish). Given a set of basecalled Nanopore reads and the raw signals, *f5c call-methylation* detects the methylated cytosine and *f5c eventalign* aligns raw nanopore DNA signals (events) to the base-called read. *f5c* can optionally utilise NVIDIA graphics cards for acceleration.
 
-First the reads have to be indexed using `f5c index`. Then invoke `f5c call-methylation` to detect methylated cytosine bases. Finally, you may use `f5c meth-freq` to obtain methylation frequencies. The results are almost the same as from nanopolish except a few differences due to floating point approximations.
+First the reads have to be indexed using `f5c index`. Then invoke `f5c call-methylation` to detect methylated cytosine bases. Finally, you may use `f5c meth-freq` to obtain methylation frequencies. Alternatively, invoke `f5c eventalign` to perform event alignment. The results are almost the same as from nanopolish except a few differences due to floating point approximations.
 
 *Full Documentation* : [https://hasindu2008.github.io/f5c/docs/overview](https://hasindu2008.github.io/f5c/docs/overview)
+
+*Pre-print* : [https://doi.org/10.1101/756122](https://www.biorxiv.org/content/10.1101/756122v1)
 
 [![Build Status](https://travis-ci.org/hasindu2008/f5c.svg?branch=master)](https://travis-ci.org/hasindu2008/f5c)
 
@@ -68,6 +70,7 @@ Visit [here](https://hasindu2008.github.io/f5c/docs/cuda-troubleshoot) for troub
 f5c index -d [fast5_folder] [read.fastq|fasta]
 f5c call-methylation -b [reads.sorted.bam] -g [ref.fa] -r [reads.fastq|fasta] > [meth.tsv]
 f5c meth-freq -i [meth.tsv] > [freq.tsv]
+f5c eventalign -b [reads.sorted.bam] -g [ref.fa] -r [reads.fastq|fasta] > [events.tsv]
 ```
 
 Visit the [man page](https://hasindu2008.github.io/f5c/docs/commands) for all the commands and options.
@@ -84,6 +87,8 @@ tar xf f5c_na12878_test.tgz
 f5c index -d chr22_meth_example/fast5_files chr22_meth_example/reads.fastq
 f5c call-methylation -b chr22_meth_example/reads.sorted.bam -g chr22_meth_example/humangenome.fa -r chr22_meth_example/reads.fastq > chr22_meth_example/result.tsv
 f5c meth-freq -i chr22_meth_example/result.tsv > chr22_meth_example/freq.tsv
+#event alignment
+f5c eventalign -b chr22_meth_example/reads.sorted.bam -g chr22_meth_example/humangenome.fa -r chr22_meth_example/reads.fastq > chr22_meth_example/events.tsv
 ```
 
 ## Acknowledgement 
