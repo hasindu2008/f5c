@@ -53,6 +53,7 @@ handle_tests() {
 	echo "$missing entries in the truthset are missing in the testset"
 	failp=$(echo "$numfailed/$numcases" | bc)
 	[ "$failp" -gt 0 ] && die "${1}: Validation failed"
+	echo "Validation passed"
 }
 
 execute_test() {

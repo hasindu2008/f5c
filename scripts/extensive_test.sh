@@ -58,29 +58,37 @@ test_suit1 () {
 
 	make clean
 	make -j8
-	echo "--------------------Doing ecoli based tests-------------------------"
+	echo "-----------------Doing ecoli based CPU tests-------------------------"
 	echo "Methylation calling"
 	scripts/test.sh 2> ecoli_methcalling.log || die "failed"
+	echo "____________________________________________________________________"
 	echo "event alignment"
 	scripts/test_eventalign.sh 2> ecoli_eventalign.log || die "failed"
+	echo "____________________________________________________________________"	
 	echo "methylation frequency"
 	scripts/test_methfreq.sh 2> ecoli_methfreq.log || die "failed"
+	echo "____________________________________________________________________"	
 	echo "multi-fast5"
 	scripts/test_multifast5.sh 2> ecoli_multifast5.log  || die "failed"
+	echo "____________________________________________________________________"	
 
 	echo ""
 	echo "--------------------------------------------------------------------"
 	echo ""
 
-	echo "--------------------Doing NA12878 based tests-----------------------"
+	echo "----------------Doing NA12878 based CPU tests-----------------------"
 	echo "Methylation calling"
 	scripts/test.sh -c 2> na12878_methcalling.log || die "failed"
+	echo "____________________________________________________________________"
 	echo "event alignment"
 	scripts/test_eventalign.sh -c 2> na12878_eventalign.log || die "failed"
+	echo "____________________________________________________________________"
 	echo "methylation frequency"
 	scripts/test_methfreq.sh -c 2> na12878_methfreq.log || die "failed"
+	echo "____________________________________________________________________"
 	echo "multi-fast5"
 	scripts/test_multifast5.sh -c 2> na12878_multifast5.log || die "failed"
+	echo "____________________________________________________________________"
 
 }
 
@@ -90,51 +98,63 @@ test_suit1_cuda () {
 	make clean
 	make cuda=1 -j8
 
-	echo "--------------------Doing ecoli based tests-------------------------"
+	echo "---------------Doing ecoli based CUDA tests-------------------------"
 	echo "Methylation calling"
 	scripts/test.sh 2> ecoli_methcalling_cuda.log || die "failed"
+	echo "____________________________________________________________________"
 	echo "event alignment"
 	scripts/test_eventalign.sh 2> ecoli_eventalign_cuda.log || die "failed"
+	echo "____________________________________________________________________"
 	echo "methylation frequency"
 	scripts/test_methfreq.sh 2> ecoli_methfreq_cuda.log || die "failed"
+	echo "____________________________________________________________________"
 	echo "multi-fast5"
 	scripts/test_multifast5.sh 2> ecoli_multifast5_cuda.log  || die "failed"
+	echo "____________________________________________________________________"
 
 	echo ""
 	echo "--------------------------------------------------------------------"
 	echo ""
 
-	echo "--------------------Doing NA12878 based tests-----------------------"
+	echo "---------------Doing NA12878 based CUDA tests-----------------------"
 	echo "Methylation calling"
 	scripts/test.sh -c 2> na12878_methcalling_cuda.log || die "failed"
+	echo "____________________________________________________________________"
 	echo "event alignment"
 	scripts/test_eventalign.sh -c 2> na12878_eventalign_cuda.log || die "failed"
+	echo "____________________________________________________________________"
 	echo "methylation frequency"
 	scripts/test_methfreq.sh -c 2> na12878_methfreq_cuda.log || die "failed"
+	echo "____________________________________________________________________"
 	echo "multi-fast5"
 	scripts/test_multifast5.sh -c 2> na12878_multifast5_cuda.log || die "failed"
+	echo "____________________________________________________________________"
 
 }
 
 
 test_suit2 () {
 
+	echo "---------------Doing NA12878 based CPU tests part 2-----------------------"
 	echo "Default test"
 	make clean && make
 	"${exepath}" call-methylation -b "${bamfile}" -g "${ref}" -r "${reads}" -t "${NCPU}"  -K1024 -v5 > ${testdir}/result.txt 2> default.log
 	evaluate
 	echo ""
+	echo "____________________________________________________________________"
 
 	echo "sectional benchmark"
 	"${exepath}" call-methylation -b "${bamfile}" -g "${ref}" -r "${reads}" -t "${NCPU}"  -K1024 -v5 --profile=yes > ${testdir}/result.txt 2> profile.log
 	evaluate
 	echo ""
+	echo "____________________________________________________________________"
 
 	echo "NO IO PROC INTERLEAVE test"
 	make clean &&  CFLAGS+="-DIO_PROC_NO_INTERLEAVE=1" make
 	"${exepath}" call-methylation -b "${bamfile}" -g "${ref}" -r "${reads}" -t "${NCPU}"  -K1024 -v5 > ${testdir}/result.txt 2> no_io_proc.log
 	evaluate
 	echo ""
+	echo "____________________________________________________________________"
 
 
 	echo "bad fast5 file"
@@ -144,34 +164,41 @@ test_suit2 () {
 	mv test/chr22_meth_example/fast5_files/a.fast5 test/chr22_meth_example/fast5_files/DEAMERNANOPORE_20161117_FNFAB43577_MN16450_sequencing_run_MA_821_R9_4_NA12878_11_17_16_88738_ch1_read445_strand.fast5
 	evaluate
 	echo ""
+	echo "____________________________________________________________________"
 
 	echo "IOP test : I/O processes"
 	make clean && make
 	"${exepath}" call-methylation -b "${bamfile}" -g "${ref}" -r "${reads}" -t "${NCPU}"  -K256 -v5 --iop8 > ${testdir}/result.txt 2> cuda_malloc.log
 	evaluate
 	echo ""
+	echo "____________________________________________________________________"
 
 }
 
 test_suit2_cuda () {
 
+	echo "---------------Doing NA12878 based CUDA tests part 2 -----------------------"
 	echo "CUDA test"
 	make clean && make cuda=1
 	"${exepath}" call-methylation -b "${bamfile}" -g "${ref}" -r "${reads}" -t "${NCPU}"  -K256 -v5 > ${testdir}/result.txt 2> default_cuda.log
 	evaluate
 	echo ""
+	echo "____________________________________________________________________"
+
 
 	echo "CUDA test : cuda disabled"
 	make clean && make cuda=1
 	"${exepath}" call-methylation -b "${bamfile}" -g "${ref}" -r "${reads}" -t "${NCPU}"  -K256 -v5 --disable-cuda=yes > ${testdir}/result.txt 2> cuda_disabled.log
 	evaluate
 	echo ""
+	echo "____________________________________________________________________"
 
 	echo "CUDA test : dynamic malloc"
 	make clean && CFLAGS_CUDA+="-DCUDA_DYNAMIC_MALLOC=1" make cuda=1
 	"${exepath}" call-methylation -b "${bamfile}" -g "${ref}" -r "${reads}" -t "${NCPU}"  -K256 -v5 > ${testdir}/result.txt 2> cuda_malloc.log
 	evaluate
 	echo ""
+	echo "____________________________________________________________________"
 
 }
 
@@ -200,13 +227,15 @@ done
 shift $(($OPTIND - 1))
 mode=$1
 
-if [ $mode = "cpu" -o  $mode = "all" ]; then
+if [ "$mode" = "cpu" -o  "$mode" = "all" ]; then
 	test_suit1
 	test_suit2
-elif [ $mode = "gpu" -o  $mode = "all" ]; then	
+fi
+if [ "$mode" = "gpu" -o  "$mode" = "all" ]; then	
 	test_suit1_cuda
 	test_suit2_cuda
-else
+fi
+if [ "$mode" = "cpu" -o "$mode" != "gpu" -o "$mode" != "all" ]; then	
 	help_msg
 	exit 2;
 fi
