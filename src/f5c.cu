@@ -28,7 +28,12 @@ void init_cuda(core_t* core){
     cudaDeviceProp prop;
     cudaGetDeviceProperties(&prop, cuda_device_num);
     CUDA_CHK();
-    STDERR("Running on %s (device id %d)",prop.name, cuda_device_num);
+    cudaSetDevice(cuda_device_num);
+    CUDA_CHK();
+    int cuda_device_num_current=-1;
+    cudaGetDevice(&cuda_device_num_current);
+    CUDA_CHK();
+    STDERR("Running on %s (device id %d)",prop.name, cuda_device_num_current);
 
     //fprintf(stderr,"AVG_EVENTS_PER_KMER %f\n",AVG_EVENTS_PER_KMER);
     //fprintf(stderr,"AVG_EVENTS_PER_KMER %f\n",AVG_EVENTS_PER_KMER_GPU_THRESH);
