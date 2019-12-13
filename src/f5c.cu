@@ -264,6 +264,10 @@ void align_cuda(core_t* core, db_t* db) {
 
 realtime1 = realtime();
 
+    int32_t cuda_device_num = core->opt.cuda_dev_id;
+    cudaSetDevice(cuda_device_num);
+    CUDA_CHK();
+
 #ifdef CUDA_PRE_MALLOC
     ptr_t* read_ptr_host = core->cuda->read_ptr_host;
 #else
@@ -1009,6 +1013,10 @@ void align_cuda(core_t* core, db_t* db) {
 
 realtime1 = realtime();
 
+    int32_t cuda_device_num = core->opt.cuda_dev_id;
+    cudaSetDevice(cuda_device_num);
+    CUDA_CHK();
+
     read_ptr_host = core->cuda->read_ptr_host;
 
     sum_read_len = 0;
@@ -1119,7 +1127,6 @@ core->align_cuda_preprocess += (realtime() - realtime1);
 
     /** Start GPU mallocs**/
 realtime1 = realtime();
-
 
     read_ptr =core->cuda->read_ptr;
     read_len=core->cuda->read_len;
