@@ -84,6 +84,8 @@ typedef struct {
     int32_t debug_break;
     int64_t ultra_thresh;
 
+    char *region_str; //the region string in format chr:start-end
+
     //todo : these are required only for HAVE_CUDA (but need to chnage the meth_main accordingly)
     int32_t cuda_block_size;
     float cuda_max_readlen;
@@ -340,6 +342,10 @@ typedef struct {
     hts_idx_t* m_bam_idx;
     bam_hdr_t* m_hdr;
     hts_itr_t* itr;
+
+    //clipping coordinates
+    int32_t clip_start;
+    int32_t clip_end;
 
     //bam file for writing the skipped ultra long reads to be later processed
     htsFile* ultra_long_tmp;

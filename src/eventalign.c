@@ -1324,7 +1324,7 @@ struct EventAlignmentParameters
         AlignedSegment& aligned_pairs = aligned_segments[segment_idx];
 
         if(params.region_start != -1 && params.region_end != -1) {
-            fprintf(stderr, "params.region_start = %d params.region_end = %d\n",params.region_start,params.region_end);
+            //fprintf(stderr, "params.region_start = %d params.region_end = %d\n",params.region_start,params.region_end);
             trim_aligned_pairs_to_ref_region(aligned_pairs, params.region_start, params.region_end);
         }
 
@@ -1794,8 +1794,8 @@ void realign_read(std::vector<event_alignment_t>* event_alignment_result,Evental
                   const bam_hdr_t* hdr,
                   const bam1_t* record,int32_t read_length,
                   size_t read_idx,
-                  //int region_start,
-                  //int region_end, 
+                  int region_start,
+                  int region_end, 
                   event_table* events, model_t* model, index_pair_t* base_to_event_map, scalings_t scalings,
                   double events_per_base)
 {
@@ -1830,11 +1830,9 @@ void realign_read(std::vector<event_alignment_t>* event_alignment_result,Evental
         
         params.read_idx = read_idx;
         params.read_length = read_length;
-        //params.region_start = region_start;
-        //params.region_end = region_end;
+        params.region_start = region_start;
+        params.region_end = region_end;
 
-        params.region_start = -1;
-        params.region_end = -1;
 
         params.base_to_event_map = base_to_event_map;
         params.scalings = scalings;

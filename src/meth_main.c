@@ -82,6 +82,7 @@ static struct option long_options[] = {
     {"read-dump",required_argument, 0, 0},         //29 read the raw data as a dump
     {"output",required_argument, 0, 'o'},          //30 output to a file [stdout]
     {"iop",required_argument, 0, 0},               //31 number of I/O processes
+    {"window",required_argument, 0, 'w'},           //32 the genomic window (region)  
     {0, 0, 0, 0}};
 
 
@@ -196,7 +197,7 @@ int meth_main(int argc, char* argv[], int8_t mode) {
 
     //signal(SIGSEGV, sig_handler);
 
-    const char* optstring = "r:b:g:t:B:K:v:o:hV";
+    const char* optstring = "r:b:g:w:t:B:K:v:o:hV";
     int longindex = 0;
     int32_t c = -1;
 
@@ -218,6 +219,8 @@ int meth_main(int argc, char* argv[], int8_t mode) {
             bamfilename = optarg;
         } else if (c == 'g') {
             fastafile = optarg;
+        } else if (c == 'w') {
+            opt.region_str = optarg;
         } else if (c == 'B') {
             opt.batch_size_bases = mm_parse_num(optarg);
             if(opt.batch_size_bases<=0){
@@ -320,12 +323,13 @@ int meth_main(int argc, char* argv[], int8_t mode) {
         fprintf(fp_help,"   -r FILE                    fastq/fasta read file\n");
         fprintf(fp_help,"   -b FILE                    sorted bam file\n");
         fprintf(fp_help,"   -g FILE                    reference genome\n");
+        fprintf(fp_help,"   -w STR[chr:start-end]      limit processing to genomic region STR\n");
         fprintf(fp_help,"   -t INT                     number of threads [%d]\n",opt.num_thread);
         fprintf(fp_help,"   -K INT                     batch size (max number of reads loaded at once) [%d]\n",opt.batch_size);
         fprintf(fp_help,"   -B FLOAT[K/M/G]            max number of bases loaded at once [%.1fM]\n",opt.batch_size_bases/(float)(1000*1000));
         fprintf(fp_help,"   -h                         help\n");
         fprintf(fp_help,"   -o FILE                    output to file [stdout]\n");
-        fprintf(fp_help,"   --iop [INT]                number of I/O processes to read fast5 files [%d]\n",opt.num_iop);        
+        fprintf(fp_help,"   --iop INT                  number of I/O processes to read fast5 files [%d]\n",opt.num_iop);        
         fprintf(fp_help,"   --min-mapq INT             minimum mapping quality [%d]\n",opt.min_mapq);
         fprintf(fp_help,"   --secondary=yes|no         consider secondary mappings or not [%s]\n",(opt.flag&F5C_SECONDARY_YES)?"yes":"no");
         fprintf(fp_help,"   --verbose INT              verbosity level [%d]\n",opt.verbosity);

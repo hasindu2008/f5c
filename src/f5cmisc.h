@@ -54,8 +54,8 @@ void realign_read(std::vector<event_alignment_t>* event_alignment_result, Eventa
                   const bam_hdr_t* hdr,
                   const bam1_t* record, int32_t read_length,
                   size_t read_idx,
-                  //int region_start,
-                  //int region_end, 
+                  int region_start,
+                  int region_end, 
                   event_table* events, model_t* model,index_pair_t* base_to_event_map,scalings_t scaling,double events_per_base );
 
 //basically the functions in nanopolish_profile_hmm_r9.*

@@ -332,8 +332,26 @@ core_t* init_core(const char* bamfilename, const char* fastafile,
     core->m_hdr = sam_hdr_read(core->m_bam_fh);
     NULL_CHK(core->m_hdr);
 
-    core->itr = sam_itr_queryi(core->m_bam_idx, HTS_IDX_START, 0, 0);
-    NULL_CHK(core->itr);
+    // If processing a region of the genome, get clipping coordinates
+    core->clip_start = -1;
+    core->clip_end = -1;
+    if(opt.region_str == NULL){
+        core->itr = sam_itr_queryi(core->m_bam_idx, HTS_IDX_START, 0, 0);
+        if(core->itr==NULL){
+            ERROR("%s","sam_itr_queryi failed. A problem with the BAM index?");
+            exit(EXIT_FAILURE);
+        }
+    }
+    else{
+        STDERR("Iterating over region: %s\n", opt.region_str);
+        core->itr = sam_itr_querys(core->m_bam_idx, core->m_hdr, opt.region_str);
+        if(core->itr==NULL){
+            ERROR("sam_itr_querys failed. Please check if the region string you entered [%s] is valid",opt.region_str);
+            exit(EXIT_FAILURE);
+        }
+        hts_parse_reg(opt.region_str, &(core->clip_start) , &(core->clip_end));
+    }
+    
 
     //open the bam file for writing skipped ultra long reads
     core->ultra_long_tmp=NULL; //todo :  at the moment this is used to detect if the load balance mode is enabled. A better method in the opt flags.
@@ -1338,6 +1356,8 @@ void meth_single(core_t* core, db_t* db, int32_t i){
             realign_read(db->event_alignment_result[i], &(db->eventalign_summary[i]),core->event_summary_fp, db->fasta_cache[i],core->m_hdr,
                   db->bam_rec[i],db->read_len[i],
                   i,
+                  core->clip_start,
+                  core->clip_end,  
                   &(db->et[i]), core->model,db->base_to_event_map[i],db->scalings[i],db->events_per_base[i]);
         }
     }
@@ -1442,6 +1462,8 @@ void process_single(core_t* core, db_t* db,int32_t i) {
         realign_read(db->event_alignment_result[i], &(db->eventalign_summary[i]),core->event_summary_fp,db->fasta_cache[i],core->m_hdr,
                   db->bam_rec[i],db->read_len[i],
                   i,
+                  core->clip_start,
+                  core->clip_end,  
                   &(db->et[i]), core->model,db->base_to_event_map[i],db->scalings[i],db->events_per_base[i]);    
     }
 }
@@ -1589,11 +1611,15 @@ void output_db(core_t* core, db_t* db) {
                     // fprintf(stderr, "%s\t%.2lf\t", qname, diff);
                     // fprintf(stderr, "%.2lf\t%.2lf\t", sum_ll_m, sum_ll_u);
                     // fprintf(stderr, "%d\t%d\t%s\n", ss.strands_scored, ss.n_cpg, ss.sequence.c_str());
-
-                    printf("%s\t%d\t%d\t", contig, ss.start_position, ss.end_position);
-                    printf("%s\t%.2lf\t", qname, diff);
-                    printf("%.2lf\t%.2lf\t", sum_ll_m, sum_ll_u);
-                    printf("%d\t%d\t%s\n", ss.strands_scored, ss.n_cpg, ss.sequence.c_str());
+                    
+                    // output only if inside the window boundaries
+                    if( !( (core->clip_start != -1 && ss.start_position < core->clip_start) ||
+                        (core->clip_end != -1 && ss.end_position >= core->clip_end) ) ) {
+                        printf("%s\t%d\t%d\t", contig, ss.start_position, ss.end_position);
+                        printf("%s\t%.2lf\t", qname, diff);
+                        printf("%.2lf\t%.2lf\t", sum_ll_m, sum_ll_u);
+                        printf("%d\t%d\t%s\n", ss.strands_scored, ss.n_cpg, ss.sequence.c_str());
+                    }
 
                 }
             }
@@ -1698,6 +1724,7 @@ void init_opt(opt_t* opt) {
     opt->batch_size_bases = 2*1000*1000;
     opt->num_thread = 8;
     opt->num_iop = 1;
+    opt->region_str = NULL; //whole genome processing if null
 #ifndef HAVE_CUDA
     opt->flag |= F5C_DISABLE_CUDA;
     opt->batch_size_bases = 5*1000*1000;
