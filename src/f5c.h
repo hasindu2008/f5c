@@ -39,6 +39,10 @@
 #define F5C_SEC_PROF 0x100 //profile section by section (only effective on the CPU mode)
 #define F5C_WR_RAW_DUMP 0x200 //to say if we should write the raw dump of the fast5
 #define F5C_RD_RAW_DUMP 0x400 //to say if we should read the raw dump fof the fast5
+#define F5C_SAM 0x800 // write output in SAM format (eventalign only)
+#define F5C_SCALE_EVENTS 0x1000 // scale events to the model, rather than vice-versa (eventalign only)
+#define F5C_PRINT_RNAME 0x2000 // print read names instead of indexes (eventalign only)
+#define F5C_PRINT_SAMPLES 0x4000 //write the raw samples for the event to the tsv output (eventalign only)
 
 
 /*flags for a read status (related to db_t->read_stat_flag)*/
@@ -471,7 +475,7 @@ typedef struct {
 db_t* init_db(core_t* core);
 ret_status_t load_db(core_t* dg, db_t* db);
 core_t* init_core(const char* bamfilename, const char* fastafile,
-                  const char* fastqfile, const char* tmpfile, opt_t opt,double realtime0, int8_t mode);
+                  const char* fastqfile, const char* tmpfile, opt_t opt,double realtime0, int8_t mode, char *eventalignsummary);
 void process_db(core_t* dg, db_t* db);
 void pthread_db(core_t* core, db_t* db, void (*func)(core_t*,db_t*,int));
 void align_db(core_t* core, db_t* db);

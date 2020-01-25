@@ -308,7 +308,7 @@ void free_iop(core_t* core,opt_t opt){
 }
 
 core_t* init_core(const char* bamfilename, const char* fastafile,
-                  const char* fastqfile, const char* tmpfile, opt_t opt,double realtime0, int8_t mode) {
+                  const char* fastqfile, const char* tmpfile, opt_t opt,double realtime0, int8_t mode, char *eventalignsummary) {
     core_t* core = (core_t*)malloc(sizeof(core_t));
     MALLOC_CHK(core);
 
@@ -434,10 +434,14 @@ core_t* init_core(const char* bamfilename, const char* fastafile,
     //eventalign related
     core->mode = mode;
     if(mode==1){
-        core->event_summary_fp = fopen("f5c_event_align.summary.txt","w");
-        F_CHK(core->event_summary_fp,"f5c_event_align.summary.txt");
+        if(eventalignsummary!=NULL){
+            core->event_summary_fp = fopen(eventalignsummary,"w");
+            F_CHK(core->event_summary_fp,eventalignsummary);
+        }
+        else{
+            core->event_summary_fp =NULL;
+        }
     }
-
 
     return core;
 }
@@ -463,7 +467,7 @@ void free_core(core_t* core,opt_t opt) {
     }
 #endif
     //eventalign related
-    if(core->mode==1){
+    if(core->mode==1 && core->event_summary_fp!=NULL){
         fclose(core->event_summary_fp);
     }
     if(opt.num_iop > 1){
@@ -1636,7 +1640,11 @@ void output_db(core_t* core, db_t* db) {
                     fprintf(summary_fp, "%.2lf\t%.3lf\t%.3lf\t%.3lf\t%.3lf\n", summary.sum_duration/(db->f5[i]->sample_rate), scalings.shift, scalings.scale, 0.0, scalings.var);
                 }
                 std::vector<event_alignment_t> *event_alignment_result = db->event_alignment_result[i];
-                 emit_event_alignment_tsv(stdout,0,&(db->et[i]),core->model,db->scalings[i],*event_alignment_result, 1, 0, 0,
+                int8_t print_read_names = (core->opt.flag & F5C_PRINT_RNAME) ? 1 : 0;
+                int8_t scale_events = (core->opt.flag & F5C_SCALE_EVENTS) ? 1 : 0;
+                int8_t write_samples = (core->opt.flag & F5C_PRINT_SAMPLES) ? 1 : 0;
+
+                emit_event_alignment_tsv(stdout,0,&(db->et[i]),core->model,db->scalings[i],*event_alignment_result, print_read_names, scale_events, write_samples,
                               qname, contig);
             }
         }

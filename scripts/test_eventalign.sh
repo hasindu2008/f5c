@@ -163,13 +163,12 @@ done
 
 if [ -z "$mode" ]; then
 	if [ $testdir = test/chr22_meth_example ]; then
-		${exepath} eventalign -b ${bamfile} -g ${ref} -r ${reads} -t "$threads" -K "$batchsize" -B "$max_bases" --secondary=yes --min-mapq=0 > /dev/null
+		${exepath} eventalign -b ${bamfile} -g ${ref} -r ${reads} -t "$threads" -K "$batchsize" -B "$max_bases" --secondary=yes --min-mapq=0 --summary ${testdir}/f5c_event_align.summary.txt > /dev/null
 	else
 		#test -e ${testdir}/f5c_event_align.summary.txt && rm ${testdir}/f5c_event_align.summary.txt
 		${exepath} index -d ${testdir}/fast5_files ${testdir}/reads.fasta
-		${exepath} eventalign -b ${bamfile} -g ${ref} -r ${reads} --secondary=yes --min-mapq=0 -B "$max_bases" > ${testdir}/result.txt
+		${exepath} eventalign -b ${bamfile} -g ${ref} -r ${reads} --secondary=yes --min-mapq=0 -B "$max_bases" --summary ${testdir}/f5c_event_align.summary.txt> ${testdir}/result.txt
 	fi
-		mv f5c_event_align.summary.txt ${testdir}/f5c_event_align.summary.txt
 		execute_test
 else
 	mode_test "$@"

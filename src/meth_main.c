@@ -82,7 +82,12 @@ static struct option long_options[] = {
     {"read-dump",required_argument, 0, 0},         //29 read the raw data as a dump
     {"output",required_argument, 0, 'o'},          //30 output to a file [stdout]
     {"iop",required_argument, 0, 0},               //31 number of I/O processes
-    {"window",required_argument, 0, 'w'},           //32 the genomic window (region)  
+    {"window",required_argument, 0, 'w'},          //32 the genomic window (region)
+    {"summary",required_argument,0,0},             //33 summarize the alignment of each read/strand in FILE (eventalign only)
+    {"sam",no_argument,0,0},                       //34 write output in SAM format (eventalign only)
+    {"scale-events",no_argument,0,0},              //35 scale events to the model, rather than vice-versa (eventalign only)
+    {"print-read-names",no_argument,0,0},          //36 print read names instead of indexes (eventalign only)
+    {"samples",no_argument,0,0},                   //37 write the raw samples for the event to the tsv output (eventalign only)
     {0, 0, 0, 0}};
 
 
@@ -205,6 +210,7 @@ int meth_main(int argc, char* argv[], int8_t mode) {
     char* fastafile = NULL;
     char* fastqfile = NULL;
     char *tmpfile = NULL;
+    char *eventalignsummary = NULL;
 
     FILE *fp_help = stderr;
 
@@ -313,6 +319,40 @@ int meth_main(int argc, char* argv[], int8_t mode) {
                 ERROR("Number of I/O processes should be larger than 0. You entered %d", opt.num_iop);
                 exit(EXIT_FAILURE);
             }
+        } else if (c == 0 && longindex == 33){ //eventalign summary
+            if(mode!=1){
+                ERROR("%s","Option --summary is available only in eventalign");
+                exit(EXIT_FAILURE);
+            }
+            eventalignsummary=optarg;
+        } else if (c == 0 && longindex == 34){ //sam output
+            if(mode!=1){
+                ERROR("%s","Option --sam is available only in eventalign");
+                exit(EXIT_FAILURE);
+            }
+            yes_or_no(&opt, F5C_SAM, longindex, "yes", 1);
+            ERROR ("%s","--sam not yet implemented. printing in tsv");
+        } else if (c == 0 && longindex == 35){ //scale events
+            if(mode!=1){
+                ERROR("%s","Option --scale-events is available only in eventalign");
+                exit(EXIT_FAILURE);
+            }
+            yes_or_no(&opt, F5C_SCALE_EVENTS, longindex, "yes", 1);
+            ERROR ("%s","--scale-events not yet properly tested");
+        } else if (c == 0 && longindex == 36){ //print read names
+            if(mode!=1){
+                ERROR("%s","Option --print-read-names is available only in eventalign");
+                exit(EXIT_FAILURE);
+            }
+            yes_or_no(&opt, F5C_PRINT_RNAME, longindex, "yes", 1);
+            ERROR ("%s","--print-read-names not yet properly tested");
+        } else if (c == 0 && longindex == 37){ //print samples
+            if(mode!=1){
+                ERROR("%s","Option --samples is available only in eventalign");
+                exit(EXIT_FAILURE);
+            }
+            yes_or_no(&opt, F5C_PRINT_SAMPLES, longindex, "yes", 1);
+            ERROR ("%s","--samples not yet implemented");
         }
     }
 
@@ -354,6 +394,13 @@ int meth_main(int argc, char* argv[], int8_t mode) {
         fprintf(fp_help,"   --ultra-thresh [INT]       threshold to skip ultra long reads [%ld]\n",opt.ultra_thresh);
         fprintf(fp_help,"   --write-dump=yes|no        write the fast5 dump to a file or not\n");
         fprintf(fp_help,"   --read-dump=yes|no         read from a fast5 dump file or not\n");
+    if(mode==1){
+        fprintf(fp_help,"   --summary FILE             summarise the alignment of each read/strand in FILE\n");
+        fprintf(fp_help,"   --sam                      write output in SAM format\n");
+        fprintf(fp_help,"   --print-read-names         print read names instead of indexes\n");
+        fprintf(fp_help,"   --scale-events             scale events to the model, rather than vice-versa\n");
+        fprintf(fp_help,"   --samples                  write the raw samples for the event to the tsv output\n");
+    }
 #ifdef HAVE_CUDA
         fprintf(fp_help,"   - cuda-mem-frac FLOAT      Fraction of free GPU memory to allocate [0.9 (0.7 for tegra)]\n");
         fprintf(fp_help,"   --cuda-block-size\n");
@@ -365,7 +412,7 @@ int meth_main(int argc, char* argv[], int8_t mode) {
     }
 
     //initialise the core data structure
-    core_t* core = init_core(bamfilename, fastafile, fastqfile, tmpfile, opt,realtime0,mode);
+    core_t* core = init_core(bamfilename, fastafile, fastqfile, tmpfile, opt,realtime0,mode,eventalignsummary);
 
     #ifdef ESL_LOG_SUM
         p7_FLogsumInit();
@@ -382,7 +429,10 @@ int meth_main(int argc, char* argv[], int8_t mode) {
             fprintf(core->event_summary_fp,"read_index\tread_name\tfast5_path\tmodel_name\tstrand\tnum_events\t");
             fprintf(core->event_summary_fp,"num_steps\tnum_skips\tnum_stays\ttotal_duration\tshift\tscale\tdrift\tvar\n");
         }
-        emit_event_alignment_tsv_header(stdout, 1, 0);
+        int8_t print_read_names = (core->opt.flag & F5C_PRINT_RNAME) ? 1 : 0 ;
+        int8_t write_samples = (core->opt.flag & F5C_PRINT_SAMPLES) ? 1 : 0 ;
+
+        emit_event_alignment_tsv_header(stdout, print_read_names, write_samples);
     }
     int32_t counter=0;
 
