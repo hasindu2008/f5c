@@ -426,6 +426,8 @@ typedef struct {
     //eventalign related
     int8_t mode;
     FILE *event_summary_fp;
+    htsFile *sam_output;
+    int64_t read_index; //used for printing the read index from the beginning
 
     //IO proc related
     pid_t *pids;

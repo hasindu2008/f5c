@@ -6,26 +6,34 @@ function abs(x) {
 FNR == 1 {next}
 
 BEGIN {status=0}
-{	if ($2!=$11 \
-	|| $3!=$12 \
-	|| $4!=$13 \
-	|| $5!=$14 \
-	|| abs($6-$15) > 0.01\
-	|| abs($7-$16) > 0.01\
-	|| abs($8-$17) > 0.01 \
-	|| $9!=$18 \
-	|| abs($10-$19) > 0.01 )
+{	if ($1!=$(1+14) \
+	|| $2!=$(2+14) \
+	|| $3!=$(3+14) \
+	|| $4!=$(4+14) \
+	|| $5!=$(5+14) \
+	|| $6!=$(6+14) \
+	|| $7!=$(7+14) \
+	|| $8!=$(8+14) \
+	|| $9!=$(9+14) \
+	|| abs($10-$(10+14)) > 0.01 \
+	|| abs($11-$(11+14)) > 0.01 \
+	|| abs($12-$(12+14)) > 0.01 \
+	|| $13!=$(13+14) \
+	|| abs($14-$(14+14)) > 0.01 )
 	{print "f5c - nanopolish mismatch at index " $1; status=1}}
 END {if (status > 0) {exit 1}}
 
-#check uuids
-#check template 
-#check num_events
-#check num_steps
-#check num_skips
-#check num_stays
-#check sum_duration
-#check scalings shift
-#check scalings scale
-#check scalings drift
-#check scalings var
+#1 check read_index
+#2 check read_name
+#3 check fast5_path
+#4 check model_name
+#5 check strand 
+#6 check num_events
+#7 check num_steps
+#8 check num_skips
+#9 check num_stays
+#10 check sum_duration
+#11 check scalings shift
+#12 check scalings scale
+#13 check scalings drift
+#14 check scalings var

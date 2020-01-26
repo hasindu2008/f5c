@@ -18,8 +18,8 @@ handle_tests(){
 	numfailed=$(wc -l < "${testdir}"/floatdiff.txt)
 	numcases=$(wc -l < "${testdir}"/meth_float.txt)
 	echo "$numfailed of $numcases test cases failed."
-	failp=$(echo "$numfailed/$numcases" | bc)
-	[ "$failp" -gt 0 ] && die "${1}: Validation failed"
+	failp=$(echo "$numfailed*100/$numcases" | bc)
+	[ "$failp" -gt 5 ] && die "${1}: Validation failed"
 }
 
 

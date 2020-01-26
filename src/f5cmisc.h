@@ -47,8 +47,18 @@ void emit_event_alignment_tsv(FILE* fp,
                               const event_table* et, model_t* model, scalings_t scalings,
                               const std::vector<event_alignment_t>& alignments, 
                               int8_t print_read_names, int8_t scale_events, int8_t write_samples,
-                              char* read_name, char *ref_name);
+                              int64_t read_index, char* read_name, char *ref_name, float sample_rate);
+
 void emit_event_alignment_tsv_header(FILE* fp, int8_t print_read_names, int8_t write_samples);
+
+void emit_sam_header(samFile* fp, const bam_hdr_t* hdr);
+
+void emit_event_alignment_sam(htsFile* fp,
+                              char* read_name,
+                              bam_hdr_t* base_hdr,
+                              bam1_t* base_record, 
+                              const std::vector<event_alignment_t>& alignments 
+                              );
 
 void realign_read(std::vector<event_alignment_t>* event_alignment_result, EventalignSummary *summary, FILE *summary_fp,char* ref,
                   const bam_hdr_t* hdr,
@@ -56,7 +66,7 @@ void realign_read(std::vector<event_alignment_t>* event_alignment_result, Eventa
                   size_t read_idx,
                   int region_start,
                   int region_end, 
-                  event_table* events, model_t* model,index_pair_t* base_to_event_map,scalings_t scaling,double events_per_base );
+                  event_table* events, model_t* model,index_pair_t* base_to_event_map,scalings_t scaling,double events_per_base, float sample_rate);
 
 //basically the functions in nanopolish_profile_hmm_r9.*
 float profile_hmm_score_r9(const char *m_seq,

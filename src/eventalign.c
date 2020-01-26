@@ -1253,7 +1253,7 @@ struct EventAlignmentParameters
     
     // optional
     std::string alphabet;
-    int read_idx;
+    int read_idx; //todo : probably redundant
     int region_start;
     int region_end;
 };
@@ -1544,10 +1544,16 @@ struct EventAlignmentParameters
 
 
 // Return the duration of the specified event for one strand
-inline float get_duration(const event_table* events, uint32_t event_idx)
+inline float get_duration_samples(const event_table* events, uint32_t event_idx)
 {
     assert(event_idx < events->n);
-    return (events->event)[event_idx].length;
+    return ((events->event)[event_idx].length);
+}
+
+inline float get_duration_seconds(const event_table* events, uint32_t event_idx, float sample_rate)
+{
+    assert(event_idx < events->n);
+    return ((events->event)[event_idx].length)/sample_rate;
 }
 
 
@@ -1573,7 +1579,7 @@ inline float z_score(const event_table* events, model_t* models, scalings_t scal
 
 EventalignSummary summarize_alignment(uint32_t strand_idx,
                                       const EventAlignmentParameters& params,
-                                      const std::vector<event_alignment_t>& alignments)
+                                      const std::vector<event_alignment_t>& alignments, float sample_rate)
 {
     EventalignSummary summary;
  
@@ -1613,7 +1619,7 @@ EventalignSummary summarize_alignment(uint32_t strand_idx,
 
         //todo
         // event information
-        summary.sum_duration += get_duration(params.et, ea.event_idx);
+        summary.sum_duration += get_duration_samples(params.et, ea.event_idx);
 
         //todo
         if(ea.hmm_state == 'M') {
@@ -1635,6 +1641,11 @@ EventalignSummary summarize_alignment(uint32_t strand_idx,
     return summary;
 }
 
+void emit_sam_header(samFile* fp, const bam_hdr_t* hdr)
+{
+    int ret_sw = sam_hdr_write(fp, hdr);
+    NEG_CHK(ret_sw);
+}
 
 
 void emit_event_alignment_tsv_header(FILE* fp, int8_t print_read_names, int8_t write_samples)
@@ -1649,6 +1660,144 @@ void emit_event_alignment_tsv_header(FILE* fp, int8_t print_read_names, int8_t w
     }
     fprintf(fp, "\n");
 }
+
+
+std::vector<uint32_t> event_alignment_to_cigar(const std::vector<event_alignment_t>& alignments )
+{
+    std::vector<uint32_t> out;
+
+    // add a softclip tag to account for unaligned events at the beginning/end of the read
+    if(alignments[0].event_idx > 0) {
+        out.push_back(alignments[0].event_idx << BAM_CIGAR_SHIFT | BAM_CSOFT_CLIP);
+    }
+
+    // we always start with a match
+    out.push_back(1 << BAM_CIGAR_SHIFT | BAM_CMATCH);
+
+    int prev_r_idx = alignments[0].ref_position;
+    int prev_e_idx = alignments[0].event_idx;
+    size_t ai = 1;
+
+    while(ai < alignments.size()) {
+
+        int r_idx = alignments[ai].ref_position;
+        int e_idx = alignments[ai].event_idx;
+
+        int r_step = abs(r_idx - prev_r_idx);
+        int e_step = abs(e_idx - prev_e_idx);
+
+        uint32_t incoming;
+        if(r_step == 1 && e_step == 1) {
+
+            // regular match
+            incoming = 1 << BAM_CIGAR_SHIFT;
+            incoming |= BAM_CMATCH;
+
+        } else if(r_step > 1) {
+            assert(e_step == 1);
+            // reference jump of more than 1, this is how deletions are represented
+            // we push the deletion onto the output then start a new match
+            incoming = (r_step - 1) << BAM_CIGAR_SHIFT;
+            incoming |= BAM_CDEL;
+            out.push_back(incoming);
+            
+            incoming = 1 << BAM_CIGAR_SHIFT;
+            incoming |= BAM_CMATCH;
+        } else {
+            assert(e_step == 1 && r_step == 0);
+            incoming = 1 << BAM_CIGAR_SHIFT;
+            incoming |= BAM_CINS;
+        }
+
+        // If the operation matches the previous, extend the length
+        // otherwise append a new op
+        if(bam_cigar_op(out.back()) == bam_cigar_op(incoming)) {
+            uint32_t sum = bam_cigar_oplen(out.back()) + 
+                           bam_cigar_oplen(incoming);
+            out.back() = sum << BAM_CIGAR_SHIFT | bam_cigar_op(incoming);
+        } else {
+            out.push_back(incoming);
+        }
+
+        prev_r_idx = r_idx;
+        prev_e_idx = e_idx;
+        ai++;
+    }
+    return out;
+}
+
+
+
+void emit_event_alignment_sam(htsFile* fp,
+                              char* read_name,
+                              bam_hdr_t* base_hdr,
+                              bam1_t* base_record, 
+                              const std::vector<event_alignment_t>& alignments 
+                              )
+{
+    if(alignments.empty())
+        return;
+    bam1_t* event_record = bam_init1();
+    
+    int strand_idx=0;
+    // Variable-length data
+    //std::string qname = read_name + (alignments.front().strand_idx == 0 ? ".template" : ".complement");
+    std::string qname = std::string(read_name) + (strand_idx == 0 ? ".template" : ".complement");
+
+    // basic stats
+    event_record->core.tid = base_record->core.tid;
+    event_record->core.pos = alignments.front().ref_position;
+    event_record->core.qual = base_record->core.qual;
+    event_record->core.l_qname = qname.length() + 1; // must be null-terminated
+
+    event_record->core.flag = alignments.front().rc ? 16 : 0;
+
+    event_record->core.l_qseq = 0;
+    
+    event_record->core.mtid = -1;
+    event_record->core.mpos = -1;
+    event_record->core.isize = 0;
+
+    std::vector<uint32_t> cigar = event_alignment_to_cigar(alignments);
+    event_record->core.n_cigar = cigar.size();
+
+    // calculate length of incoming data
+    event_record->m_data = event_record->core.l_qname + // query name
+                           event_record->core.n_cigar * 4 + // 4 bytes per cigar op
+                           event_record->core.l_qseq + // query seq
+                           event_record->core.l_qseq; // query quality
+        
+    // nothing copied yet
+    event_record->l_data = 0;
+    
+    // allocate data
+    event_record->data = (uint8_t*)malloc(event_record->m_data);
+
+    // copy q name
+    assert(event_record->core.l_qname <= event_record->m_data);
+    strncpy(bam_get_qname(event_record), 
+            qname.c_str(),
+            event_record->core.l_qname);
+    event_record->l_data += event_record->core.l_qname;
+    
+    // cigar
+    assert(event_record->l_data + event_record->core.n_cigar * 4 <= event_record->m_data);
+    memcpy(bam_get_cigar(event_record), 
+           &cigar[0],
+           event_record->core.n_cigar * 4);
+    event_record->l_data += event_record->core.n_cigar * 4;
+
+    // no copy for seq and qual
+    assert((int64_t)event_record->l_data <= (int64_t)event_record->m_data);
+
+    int stride = alignments.front().event_idx < alignments.back().event_idx ? 1 : -1;
+    bam_aux_append(event_record, "ES", 'i', 4, reinterpret_cast<uint8_t*>(&stride));
+
+    int ret_sw = sam_write1(fp, base_hdr, event_record);
+    NEG_CHK(ret_sw);
+    bam_destroy1(event_record); // automatically frees malloc'd segment
+}
+
 
 //event_mean = get_fully_scaled_level(ea.event_idx, ea.strand_idx);
 // Return the observed current level after correcting for drift, shift and scale
@@ -1706,7 +1855,7 @@ void emit_event_alignment_tsv(FILE* fp,
                               const event_table* et, model_t* model, scalings_t scalings,
                               const std::vector<event_alignment_t>& alignments, 
                               int8_t print_read_names, int8_t scale_events, int8_t write_samples,
-                              char* read_name, char *ref_name)
+                              int64_t read_index, char* read_name, char *ref_name,float sample_rate)
 {
     //assert(params.alphabet == "");
     //const PoreModel* pore_model = params.get_model();
@@ -1718,11 +1867,11 @@ void emit_event_alignment_tsv(FILE* fp,
         // basic information
         if (!print_read_names)
         {
-            fprintf(fp, "%s\t%d\t%s\t%d\t%c\t",
+            fprintf(fp, "%s\t%d\t%s\t%ld\t%c\t",
                     ref_name, //ea.ref_name.c_str(),
                     ea.ref_position,
                     ea.ref_kmer,
-                    ea.read_idx,
+                    read_index,
                     't'); //"tc"[ea.strand_idx]); 
         }
         else
@@ -1738,7 +1887,7 @@ void emit_event_alignment_tsv(FILE* fp,
         // event information
         float event_mean = (et->event)[ea.event_idx].mean;
         float event_stdv = (et->event)[ea.event_idx].stdv;
-        float event_duration = get_duration(et, ea.event_idx);
+        float event_duration = get_duration_seconds(et, ea.event_idx, sample_rate);
         uint32_t rank = get_kmer_rank(ea.model_kmer, KMER_SIZE);
         float model_mean = 0.0;
         float model_stdv = 0.0;
@@ -1797,7 +1946,7 @@ void realign_read(std::vector<event_alignment_t>* event_alignment_result,Evental
                   int region_start,
                   int region_end, 
                   event_table* events, model_t* model, index_pair_t* base_to_event_map, scalings_t scalings,
-                  double events_per_base)
+                  double events_per_base, float sample_rate)
 {
     // Load a squiggle read for the mapped read
     std::string read_name = bam_get_qname(record);
@@ -1853,7 +2002,7 @@ void realign_read(std::vector<event_alignment_t>* event_alignment_result,Evental
         //todo : fix this 
         //FILE *summary_fp = stderr;
         if(summary_fp != NULL) {
-            *summary = summarize_alignment(0, params, alignment);
+            *summary = summarize_alignment(0, params, alignment, sample_rate);
         }
 
         //fprintf(summary_fp,"sfsafsaf\n");

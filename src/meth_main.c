@@ -331,28 +331,26 @@ int meth_main(int argc, char* argv[], int8_t mode) {
                 exit(EXIT_FAILURE);
             }
             yes_or_no(&opt, F5C_SAM, longindex, "yes", 1);
-            ERROR ("%s","--sam not yet implemented. printing in tsv");
         } else if (c == 0 && longindex == 35){ //scale events
             if(mode!=1){
                 ERROR("%s","Option --scale-events is available only in eventalign");
                 exit(EXIT_FAILURE);
             }
             yes_or_no(&opt, F5C_SCALE_EVENTS, longindex, "yes", 1);
-            ERROR ("%s","--scale-events not yet properly tested");
         } else if (c == 0 && longindex == 36){ //print read names
             if(mode!=1){
                 ERROR("%s","Option --print-read-names is available only in eventalign");
                 exit(EXIT_FAILURE);
             }
             yes_or_no(&opt, F5C_PRINT_RNAME, longindex, "yes", 1);
-            ERROR ("%s","--print-read-names not yet properly tested");
         } else if (c == 0 && longindex == 37){ //print samples
             if(mode!=1){
                 ERROR("%s","Option --samples is available only in eventalign");
                 exit(EXIT_FAILURE);
             }
             yes_or_no(&opt, F5C_PRINT_SAMPLES, longindex, "yes", 1);
-            ERROR ("%s","--samples not yet implemented");
+            ERROR ("%s","--samples not yet implemented. Submit a github request if you need this feature.");
+            exit(EXIT_FAILURE);
         }
     }
 
@@ -431,8 +429,14 @@ int meth_main(int argc, char* argv[], int8_t mode) {
         }
         int8_t print_read_names = (core->opt.flag & F5C_PRINT_RNAME) ? 1 : 0 ;
         int8_t write_samples = (core->opt.flag & F5C_PRINT_SAMPLES) ? 1 : 0 ;
+        int8_t sam_output =  (core->opt.flag & F5C_SAM) ? 1 : 0 ;
 
-        emit_event_alignment_tsv_header(stdout, print_read_names, write_samples);
+        if(sam_output==0){
+            emit_event_alignment_tsv_header(stdout, print_read_names, write_samples);
+        }
+        else{
+            emit_sam_header(core->sam_output, core->m_hdr);
+        }
     }
     int32_t counter=0;
 

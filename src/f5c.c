@@ -433,6 +433,7 @@ core_t* init_core(const char* bamfilename, const char* fastafile,
 
     //eventalign related
     core->mode = mode;
+    core->read_index=0;
     if(mode==1){
         if(eventalignsummary!=NULL){
             core->event_summary_fp = fopen(eventalignsummary,"w");
@@ -440,6 +441,10 @@ core_t* init_core(const char* bamfilename, const char* fastafile,
         }
         else{
             core->event_summary_fp =NULL;
+        }
+
+        if(core->opt.flag & F5C_SAM){
+            core->sam_output = hts_open("-", "w");
         }
     }
 
@@ -469,6 +474,9 @@ void free_core(core_t* core,opt_t opt) {
     //eventalign related
     if(core->mode==1 && core->event_summary_fp!=NULL){
         fclose(core->event_summary_fp);
+    }
+    if(core->mode==1 && core->opt.flag & F5C_SAM){
+        hts_close(core->sam_output);
     }
     if(opt.num_iop > 1){
         free_iop(core,opt);
@@ -1362,7 +1370,7 @@ void meth_single(core_t* core, db_t* db, int32_t i){
                   i,
                   core->clip_start,
                   core->clip_end,  
-                  &(db->et[i]), core->model,db->base_to_event_map[i],db->scalings[i],db->events_per_base[i]);
+                  &(db->et[i]), core->model,db->base_to_event_map[i],db->scalings[i],db->events_per_base[i], db->f5[i]->sample_rate);
         }
     }
 }
@@ -1468,7 +1476,7 @@ void process_single(core_t* core, db_t* db,int32_t i) {
                   i,
                   core->clip_start,
                   core->clip_end,  
-                  &(db->et[i]), core->model,db->base_to_event_map[i],db->scalings[i],db->events_per_base[i]);    
+                  &(db->et[i]), core->model,db->base_to_event_map[i],db->scalings[i],db->events_per_base[i],db->f5[i]->sample_rate);    
     }
 }
 
@@ -1634,8 +1642,9 @@ void output_db(core_t* core, db_t* db) {
                 scalings_t scalings = db->scalings[i];
                 if(summary_fp != NULL && summary.num_events > 0) {
                     size_t strand_idx = 0;
-                    fprintf(summary_fp, "%d\t%s\t", i, qname);
-                    fprintf(summary_fp, "%s\t%s\t%s\t",".", "dna", strand_idx == 0 ? "template" : "complement");
+                    std::string fast5_path_str = core->readbb->get_signal_path(qname);
+                    fprintf(summary_fp, "%ld\t%s\t", core->read_index+i, qname);
+                    fprintf(summary_fp, "%s\t%s\t%s\t",fast5_path_str.c_str(), "dna", strand_idx == 0 ? "template" : "complement");
                     fprintf(summary_fp, "%d\t%d\t%d\t%d\t", summary.num_events, summary.num_steps, summary.num_skips, summary.num_stays);
                     fprintf(summary_fp, "%.2lf\t%.3lf\t%.3lf\t%.3lf\t%.3lf\n", summary.sum_duration/(db->f5[i]->sample_rate), scalings.shift, scalings.scale, 0.0, scalings.var);
                 }
@@ -1643,9 +1652,15 @@ void output_db(core_t* core, db_t* db) {
                 int8_t print_read_names = (core->opt.flag & F5C_PRINT_RNAME) ? 1 : 0;
                 int8_t scale_events = (core->opt.flag & F5C_SCALE_EVENTS) ? 1 : 0;
                 int8_t write_samples = (core->opt.flag & F5C_PRINT_SAMPLES) ? 1 : 0;
+                int8_t sam_output = (core->opt.flag & F5C_SAM) ? 1 : 0;
 
-                emit_event_alignment_tsv(stdout,0,&(db->et[i]),core->model,db->scalings[i],*event_alignment_result, print_read_names, scale_events, write_samples,
-                              qname, contig);
+                if(sam_output==0){
+                    emit_event_alignment_tsv(stdout,0,&(db->et[i]),core->model,db->scalings[i],*event_alignment_result, print_read_names, scale_events, write_samples,
+                              core->read_index+i, qname, contig, db->f5[i]->sample_rate);
+                }
+                else{
+                    emit_event_alignment_sam(core->sam_output , qname, core->m_hdr, db->bam_rec[i], *event_alignment_result);
+                }
             }
         }
         else{
@@ -1663,6 +1678,7 @@ void output_db(core_t* core, db_t* db) {
             }
         }
     }
+    core->read_index = core->read_index + db->n_bam_rec;
 
 }
 
