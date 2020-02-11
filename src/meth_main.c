@@ -88,6 +88,7 @@ static struct option long_options[] = {
     {"scale-events",no_argument,0,0},              //35 scale events to the model, rather than vice-versa (eventalign only)
     {"print-read-names",no_argument,0,0},          //36 print read names instead of indexes (eventalign only)
     {"samples",no_argument,0,0},                   //37 write the raw samples for the event to the tsv output (eventalign only)
+    {"meth-out-version",required_argument,0,0},    //38 specify the version of the tsv output for methylation (call-methylation only)
     {0, 0, 0, 0}};
 
 
@@ -351,6 +352,16 @@ int meth_main(int argc, char* argv[], int8_t mode) {
             yes_or_no(&opt, F5C_PRINT_SAMPLES, longindex, "yes", 1);
             ERROR ("%s","--samples not yet implemented. Submit a github request if you need this feature.");
             exit(EXIT_FAILURE);
+        } else if (c == 0 && longindex == 38){ //specify the version of the tsv output for methylation (call-methylation only)
+            opt.meth_out_version=atoi(optarg);
+            if(mode!=0){
+                ERROR("%s","Option --meth-out-version is available only in call-methylation");
+                exit(EXIT_FAILURE);
+            }
+            if(opt.meth_out_version<1 || opt.meth_out_version>2){
+                ERROR("--meth-out-version accepts only 1 or 2. You entered %d",opt.meth_out_version);
+                exit(EXIT_FAILURE); 
+            }
         }
     }
 
@@ -392,6 +403,9 @@ int meth_main(int argc, char* argv[], int8_t mode) {
         fprintf(fp_help,"   --ultra-thresh [INT]       threshold to skip ultra long reads [%ld]\n",opt.ultra_thresh);
         fprintf(fp_help,"   --write-dump=yes|no        write the fast5 dump to a file or not\n");
         fprintf(fp_help,"   --read-dump=yes|no         read from a fast5 dump file or not\n");
+    if(mode==0){
+        fprintf(fp_help,"   --meth-out-version [INT]   methylation tsv output version (2 if the strand coulmn is to be printed) [%d].\n",opt.meth_out_version);
+    }
     if(mode==1){
         fprintf(fp_help,"   --summary FILE             summarise the alignment of each read/strand in FILE\n");
         fprintf(fp_help,"   --sam                      write output in SAM format\n");
@@ -418,9 +432,16 @@ int meth_main(int argc, char* argv[], int8_t mode) {
 
     //print the header
     if(mode==0){
-        fprintf(stdout, "chromosome\tstart\tend\tread_name\t"
+        if(core->opt.meth_out_version==1){
+            fprintf(stdout, "chromosome\tstart\tend\tread_name\t"
                                  "log_lik_ratio\tlog_lik_methylated\tlog_lik_unmethylated\t"
                                  "num_calling_strands\tnum_cpgs\tsequence\n");
+        }
+        else if (core->opt.meth_out_version==2){
+            fprintf(stdout, "chromosome\tstrand\tstart\tend\tread_name\t"
+                                 "log_lik_ratio\tlog_lik_methylated\tlog_lik_unmethylated\t"
+                                 "num_calling_strands\tnum_motifs\tsequence\n");
+        }
     }
     else if(mode==1){
         if(core->event_summary_fp!=NULL){

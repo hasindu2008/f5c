@@ -16,7 +16,6 @@
 #include "khash.h"
 
 #define KEY_SIZE 3
-#define TSV_HEADER_LENGTH 160
 
 #define ALLOC(type, size) (type *)safe_malloc((size) * sizeof(type))
 
@@ -166,10 +165,18 @@ void update_call_stats(khash_t(str)* sites, char* key, int num_called_cpg_sites,
     }
 }
 
-struct tsv_record* get_tsv_line(FILE* fp) {
+static inline void strtok_null_check(char *tmp, int64_t line_num){
+    if(tmp == NULL){
+        fprintf(stderr,"Corrupted tsv file? Offending line is line number %ld (1-based index)\n",line_num);
+        exit(EXIT_FAILURE);
+    }
+}
+
+struct tsv_record* get_tsv_line(FILE* fp, int8_t meth_out_version, int64_t line_num) {
     struct tsv_record* record = ALLOC(struct tsv_record, 1);
     char* buf = NULL;
     size_t buf_size = 0;
+    char* tmp;
 
     if (getline(&buf, &buf_size, fp) == -1) {
         free(record);
@@ -180,16 +187,63 @@ struct tsv_record* get_tsv_line(FILE* fp) {
 
     }
 
-    record->chromosome = strdup(strtok(buf, "\t"));
-    record->start = atoi(strtok(NULL, "\t"));
-    record->end = atoi(strtok(NULL, "\t"));
-    strtok(NULL, "\t");
-    record->log_lik_ratio = strtod(strtok(NULL, "\t"), NULL);
-    strtok(NULL, "\t");
-    strtok(NULL, "\t");
-    strtok(NULL, "\t");
-    record->num_cpgs = atoi(strtok(NULL, "\t"));
-    record->sequence = strdup(strtok(NULL, "\t\n"));
+    //chromosome
+    tmp = strtok(buf, "\t");
+    strtok_null_check(tmp,line_num);
+    record->chromosome = strdup(tmp);
+
+    //strand
+    if(meth_out_version==2){
+        tmp = strtok(NULL, "\t"); //ignored
+        strtok_null_check(tmp,line_num);;
+    }
+
+    //start
+    tmp = strtok(NULL, "\t");
+    strtok_null_check(tmp,line_num);;
+    record->start = atoi(tmp);
+
+    //end
+    tmp = strtok(NULL, "\t");
+    strtok_null_check(tmp,line_num);;
+    record->end = atoi(tmp);
+
+    if(record->start<0 || record->end<0){
+        fprintf(stderr,"chromosome coordinates cannot be negative. Offending line is line number %ld (1-based index)\n",line_num);
+        exit(EXIT_FAILURE);
+    }
+
+    tmp = strtok(NULL, "\t"); //readname
+    strtok_null_check(tmp,line_num);;
+   
+    //log_lik_ratio
+    tmp = strtok(NULL, "\t");
+    strtok_null_check(tmp,line_num);;
+    record->log_lik_ratio = strtod(tmp, NULL);
+    
+    tmp = strtok(NULL, "\t"); //log_lik_methylated
+    tmp = strtok(NULL, "\t"); //log_lik_unmethylated
+    tmp = strtok(NULL, "\t"); //num_calling_strands
+    strtok_null_check(tmp,line_num);;
+
+    //num_cpgs
+    tmp = strtok(NULL, "\t");
+    strtok_null_check(tmp,line_num);;
+    record->num_cpgs = atoi(tmp);
+    if(record->num_cpgs<0){
+        fprintf(stderr,"num_cpgs cannot be negative. Offending line is line number %ld (1-based index)\n",line_num);
+        exit(EXIT_FAILURE);
+    }
+
+    //sequence
+    tmp = strtok(NULL, "\t\n");
+    strtok_null_check(tmp,line_num);;
+    record->sequence = strdup(tmp);
+
+    if(strtok(NULL, "\t\n")!=NULL){
+        fprintf(stderr,"encountered more columns than expected. Offending line is line number %ld (1-based index)\n",line_num);
+        exit(EXIT_FAILURE);
+    }
 
     free(buf);
 
@@ -202,6 +256,8 @@ int freq_main(int argc, char **argv) {
     bool split_groups = false;
 
     int c;
+    int8_t meth_out_version=0;
+    int64_t line_num=0;
 
     //extern char* optarg;
     //extern int optind, optopt;
@@ -214,10 +270,7 @@ int freq_main(int argc, char **argv) {
                 break;
             case 'i': {
                           FILE* in = fopen(optarg, "r");
-                          if (in == NULL) {
-                              perror("Failed to open file.");
-                              exit(EXIT_FAILURE);
-                          }
+                          F_CHK(in,optarg)
                           input = in;
                           break;
                       }
@@ -250,15 +303,29 @@ int freq_main(int argc, char **argv) {
 
     khash_t(str)* sites = kh_init(str);
     struct tsv_record* record;
-    /* ignore header */
-    char tmp[TSV_HEADER_LENGTH];
-    char *ret=fgets(tmp, TSV_HEADER_LENGTH, input);
-    if(ret==NULL){
+    /* check the header */
+    char *tmp = NULL;
+    size_t tmp_size = 0;
+    ssize_t ret = getline(&tmp, &tmp_size, input);
+    if(ret==-1){
         fprintf(stderr,"Bad file format with no header?\n");
-        exit(1);
+        exit(EXIT_FAILURE);
     }
-
-    while ((record = get_tsv_line(input)) != NULL) {
+    if(strcmp(tmp,"chromosome\tstart\tend\tread_name\tlog_lik_ratio\tlog_lik_methylated\tlog_lik_unmethylated\tnum_calling_strands\tnum_cpgs\tsequence\n")==0){
+        meth_out_version=1;
+    }
+    else if(strcmp(tmp,"chromosome\tstrand\tstart\tend\tread_name\tlog_lik_ratio\tlog_lik_methylated\tlog_lik_unmethylated\tnum_calling_strands\tnum_motifs\tsequence\n")==0){
+        meth_out_version=2;
+    }
+    else{
+        fprintf(stderr, "Incorrect header: %s\n", tmp);
+        exit(EXIT_FAILURE);
+    }
+    line_num++;
+    line_num++;
+    
+    while ((record = get_tsv_line(input,meth_out_version,line_num)) != NULL) {
+        line_num++;
         int num_sites = record->num_cpgs;
         double llr = record->log_lik_ratio;
 
@@ -342,5 +409,6 @@ int freq_main(int argc, char **argv) {
     fclose(input);
     kh_destroy(str, sites);
     free(sorted_keys);
+    free(tmp);
     return 0;
 }

@@ -89,6 +89,7 @@ typedef struct {
     int64_t ultra_thresh;
 
     char *region_str; //the region string in format chr:start-end
+    int8_t meth_out_version; //output tsv version for call-methylation
 
     //todo : these are required only for HAVE_CUDA (but need to chnage the meth_main accordingly)
     int32_t cuda_block_size;

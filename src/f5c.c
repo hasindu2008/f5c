@@ -1627,7 +1627,12 @@ void output_db(core_t* core, db_t* db) {
                     // output only if inside the window boundaries
                     if( !( (core->clip_start != -1 && ss.start_position < core->clip_start) ||
                         (core->clip_end != -1 && ss.end_position >= core->clip_end) ) ) {
-                        printf("%s\t%d\t%d\t", contig, ss.start_position, ss.end_position);
+                        if(core->opt.meth_out_version==1){
+                            printf("%s\t%d\t%d\t", contig, ss.start_position, ss.end_position);
+                        }
+                        else if(core->opt.meth_out_version==2){
+                            printf("%s\t%c\t%d\t%d\t", contig, bam_is_rev(db->bam_rec[i]) ? '-' : '+', ss.start_position, ss.end_position);
+                        }
                         printf("%s\t%.2lf\t", qname, diff);
                         printf("%.2lf\t%.2lf\t", sum_ll_m, sum_ll_u);
                         printf("%d\t%d\t%s\n", ss.strands_scored, ss.n_cpg, ss.sequence.c_str());
@@ -1757,6 +1762,8 @@ void init_opt(opt_t* opt) {
     opt->flag |= F5C_SKIP_UNREADABLE;
     opt->debug_break=-1;
     opt->ultra_thresh=100000;
+
+    opt->meth_out_version=1;
 
     opt->cuda_block_size=64;
     opt->cuda_dev_id=0;
