@@ -2,7 +2,8 @@ language: cpp
 compiler: g++
 
 env:
-  - CUDA_HOME=/usr/local/cuda PATH=${CUDA_HOME}/bin:${PATH}
+  - CUDA_HOME=/usr/local/cuda 
+  - PATH=${CUDA_HOME}/bin:${PATH}
 
 jobs:
   include:
