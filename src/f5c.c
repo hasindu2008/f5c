@@ -557,11 +557,14 @@ db_t* init_db(core_t* core) {
     //eventalign related
     if(core->mode==1){
         db->eventalign_summary = (EventalignSummary *)malloc(sizeof(EventalignSummary) * db->capacity_bam_rec);
+        MALLOC_CHK(db->eventalign_summary);
+
         db->event_alignment_result = (std::vector<event_alignment_t> **)malloc(sizeof(std::vector<event_alignment_t> *) * db->capacity_bam_rec);
         MALLOC_CHK(db->event_alignment_result);
         for (i = 0; i < db->capacity_bam_rec; ++i) {
             db->event_alignment_result[i] = new std::vector<event_alignment_t> ;
             NULL_CHK(db->event_alignment_result[i]);
+            (db->eventalign_summary[i]).num_events=0; //done here in the same loop for efficiency
         }
     }
     else{
