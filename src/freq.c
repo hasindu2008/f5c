@@ -314,9 +314,15 @@ int freq_main(int argc, char **argv) {
     if(strcmp(tmp,"chromosome\tstart\tend\tread_name\tlog_lik_ratio\tlog_lik_methylated\tlog_lik_unmethylated\tnum_calling_strands\tnum_cpgs\tsequence\n")==0){
         meth_out_version=1;
     }
-    else if(strcmp(tmp,"chromosome\tstrand\tstart\tend\tread_name\tlog_lik_ratio\tlog_lik_methylated\tlog_lik_unmethylated\tnum_calling_strands\tnum_motifs\tsequence\n")==0){
+    else if(strcmp(tmp,"chromosome\tstart\tend\tread_name\tlog_lik_ratio\tlog_lik_methylated\tlog_lik_unmethylated\tnum_calling_strands\tnum_num_motifs\tsequence\n")==0){
+        meth_out_version=1;
+    }    
+    else if(strcmp(tmp,"chromosome\tstrand\tstart\tend\tread_name\tlog_lik_ratio\tlog_lik_methylated\tlog_lik_unmethylated\tnum_calling_strands\tnum_cpgs\tsequence\n")==0){
         meth_out_version=2;
     }
+    else if(strcmp(tmp,"chromosome\tstrand\tstart\tend\tread_name\tlog_lik_ratio\tlog_lik_methylated\tlog_lik_unmethylated\tnum_calling_strands\tnum_motifs\tsequence\n")==0){
+        meth_out_version=2;
+    }    
     else{
         fprintf(stderr, "Incorrect header: %s\n", tmp);
         exit(EXIT_FAILURE);
