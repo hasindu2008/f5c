@@ -6,14 +6,14 @@
 #define TSV_HEADER_LENGTH 200
 
 FILE *f0,*f1,*fout;
-//char file_name0[] = "/home/shan/CLionProjects/meth_freq_mapreducer/freq00.tsv";
-//char file_name1[] = "/home/shan/CLionProjects/meth_freq_mapreducer/freq11.tsv";
+char file_name0[] = "/home/shan/CLionProjects/meth_freq_mapreducer/freq00.tsv";
+char file_name1[] = "/home/shan/CLionProjects/meth_freq_mapreducer/freq11.tsv";
 
-char file_name0[] = "/media/shan/OS/Hiruna/FYP/methcall_freq23/2meth-freq.tsv";
-char file_name1[] = "/media/shan/OS/Hiruna/FYP/methcall_freq23/3meth-freq.tsv";
+//char file_name0[] = "/media/shan/OS/Hiruna/FYP/methcall_freq23/2meth-freq-split.tsv";
+//char file_name1[] = "/media/shan/OS/Hiruna/FYP/methcall_freq23/3meth-freq-split.tsv";
 
 
-char file_name_out[] = "/home/shan/CLionProjects/meth_freq_mapreducer/merged.txt";
+char file_name_out[] = "/home/shan/CLionProjects/meth_freq_mapreducer/merged-split.txt";
 
 char* buf[] = {NULL,NULL};
 
@@ -56,8 +56,8 @@ int main() {
     int line0 = read_line(0);
     int line1 = read_line(1);
     while(line0 >0 && line1 > 0){
-        sscanf( buf[0], "chr%s %d", chromosome[0], &start[0]);
-        sscanf( buf[1], "chr%s %d", chromosome[1], &start[1]);
+        sscanf( buf[0], "%s %d", chromosome[0], &start[0]);
+        sscanf( buf[1], "%s %d", chromosome[1], &start[1]);
         int lexi = strcmp(chromosome[0], chromosome[1]);
         if(lexi < 0){
             fprintf(fout,"%s",buf[0]);
@@ -77,10 +77,10 @@ int main() {
                 int end,num_cpgs_in_group;
                 double methylated_frequency;
                 int called_sites_buf,called_sites_max_buf,called_sites_methylated_buf,called_sites_methylated_max_buf;
-                sscanf( buf[0], "chr%s %d %d %d %d %d %f %s", chromosome[0], &start[0], &end, &num_cpgs_in_group, &called_sites_buf, &called_sites_methylated_buf, &methylated_frequency, group_sequence);
-                sscanf( buf[1], "chr%s %d %d %d %d %d %f %s", chromosome[1], &start[1], &end, &num_cpgs_in_group, &called_sites_max_buf, &called_sites_methylated_max_buf, &methylated_frequency, group_sequence);
+                sscanf( buf[0], "%s %d %d %d %d %d %f %s", chromosome[0], &start[0], &end, &num_cpgs_in_group, &called_sites_buf, &called_sites_methylated_buf, &methylated_frequency, group_sequence);
+                sscanf( buf[1], "%s %d %d %d %d %d %f %s", chromosome[1], &start[1], &end, &num_cpgs_in_group, &called_sites_max_buf, &called_sites_methylated_max_buf, &methylated_frequency, group_sequence);
                 methylated_frequency = (double)(called_sites_methylated_buf+called_sites_methylated_max_buf)/(called_sites_buf+called_sites_max_buf);
-                fprintf(fout,"chr%s\t%d\t%d\t%d\t%d\t%d\t%.3lf\t%s\n",chromosome[0],start[0],end,num_cpgs_in_group,called_sites_buf+called_sites_max_buf,called_sites_methylated_buf+called_sites_methylated_max_buf,methylated_frequency,group_sequence);
+                fprintf(fout,"%s\t%d\t%d\t%d\t%d\t%d\t%.3lf\t%s\n",chromosome[0],start[0],end,num_cpgs_in_group,called_sites_buf+called_sites_max_buf,called_sites_methylated_buf+called_sites_methylated_max_buf,methylated_frequency,group_sequence);
                 line0 = read_line(0);
                 line1 = read_line(1);
 
