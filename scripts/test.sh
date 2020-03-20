@@ -51,8 +51,8 @@ handle_tests() {
 	echo "$numfailed of $numcases test cases deviated."
 	missing=$(echo "$numcases-$numres" | bc)
 	echo "$missing entries in the truthset are missing in the testset"
-	failp=$(echo "$numfailed/$numcases" | bc)
-	[ "$failp" -gt 0 ] && die "${1}: Validation failed"
+	failp=$(echo "$numfailed*100/$numcases" | bc)
+	[ "$failp" -gt 5 ] && die "${1}: Validation failed"
 	echo "Validation passed"
 }
 

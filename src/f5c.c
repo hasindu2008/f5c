@@ -309,7 +309,7 @@ void free_iop(core_t* core,opt_t opt){
 }
 
 core_t* init_core(const char* bamfilename, const char* fastafile,
-                  const char* fastqfile, const char* tmpfile, opt_t opt,double realtime0, int8_t mode) {
+                  const char* fastqfile, const char* tmpfile, opt_t opt,double realtime0, int8_t mode, char *eventalignsummary) {
     core_t* core = (core_t*)malloc(sizeof(core_t));
     MALLOC_CHK(core);
 
@@ -333,8 +333,26 @@ core_t* init_core(const char* bamfilename, const char* fastafile,
     core->m_hdr = sam_hdr_read(core->m_bam_fh);
     NULL_CHK(core->m_hdr);
 
-    core->itr = sam_itr_queryi(core->m_bam_idx, HTS_IDX_START, 0, 0);
-    NULL_CHK(core->itr);
+    // If processing a region of the genome, get clipping coordinates
+    core->clip_start = -1;
+    core->clip_end = -1;
+    if(opt.region_str == NULL){
+        core->itr = sam_itr_queryi(core->m_bam_idx, HTS_IDX_START, 0, 0);
+        if(core->itr==NULL){
+            ERROR("%s","sam_itr_queryi failed. A problem with the BAM index?");
+            exit(EXIT_FAILURE);
+        }
+    }
+    else{
+        STDERR("Iterating over region: %s\n", opt.region_str);
+        core->itr = sam_itr_querys(core->m_bam_idx, core->m_hdr, opt.region_str);
+        if(core->itr==NULL){
+            ERROR("sam_itr_querys failed. Please check if the region string you entered [%s] is valid",opt.region_str);
+            exit(EXIT_FAILURE);
+        }
+        hts_parse_reg(opt.region_str, &(core->clip_start) , &(core->clip_end));
+    }
+    
 
     //open the bam file for writing skipped ultra long reads
     core->ultra_long_tmp=NULL; //todo :  at the moment this is used to detect if the load balance mode is enabled. A better method in the opt flags.
@@ -416,11 +434,20 @@ core_t* init_core(const char* bamfilename, const char* fastafile,
 
     //eventalign related
     core->mode = mode;
+    core->read_index=0;
     if(mode==1){
-        core->event_summary_fp = fopen("f5c_event_align.summary.txt","w");
-        F_CHK(core->event_summary_fp,"f5c_event_align.summary.txt");
-    }
+        if(eventalignsummary!=NULL){
+            core->event_summary_fp = fopen(eventalignsummary,"w");
+            F_CHK(core->event_summary_fp,eventalignsummary);
+        }
+        else{
+            core->event_summary_fp =NULL;
+        }
 
+        if(core->opt.flag & F5C_SAM){
+            core->sam_output = hts_open("-", "w");
+        }
+    }
 
     return core;
 }
@@ -446,8 +473,11 @@ void free_core(core_t* core,opt_t opt) {
     }
 #endif
     //eventalign related
-    if(core->mode==1){
+    if(core->mode==1 && core->event_summary_fp!=NULL){
         fclose(core->event_summary_fp);
+    }
+    if(core->mode==1 && core->opt.flag & F5C_SAM){
+        hts_close(core->sam_output);
     }
     if(opt.num_iop > 1){
         free_iop(core,opt);
@@ -528,11 +558,14 @@ db_t* init_db(core_t* core) {
     //eventalign related
     if(core->mode==1){
         db->eventalign_summary = (EventalignSummary *)malloc(sizeof(EventalignSummary) * db->capacity_bam_rec);
+        MALLOC_CHK(db->eventalign_summary);
+
         db->event_alignment_result = (std::vector<event_alignment_t> **)malloc(sizeof(std::vector<event_alignment_t> *) * db->capacity_bam_rec);
         MALLOC_CHK(db->event_alignment_result);
         for (i = 0; i < db->capacity_bam_rec; ++i) {
             db->event_alignment_result[i] = new std::vector<event_alignment_t> ;
             NULL_CHK(db->event_alignment_result[i]);
+            (db->eventalign_summary[i]).num_events=0; //done here in the same loop for efficiency
         }
     }
     else{
@@ -1339,7 +1372,9 @@ void meth_single(core_t* core, db_t* db, int32_t i){
             realign_read(db->event_alignment_result[i], &(db->eventalign_summary[i]),core->event_summary_fp, db->fasta_cache[i],core->m_hdr,
                   db->bam_rec[i],db->read_len[i],
                   i,
-                  &(db->et[i]), core->model,db->base_to_event_map[i],db->scalings[i],db->events_per_base[i]);
+                  core->clip_start,
+                  core->clip_end,  
+                  &(db->et[i]), core->model,db->base_to_event_map[i],db->scalings[i],db->events_per_base[i], db->f5[i]->sample_rate);
         }
     }
 }
@@ -1443,7 +1478,9 @@ void process_single(core_t* core, db_t* db,int32_t i) {
         realign_read(db->event_alignment_result[i], &(db->eventalign_summary[i]),core->event_summary_fp,db->fasta_cache[i],core->m_hdr,
                   db->bam_rec[i],db->read_len[i],
                   i,
-                  &(db->et[i]), core->model,db->base_to_event_map[i],db->scalings[i],db->events_per_base[i]);
+                  core->clip_start,
+                  core->clip_end,  
+                  &(db->et[i]), core->model,db->base_to_event_map[i],db->scalings[i],db->events_per_base[i],db->f5[i]->sample_rate);    
     }
 }
 
@@ -1590,11 +1627,20 @@ void output_db(core_t* core, db_t* db) {
                     // fprintf(stderr, "%s\t%.2lf\t", qname, diff);
                     // fprintf(stderr, "%.2lf\t%.2lf\t", sum_ll_m, sum_ll_u);
                     // fprintf(stderr, "%d\t%d\t%s\n", ss.strands_scored, ss.n_cpg, ss.sequence.c_str());
-
-                    printf("%s\t%d\t%d\t", contig, ss.start_position, ss.end_position);
-                    printf("%s\t%.2lf\t", qname, diff);
-                    printf("%.2lf\t%.2lf\t", sum_ll_m, sum_ll_u);
-                    printf("%d\t%d\t%s\n", ss.strands_scored, ss.n_cpg, ss.sequence.c_str());
+                    
+                    // output only if inside the window boundaries
+                    if( !( (core->clip_start != -1 && ss.start_position < core->clip_start) ||
+                        (core->clip_end != -1 && ss.end_position >= core->clip_end) ) ) {
+                        if(core->opt.meth_out_version==1){
+                            printf("%s\t%d\t%d\t", contig, ss.start_position, ss.end_position);
+                        }
+                        else if(core->opt.meth_out_version==2){
+                            printf("%s\t%c\t%d\t%d\t", contig, bam_is_rev(db->bam_rec[i]) ? '-' : '+', ss.start_position, ss.end_position);
+                        }
+                        printf("%s\t%.2lf\t", qname, diff);
+                        printf("%.2lf\t%.2lf\t", sum_ll_m, sum_ll_u);
+                        printf("%d\t%d\t%s\n", ss.strands_scored, ss.n_cpg, ss.sequence.c_str());
+                    }
 
                 }
             }
@@ -1605,14 +1651,25 @@ void output_db(core_t* core, db_t* db) {
                 scalings_t scalings = db->scalings[i];
                 if(summary_fp != NULL && summary.num_events > 0) {
                     size_t strand_idx = 0;
-                    fprintf(summary_fp, "%d\t%s\t", i, qname);
-                    fprintf(summary_fp, "%s\t%s\t%s\t",".", "dna", strand_idx == 0 ? "template" : "complement");
+                    std::string fast5_path_str = core->readbb->get_signal_path(qname);
+                    fprintf(summary_fp, "%ld\t%s\t", core->read_index+i, qname);
+                    fprintf(summary_fp, "%s\t%s\t%s\t",fast5_path_str.c_str(), "dna", strand_idx == 0 ? "template" : "complement");
                     fprintf(summary_fp, "%d\t%d\t%d\t%d\t", summary.num_events, summary.num_steps, summary.num_skips, summary.num_stays);
                     fprintf(summary_fp, "%.2lf\t%.3lf\t%.3lf\t%.3lf\t%.3lf\n", summary.sum_duration/(db->f5[i]->sample_rate), scalings.shift, scalings.scale, 0.0, scalings.var);
                 }
                 std::vector<event_alignment_t> *event_alignment_result = db->event_alignment_result[i];
-                 emit_event_alignment_tsv(stdout,0,&(db->et[i]),core->model,db->scalings[i],*event_alignment_result, 1, 0, 0,
-                              qname, contig);
+                int8_t print_read_names = (core->opt.flag & F5C_PRINT_RNAME) ? 1 : 0;
+                int8_t scale_events = (core->opt.flag & F5C_SCALE_EVENTS) ? 1 : 0;
+                int8_t write_samples = (core->opt.flag & F5C_PRINT_SAMPLES) ? 1 : 0;
+                int8_t sam_output = (core->opt.flag & F5C_SAM) ? 1 : 0;
+
+                if(sam_output==0){
+                    emit_event_alignment_tsv(stdout,0,&(db->et[i]),core->model,db->scalings[i],*event_alignment_result, print_read_names, scale_events, write_samples,
+                              core->read_index+i, qname, contig, db->f5[i]->sample_rate);
+                }
+                else{
+                    emit_event_alignment_sam(core->sam_output , qname, core->m_hdr, db->bam_rec[i], *event_alignment_result);
+                }
             }
         }
         else{
@@ -1630,6 +1687,7 @@ void output_db(core_t* core, db_t* db) {
             }
         }
     }
+    core->read_index = core->read_index + db->n_bam_rec;
 
 }
 
@@ -1699,6 +1757,7 @@ void init_opt(opt_t* opt) {
     opt->batch_size_bases = 2*1000*1000;
     opt->num_thread = 8;
     opt->num_iop = 1;
+    opt->region_str = NULL; //whole genome processing if null
 #ifndef HAVE_CUDA
     opt->flag |= F5C_DISABLE_CUDA;
     opt->batch_size_bases = 5*1000*1000;
@@ -1707,6 +1766,8 @@ void init_opt(opt_t* opt) {
     opt->flag |= F5C_SKIP_UNREADABLE;
     opt->debug_break=-1;
     opt->ultra_thresh=100000;
+
+    opt->meth_out_version=1;
 
     opt->cuda_block_size=64;
     opt->cuda_dev_id=0;

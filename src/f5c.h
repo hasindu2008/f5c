@@ -39,6 +39,10 @@
 #define F5C_SEC_PROF 0x100 //profile section by section (only effective on the CPU mode)
 #define F5C_WR_RAW_DUMP 0x200 //to say if we should write the raw dump of the fast5
 #define F5C_RD_RAW_DUMP 0x400 //to say if we should read the raw dump fof the fast5
+#define F5C_SAM 0x800 // write output in SAM format (eventalign only)
+#define F5C_SCALE_EVENTS 0x1000 // scale events to the model, rather than vice-versa (eventalign only)
+#define F5C_PRINT_RNAME 0x2000 // print read names instead of indexes (eventalign only)
+#define F5C_PRINT_SAMPLES 0x4000 //write the raw samples for the event to the tsv output (eventalign only)
 
 
 /*flags for a read status (related to db_t->read_stat_flag)*/
@@ -83,6 +87,9 @@ typedef struct {
     int8_t verbosity;
     int32_t debug_break;
     int64_t ultra_thresh; //ultra-thresh
+
+    char *region_str; //the region string in format chr:start-end
+    int8_t meth_out_version; //output tsv version for call-methylation
 
     //todo : these are required only for HAVE_CUDA (but need to chnage the meth_main accordingly)
     int32_t cuda_block_size; //?
@@ -341,6 +348,10 @@ typedef struct {
     bam_hdr_t* m_hdr;
     hts_itr_t* itr;
 
+    //clipping coordinates
+    int32_t clip_start;
+    int32_t clip_end;
+
     //bam file for writing the skipped ultra long reads to be later processed
     htsFile* ultra_long_tmp;
 
@@ -416,6 +427,8 @@ typedef struct {
     //eventalign related
     int8_t mode;
     FILE *event_summary_fp;
+    htsFile *sam_output;
+    int64_t read_index; //used for printing the read index from the beginning
 
     //IO proc related
     pid_t *pids;
@@ -465,7 +478,7 @@ typedef struct {
 db_t* init_db(core_t* core);
 ret_status_t load_db(core_t* dg, db_t* db);
 core_t* init_core(const char* bamfilename, const char* fastafile,
-                  const char* fastqfile, const char* tmpfile, opt_t opt,double realtime0, int8_t mode);
+                  const char* fastqfile, const char* tmpfile, opt_t opt,double realtime0, int8_t mode, char *eventalignsummary);
 void process_db(core_t* dg, db_t* db);
 void pthread_db(core_t* core, db_t* db, void (*func)(core_t*,db_t*,int));
 void align_db(core_t* core, db_t* db);

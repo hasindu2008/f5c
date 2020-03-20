@@ -82,7 +82,14 @@ static struct option long_options[] = {
     {"read-dump",required_argument, 0, 0},         //29 read the raw data as a dump
     {"output",required_argument, 0, 'o'},          //30 output to a file [stdout]
     {"iop",required_argument, 0, 0},               //31 number of I/O processes
-    {"profile",required_argument, 0,'x'},          //CHANGE: 32 profile used to tune parameters for GPU
+    {"window",required_argument, 0, 'w'},          //32 the genomic window (region)
+    {"summary",required_argument,0,0},             //33 summarize the alignment of each read/strand in FILE (eventalign only)
+    {"sam",no_argument,0,0},                       //34 write output in SAM format (eventalign only)
+    {"scale-events",no_argument,0,0},              //35 scale events to the model, rather than vice-versa (eventalign only)
+    {"print-read-names",no_argument,0,0},          //36 print read names instead of indexes (eventalign only)
+    {"samples",no_argument,0,0},                   //37 write the raw samples for the event to the tsv output (eventalign only)
+    {"meth-out-version",required_argument,0,0},    //38 specify the version of the tsv output for methylation (call-methylation only)
+    {"profile",required_argument, 0,'x'},          //CHANGE: 39 profile used to tune parameters for GPU
     {0, 0, 0, 0}};
 
 
@@ -199,6 +206,7 @@ int meth_main(int argc, char* argv[], int8_t mode) {
 
     //CHANGE: need to add x as an option here?
     const char* optstring = "r:b:g:t:B:K:v:o:x:hV";
+
     int longindex = 0;
     int32_t c = -1;
 
@@ -207,6 +215,8 @@ int meth_main(int argc, char* argv[], int8_t mode) {
     char* fastqfile = NULL;
     char *tmpfile = NULL;
     char* profilename = NULL; //CHANGE: Create variable to store profile arg
+    char *eventalignsummary = NULL;
+
 
     FILE *fp_help = stderr;
 
@@ -221,6 +231,7 @@ int meth_main(int argc, char* argv[], int8_t mode) {
             bamfilename = optarg;
         } else if (c == 'g') {
             fastafile = optarg;
+
         } else if (c == 'x') {  //CHANGE: Set profile values. Any user-specified arguments will override the profile values.
             profilename = optarg;
             int profile_return = set_profile(profilename,&opt);
@@ -228,6 +239,8 @@ int meth_main(int argc, char* argv[], int8_t mode) {
                 ERROR("%s","Error occurred setting the profile.");
                 exit(EXIT_FAILURE);
             }
+        } else if (c == 'w') {
+            opt.region_str = optarg;
         } else if (c == 'B') {
             opt.batch_size_bases = mm_parse_num(optarg);
             if(opt.batch_size_bases<=0){
@@ -320,6 +333,48 @@ int meth_main(int argc, char* argv[], int8_t mode) {
                 ERROR("Number of I/O processes should be larger than 0. You entered %d", opt.num_iop);
                 exit(EXIT_FAILURE);
             }
+        } else if (c == 0 && longindex == 33){ //eventalign summary
+            if(mode!=1){
+                ERROR("%s","Option --summary is available only in eventalign");
+                exit(EXIT_FAILURE);
+            }
+            eventalignsummary=optarg;
+        } else if (c == 0 && longindex == 34){ //sam output
+            if(mode!=1){
+                ERROR("%s","Option --sam is available only in eventalign");
+                exit(EXIT_FAILURE);
+            }
+            yes_or_no(&opt, F5C_SAM, longindex, "yes", 1);
+        } else if (c == 0 && longindex == 35){ //scale events
+            if(mode!=1){
+                ERROR("%s","Option --scale-events is available only in eventalign");
+                exit(EXIT_FAILURE);
+            }
+            yes_or_no(&opt, F5C_SCALE_EVENTS, longindex, "yes", 1);
+        } else if (c == 0 && longindex == 36){ //print read names
+            if(mode!=1){
+                ERROR("%s","Option --print-read-names is available only in eventalign");
+                exit(EXIT_FAILURE);
+            }
+            yes_or_no(&opt, F5C_PRINT_RNAME, longindex, "yes", 1);
+        } else if (c == 0 && longindex == 37){ //print samples
+            if(mode!=1){
+                ERROR("%s","Option --samples is available only in eventalign");
+                exit(EXIT_FAILURE);
+            }
+            yes_or_no(&opt, F5C_PRINT_SAMPLES, longindex, "yes", 1);
+            ERROR ("%s","--samples not yet implemented. Submit a github request if you need this feature.");
+            exit(EXIT_FAILURE);
+        } else if (c == 0 && longindex == 38){ //specify the version of the tsv output for methylation (call-methylation only)
+            opt.meth_out_version=atoi(optarg);
+            if(mode!=0){
+                ERROR("%s","Option --meth-out-version is available only in call-methylation");
+                exit(EXIT_FAILURE);
+            }
+            if(opt.meth_out_version<1 || opt.meth_out_version>2){
+                ERROR("--meth-out-version accepts only 1 or 2. You entered %d",opt.meth_out_version);
+                exit(EXIT_FAILURE); 
+            }
         }
     }
 
@@ -330,12 +385,13 @@ int meth_main(int argc, char* argv[], int8_t mode) {
         fprintf(fp_help,"   -r FILE                    fastq/fasta read file\n");
         fprintf(fp_help,"   -b FILE                    sorted bam file\n");
         fprintf(fp_help,"   -g FILE                    reference genome\n");
+        fprintf(fp_help,"   -w STR[chr:start-end]      limit processing to genomic region STR\n");
         fprintf(fp_help,"   -t INT                     number of threads [%d]\n",opt.num_thread);
         fprintf(fp_help,"   -K INT                     batch size (max number of reads loaded at once) [%d]\n",opt.batch_size);
         fprintf(fp_help,"   -B FLOAT[K/M/G]            max number of bases loaded at once [%.1fM]\n",opt.batch_size_bases/(float)(1000*1000));
         fprintf(fp_help,"   -h                         help\n");
         fprintf(fp_help,"   -o FILE                    output to file [stdout]\n");
-        fprintf(fp_help,"   --iop [INT]                number of I/O processes to read fast5 files [%d]\n",opt.num_iop);        
+        fprintf(fp_help,"   --iop INT                  number of I/O processes to read fast5 files [%d]\n",opt.num_iop);        
         fprintf(fp_help,"   --min-mapq INT             minimum mapping quality [%d]\n",opt.min_mapq);
         fprintf(fp_help,"   --secondary=yes|no         consider secondary mappings or not [%s]\n",(opt.flag&F5C_SECONDARY_YES)?"yes":"no");
         fprintf(fp_help,"   --verbose INT              verbosity level [%d]\n",opt.verbosity);
@@ -361,6 +417,16 @@ int meth_main(int argc, char* argv[], int8_t mode) {
         fprintf(fp_help,"   --ultra-thresh [INT]       threshold to skip ultra long reads [%ld]\n",opt.ultra_thresh);
         fprintf(fp_help,"   --write-dump=yes|no        write the fast5 dump to a file or not\n");
         fprintf(fp_help,"   --read-dump=yes|no         read from a fast5 dump file or not\n");
+    if(mode==0){
+        fprintf(fp_help,"   --meth-out-version [INT]   methylation tsv output version (2 if the strand coulmn is to be printed) [%d].\n",opt.meth_out_version);
+    }
+    if(mode==1){
+        fprintf(fp_help,"   --summary FILE             summarise the alignment of each read/strand in FILE\n");
+        fprintf(fp_help,"   --sam                      write output in SAM format\n");
+        fprintf(fp_help,"   --print-read-names         print read names instead of indexes\n");
+        fprintf(fp_help,"   --scale-events             scale events to the model, rather than vice-versa\n");
+        fprintf(fp_help,"   --samples                  write the raw samples for the event to the tsv output\n");
+    }
 #ifdef HAVE_CUDA
         fprintf(fp_help,"   - cuda-mem-frac FLOAT      Fraction of free GPU memory to allocate [0.9 (0.7 for tegra)]\n");
         fprintf(fp_help,"   --cuda-block-size\n");
@@ -372,7 +438,7 @@ int meth_main(int argc, char* argv[], int8_t mode) {
     }
 
     //initialise the core data structure
-    core_t* core = init_core(bamfilename, fastafile, fastqfile, tmpfile, opt,realtime0,mode);
+    core_t* core = init_core(bamfilename, fastafile, fastqfile, tmpfile, opt,realtime0,mode,eventalignsummary);
 
     #ifdef ESL_LOG_SUM
         p7_FLogsumInit();
@@ -380,16 +446,32 @@ int meth_main(int argc, char* argv[], int8_t mode) {
 
     //print the header
     if(mode==0){
-        fprintf(stdout, "chromosome\tstart\tend\tread_name\t"
+        if(core->opt.meth_out_version==1){
+            fprintf(stdout, "chromosome\tstart\tend\tread_name\t"
                                  "log_lik_ratio\tlog_lik_methylated\tlog_lik_unmethylated\t"
                                  "num_calling_strands\tnum_cpgs\tsequence\n");
+        }
+        else if (core->opt.meth_out_version==2){
+            fprintf(stdout, "chromosome\tstrand\tstart\tend\tread_name\t"
+                                 "log_lik_ratio\tlog_lik_methylated\tlog_lik_unmethylated\t"
+                                 "num_calling_strands\tnum_motifs\tsequence\n");
+        }
     }
     else if(mode==1){
         if(core->event_summary_fp!=NULL){
             fprintf(core->event_summary_fp,"read_index\tread_name\tfast5_path\tmodel_name\tstrand\tnum_events\t");
             fprintf(core->event_summary_fp,"num_steps\tnum_skips\tnum_stays\ttotal_duration\tshift\tscale\tdrift\tvar\n");
         }
-        emit_event_alignment_tsv_header(stdout, 1, 0);
+        int8_t print_read_names = (core->opt.flag & F5C_PRINT_RNAME) ? 1 : 0 ;
+        int8_t write_samples = (core->opt.flag & F5C_PRINT_SAMPLES) ? 1 : 0 ;
+        int8_t sam_output =  (core->opt.flag & F5C_SAM) ? 1 : 0 ;
+
+        if(sam_output==0){
+            emit_event_alignment_tsv_header(stdout, print_read_names, write_samples);
+        }
+        else{
+            emit_sam_header(core->sam_output, core->m_hdr);
+        }
     }
     int32_t counter=0;
 
