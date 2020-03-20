@@ -1,6 +1,6 @@
 /* @f5c
 **
-** f5c interface 
+** f5c interface
 ** @author: Hasindu Gamaarachchi (hasindu@unsw.edu.au)
 ** @@
 ******************************************************************************/
@@ -18,7 +18,7 @@
 //required for eventalign
 #include <vector>
 
-#define F5C_VERSION "0.3-beta"
+#define F5C_VERSION "0.3-beta-dirty"
 
 /* hard coded numbers*/
 #define KMER_SIZE 6 //hard coded for now; todo : change to dynamic?
@@ -212,9 +212,9 @@ struct ScoredSite
 
 //eventalign related
 // Summarize the event alignment for a read strand
-typedef struct 
+typedef struct
 {
-    // //cleanup this part    
+    // //cleanup this part
     // EventalignSummary() {
     //     num_events = 0;
     //     num_steps = 0;
