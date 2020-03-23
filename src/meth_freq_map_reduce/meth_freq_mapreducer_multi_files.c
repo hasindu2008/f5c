@@ -6,23 +6,14 @@
 #include <assert.h>
 
 #define TSV_HEADER_LENGTH 200
+#define FILE_NAME_LENGTH 20
 
 FILE *fout;
-//char file_name0[] = "/home/shan/CLionProjects/meth_freq_mapreducer/freq00.tsv";
-//char file_name1[] = "/home/shan/CLionProjects/meth_freq_mapreducer/freq11.tsv";
-char file_name1[] = "/media/shan/OS/Hiruna/FYP/methcall_freq23/3meth-freq-split.tsv";
-char file_name0[] = "/media/shan/OS/Hiruna/FYP/methcall_freq23/2meth-freq-split.tsv";
-char *files[] = {file_name0,file_name1};
 
-
-//char file_name_out[] = "/home/shan/CLionProjects/meth_freq_mapreducer/merged-split.txt";
-char file_name_out[] = "/media/shan/OS/Hiruna/FYP/methcall_freq23/merged-split.txt";
-
-char* buf[] = {NULL,NULL};
-
+char (*buf)[FILE_NAME_LENGTH];
 
 int read_line(int file_no,FILE* fp){
-    buf[file_no] = NULL;
+    strcpy(buf[file_no], NULL);
     size_t buf_size = 0;
     if (getline(&buf[file_no], &buf_size, fp) == -1) {
         if(buf_size>0){
@@ -121,13 +112,50 @@ void get_tsv_line(struct tsv_record* record, int file_no, int64_t line_num) {
     free(buffer);
 }
 
+static const char *MAP_REDUCE_USAGE_MESSAGE =
+        "Usage: f5c map-reduce -o [OUTPUT_FILE_NAME] -n [NO_OF_INPUT_FILES] -f [INPUT_FILE_1] [INPUT_FILE_2] ...\n";
+
 int main(int argc, char **argv) {
-    int no_of_files = 2;
+
+    char (*inputfileNames)[FILE_NAME_LENGTH];
+
+    char *outputFileName = NULL;
+    int no_of_files = 0;
+    int index;
+    int c;
+
+    while ((c = getopt (argc, argv, "o:n:f")) != -1)
+        switch (c) {
+            case 'o':
+                outputFileName = optarg;
+                break;
+            case 'n':
+                no_of_files = atoi(optarg);
+                inputfileNames = malloc(sizeof * inputfileNames * no_of_files);
+                break;
+            case 'f':
+                for(index = 0; optind < argc && *argv[optind] != '-'; optind++, index++){
+                    strcpy(inputfileNames[index], argv[optind]);
+                }
+                if (index != no_of_files){
+                    fprintf (stderr, "Number of input files and input file names mismatch\n");
+                    return 1;
+                }
+                break;
+            default:
+                fprintf (stderr, "%s", MAP_REDUCE_USAGE_MESSAGE);
+                return 1;
+        }
+
+    for (int i = 0; i < no_of_files; i++){
+        printf("file %d = %s\n", i, inputfileNames[i]);
+    }
+
     FILE* file_pointers [no_of_files];
     char tmp[TSV_HEADER_LENGTH];
     char header[] = {"chromosome\tstart\tend\tnum_cpgs_in_group\tcalled_sites\tcalled_sites_methylated\tmethylated_frequency\tgroup_sequence\n"};
     for(int i = 0; i<no_of_files; i++){
-        file_pointers[i] = fopen(files[i], "r"); // read mode
+        file_pointers[i] = fopen(inputfileNames[i], "r"); // read mode
         if (file_pointers[i] == NULL){
             perror("Error while opening the file.\n");
             exit(EXIT_FAILURE);
@@ -139,7 +167,7 @@ int main(int argc, char **argv) {
             exit(1);
         }
     }
-    fout = fopen(file_name_out, "w"); // read mode
+    fout = fopen(outputFileName, "w"); // read mode
     if (fout == NULL){
         perror("Error while opening the file.\n");
         exit(EXIT_FAILURE);
