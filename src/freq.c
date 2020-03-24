@@ -256,7 +256,8 @@ int freq_main(int argc, char **argv) {
     bool split_groups = false;
 
     int c;
-    int8_t meth_out_version=0;
+    int8_t meth_out_version=0; //the output from methylation call - if strand column exists meth_out_version=2  or else meth_out_version=1
+    int8_t meth_out_cpg_or_motif=0; //the output from methylation call - if the columns are named num_cpg meth_out_cpg_or_motif =1, if num_motifs then meth_out_cpg_or_motif=2
     int64_t line_num=0;
 
     //extern char* optarg;
@@ -313,10 +314,20 @@ int freq_main(int argc, char **argv) {
     }
     if(strcmp(tmp,"chromosome\tstart\tend\tread_name\tlog_lik_ratio\tlog_lik_methylated\tlog_lik_unmethylated\tnum_calling_strands\tnum_cpgs\tsequence\n")==0){
         meth_out_version=1;
+        meth_out_cpg_or_motif=1;
+    }
+    else if(strcmp(tmp,"chromosome\tstart\tend\tread_name\tlog_lik_ratio\tlog_lik_methylated\tlog_lik_unmethylated\tnum_calling_strands\tnum_motifs\tsequence\n")==0){
+        meth_out_version=1;
+        meth_out_cpg_or_motif=2;
+    }    
+    else if(strcmp(tmp,"chromosome\tstrand\tstart\tend\tread_name\tlog_lik_ratio\tlog_lik_methylated\tlog_lik_unmethylated\tnum_calling_strands\tnum_cpgs\tsequence\n")==0){
+        meth_out_version=2;
+        meth_out_cpg_or_motif=1;
     }
     else if(strcmp(tmp,"chromosome\tstrand\tstart\tend\tread_name\tlog_lik_ratio\tlog_lik_methylated\tlog_lik_unmethylated\tnum_calling_strands\tnum_motifs\tsequence\n")==0){
         meth_out_version=2;
-    }
+        meth_out_cpg_or_motif=2;
+    }    
     else{
         fprintf(stderr, "Incorrect header: %s\n", tmp);
         exit(EXIT_FAILURE);
@@ -367,7 +378,12 @@ int freq_main(int argc, char **argv) {
         free(record);
     }
 
-    printf("chromosome\tstart\tend\tnum_cpgs_in_group\tcalled_sites\tcalled_sites_methylated\tmethylated_frequency\tgroup_sequence\n");
+    if(meth_out_cpg_or_motif==1){
+        printf("chromosome\tstart\tend\tnum_cpgs_in_group\tcalled_sites\tcalled_sites_methylated\tmethylated_frequency\tgroup_sequence\n");
+    }
+    else if(meth_out_cpg_or_motif==2){
+        printf("chromosome\tstart\tend\tnum_motifs_in_group\tcalled_sites\tcalled_sites_methylated\tmethylated_frequency\tgroup_sequence\n");
+    }
 
     char** sorted_keys = ALLOC(char*, kh_size(sites));
     int size = 0;

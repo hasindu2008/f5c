@@ -1,6 +1,6 @@
 /* @f5c
 **
-** f5c interface 
+** f5c interface
 ** @author: Hasindu Gamaarachchi (hasindu@unsw.edu.au)
 ** @@
 ******************************************************************************/
@@ -79,23 +79,23 @@ typedef struct {
     int32_t min_mapq;           //minimum mapq
     const char* model_file;     //name of the model file
     uint32_t flag;              //flags
-    int32_t batch_size;         //max reads loaded at once
-    int64_t batch_size_bases;   //max bases loaded at once
+    int32_t batch_size;         //max reads loaded at once: K
+    int64_t batch_size_bases;   //max bases loaded at once: B
 
-    int32_t num_thread;
-    int32_t num_iop;
+    int32_t num_thread; //t
+    int32_t num_iop; //Used for io performance improvement if > 16 threads
     int8_t verbosity;
     int32_t debug_break;
-    int64_t ultra_thresh;
+    int64_t ultra_thresh; //ultra-thresh
 
     char *region_str; //the region string in format chr:start-end
     int8_t meth_out_version; //output tsv version for call-methylation
 
     //todo : these are required only for HAVE_CUDA (but need to chnage the meth_main accordingly)
-    int32_t cuda_block_size;
-    float cuda_max_readlen;
-    float cuda_avg_events_per_kmer;
-    float cuda_max_avg_events_per_kmer;
+    int32_t cuda_block_size; //?
+    float cuda_max_readlen; //max-lf
+    float cuda_avg_events_per_kmer; //avg-epk
+    float cuda_max_avg_events_per_kmer; //max-epk
     int32_t cuda_dev_id;
     float cuda_mem_frac;
 } opt_t;
@@ -219,9 +219,9 @@ struct ScoredSite
 
 //eventalign related
 // Summarize the event alignment for a read strand
-typedef struct 
+typedef struct
 {
-    // //cleanup this part    
+    // //cleanup this part
     // EventalignSummary() {
     //     num_events = 0;
     //     num_steps = 0;
@@ -270,7 +270,7 @@ typedef struct {
     //event table
     event_table* et;
 
-    //scalings
+    //scaling
     scalings_t* scalings;
 
     //aligned pairs
@@ -488,6 +488,8 @@ void free_core(core_t* core,opt_t opt);
 void free_db_tmp(db_t* db);
 void free_db(db_t* db);
 void init_opt(opt_t* opt);
+int set_profile(char* profile, opt_t *opt); //CHANGE: Added method header
+void set_opts(opt_t *opt, int32_t batch_size, int64_t batch_size_bases, int32_t num_thread, int64_t ultra_thresh, float cuda_max_readlen, float cuda_avg_events_per_kmer, float cuda_max_avg_events_per_kmer); //CHANGE: Added method header
 
 #ifdef HAVE_CUDA
     void init_cuda(core_t* core);
