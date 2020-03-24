@@ -120,10 +120,11 @@ static const char *MAP_REDUCE_USAGE_MESSAGE =
 int freq_merge_main(int argc, char **argv) {
     // buf is a 2D array no_of_files X FILE_NAME_LENGTH
     char **inputfileNames;
+    int8_t meth_out_cpg_or_motif=0; //the output from methylation call - if the columns are named num_cpg meth_out_cpg_or_motif =0, if num_motifs then meth_out_cpg_or_motif=1
 
     char *outputFileName = NULL;
-    int no_of_files = 0;
-    int index;
+    int no_of_files = 13;
+    int index = 0;
     int c;
 
     while ((c = getopt (argc, argv, "o:n:f")) != -1)
@@ -138,7 +139,7 @@ int freq_merge_main(int argc, char **argv) {
                 break;
             case 'f':
                 for(index = 0; optind < argc && *argv[optind] != '-'; optind++, index++){
-                    strcpy(inputfileNames[index], argv[optind]);
+                    inputfileNames[index] = argv[optind];
                 }
                 if (index != no_of_files){
                     fprintf (stderr, "Number of input files and input file names mismatch\n");
@@ -149,13 +150,15 @@ int freq_merge_main(int argc, char **argv) {
                 fprintf (stderr, "%s", MAP_REDUCE_USAGE_MESSAGE);
                 return 1;
         }
-
     FILE* file_pointers [no_of_files];
-    char header[] = {"chromosome\tstart\tend\tnum_cpgs_in_group\tcalled_sites\tcalled_sites_methylated\tmethylated_frequency\tgroup_sequence\n"};
+    char header_version0[] = {"chromosome\tstart\tend\tnum_cpgs_in_group\tcalled_sites\tcalled_sites_methylated\tmethylated_frequency\tgroup_sequence\n"};
+    char header_version1[] = {"chromosome\tstart\tend\tnum_motifs_in_group\tcalled_sites\tcalled_sites_methylated\tmethylated_frequency\tgroup_sequence\n"};
+
     for(int i = 0; i<no_of_files; i++){
         file_pointers[i] = fopen(inputfileNames[i], "r"); // read mode
         if (file_pointers[i] == NULL){
-            perror("Error while opening the file.\n");
+            fprintf(stdout,"%s\n",inputfileNames[i]);
+            perror("Error while opening input file.\n");
             exit(EXIT_FAILURE);
         }
 
@@ -167,20 +170,21 @@ int freq_merge_main(int argc, char **argv) {
             fprintf(stderr,"Bad file format with no header?\n");
             exit(EXIT_FAILURE);
         }
-        if(strcmp(tmp,"chromosome\tstart\tend\tread_name\tlog_lik_ratio\tlog_lik_methylated\tlog_lik_unmethylated\tnum_calling_strands\tnum_cpgs\tsequence\n")==0){
-            meth_out_version=1;
+        if(strcmp(tmp,header_version0)==0){
+            meth_out_cpg_or_motif=0;
         }
-        else if(strcmp(tmp,"chromosome\tstrand\tstart\tend\tread_name\tlog_lik_ratio\tlog_lik_methylated\tlog_lik_unmethylated\tnum_calling_strands\tnum_motifs\tsequence\n")==0){
-            meth_out_version=2;
+        else if(strcmp(tmp,header_version1)==0){
+            meth_out_cpg_or_motif=1;
         }
         else{
             fprintf(stderr, "Incorrect header: %s\n", tmp);
             exit(EXIT_FAILURE);
         }
     }
+    free(inputfileNames);
     fout = fopen(outputFileName, "w"); // read mode
     if (fout == NULL){
-        perror("Error while opening the file.\n");
+        perror("Error while opening output file.\n");
         exit(EXIT_FAILURE);
     }
 
@@ -190,8 +194,8 @@ int freq_merge_main(int argc, char **argv) {
         perror("malloc failed\n");
         exit(EXIT_FAILURE);
     }
-
-    fprintf(fout,"%s",header);
+    //print header
+    fprintf(fout,"%s",meth_out_cpg_or_motif ? header_version1:header_version0);
 
     int starts[no_of_files];
     int lines[no_of_files];
@@ -271,7 +275,7 @@ int freq_merge_main(int argc, char **argv) {
                 fprintf(fout,"%s",buf[min_start_idx]);
                 lines[min_start_idx] = read_line(min_start_idx,file_pointers[min_start_idx]);
             } else{
-                struct tsv_record* rcd = malloc(sizeof(struct tsv_record));
+                struct tsv_record* rcd = (tsv_record*)malloc(sizeof(struct tsv_record));
                 rcd->chromosome = NULL;
                 rcd->group_sequence = NULL;
                 if(rcd == NULL){
@@ -293,7 +297,7 @@ int freq_merge_main(int argc, char **argv) {
                     next = start_comp[next];
                 }
                 methylated_frequency = (double)(called_sites_methylated)/(called_sites);
-                assert(chromosome[min_start_idx == rcd->chromosome]);
+                assert(strcmp(chromosome[min_start_idx],rcd->chromosome)==0);
                 assert(starts[min_start_idx == rcd->start]);
                 fprintf(fout,"%s\t%d\t%d\t%d\t%d\t%d\t%.3lf\t%s\n",rcd->chromosome,rcd->start,rcd->end,rcd->num_cpgs_in_group,called_sites,called_sites_methylated,methylated_frequency,rcd->group_sequence);
                 free(rcd->chromosome);
@@ -312,6 +316,6 @@ int freq_merge_main(int argc, char **argv) {
     for(int i = 0; i<no_of_files; i++){
         fclose(file_pointers[i]);
     }
-//    fclose(fout);
+    free(buf);
     return 0;
 }
