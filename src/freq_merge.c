@@ -7,9 +7,6 @@
 
 #include "error.h"
 
-#define TSV_HEADER_LENGTH 400
-#define FILE_NAME_LENGTH 200
-
 FILE *fout;
 
 char ** buf;
