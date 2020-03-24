@@ -20,7 +20,8 @@ OBJ = $(BUILD_DIR)/main.o \
       $(BUILD_DIR)/meth.o \
       $(BUILD_DIR)/hmm.o \
       $(BUILD_DIR)/freq.o \
-      $(BUILD_DIR)/eventalign.o
+      $(BUILD_DIR)/eventalign.o \
+      $(BUILD_DIR)/freq_merge.o
 
 PREFIX = /usr/local
 VERSION = `git describe --tags`
@@ -83,6 +84,9 @@ $(BUILD_DIR)/freq.o: src/freq.c src/khash.h
 	$(CXX) $(CFLAGS) $(CPPFLAGS) $< -c -o $@	
 
 $(BUILD_DIR)/eventalign.o: src/eventalign.c
+	$(CXX) $(CFLAGS) $(CPPFLAGS) $< -c -o $@
+
+$(BUILD_DIR)/freq_merge.o: src/freq_merge.c
 	$(CXX) $(CFLAGS) $(CPPFLAGS) $< -c -o $@
 	
 # cuda stuff
