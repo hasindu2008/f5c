@@ -126,7 +126,7 @@ static const char *MAP_REDUCE_USAGE_MESSAGE =
 
 int freq_merge_main(int argc, char **argv) {
     // buf is a 2D array no_of_files X FILE_NAME_LENGTH
-    char **inputfileNames;
+    char **inputfileNames=NULL;
     int8_t meth_out_cpg_or_motif=0; //the output from methylation call - if the columns are named num_cpg meth_out_cpg_or_motif =0, if num_motifs then meth_out_cpg_or_motif=1
 
     char *outputFileName = NULL;
