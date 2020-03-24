@@ -6,14 +6,14 @@
 #include <assert.h>
 
 #define TSV_HEADER_LENGTH 200
-#define FILE_NAME_LENGTH 20
+#define FILE_NAME_LENGTH 200
 
 FILE *fout;
 
-char (*buf)[FILE_NAME_LENGTH];
+char ** buf;
 
 int read_line(int file_no,FILE* fp){
-    strcpy(buf[file_no], NULL);
+    buf[file_no] = NULL;
     size_t buf_size = 0;
     if (getline(&buf[file_no], &buf_size, fp) == -1) {
         if(buf_size>0){
@@ -147,10 +147,6 @@ int main(int argc, char **argv) {
                 return 1;
         }
 
-    for (int i = 0; i < no_of_files; i++){
-        printf("file %d = %s\n", i, inputfileNames[i]);
-    }
-
     FILE* file_pointers [no_of_files];
     char tmp[TSV_HEADER_LENGTH];
     char header[] = {"chromosome\tstart\tend\tnum_cpgs_in_group\tcalled_sites\tcalled_sites_methylated\tmethylated_frequency\tgroup_sequence\n"};
@@ -170,6 +166,13 @@ int main(int argc, char **argv) {
     fout = fopen(outputFileName, "w"); // read mode
     if (fout == NULL){
         perror("Error while opening the file.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    // buf is a 2D array no_of_files X TSV_HEADER_LENGTH
+    buf = (char**)malloc(sizeof(char*)*no_of_files*TSV_HEADER_LENGTH);
+    if(!buf){
+        perror("malloc failed\n");
         exit(EXIT_FAILURE);
     }
 
