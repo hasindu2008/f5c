@@ -7,7 +7,6 @@
 
 #include "error.h"
 
-FILE *fout;
 
 char ** buf;
 
@@ -134,6 +133,8 @@ int freq_merge_main(int argc, char **argv) {
     int no_of_files = 13;
     int index = 0;
     int c;
+    FILE *fout;
+
 
     while ((c = getopt (argc, argv, "o:n:f")) != -1)
         switch (c) {
