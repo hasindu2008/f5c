@@ -122,7 +122,7 @@ void get_tsv_line(struct tsv_record* record, int file_no, int64_t line_num) {
 }
 
 static const char *MAP_REDUCE_USAGE_MESSAGE =
-        "Usage: f5c map-reduce -o [OUTPUT_FILE_NAME] -n [NO_OF_INPUT_FILES] -f [INPUT_FILE_1] [INPUT_FILE_2] ...\n";
+        "Usage: f5c freq-merge -o [OUTPUT_FILE_NAME] -n [NO_OF_INPUT_FILES] -f [INPUT_FILE_1] [INPUT_FILE_2] ...\n";
 
 int freq_merge_main(int argc, char **argv) {
     // buf is a 2D array no_of_files X FILE_NAME_LENGTH
@@ -134,7 +134,10 @@ int freq_merge_main(int argc, char **argv) {
     int index = 0;
     int c;
     FILE *fout;
-
+    if(argc == 1){
+        fprintf (stderr, "%s", MAP_REDUCE_USAGE_MESSAGE);
+        exit(EXIT_FAILURE);
+    }
 
     while ((c = getopt (argc, argv, "o:n:f")) != -1)
         switch (c) {
@@ -155,15 +158,12 @@ int freq_merge_main(int argc, char **argv) {
                     if(inputfileNames){
                         free(inputfileNames);
                     }
-                    return 1;
+                    exit(EXIT_FAILURE);
                 }
                 break;
             default:
                 fprintf (stderr, "%s", MAP_REDUCE_USAGE_MESSAGE);
-                if(inputfileNames){
-                    free(inputfileNames);
-                }
-                return 1;
+                exit(EXIT_FAILURE);
         }
 
 
