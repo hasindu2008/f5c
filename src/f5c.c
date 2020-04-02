@@ -352,7 +352,7 @@ core_t* init_core(const char* bamfilename, const char* fastafile,
         }
         hts_parse_reg(opt.region_str, &(core->clip_start) , &(core->clip_end));
     }
-    
+
 
     //open the bam file for writing skipped ultra long reads
     core->ultra_long_tmp=NULL; //todo :  at the moment this is used to detect if the load balance mode is enabled. A better method in the opt flags.
@@ -1333,7 +1333,7 @@ void scaling_db(core_t* core, db_t* db){
 }
 
 void align_single(core_t* core, db_t* db, int32_t i) {
-    db->n_event_align_pairs[i] = align(
+    db->n_event_align_pairs[i] = align_simd(
             db->event_align_pairs[i], db->read[i], db->read_len[i], db->et[i],
             core->model, db->scalings[i], db->f5[i]->sample_rate);
         //fprintf(stderr,"readlen %d,n_events %d\n",db->read_len[i],n_event_align_pairs);
@@ -1373,7 +1373,7 @@ void meth_single(core_t* core, db_t* db, int32_t i){
                   db->bam_rec[i],db->read_len[i],
                   i,
                   core->clip_start,
-                  core->clip_end,  
+                  core->clip_end,
                   &(db->et[i]), core->model,db->base_to_event_map[i],db->scalings[i],db->events_per_base[i], db->f5[i]->sample_rate);
         }
     }
@@ -1479,8 +1479,8 @@ void process_single(core_t* core, db_t* db,int32_t i) {
                   db->bam_rec[i],db->read_len[i],
                   i,
                   core->clip_start,
-                  core->clip_end,  
-                  &(db->et[i]), core->model,db->base_to_event_map[i],db->scalings[i],db->events_per_base[i],db->f5[i]->sample_rate);    
+                  core->clip_end,
+                  &(db->et[i]), core->model,db->base_to_event_map[i],db->scalings[i],db->events_per_base[i],db->f5[i]->sample_rate);
     }
 }
 
@@ -1627,7 +1627,7 @@ void output_db(core_t* core, db_t* db) {
                     // fprintf(stderr, "%s\t%.2lf\t", qname, diff);
                     // fprintf(stderr, "%.2lf\t%.2lf\t", sum_ll_m, sum_ll_u);
                     // fprintf(stderr, "%d\t%d\t%s\n", ss.strands_scored, ss.n_cpg, ss.sequence.c_str());
-                    
+
                     // output only if inside the window boundaries
                     if( !( (core->clip_start != -1 && ss.start_position < core->clip_start) ||
                         (core->clip_end != -1 && ss.end_position >= core->clip_end) ) ) {

@@ -22,6 +22,10 @@ void set_model(model_t* model);
 void set_cpgmodel(model_t* model);
 scalings_t estimate_scalings_using_mom(char* sequence, int32_t sequence_len,
                                        model_t* pore_model, event_table et);
+//Change: Include method header for SIMD implementation
+int32_t align_simd(AlignedPair* out_2, char* sequence, int32_t sequence_len,
+              event_table events, model_t* models, scalings_t scaling,
+              float sample_rate);
 int32_t align(AlignedPair* out_2, char* sequence, int32_t sequence_len,
               event_table events, model_t* models, scalings_t scaling,
               float sample_rate);
