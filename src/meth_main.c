@@ -89,7 +89,8 @@ static struct option long_options[] = {
     {"print-read-names",no_argument,0,0},          //36 print read names instead of indexes (eventalign only)
     {"samples",no_argument,0,0},                   //37 write the raw samples for the event to the tsv output (eventalign only)
     {"meth-out-version",required_argument,0,0},    //38 specify the version of the tsv output for methylation (call-methylation only)
-    {"profile",required_argument, 0,'x'},          //CHANGE: 39 profile used to tune parameters for GPU
+    {"profile",required_argument, 0,'x'},          //39 profile used to tune parameters for GPU
+    {"disable-simd", required_argument, 0, 0},     //40 disable running on SIMD [yes] (only if compiled for SIMD)
     {0, 0, 0, 0}};
 
 
@@ -375,7 +376,13 @@ int meth_main(int argc, char* argv[], int8_t mode) {
                 ERROR("--meth-out-version accepts only 1 or 2. You entered %d",opt.meth_out_version);
                 exit(EXIT_FAILURE); 
             }
-        }
+        } else if (c == 0 && longindex == 40){ //disable running on SIMD [yes] (only if compiled for SIMD)
+        #ifdef HAVE_SIMD
+                    yes_or_no(&opt, F5C_DISABLE_SIMD, longindex, optarg, 1);
+        #else
+                    WARNING("%s", "disable-cuda has no effect when compiled without SIMD support");
+        #endif
+        }        
     }
 
     if (fastqfile == NULL || bamfilename == NULL || fastafile == NULL || fp_help == stdout) {
@@ -403,6 +410,9 @@ int meth_main(int argc, char* argv[], int8_t mode) {
         fprintf(fp_help,"   --cuda-avg-epk FLOAT       average number of events per kmer - for allocating GPU arrays [%.1f]\n",opt.cuda_avg_events_per_kmer);
         fprintf(fp_help,"   --cuda-max-epk FLOAT       reads with events per kmer <= cuda_max_epk on GPU, rest on CPU [%.1f]\n",opt.cuda_max_avg_events_per_kmer);
         fprintf(fp_help,"   -x STRING                  profile to be used for optimal CUDA parameter selection. user-specified parameters will override profile values\n"); //CHANGE: Added option in help
+#endif
+#ifdef HAVE_SIMD
+        fprintf(fp_help,"   --disable-simd=yes|no      disable running on SIMD [%s]\n",(opt.flag&F5C_DISABLE_SIMD?"yes":"no"));
 #endif
         fprintf(fp_help,"advanced options:\n");
         fprintf(fp_help,"   --kmer-model FILE          custom k-mer model file\n");
