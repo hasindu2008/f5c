@@ -89,7 +89,6 @@ static struct option long_options[] = {
     {"print-read-names",no_argument,0,0},          //36 print read names instead of indexes (eventalign only)
     {"samples",no_argument,0,0},                   //37 write the raw samples for the event to the tsv output (eventalign only)
     {"meth-out-version",required_argument,0,0},    //38 specify the version of the tsv output for methylation (call-methylation only)
-    {"profile",required_argument, 0,'x'},          //CHANGE: 39 profile used to tune parameters for GPU
     {0, 0, 0, 0}};
 
 
@@ -204,8 +203,7 @@ int meth_main(int argc, char* argv[], int8_t mode) {
 
     //signal(SIGSEGV, sig_handler);
 
-    //CHANGE: need to add x as an option here?
-    const char* optstring = "r:b:g:t:B:K:v:o:x:hV";
+    const char* optstring = "r:b:g:t:B:K:v:o:hV";
 
     int longindex = 0;
     int32_t c = -1;
@@ -214,7 +212,6 @@ int meth_main(int argc, char* argv[], int8_t mode) {
     char* fastafile = NULL;
     char* fastqfile = NULL;
     char *tmpfile = NULL;
-    char* profilename = NULL; //CHANGE: Create variable to store profile arg
     char *eventalignsummary = NULL;
 
 
@@ -232,13 +229,6 @@ int meth_main(int argc, char* argv[], int8_t mode) {
         } else if (c == 'g') {
             fastafile = optarg;
 
-        } else if (c == 'x') {  //CHANGE: Set profile values. Any user-specified arguments will override the profile values.
-            profilename = optarg;
-            int profile_return = set_profile(profilename,&opt);
-            if(profile_return == 1){
-                ERROR("%s","Error occurred setting the profile.");
-                exit(EXIT_FAILURE);
-            }
         } else if (c == 'w') {
             opt.region_str = optarg;
         } else if (c == 'B') {
@@ -311,7 +301,7 @@ int meth_main(int argc, char* argv[], int8_t mode) {
             opt.cuda_mem_frac = atof(optarg);
         } else if(c == 0 && longindex == 26){ //check for empty strings
             tmpfile = optarg;
-        } else if(c == 0 && longindex == 27){ 
+        } else if(c == 0 && longindex == 27){
             if(tmpfile==NULL){
                 WARNING("%s", "ultra-thresh has no effect without skip-ultra");
             }
@@ -373,7 +363,7 @@ int meth_main(int argc, char* argv[], int8_t mode) {
             }
             if(opt.meth_out_version<1 || opt.meth_out_version>2){
                 ERROR("--meth-out-version accepts only 1 or 2. You entered %d",opt.meth_out_version);
-                exit(EXIT_FAILURE); 
+                exit(EXIT_FAILURE);
             }
         }
     }
@@ -391,7 +381,7 @@ int meth_main(int argc, char* argv[], int8_t mode) {
         fprintf(fp_help,"   -B FLOAT[K/M/G]            max number of bases loaded at once [%.1fM]\n",opt.batch_size_bases/(float)(1000*1000));
         fprintf(fp_help,"   -h                         help\n");
         fprintf(fp_help,"   -o FILE                    output to file [stdout]\n");
-        fprintf(fp_help,"   --iop INT                  number of I/O processes to read fast5 files [%d]\n",opt.num_iop);        
+        fprintf(fp_help,"   --iop INT                  number of I/O processes to read fast5 files [%d]\n",opt.num_iop);
         fprintf(fp_help,"   --min-mapq INT             minimum mapping quality [%d]\n",opt.min_mapq);
         fprintf(fp_help,"   --secondary=yes|no         consider secondary mappings or not [%s]\n",(opt.flag&F5C_SECONDARY_YES)?"yes":"no");
         fprintf(fp_help,"   --verbose INT              verbosity level [%d]\n",opt.verbosity);
@@ -402,7 +392,6 @@ int meth_main(int argc, char* argv[], int8_t mode) {
         fprintf(fp_help,"   --cuda-max-lf FLOAT        reads with length <= cuda-max-lf*avg_readlen on GPU, rest on CPU [%.1f]\n",opt.cuda_max_readlen);
         fprintf(fp_help,"   --cuda-avg-epk FLOAT       average number of events per kmer - for allocating GPU arrays [%.1f]\n",opt.cuda_avg_events_per_kmer);
         fprintf(fp_help,"   --cuda-max-epk FLOAT       reads with events per kmer <= cuda_max_epk on GPU, rest on CPU [%.1f]\n",opt.cuda_max_avg_events_per_kmer);
-        fprintf(fp_help,"   -x STRING                  profile to be used for optimal CUDA parameter selection. user-specified parameters will override profile values\n"); //CHANGE: Added option in help
 #endif
         fprintf(fp_help,"advanced options:\n");
         fprintf(fp_help,"   --kmer-model FILE          custom k-mer model file\n");
@@ -673,7 +662,7 @@ int meth_main(int argc, char* argv[], int8_t mode) {
     if((core->load_db_time - core->process_db_time) > (core->process_db_time*0.2) ){
         INFO("Performance bounded by file I/O. File I/O took %.3f sec than processing",core->load_db_time - core->process_db_time);
     }
-#endif 
+#endif
 
     #ifdef HAVE_CUDA
         fprintf(stderr, "max-lf: %.2f, avg-epk: %.2f, max-epk: %.2f, K: %d, B: %ld, T: %d, Ultra: %ld, Align: %.3f, Diff: %.3f\n",
