@@ -102,7 +102,7 @@ __m128i compare_from_vec(__m128 vec1, __m128 vec2){
 //Helper function to print a single int vector
 void print_int_vec(__m128i vec,const char *vec_name){
     int32_t * arr = (int32_t *)malloc(4 * sizeof(int32_t));;
-    arr[0] = _mm_cvtsi128_si32(vec);     
+    arr[0] = _mm_cvtsi128_si32(vec);
     arr[1] = _mm_cvtsi128_si32(_mm_shuffle_epi32(vec,1));
     arr[2] = _mm_cvtsi128_si32(_mm_shuffle_epi32(vec,2));
     arr[3] = _mm_cvtsi128_si32 (_mm_shuffle_epi32(vec,3));
@@ -118,9 +118,9 @@ void print_int_vec(__m128i vec,const char *vec_name){
 void print_float_vec(__m128 vec, const char *vec_name){
     float * arr = (float *)malloc(4 * sizeof(float));
 
-    _mm_storer_ps(arr,vec);
+    _mm_store_ps(arr,vec);
 
-    fprintf(stderr, "%s: (%.2f,%.2f,%.2f,%.2f)\n",vec_name,arr[0],arr[1],arr[2],arr[3]);
+    fprintf(stderr, "%s: (%.2f,%.2f,%.2f,%.2f)\n",vec_name,arr[3],arr[2],arr[1],arr[0]);
 
     free(arr);
 }
@@ -358,7 +358,7 @@ int32_t align_simd(AlignedPair* out_2, char* sequence, int32_t sequence_len,
                     kmer_idx = kmer_at_offset(band_idx, seq_offset);
                     kmer_rank = kmer_ranks[kmer_idx];
                     //simd_debug
-                    // fprintf(stderr, "event idx %d, kmer_idx: %d, kmer rank %d, band_idx: %d, seq_offset: %d, bllevent: %d, bllkmer: %d\n", 
+                    // fprintf(stderr, "event idx %d, kmer_idx: %d, kmer rank %d, band_idx: %d, seq_offset: %d, bllevent: %d, bllkmer: %d\n",
                     // event_idx,kmer_idx,kmer_rank,band_idx,seq_offset,band_lower_left[band_idx].event_idx,band_lower_left[band_idx].kmer_idx);
 
                     //Offset of the up, left, and diagonal positions
@@ -389,7 +389,7 @@ int32_t align_simd(AlignedPair* out_2, char* sequence, int32_t sequence_len,
 
                     lp_emission = log_probability_match_r9(scaling, models, events, event_idx,
                                             kmer_rank, strand_idx, sample_rate);
-                    
+
                     //Compute score and from values for single entry
                     float score_d_s = diag + lp_step + lp_emission;
                     float score_u_s = up + lp_stay + lp_emission;
@@ -475,7 +475,7 @@ int32_t align_simd(AlignedPair* out_2, char* sequence, int32_t sequence_len,
 
                 //FROM_D=0, FROM_U=1, FROM_L=2, so only need to add compare_up to 2 * compare_left
                 __m128i from = _mm_add_epi32(compare_up,_mm_add_epi32(compare_left,compare_left));
-                
+
                 //simd_debug
                 // print_int_vec(compare_up,"compare_up");
                 // print_int_vec(compare_left,"compare_left");
@@ -489,21 +489,21 @@ int32_t align_simd(AlignedPair* out_2, char* sequence, int32_t sequence_len,
                 int32_t *trace_position = &(TRACE_ARRAY(band_idx,offset));
 
                 //reverse array to store scores in correct order. need to use temp array because storer needs aligned boundary
-                _mm_storer_ps(band_arr,max_score); 
-                band_position[0] = band_arr[0];
-                band_position[1] = band_arr[1];
-                band_position[2] = band_arr[2];
-                band_position[3] = band_arr[3];
-                
-                trace_position[3] = _mm_cvtsi128_si32(from);     
+                _mm_storer_ps(band_arr,max_score);
+                band_position[0] = band_arr[3];
+                band_position[1] = band_arr[2];
+                band_position[2] = band_arr[1];
+                band_position[3] = band_arr[0];
+
+                trace_position[3] = _mm_cvtsi128_si32(from);
                 trace_position[2] = _mm_cvtsi128_si32(_mm_shuffle_epi32(from,1));
                 trace_position[1] = _mm_cvtsi128_si32(_mm_shuffle_epi32(from,2));
                 trace_position[0] = _mm_cvtsi128_si32 (_mm_shuffle_epi32(from,3));
 
                 //simd_debug
                 //fprintf(stderr,"bands: %f %f %f %f\n",band_position[0],band_position[1],band_position[2],band_position[3]);
-                // fprintf(stderr,"\nband array: %f %f %f %f\n",BAND_ARRAY(band_idx,offset),BAND_ARRAY(band_idx,offset+1),BAND_ARRAY(band_idx,offset+2),BAND_ARRAY(band_idx,offset+3));         
-              
+                // fprintf(stderr,"\nband array: %f %f %f %f\n",BAND_ARRAY(band_idx,offset),BAND_ARRAY(band_idx,offset+1),BAND_ARRAY(band_idx,offset+2),BAND_ARRAY(band_idx,offset+3));
+
                 fills += 4;
             }
 #ifdef DEBUG_ADAPTIVE
