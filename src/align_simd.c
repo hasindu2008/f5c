@@ -320,10 +320,6 @@ int32_t align_simd(AlignedPair* out_2, char* sequence, int32_t sequence_len,
     band_lower_left[0].kmer_idx = -1 - half_bandwidth;
     band_lower_left[1] = move_down(band_lower_left[0]);
 
-    //simd_debug
-    // fprintf(stderr,"init: %d,%d,%d,%d\n",band_lower_left[0].event_idx,band_lower_left[0].kmer_idx,
-    // band_lower_left[1].event_idx,band_lower_left[1].kmer_idx);
-
     int32_t start_cell_offset = band_kmer_to_offset(0, -1);
     // assert(is_offset_valid(start_cell_offset));
     // assert(band_event_to_offset(0, -1) == start_cell_offset);
@@ -357,9 +353,7 @@ int32_t align_simd(AlignedPair* out_2, char* sequence, int32_t sequence_len,
     fprintf(stderr, "[trim] bi: %d o: %d e: %d k: %d s: %.2lf\n", 1,
             first_trim_offset, 0, -1, bands[1][first_trim_offset]);
 #endif
-    //simd_debug
-    int num_right = 0;
-    int num_down = 0;
+
     // fill in remaining bands
     for (int32_t band_idx = 2; band_idx < n_bands; ++band_idx) {
         // Determine placement of this band according to Suzuki's adaptive algorithm
@@ -367,9 +361,6 @@ int32_t align_simd(AlignedPair* out_2, char* sequence, int32_t sequence_len,
         // otherwise we decide based on scores
         float ll = BAND_ARRAY(band_idx - 1,0);
         float ur = BAND_ARRAY(band_idx - 1,bandwidth - 1);
-
-        //simd_debug
-        // fprintf(stderr,"band_idx: %d, ll: %f,ur: %f\n",band_idx,ll,ur);
 
         bool ll_ob = ll == -INFINITY;
         bool ur_ob = ur == -INFINITY;
@@ -384,13 +375,9 @@ int32_t align_simd(AlignedPair* out_2, char* sequence, int32_t sequence_len,
         if (right) {
             band_lower_left[band_idx] =
                 move_right(band_lower_left[band_idx - 1]);
-            //simd_debug
-            num_right++;
         } else {
             band_lower_left[band_idx] =
                 move_down(band_lower_left[band_idx - 1]);
-            //simd_debug
-            num_down++;
         }
         // If the trim state is within the band, fill it in here
         int32_t trim_offset = band_kmer_to_offset(band_idx, -1);
@@ -458,9 +445,6 @@ int32_t align_simd(AlignedPair* out_2, char* sequence, int32_t sequence_len,
                     lp_emission = log_probability_match_r9(scaling, models, events, event_idx,
                                             kmer_rank, strand_idx, sample_rate);
                     
-                    //simd_debug
-                    // fprintf(stderr, "lp emission : %f\n", lp_emission);
-                    
                     //Compute score and from values for single entry
                     float score_d_s = diag + lp_step + lp_emission;
                     float score_u_s = up + lp_stay + lp_emission;
@@ -510,46 +494,34 @@ int32_t align_simd(AlignedPair* out_2, char* sequence, int32_t sequence_len,
                     assert(offset >= 0 && offset < bandwidth);
 #endif
 
-                    float up = is_offset_valid(offset_up)
+                    up_arr[vec_pos] = is_offset_valid(offset_up)
                             ? BAND_ARRAY(band_idx - 1,offset_up)
                             : -INFINITY;
-                    up_arr[vec_pos] = up;
 
-                    float left = is_offset_valid(offset_left)
+                    left_arr[vec_pos] = is_offset_valid(offset_left)
                                 ? BAND_ARRAY(band_idx - 1,offset_left)
                                 : -INFINITY;
-                    left_arr[vec_pos] = left;
 
-                    float diag = is_offset_valid(offset_diag)
+                    diag_arr[vec_pos] = is_offset_valid(offset_diag)
                                 ? BAND_ARRAY(band_idx - 2,offset_diag)
                                 : -INFINITY;
-                    diag_arr[vec_pos] = diag;
 
-                    lp_emission = log_probability_match_r9(scaling, models, events, event_idx,
+                    lp_emission_arr[vec_pos] = log_probability_match_r9(scaling, models, events, event_idx,
                                             kmer_rank, strand_idx, sample_rate);
-                    lp_emission_arr[vec_pos] = lp_emission;
-                    //simd_debug
-                    //fprintf(stderr, "lp emission : %f\n", lp_emission);
                 }
 
                 //convert data from the arrays to __m128
-                //__m128 up_vec = _mm_set_ps(up_arr[0],up_arr[1],up_arr[2],up_arr[3]);
-                // __m128 left_vec = _mm_set_ps(left_arr[0],left_arr[1],left_arr[2],left_arr[3]);
-                // __m128 diag_vec = _mm_set_ps(diag_arr[0],diag_arr[1],diag_arr[2],diag_arr[3]);
-                // __m128 lp_emission_vec = _mm_set_ps(lp_emission_arr[0],lp_emission_arr[1],lp_emission_arr[2],lp_emission_arr[3]);
-
-                __m128 up_vec = _mm_load_ps(up_arr);
-                __m128 left_vec = _mm_load_ps(left_arr);
-                __m128 diag_vec = _mm_load_ps(diag_arr);
-                __m128 lp_emission_vec = _mm_load_ps(lp_emission_arr);
+                __m128 up_vec = _mm_set_ps(up_arr[0],up_arr[1],up_arr[2],up_arr[3]);
+                __m128 left_vec = _mm_set_ps(left_arr[0],left_arr[1],left_arr[2],left_arr[3]);
+                __m128 diag_vec = _mm_set_ps(diag_arr[0],diag_arr[1],diag_arr[2],diag_arr[3]);
+                __m128 lp_emission_vec = _mm_set_ps(lp_emission_arr[0],lp_emission_arr[1],lp_emission_arr[2],lp_emission_arr[3]);
 
                 __m128 score_d = _mm_add_ps(diag_vec,_mm_add_ps(lp_step_vec,lp_emission_vec));
                 __m128 score_u = _mm_add_ps(up_vec,_mm_add_ps(lp_stay_vec,lp_emission_vec));
                 __m128 score_l = _mm_add_ps(left_vec,lp_skip_vec);
 
                 // __m128 max_score = score_d;
-                __m128 max_score =  _mm_max_ps(score_u,score_d);
-                max_score = _mm_max_ps(score_l,max_score);
+                __m128 max_score = _mm_max_ps(score_l,_mm_max_ps(score_u,score_d));
 
                 //These vectors have a 1 where the max_score corresponds to the direction, and 0 where it doesn't
                 __m128i compare_up = compare_from_vec(max_score,score_u);
@@ -562,8 +534,6 @@ int32_t align_simd(AlignedPair* out_2, char* sequence, int32_t sequence_len,
                 // print_int_vec(compare_up,"compare_up");
                 // print_int_vec(compare_left,"compare_left");
                 // print_int_vec(from,"from");
-
-                //simd_debug
                 // print_float_vec(score_u,"score_u");
                 // print_float_vec(score_l,"score_l");
                 // print_float_vec(max_score,"max_score");
@@ -586,11 +556,7 @@ int32_t align_simd(AlignedPair* out_2, char* sequence, int32_t sequence_len,
 
                 //simd_debug
                 //fprintf(stderr,"bands: %f %f %f %f\n",band_position[0],band_position[1],band_position[2],band_position[3]);
-                // fprintf(stderr,"\nband array: %f %f %f %f\n",BAND_ARRAY(band_idx,offset),BAND_ARRAY(band_idx,offset+1),BAND_ARRAY(band_idx,offset+2),BAND_ARRAY(band_idx,offset+3));
-                //simd_debug
-                //fprintf(stderr,"traces: %d %d %d %d\n",trace_position[0],trace_position[1],trace_position[2],trace_position[3]);
-                // fprintf(stderr,"offset: %d, trace array: %d %d %d %d\n\n",offset,TRACE_ARRAY(band_idx,offset),TRACE_ARRAY(band_idx,offset+1),TRACE_ARRAY(band_idx,offset+2),TRACE_ARRAY(band_idx,offset+3));
-                
+                // fprintf(stderr,"\nband array: %f %f %f %f\n",BAND_ARRAY(band_idx,offset),BAND_ARRAY(band_idx,offset+1),BAND_ARRAY(band_idx,offset+2),BAND_ARRAY(band_idx,offset+3));         
                 fills += 4;
             }
 #ifdef DEBUG_ADAPTIVE
@@ -607,9 +573,6 @@ int32_t align_simd(AlignedPair* out_2, char* sequence, int32_t sequence_len,
 #endif
         }
     }
-    //simd_debug
-    // fprintf(stderr,"right: %d, down: %d\n",num_right,num_down);
-    //
     // Backtrack to compute alignment
     //
     double sum_emission = 0;
@@ -635,24 +598,15 @@ int32_t align_simd(AlignedPair* out_2, char* sequence, int32_t sequence_len,
         //<<<<<<<<New Replacement over
         int32_t offset = band_event_to_offset(band_idx, event_idx);
 
-        //simd_debug
-        // if(event_idx == 0){
-        // fprintf(stderr,"bll[bi]: %d, offset: %d, band_idx: %d, event_idx: %d\n",band_lower_left[band_idx].event_idx,offset,band_idx,event_idx);
-        // }
-
         if (is_offset_valid(offset)) {
             float s =
                 BAND_ARRAY(band_idx,offset) + (n_events - event_idx) * lp_trim;
-            //simd_debug
-            // fprintf(stderr,"s: %f, offset: %d, band_idx: %d, event_idx: %d\n",s,offset,band_idx,event_idx);
             if (s > max_score) {
                 max_score = s;
                 curr_event_idx = event_idx;
             }
         }
     }
-    //simd_debug
-    // fprintf(stderr,"max_score: %f, n_events: %d, curr_kmer_idx: %d\n",max_score,n_events,curr_kmer_idx);
 
 #ifdef DEBUG_ADAPTIVE
     fprintf(stderr, "[adaback] ei: %d ki: %d s: %.2f\n", curr_event_idx,
@@ -683,13 +637,8 @@ int32_t align_simd(AlignedPair* out_2, char* sequence, int32_t sequence_len,
         float tempLogProb = log_probability_match_r9(
             scaling, models, events, curr_event_idx, kmer_rank, 0, sample_rate);
 
-        //simd_debug
-        // fprintf(stderr,"curr_event: %d, kmer_rank: %d, sample: %f\n",curr_event_idx,kmer_rank,sample_rate);
-
         sum_emission += tempLogProb;
         // fprintf(stderr, "lp_emission %f \n", tempLogProb);
-        //simd_debug
-        // fprintf(stderr,"lp_emission %f, sum_emission %f, n_aligned_events %d\n",tempLogProb,sum_emission,outIndex);
 
         n_aligned_events += 1;
 
@@ -738,27 +687,12 @@ int32_t align_simd(AlignedPair* out_2, char* sequence, int32_t sequence_len,
 
     // QC results
     double avg_log_emission = sum_emission / n_aligned_events;
-    //simd_debug
-    // fprintf(stderr,"sum_emission %f, n_aligned_events %f, avg_log_emission %f\n",sum_emission,n_aligned_events,avg_log_emission);
     //>>>>>>>>>>>>>New replacement begin
     bool spanned = out_2[0].ref_pos == 0 &&
                    out_2[outIndex - 1].ref_pos == int32_t(n_kmers - 1);
     // bool spanned = out.front().ref_pos == 0 && out.back().ref_pos == n_kmers - 1;
     //<<<<<<<<<<<<<New replacement over
     //bool failed = false;
-
-    //simd_debug
-    // if(avg_log_emission < min_average_log_emission){
-    //     fprintf(stderr,"avg_log_emission < min_average_log_emission: %f, %f\n",avg_log_emission,min_average_log_emission);
-    // }
-    // //simd_debug
-    // if( !spanned ){
-    //     fprintf(stderr,"not spanned\n");
-    // }
-    // //simd_debug
-    // if(max_gap > max_gap_threshold){
-    //     fprintf(stderr,"max_gap > max_gap_threshold: %d, %d\n",max_gap,max_gap_threshold);
-    // }
 
     if (avg_log_emission < min_average_log_emission || !spanned ||
         max_gap > max_gap_threshold) {
