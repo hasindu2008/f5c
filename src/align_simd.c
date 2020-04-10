@@ -533,10 +533,15 @@ int32_t align_simd(AlignedPair* out_2, char* sequence, int32_t sequence_len,
                 }
 
                 //convert data from the arrays to __m128
-                __m128 up_vec = _mm_set_ps(up_arr[0],up_arr[1],up_arr[2],up_arr[3]);
-                __m128 left_vec = _mm_set_ps(left_arr[0],left_arr[1],left_arr[2],left_arr[3]);
-                __m128 diag_vec = _mm_set_ps(diag_arr[0],diag_arr[1],diag_arr[2],diag_arr[3]);
-                __m128 lp_emission_vec = _mm_set_ps(lp_emission_arr[0],lp_emission_arr[1],lp_emission_arr[2],lp_emission_arr[3]);
+                //__m128 up_vec = _mm_set_ps(up_arr[0],up_arr[1],up_arr[2],up_arr[3]);
+                // __m128 left_vec = _mm_set_ps(left_arr[0],left_arr[1],left_arr[2],left_arr[3]);
+                // __m128 diag_vec = _mm_set_ps(diag_arr[0],diag_arr[1],diag_arr[2],diag_arr[3]);
+                // __m128 lp_emission_vec = _mm_set_ps(lp_emission_arr[0],lp_emission_arr[1],lp_emission_arr[2],lp_emission_arr[3]);
+
+                __m128 up_vec = _mm_load_ps(up_arr);
+                __m128 left_vec = _mm_load_ps(left_arr);
+                __m128 diag_vec = _mm_load_ps(diag_arr);
+                __m128 lp_emission_vec = _mm_load_ps(lp_emission_arr);
 
                 __m128 score_d = _mm_add_ps(diag_vec,_mm_add_ps(lp_step_vec,lp_emission_vec));
                 __m128 score_u = _mm_add_ps(up_vec,_mm_add_ps(lp_stay_vec,lp_emission_vec));
