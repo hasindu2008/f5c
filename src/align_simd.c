@@ -489,7 +489,7 @@ int32_t align_simd(AlignedPair* out_2, char* sequence, int32_t sequence_len,
                 int32_t *trace_position = &(TRACE_ARRAY(band_idx,offset));
 
                 //reverse array to store scores in correct order. need to use temp array because storer needs aligned boundary
-                _mm_storer_ps(band_arr,max_score);
+                _mm_store_ps(band_arr,max_score);
                 band_position[0] = band_arr[3];
                 band_position[1] = band_arr[2];
                 band_position[2] = band_arr[1];
