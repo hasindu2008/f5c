@@ -1,6 +1,5 @@
 #include "f5c.h"
 #include <emmintrin.h>
-#include <smmintrin.h>
 #include <assert.h>
 #include <sys/time.h>
 //#define DEBUG_ESTIMATED_SCALING 1
@@ -199,14 +198,6 @@ void print_float_vec(__m128 vec, const char *vec_name){
     #define BAND_ARRAY(r, c) ( bands[((r)*(ALN_BANDWIDTH)+(c))] )
     #define TRACE_ARRAY(r, c) ( trace[((r)*(ALN_BANDWIDTH)+(c))] )
 #endif
-
-//SIMD INSTRUCTIONS. TODO: implement
-
-//Return the vector corresponding to the (r,c) position in band/trace vec
-#define BAND_ARRAY_VEC(r,c) ( band_vec[(r)*(ALN_BANDWIDTH/4)+(c)] )
-#define TRACE_ARRAY_VEC(r,c) ( trace_vec[(r)*(ALN_BANDWIDTH/4)+(c)] )
-#define sse2_convert_size(size) ((size) + 3 / 4)
-#define sse2_convert_index(index) ((index) / 4)
 
 int32_t align_simd(AlignedPair* out_2, char* sequence, int32_t sequence_len,
               event_table events, model_t* models, scalings_t scaling,
