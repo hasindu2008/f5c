@@ -14,6 +14,7 @@
 
 #include "f5c.h"
 #include "f5cmisc.h"
+#include "profiles.h"
 
 #include <sys/wait.h>
 #include <unistd.h>
@@ -351,7 +352,7 @@ core_t* init_core(const char* bamfilename, const char* fastafile,
         }
         hts_parse_reg(opt.region_str, &(core->clip_start) , &(core->clip_end));
     }
-
+    
 
     //open the bam file for writing skipped ultra long reads
     core->ultra_long_tmp=NULL; //todo :  at the moment this is used to detect if the load balance mode is enabled. A better method in the opt flags.
@@ -1332,10 +1333,20 @@ void scaling_db(core_t* core, db_t* db){
 }
 
 void align_single(core_t* core, db_t* db, int32_t i) {
-    db->n_event_align_pairs[i] = align_simd(
+    #ifdef HAVE_SIMD
+    if (!(core->opt.flag & F5C_DISABLE_SIMD)) {
+        db->n_event_align_pairs[i] = align_simd(
+                db->event_align_pairs[i], db->read[i], db->read_len[i], db->et[i],
+                core->model, db->scalings[i], db->f5[i]->sample_rate);
+    }
+    #endif
+
+    if (core->opt.flag & F5C_DISABLE_SIMD) {
+        db->n_event_align_pairs[i] = align(
             db->event_align_pairs[i], db->read[i], db->read_len[i], db->et[i],
             core->model, db->scalings[i], db->f5[i]->sample_rate);
         //fprintf(stderr,"readlen %d,n_events %d\n",db->read_len[i],n_event_align_pairs);
+    }
 }
 
 
@@ -1372,7 +1383,7 @@ void meth_single(core_t* core, db_t* db, int32_t i){
                   db->bam_rec[i],db->read_len[i],
                   i,
                   core->clip_start,
-                  core->clip_end,
+                  core->clip_end,  
                   &(db->et[i]), core->model,db->base_to_event_map[i],db->scalings[i],db->events_per_base[i], db->f5[i]->sample_rate);
         }
     }
@@ -1478,8 +1489,8 @@ void process_single(core_t* core, db_t* db,int32_t i) {
                   db->bam_rec[i],db->read_len[i],
                   i,
                   core->clip_start,
-                  core->clip_end,
-                  &(db->et[i]), core->model,db->base_to_event_map[i],db->scalings[i],db->events_per_base[i],db->f5[i]->sample_rate);
+                  core->clip_end,  
+                  &(db->et[i]), core->model,db->base_to_event_map[i],db->scalings[i],db->events_per_base[i],db->f5[i]->sample_rate);    
     }
 }
 
@@ -1626,7 +1637,7 @@ void output_db(core_t* core, db_t* db) {
                     // fprintf(stderr, "%s\t%.2lf\t", qname, diff);
                     // fprintf(stderr, "%.2lf\t%.2lf\t", sum_ll_m, sum_ll_u);
                     // fprintf(stderr, "%d\t%d\t%s\n", ss.strands_scored, ss.n_cpg, ss.sequence.c_str());
-
+                    
                     // output only if inside the window boundaries
                     if( !( (core->clip_start != -1 && ss.start_position < core->clip_start) ||
                         (core->clip_end != -1 && ss.end_position >= core->clip_end) ) ) {
@@ -1761,6 +1772,7 @@ void init_opt(opt_t* opt) {
     opt->flag |= F5C_DISABLE_CUDA;
     opt->batch_size_bases = 5*1000*1000;
 #endif
+    opt->flag |= F5C_DISABLE_SIMD; //by default simd is disabled by default
 
     opt->flag |= F5C_SKIP_UNREADABLE;
     opt->debug_break=-1;
@@ -1778,3 +1790,65 @@ void init_opt(opt_t* opt) {
     opt->cuda_max_avg_events_per_kmer=5.0f;
 }
 
+
+//CHANGE: function that sets the parameter values based on specified profile name or config file.
+int set_profile(char *profile, opt_t *opt){
+    //Load preset value if argument passed is the name of a machine for which there is a default profile
+    if(strcmp(profile,"nanojet") == 0){
+        set_opt_profile(opt,Nanojet);
+    }else if(strcmp(profile,"jetson") == 0){
+        set_opt_profile(opt,Jetson);
+    }else if(strcmp(profile,"xavier") == 0){
+        set_opt_profile(opt,Xavier);
+    }else{
+        //Try to read from .profile file
+        //profile name specifies a file from which to read values from.
+        FILE *fptr = fopen(profile, "r");
+        int32_t batch_size, num_thread;
+        int64_t batch_size_bases, ultra_thresh;
+        float cuda_max_readlen,cuda_avg_events_per_kmer,cuda_max_avg_events_per_kmer;
+        if(fptr == NULL){
+            fprintf(stderr,"File not found\n");
+            return 1;
+        }
+
+        //read file and set parameter values
+        int result = fscanf(fptr, "%f %f %f %d %ld %d %ld",
+        &cuda_max_readlen,&cuda_avg_events_per_kmer,&cuda_max_avg_events_per_kmer,
+        &batch_size,&batch_size_bases,&num_thread,&ultra_thresh);
+
+        fprintf(stderr,"PROFILE LOADED\nbatch_size: %d\nbatch_size_bases: %ld\nnum_thread: %d\nultra_thresh: %ld\ncuda_max_readlen: %f\ncuda_avg_events_per_kmer: %.2f\ncuda_max_avg_events_per_kmer: %.2f\n",
+        batch_size,batch_size_bases,num_thread,ultra_thresh,cuda_max_readlen,cuda_avg_events_per_kmer,cuda_max_avg_events_per_kmer);
+
+        if(result < 7){
+            fprintf(stderr,"Error reading config file.\n");
+            return 1;
+        }
+
+        set_opts(opt,batch_size,batch_size_bases,num_thread,ultra_thresh,cuda_max_readlen,
+        cuda_avg_events_per_kmer,cuda_max_avg_events_per_kmer);
+    }
+    return 0;
+}
+
+//CHANGE: helper function to set profile to a preset value.
+void set_opt_profile(opt_t *opt, parameters machine){
+    opt->cuda_max_readlen = machine.cuda_max_readlen;
+    opt->cuda_avg_events_per_kmer = machine.cuda_avg_events_per_kmer;
+    opt->cuda_max_avg_events_per_kmer = machine.cuda_max_events_per_kmer;
+    opt->batch_size = machine.batch_size;
+    opt->batch_size_bases = machine.batch_size_bases;
+    opt->num_thread = machine.num_thread;
+    opt->ultra_thresh = machine.num_thread;
+}
+
+//CHANGE: helper function to set user specified options. Pass -1 to corresponding arg if using default parameter value.
+void set_opts(opt_t *opt, int32_t batch_size, int64_t batch_size_bases, int32_t num_thread, int64_t ultra_thresh, float cuda_max_readlen, float cuda_avg_events_per_kmer, float cuda_max_avg_events_per_kmer){
+    if( batch_size != -1) opt->batch_size = batch_size;
+    if( batch_size_bases != -1) opt->batch_size_bases = batch_size_bases;
+    if( num_thread != -1) opt->num_thread = num_thread;
+    if( ultra_thresh != -1) opt->ultra_thresh = ultra_thresh;
+    if( cuda_max_readlen != -1) opt->cuda_max_readlen = cuda_max_readlen;
+    if( cuda_avg_events_per_kmer != -1) opt->cuda_avg_events_per_kmer = cuda_avg_events_per_kmer;
+    if( cuda_max_avg_events_per_kmer != -1) opt->cuda_max_avg_events_per_kmer = cuda_max_avg_events_per_kmer;
+}

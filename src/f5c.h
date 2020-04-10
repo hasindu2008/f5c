@@ -35,7 +35,7 @@
 #define F5C_PRINT_BANDED_ALN 0x010 //print the event alignment
 #define F5C_PRINT_SCALING 0x020 //print the estimated scalings
 #define F5C_DISABLE_CUDA 0x040 //disable cuda (only when compile for cuda)
-//#define F5C_DEBUG_BRK 0x080 //break after the first batch //removed can be reused
+#define F5C_DISABLE_SIMD 0x080 //disable SIMD (only when compiled for simd)
 #define F5C_SEC_PROF 0x100 //profile section by section (only effective on the CPU mode)
 #define F5C_WR_RAW_DUMP 0x200 //to say if we should write the raw dump of the fast5
 #define F5C_RD_RAW_DUMP 0x400 //to say if we should read the raw dump fof the fast5
@@ -488,6 +488,8 @@ void free_core(core_t* core,opt_t opt);
 void free_db_tmp(db_t* db);
 void free_db(db_t* db);
 void init_opt(opt_t* opt);
+int set_profile(char* profile, opt_t *opt); //CHANGE: Added method header
+void set_opts(opt_t *opt, int32_t batch_size, int64_t batch_size_bases, int32_t num_thread, int64_t ultra_thresh, float cuda_max_readlen, float cuda_avg_events_per_kmer, float cuda_max_avg_events_per_kmer); //CHANGE: Added method header
 
 #ifdef HAVE_CUDA
     void init_cuda(core_t* core);

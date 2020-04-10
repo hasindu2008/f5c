@@ -16,15 +16,26 @@ OBJ = $(BUILD_DIR)/main.o \
       $(BUILD_DIR)/nanopolish_index.o \
       $(BUILD_DIR)/nanopolish_fast5_io.o \
       $(BUILD_DIR)/model.o \
-      $(BUILD_DIR)/align_simd.o \
       $(BUILD_DIR)/align.o \
       $(BUILD_DIR)/meth.o \
       $(BUILD_DIR)/hmm.o \
       $(BUILD_DIR)/freq.o \
-      $(BUILD_DIR)/eventalign.o
+      $(BUILD_DIR)/eventalign.o \
+      $(BUILD_DIR)/freq_merge.o
 
 PREFIX = /usr/local
 VERSION = `git describe --tags`
+
+ifdef simd
+	OBJ += $(BUILD_DIR)/align_simd.o
+	CPPFLAGS += -DHAVE_SIMD=1
+ifdef arm_neon
+	CPPFLAGS += -I./src/sse2neon
+ifeq ($(aarch64),)
+	CFLAGS += -mfpu=neon
+endif
+endif
+endif
 
 ifdef cuda
     CUDA_ROOT = /usr/local/cuda
@@ -71,9 +82,6 @@ $(BUILD_DIR)/nanopolish_fast5_io.o: src/nanopolish_fast5_io.c src/fast5lite.h
 $(BUILD_DIR)/model.o: src/model.c src/model.h src/f5c.h src/fast5lite.h src/f5cmisc.h
 	$(CXX) $(CFLAGS) $(CPPFLAGS) $< -c -o $@
 
-$(BUILD_DIR)/align_simd.o: src/align_simd.c src/f5c.h src/fast5lite.h
-	$(CXX) $(CFLAGS) $(CPPFLAGS) $< -c -o $@
-
 $(BUILD_DIR)/align.o: src/align.c src/f5c.h src/fast5lite.h
 	$(CXX) $(CFLAGS) $(CPPFLAGS) $< -c -o $@
 
@@ -88,7 +96,14 @@ $(BUILD_DIR)/freq.o: src/freq.c src/khash.h
 
 $(BUILD_DIR)/eventalign.o: src/eventalign.c
 	$(CXX) $(CFLAGS) $(CPPFLAGS) $< -c -o $@
-	
+
+$(BUILD_DIR)/freq_merge.o: src/freq_merge.c
+	$(CXX) $(CFLAGS) $(CPPFLAGS) $< -c -o $@
+
+#simd stuff
+$(BUILD_DIR)/align_simd.o: src/align_simd.c src/f5c.h src/fast5lite.h
+	$(CXX) $(CFLAGS) $(CPPFLAGS) $< -c -o $@
+
 # cuda stuff
 $(BUILD_DIR)/gpucode.o: $(CUDA_OBJ)
 	$(NVCC) $(CUDA_CFLAGS) -dlink $^ -o $@ 
