@@ -32,7 +32,7 @@ ifdef simd
 ifdef arm_neon
 	CPPFLAGS += -I./src/sse2neon
 ifeq ($(aarch64),)
-	CFLAGS += -mfpu=neon
+	CFLAGS += -O3
 endif
 endif
 endif
