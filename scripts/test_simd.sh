@@ -16,7 +16,7 @@ resultdir=../results
 #number of times to repeat test
 num_runs=3
 #whether we are running simd or not
-simd=1
+simd=0
 
 #f5c parameters
 bam_file=''
@@ -58,8 +58,8 @@ download_test_set() {
 }
 
 help_msg() {
-	echo "Parameter tuning script for f5c."
-	echo "Usage: f5c_dir/scripts/tune_parameters.sh args"
+	echo "Benchmarking script for f5c alignment."
+	echo "Usage: f5c_dir/scripts/test_simd.sh args"
 	echo
 	echo "-T [test data dir]   Directory where test data is located. Must be specified if using custom dataset"
     echo "-s [resultdir]       Directory where test results are located. Default is ../results"
@@ -71,7 +71,7 @@ help_msg() {
 	echo "-t [threads]         Number of threads to run with"
 	echo "-K [batchsize]       Same as f5c -K."
 	echo "-B [max_bases]       Same as f5c -B."
-	echo "-S 		           Flag to specify that we are NOT using SIMD."
+	echo "-S 		           Flag to explicitly specify that we are using SIMD."
 	echo "-h                   Show this help message."
 }
 
@@ -89,7 +89,7 @@ do
 		t) threads="$OPTARG";;
 		K) K="$OPTARG";;
 		B) B="$OPTARG";;
-		S) simd=0;;
+		S) simd=1;;
 		h) help_msg
 		   exit 0;;
 		?) printf "Usage: %s args\n" "$0"
@@ -138,10 +138,15 @@ fi
 
 command="./f5c call-methylation -b ${bam_file} -g ${genome_file} -r ${read_file} -t ${threads} -K ${K} -B ${B} --profile-cpu=yes"
 
+#Check build directory to decide whether we are using SIMD or not
+if [ -f build/align_simd.o ]; then
+	simd=1
+fi
+
 if [ ${simd} -eq 1 ]; then
 	#overwrite existing files
-	-f "${resultdir}/simd_processing.txt" || rm "${resultdir}/simd_processing.txt"
-	-f "${resultdir}/simd_align.txt" || rm "${resultdir}/simd_align.txt"
+	[ ! -f "${resultdir}/simd_processing.txt" ] || rm "${resultdir}/simd_processing.txt"
+	[ ! -f "${resultdir}/simd_align.txt" ] || rm "${resultdir}/simd_align.txt"
 
 	#SIMD benchmarking
 	for i in $( seq 1 ${num_runs} ); do
@@ -158,8 +163,8 @@ if [ ${simd} -eq 1 ]; then
 	python3 scripts/average.py "${resultdir}/simd_align.txt" 'simd' 'align'
 else
 	#overwrite existing files
-	-f "${resultdir}/normal_processing.txt" || rm "${resultdir}/normal_processing.txt"
-	-f "${resultdir}/normal_align.txt" || rm "${resultdir}/normal_align.txt"
+	[ ! -f "${resultdir}/normal_processing.txt" ] || rm "${resultdir}/normal_processing.txt"
+	[ ! -f "${resultdir}/normal_align.txt" ] || rm "${resultdir}/normal_align.txt"
 
 	#Regular benchmarking
 	for i in $( seq 1 ${num_runs} ); do
