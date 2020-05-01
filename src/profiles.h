@@ -14,13 +14,13 @@ typedef struct{
 } parameters;
 
 parameters Jetson = {
-    .cuda_max_readlen = 0,
-    .cuda_avg_events_per_kmer = 0,
-    .cuda_max_events_per_kmer = 0,
-    .batch_size = 0, 
-    .batch_size_bases = 0,
-    .num_thread = 0, 
-    .ultra_thresh = 0
+    .cuda_max_readlen = 3.0,
+    .cuda_avg_events_per_kmer = 2.0,
+    .cuda_max_events_per_kmer = 5.0,
+    .batch_size = 200, 
+    .batch_size_bases = 2000000,
+    .num_thread = 6, 
+    .ultra_thresh = 100000
 };
 
 parameters Nanojet = {
@@ -41,6 +41,16 @@ parameters Xavier = {
     .batch_size_bases = 4700000,
     .num_thread = 8, 
     .ultra_thresh = 100000
+};
+
+parameters XavierUltra = {
+    .cuda_max_readlen = 6.0,
+    .cuda_avg_events_per_kmer = 2.0,
+    .cuda_max_events_per_kmer = 5.0,
+    .batch_size = 120, 
+    .batch_size_bases = 5000000,
+    .num_thread = 8, 
+    .ultra_thresh = 0
 };
 
 void set_opt_profile(opt_t *opt, parameters machine);
