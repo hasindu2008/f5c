@@ -140,8 +140,8 @@ command="./f5c call-methylation -b ${bam_file} -g ${genome_file} -r ${read_file}
 
 if [ ${simd} -eq 1 ]; then
 	#overwrite existing files
-	rm "${resultdir}/simd_processing.txt"
-	rm "${resultdir}/simd_align.txt"
+	-f "${resultdir}/simd_processing.txt" || rm "${resultdir}/simd_processing.txt"
+	-f "${resultdir}/simd_align.txt" || rm "${resultdir}/simd_align.txt"
 
 	#SIMD benchmarking
 	for i in $( seq 1 ${num_runs} ); do
@@ -158,8 +158,8 @@ if [ ${simd} -eq 1 ]; then
 	python3 scripts/average.py "${resultdir}/simd_align.txt" 'simd' 'align'
 else
 	#overwrite existing files
-	rm "${resultdir}/normal_processing.txt"
-	rm "${resultdir}/normal_align.txt"
+	-f "${resultdir}/normal_processing.txt" || rm "${resultdir}/normal_processing.txt"
+	-f "${resultdir}/normal_align.txt" || rm "${resultdir}/normal_align.txt"
 
 	#Regular benchmarking
 	for i in $( seq 1 ${num_runs} ); do
