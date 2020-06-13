@@ -66,7 +66,7 @@ advanced options:
    --write-dump=yes|no        write the fast5 dump to a file or not
    --read-dump=yes|no         read from a fast5 dump file or not
    --meth-out-version [INT]   methylation tsv output version (set 2 to print the strand column) [1]
-   - cuda-mem-frac FLOAT      Fraction of free GPU memory to allocate [0.9 (0.7 for tegra)]
+   --cuda-mem-frac FLOAT      Fraction of free GPU memory to allocate [0.9 (0.7 for tegra)]
 ```
 
 ### Calculate methylation frequency
@@ -122,5 +122,5 @@ advanced options:
    --print-read-names         print read names instead of indexes
    --scale-events             scale events to the model, rather than vice-versa
    --samples                  write the raw samples for the event to the tsv output
-   - cuda-mem-frac FLOAT      Fraction of free GPU memory to allocate [0.9 (0.7 for tegra)]
+   --cuda-mem-frac FLOAT      Fraction of free GPU memory to allocate [0.9 (0.7 for tegra)]
 ```
