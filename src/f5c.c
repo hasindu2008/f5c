@@ -1802,7 +1802,7 @@ int set_profile(char *profile, opt_t *opt){
         }
 
         //read file and set parameter values
-        int result = fscanf(fptr, "%f %f %f %d %ld %d %ld",
+        int result = fscanf(fptr, "%f %f %f %d %" PRId64 " %d %" PRId64,
         &cuda_max_readlen,&cuda_avg_events_per_kmer,&cuda_max_avg_events_per_kmer,
         &batch_size,&batch_size_bases,&num_thread,&ultra_thresh);
 

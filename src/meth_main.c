@@ -539,7 +539,7 @@ int meth_main(int argc, char* argv[], int8_t mode) {
             if(opt.verbosity>1){
                 fprintf(stderr, "[%s::%.3f*%.2f] Joined to processor thread %ld\n", __func__,
                 realtime() - realtime0, cputime() / (realtime() - realtime0),
-                tid_p);
+                (long)tid_p);
             }
             slow_fast5_warn(core);
         }
@@ -560,7 +560,7 @@ int meth_main(int argc, char* argv[], int8_t mode) {
         if(opt.verbosity>1){
             fprintf(stderr, "[%s::%.3f*%.2f] Spawned processor thread %ld\n", __func__,
                 realtime() - realtime0, cputime() / (realtime() - realtime0),
-                tid_p);
+                (long)tid_p);
         }
 
         if(first_flag_pp){ //if not the first time of the post-process wait for the previous post-process
@@ -569,7 +569,7 @@ int meth_main(int argc, char* argv[], int8_t mode) {
             if(opt.verbosity>1){
                 fprintf(stderr, "[%s::%.3f*%.2f] Joined to post-processor thread %ld\n", __func__,
                 realtime() - realtime0, cputime() / (realtime() - realtime0),
-                tid_pp);
+                (long)tid_pp);
             }
         }
         first_flag_pp=1;
@@ -581,7 +581,7 @@ int meth_main(int argc, char* argv[], int8_t mode) {
         if(opt.verbosity>1){
             fprintf(stderr, "[%s::%.3f*%.2f] Spawned post-processor thread %ld\n", __func__,
                 realtime() - realtime0, cputime() / (realtime() - realtime0),
-                tid_pp);
+                (long)tid_pp);
         }
 
         if(opt.debug_break==counter){
@@ -596,14 +596,14 @@ int meth_main(int argc, char* argv[], int8_t mode) {
     if(opt.verbosity>1){
         fprintf(stderr, "[%s::%.3f*%.2f] Joined to last processor thread %ld\n", __func__,
                 realtime() - realtime0, cputime() / (realtime() - realtime0),
-                tid_p);
+                (long)tid_p);
     }
     ret = pthread_join(tid_pp, NULL);
     NEG_CHK(ret);
     if(opt.verbosity>1){
     fprintf(stderr, "[%s::%.3f*%.2f] Joined to last post-processor thread %ld\n", __func__,
                 realtime() - realtime0, cputime() / (realtime() - realtime0),
-                tid_pp);
+                (long)tid_pp);
     }
 
 
