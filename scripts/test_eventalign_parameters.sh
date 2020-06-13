@@ -21,6 +21,16 @@ else
 fi
 
 
+download_ecoli_2kb_region_big_testresults() {
+	mkdir -p test
+	tar_path=test/data.tgz
+	wget -O $tar_path "https://f5c.page.link/f5c_ecoli_2kb_region_big_testresults" || rm -rf $tar_path ${testdir}_big_testresults
+	echo "Extracting. Please wait."
+	tar -xf $tar_path -C test || rm -rf $tar_path ${testdir}_big_testresults
+	rm -f $tar_path
+}
+
+
 handle_tests() {
 	numfailed=$(cat  ${testdir}/joined_diff.txt | awk '{print $NF}' | sort -u -k1,1 | wc -l)
 	numcases=$(wc -l < ${testdir}/nanopolish.summary.txt)
@@ -70,7 +80,7 @@ execute_test() {
 
 }
 
-
+test -d ${testdir}_big_testresults || download_ecoli_2kb_region_big_testresults
 
 ${exepath} index -d ${testdir}/fast5_files ${testdir}/reads.fasta
 echo "************************************** --print-read-names ****************************"

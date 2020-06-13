@@ -202,7 +202,19 @@ test_suit2_cuda () {
 
 }
 
+#these are redundant for cuda
+test_suit_eventalign_extra () {
+	echo "valgrind test"
+	scripts/test_eventalign.sh valgrind 2> valgrind_event_align.txt
+	echo ""
+	echo "____________________________________________________________________"
 
+	echo "Event align parameter tests"
+	scripts/test_eventalign_parameters.sh 2> event_align_parameters.txt
+	echo ""
+	echo "____________________________________________________________________"
+
+}
 
 
 help_msg() {
@@ -230,6 +242,7 @@ mode=$1
 if [ "$mode" = "cpu" -o  "$mode" = "all" ]; then
 	test_suit1
 	test_suit2
+	test_suit_eventalign_extra
 fi
 if [ "$mode" = "gpu" -o  "$mode" = "all" ]; then	
 	test_suit1_cuda

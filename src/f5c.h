@@ -263,6 +263,7 @@ typedef struct {
     //read sequence //todo : optimise by grabbing it from bam seq. is it possible due to clipping?
     char** read;
     int32_t* read_len;
+    int64_t* read_idx; //the index of the read entry in the BAM file
 
     // fast5 file //should flatten this to reduce mallocs
     fast5_t** f5;

@@ -507,6 +507,8 @@ db_t* init_db(core_t* core) {
     MALLOC_CHK(db->read);
     db->read_len = (int32_t*)(malloc(sizeof(int32_t) * db->capacity_bam_rec));
     MALLOC_CHK(db->read_len);
+    db->read_idx = (int64_t*)(malloc(sizeof(int64_t) * db->capacity_bam_rec));
+    MALLOC_CHK(db->read_idx);
 
     db->f5 = (fast5_t**)malloc(sizeof(fast5_t*) * db->capacity_bam_rec);
     MALLOC_CHK(db->f5);
@@ -707,6 +709,10 @@ ret_status_t load_db1(core_t* core, db_t* db) { //old method
         t = realtime();
         result = sam_itr_next(core->m_bam_fh, core->itr, record);
         core->db_bam_time += realtime() - t;
+
+        //set read index 
+        db->read_idx[i]= core->read_index;
+        core->read_index +=1;
 
         if (result < 0) {
             break;
@@ -990,6 +996,10 @@ ret_status_t load_db2(core_t* core, db_t* db) { //separately load fast5 for mult
         t = realtime();
         result = sam_itr_next(core->m_bam_fh, core->itr, record);
         core->db_bam_time += realtime() - t;
+
+        //set read index 
+        db->read_idx[i]= core->read_index;
+        core->read_index +=1;
 
         if (result < 0) {
             break;
@@ -1652,7 +1662,7 @@ void output_db(core_t* core, db_t* db) {
                 if(summary_fp != NULL && summary.num_events > 0) {
                     size_t strand_idx = 0;
                     std::string fast5_path_str = core->readbb->get_signal_path(qname);
-                    fprintf(summary_fp, "%ld\t%s\t", (long)(core->read_index+i), qname);
+                    fprintf(summary_fp, "%ld\t%s\t", (long)(db->read_idx[i]), qname);
                     fprintf(summary_fp, "%s\t%s\t%s\t",fast5_path_str.c_str(), "dna", strand_idx == 0 ? "template" : "complement");
                     fprintf(summary_fp, "%d\t%d\t%d\t%d\t", summary.num_events, summary.num_steps, summary.num_skips, summary.num_stays);
                     fprintf(summary_fp, "%.2lf\t%.3lf\t%.3lf\t%.3lf\t%.3lf\n", summary.sum_duration/(db->f5[i]->sample_rate), scalings.shift, scalings.scale, 0.0, scalings.var);
@@ -1665,7 +1675,7 @@ void output_db(core_t* core, db_t* db) {
 
                 if(sam_output==0){
                     emit_event_alignment_tsv(stdout,0,&(db->et[i]),core->model,db->scalings[i],*event_alignment_result, print_read_names, scale_events, write_samples,
-                              core->read_index+i, qname, contig, db->f5[i]->sample_rate);
+                              db->read_idx[i], qname, contig, db->f5[i]->sample_rate);
                 }
                 else{
                     emit_event_alignment_sam(core->sam_output , qname, core->m_hdr, db->bam_rec[i], *event_alignment_result);
@@ -1687,7 +1697,7 @@ void output_db(core_t* core, db_t* db) {
             }
         }
     }
-    core->read_index = core->read_index + db->n_bam_rec;
+    //core->read_index = core->read_index + db->n_bam_rec;
 
 }
 
@@ -1722,6 +1732,7 @@ void free_db(db_t* db) {
     free(db->fasta_cache);
     free(db->read);
     free(db->read_len);
+    free(db->read_idx);
     free(db->et);
     free(db->f5);
     free(db->scalings);
