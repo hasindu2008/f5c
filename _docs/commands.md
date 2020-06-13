@@ -35,21 +35,23 @@ Usage: f5c call-methylation [OPTIONS] -r reads.fa -b alignments.bam -g genome.fa
    -r FILE                    fastq/fasta read file
    -b FILE                    sorted bam file
    -g FILE                    reference genome
+   -w STR[chr:start-end]      limit processing to genomic region STR
    -t INT                     number of threads [8]
    -K INT                     batch size (max number of reads loaded at once) [512]
    -B FLOAT[K/M/G]            max number of bases loaded at once [2.0M]
    -h                         help
    -o FILE                    output to file [stdout]
-   --iop [INT]                number of I/O processes to read fast5 files [1]
+   --iop INT                  number of I/O processes to read fast5 files [1]
    --min-mapq INT             minimum mapping quality [30]
    --secondary=yes|no         consider secondary mappings or not [no]
    --verbose INT              verbosity level [0]
    --version                  print version
    --disable-cuda=yes|no      disable running on CUDA [no]
-   - cuda-dev-id INT          CUDA device ID to run kernels on [0]
+   --cuda-dev-id INT          CUDA device ID to run kernels on [0]
    --cuda-max-lf FLOAT        reads with length <= cuda-max-lf*avg_readlen on GPU, rest on CPU [3.0]
    --cuda-avg-epk FLOAT       average number of events per kmer - for allocating GPU arrays [2.0]
    --cuda-max-epk FLOAT       reads with events per kmer <= cuda_max_epk on GPU, rest on CPU [5.0]
+   -x STRING                  profile to be used for optimal CUDA parameter selection. user-specified parameters will override profile values
 advanced options:
    --kmer-model FILE          custom k-mer model file
    --skip-unreadable=yes|no   skip any unreadable fast5 or terminate program [yes]
@@ -63,7 +65,8 @@ advanced options:
    --ultra-thresh [INT]       threshold to skip ultra long reads [100000]
    --write-dump=yes|no        write the fast5 dump to a file or not
    --read-dump=yes|no         read from a fast5 dump file or not
-   --cuda-mem-frac FLOAT      fraction of free GPU memory to allocate [0.9 (0.7 for tegra)]
+   --meth-out-version [INT]   methylation tsv output version (set 2 to print the strand column) [1]
+   - cuda-mem-frac FLOAT      Fraction of free GPU memory to allocate [0.9 (0.7 for tegra)]
 ```
 
 ### Calculate methylation frequency
@@ -72,6 +75,7 @@ Usage: meth-freq [options...]
 
   -c [float]        Call threshold. Default is 2.5.
   -i [file]         Input file. Read from stdin if not specified.
+  -o [file]         Output file. Write to stdout if not specified.
   -s                Split groups
   ```
 
@@ -83,20 +87,23 @@ Usage: f5c eventalign [OPTIONS] -r reads.fa -b alignments.bam -g genome.fa
    -r FILE                    fastq/fasta read file
    -b FILE                    sorted bam file
    -g FILE                    reference genome
+   -w STR[chr:start-end]      limit processing to genomic region STR
    -t INT                     number of threads [8]
    -K INT                     batch size (max number of reads loaded at once) [512]
    -B FLOAT[K/M/G]            max number of bases loaded at once [2.0M]
    -h                         help
    -o FILE                    output to file [stdout]
+   --iop INT                  number of I/O processes to read fast5 files [1]
    --min-mapq INT             minimum mapping quality [30]
    --secondary=yes|no         consider secondary mappings or not [no]
    --verbose INT              verbosity level [0]
    --version                  print version
    --disable-cuda=yes|no      disable running on CUDA [no]
-   - cuda-dev-id INT          CUDA device ID to run kernels on [0]
+   --cuda-dev-id INT          CUDA device ID to run kernels on [0]
    --cuda-max-lf FLOAT        reads with length <= cuda-max-lf*avg_readlen on GPU, rest on CPU [3.0]
    --cuda-avg-epk FLOAT       average number of events per kmer - for allocating GPU arrays [2.0]
    --cuda-max-epk FLOAT       reads with events per kmer <= cuda_max_epk on GPU, rest on CPU [5.0]
+   -x STRING                  profile to be used for optimal CUDA parameter selection. user-specified parameters will override profile values
 advanced options:
    --kmer-model FILE          custom k-mer model file
    --skip-unreadable=yes|no   skip any unreadable fast5 or terminate program [yes]
@@ -110,5 +117,10 @@ advanced options:
    --ultra-thresh [INT]       threshold to skip ultra long reads [100000]
    --write-dump=yes|no        write the fast5 dump to a file or not
    --read-dump=yes|no         read from a fast5 dump file or not
-   --cuda-mem-frac FLOAT      fraction of free GPU memory to allocate [0.9 (0.7 for tegra)]
+   --summary FILE             summarise the alignment of each read/strand in FILE
+   --sam                      write output in SAM format
+   --print-read-names         print read names instead of indexes
+   --scale-events             scale events to the model, rather than vice-versa
+   --samples                  write the raw samples for the event to the tsv output
+   - cuda-mem-frac FLOAT      Fraction of free GPU memory to allocate [0.9 (0.7 for tegra)]
 ```

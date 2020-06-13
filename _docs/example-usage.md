@@ -5,7 +5,7 @@ title: Example Usage
 Follow the same steps as in [Nanopolish tutorial](https://nanopolish.readthedocs.io/en/latest/quickstart_call_methylation.html) while replacing `nanopolish` with `f5c` and `scripts/calculate_methylation_frequency.py` with `f5c meth-freq` in the commands. If you only want to perform a quick test of f5c without aligning reads :
 ```sh
 #download and extract the dataset including sorted alignments
-wget -O f5c_na12878_test.tgz "http://genome.cse.unsw.edu.au/tmp/f5c_na12878_test.tgz"
+wget -O f5c_na12878_test.tgz "https://f5c.page.link/f5c_na12878_test"
 tar xf f5c_na12878_test.tgz
 
 #index and call methylation
