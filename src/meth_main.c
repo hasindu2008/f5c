@@ -428,7 +428,7 @@ int meth_main(int argc, char* argv[], int8_t mode) {
         fprintf(fp_help,"   --samples                  write the raw samples for the event to the tsv output\n");
     }
 #ifdef HAVE_CUDA
-        fprintf(fp_help,"   - cuda-mem-frac FLOAT      Fraction of free GPU memory to allocate [0.9 (0.7 for tegra)]\n");
+        fprintf(fp_help,"   --cuda-mem-frac FLOAT      Fraction of free GPU memory to allocate [0.9 (0.7 for tegra)]\n");
         //fprintf(fp_help,"   --cuda-block-size\n");
 #endif
         if(fp_help == stdout){
