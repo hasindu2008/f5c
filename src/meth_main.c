@@ -414,7 +414,7 @@ int meth_main(int argc, char* argv[], int8_t mode) {
         fprintf(fp_help,"   --debug-break [INT]        break after processing the specified batch\n");
         fprintf(fp_help,"   --profile-cpu=yes|no       process section by section (used for profiling on CPU)\n");
         fprintf(fp_help,"   --skip-ultra FILE          skip ultra long reads and write those entries to the bam file provided as the argument\n");
-        fprintf(fp_help,"   --ultra-thresh [INT]       threshold to skip ultra long reads [%ld]\n",opt.ultra_thresh);
+        fprintf(fp_help,"   --ultra-thresh [INT]       threshold to skip ultra long reads [%ld]\n",(long)opt.ultra_thresh);
         fprintf(fp_help,"   --write-dump=yes|no        write the fast5 dump to a file or not\n");
         fprintf(fp_help,"   --read-dump=yes|no         read from a fast5 dump file or not\n");
     if(mode==0){
@@ -611,7 +611,7 @@ int meth_main(int argc, char* argv[], int8_t mode) {
 
 
     fprintf(stderr, "\n[%s] total entries: %ld, qc fail: %ld, could not calibrate: %ld, no alignment: %ld, bad fast5: %ld",
-             __func__,core->total_reads, core->qc_fail_reads, core->failed_calibration_reads, core->failed_alignment_reads, core->bad_fast5_file);
+             __func__,(long)core->total_reads, (long)core->qc_fail_reads, (long)core->failed_calibration_reads, (long)core->failed_alignment_reads, (long)core->bad_fast5_file);
     fprintf(stderr,"\n[%s] total bases: %.1f Mbases",__func__,core->sum_bases/(float)(1000*1000));
 
     fprintf(stderr, "\n[%s] Data loading time: %.3f sec", __func__,core->load_db_time);
@@ -664,7 +664,7 @@ int meth_main(int argc, char* argv[], int8_t mode) {
 
     if(core->ultra_long_skipped>0){
         assert(tmpfile!=NULL);
-        WARNING("%ld ultra long reads (>%.1f kbases) were skipped.",core->ultra_long_skipped,core->opt.ultra_thresh/1000.0);
+        WARNING("%ld ultra long reads (>%.1f kbases) were skipped.",(long)core->ultra_long_skipped,core->opt.ultra_thresh/1000.0);
         fprintf(stderr," Please run samtools index on '%s' followed by f5c with a larger -B on the CPU.\n",tmpfile);
     }
 

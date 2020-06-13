@@ -1652,7 +1652,7 @@ void output_db(core_t* core, db_t* db) {
                 if(summary_fp != NULL && summary.num_events > 0) {
                     size_t strand_idx = 0;
                     std::string fast5_path_str = core->readbb->get_signal_path(qname);
-                    fprintf(summary_fp, "%ld\t%s\t", core->read_index+i, qname);
+                    fprintf(summary_fp, "%ld\t%s\t", (long)(core->read_index+i), qname);
                     fprintf(summary_fp, "%s\t%s\t%s\t",fast5_path_str.c_str(), "dna", strand_idx == 0 ? "template" : "complement");
                     fprintf(summary_fp, "%d\t%d\t%d\t%d\t", summary.num_events, summary.num_steps, summary.num_skips, summary.num_stays);
                     fprintf(summary_fp, "%.2lf\t%.3lf\t%.3lf\t%.3lf\t%.3lf\n", summary.sum_duration/(db->f5[i]->sample_rate), scalings.shift, scalings.scale, 0.0, scalings.var);
@@ -1807,7 +1807,7 @@ int set_profile(char *profile, opt_t *opt){
         &batch_size,&batch_size_bases,&num_thread,&ultra_thresh);
 
         fprintf(stderr,"PROFILE LOADED\nbatch_size: %d\nbatch_size_bases: %ld\nnum_thread: %d\nultra_thresh: %ld\ncuda_max_readlen: %f\ncuda_avg_events_per_kmer: %.2f\ncuda_max_avg_events_per_kmer: %.2f\n",
-        batch_size,batch_size_bases,num_thread,ultra_thresh,cuda_max_readlen,cuda_avg_events_per_kmer,cuda_max_avg_events_per_kmer);
+        batch_size,(long)batch_size_bases,num_thread,(long)ultra_thresh,cuda_max_readlen,cuda_avg_events_per_kmer,cuda_max_avg_events_per_kmer);
 
         if(result < 7){
             fprintf(stderr,"Error reading config file.\n");

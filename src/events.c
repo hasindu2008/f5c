@@ -45,11 +45,13 @@ static detector_param const event_detection_defaults = {.window_length1 = 3,
                                                         .threshold2 = 9.0f,
                                                         .peak_height = 0.2f};
 
+/**
 static detector_param const event_detection_rna = {.window_length1 = 7,
                                                    .window_length2 = 14,
                                                    .threshold1 = 2.5f,
                                                    .threshold2 = 9.0f,
                                                    .peak_height = 1.0f};
+*/
 
 // From scrappie
 typedef struct {

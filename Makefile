@@ -3,8 +3,9 @@
 
 CC       = gcc
 CXX      = g++
-CFLAGS   += -g -rdynamic -Wall -O2 -std=c++11 
-LDFLAGS  += $(LIBS) -lpthread -lz
+LANG 	 = -x c++
+CFLAGS   += -g -Wall -O2 -std=c++11 
+LDFLAGS  += $(LIBS) -lpthread -lz -rdynamic 
 BUILD_DIR = build
 
 BINARY = f5c
@@ -48,46 +49,46 @@ $(BINARY): src/config.h $(HTS_LIB) $(HDF5_LIB) $(OBJ)
 	$(CXX) $(CFLAGS) $(OBJ) $(LDFLAGS) $(CUDA_LDFLAGS) -o $@
 
 $(BUILD_DIR)/main.o: src/main.c src/f5cmisc.h src/error.h
-	$(CXX) $(CFLAGS) $(CPPFLAGS) $< -c -o $@
+	$(CXX) $(CFLAGS) $(CPPFLAGS) $(LANG) $< -c -o $@
 
 $(BUILD_DIR)/meth_main.o: src/meth_main.c src/f5c.h src/fast5lite.h src/f5cmisc.h src/logsum.h
-	$(CXX) $(CFLAGS) $(CPPFLAGS) $< -c -o $@
+	$(CXX) $(CFLAGS) $(CPPFLAGS) $(LANG) $< -c -o $@
 
 $(BUILD_DIR)/f5c.o: src/f5c.c src/f5c.h src/fast5lite.h src/f5cmisc.h
-	$(CXX) $(CFLAGS) $(CPPFLAGS) $< -c -o $@
+	$(CXX) $(CFLAGS) $(CPPFLAGS) $(LANG) $< -c -o $@
 
 $(BUILD_DIR)/events.o: src/events.c src/f5c.h src/fast5lite.h src/f5cmisc.h src/fast5lite.h src/nanopolish_read_db.h src/ksort.h
-	$(CXX) $(CFLAGS) $(CPPFLAGS) $< -c -o $@
+	$(CXX) $(CFLAGS) $(CPPFLAGS) $(LANG) $< -c -o $@
 
 $(BUILD_DIR)/nanopolish_read_db.o: src/nanopolish_read_db.c src/nanopolish_read_db.h
-	$(CXX) $(CFLAGS) $(CPPFLAGS) $< -c -o $@
+	$(CXX) $(CFLAGS) $(CPPFLAGS) $(LANG) $< -c -o $@
 
 $(BUILD_DIR)/nanopolish_index.o: src/nanopolish_index.c src/nanopolish_read_db.h src/fast5lite.h
-	$(CXX) $(CFLAGS) $(CPPFLAGS) $< -c -o $@
+	$(CXX) $(CFLAGS) $(CPPFLAGS) $(LANG) $< -c -o $@
 
 $(BUILD_DIR)/nanopolish_fast5_io.o: src/nanopolish_fast5_io.c src/fast5lite.h
-	$(CXX) $(CFLAGS) $(CPPFLAGS) $< -c -o $@
+	$(CXX) $(CFLAGS) $(CPPFLAGS) $(LANG) $< -c -o $@
 
 $(BUILD_DIR)/model.o: src/model.c src/model.h src/f5c.h src/fast5lite.h src/f5cmisc.h
-	$(CXX) $(CFLAGS) $(CPPFLAGS) $< -c -o $@
+	$(CXX) $(CFLAGS) $(CPPFLAGS) $(LANG) $< -c -o $@
 
 $(BUILD_DIR)/align.o: src/align.c src/f5c.h src/fast5lite.h
-	$(CXX) $(CFLAGS) $(CPPFLAGS) $< -c -o $@
+	$(CXX) $(CFLAGS) $(CPPFLAGS) $(LANG) $< -c -o $@
 
 $(BUILD_DIR)/meth.o: src/meth.c src/f5c.h src/fast5lite.h src/f5cmisc.h
-	$(CXX) $(CFLAGS) $(CPPFLAGS) $< -c -o $@
+	$(CXX) $(CFLAGS) $(CPPFLAGS) $(LANG) $< -c -o $@
 
 $(BUILD_DIR)/hmm.o: src/hmm.c src/f5c.h src/fast5lite.h src/f5cmisc.h src/matrix.h src/logsum.h
-	$(CXX) $(CFLAGS) $(CPPFLAGS) $< -c -o $@
+	$(CXX) $(CFLAGS) $(CPPFLAGS) $(LANG) $< -c -o $@
 
 $(BUILD_DIR)/freq.o: src/freq.c src/khash.h
-	$(CXX) $(CFLAGS) $(CPPFLAGS) $< -c -o $@	
+	$(CXX) $(CFLAGS) $(CPPFLAGS) $(LANG) $< -c -o $@	
 
 $(BUILD_DIR)/eventalign.o: src/eventalign.c
-	$(CXX) $(CFLAGS) $(CPPFLAGS) $< -c -o $@
+	$(CXX) $(CFLAGS) $(CPPFLAGS) $(LANG) $< -c -o $@
 
 $(BUILD_DIR)/freq_merge.o: src/freq_merge.c
-	$(CXX) $(CFLAGS) $(CPPFLAGS) $< -c -o $@
+	$(CXX) $(CFLAGS) $(CPPFLAGS) $(LANG) $< -c -o $@
 	
 # cuda stuff
 $(BUILD_DIR)/gpucode.o: $(CUDA_OBJ)

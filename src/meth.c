@@ -594,7 +594,7 @@ scalings_t scaling, model_t* cpgmodel,double events_per_base) {
             free(event_align_record);
         }
 
-        double ratio = fabs(e2 - e1) / (calling_start - calling_end);
+        double ratio = fabs((double)(e2 - e1)) / (calling_start - calling_end);
 
         // Only process this region if the the read is aligned within the boundaries
         // and the span between the start/end is not unusually short

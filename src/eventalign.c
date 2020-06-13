@@ -1871,7 +1871,7 @@ void emit_event_alignment_tsv(FILE* fp,
                     ref_name, //ea.ref_name.c_str(),
                     ea.ref_position,
                     ea.ref_kmer,
-                    read_index,
+                    (long)read_index,
                     't'); //"tc"[ea.strand_idx]); 
         }
         else

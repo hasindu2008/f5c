@@ -167,7 +167,7 @@ void update_call_stats(khash_t(str)* sites, char* key, int num_called_cpg_sites,
 
 static inline void strtok_null_check(char *tmp, int64_t line_num){
     if(tmp == NULL){
-        fprintf(stderr,"Corrupted tsv file? Offending line is line number %ld (1-based index)\n",line_num);
+        fprintf(stderr,"Corrupted tsv file? Offending line is line number %ld (1-based index)\n",(long)line_num);
         exit(EXIT_FAILURE);
     }
 }
@@ -209,7 +209,7 @@ struct tsv_record* get_tsv_line(FILE* fp, int8_t meth_out_version, int64_t line_
     record->end = atoi(tmp);
 
     if(record->start<0 || record->end<0){
-        fprintf(stderr,"chromosome coordinates cannot be negative. Offending line is line number %ld (1-based index)\n",line_num);
+        fprintf(stderr,"chromosome coordinates cannot be negative. Offending line is line number %ld (1-based index)\n",(long)line_num);
         exit(EXIT_FAILURE);
     }
 
@@ -231,7 +231,7 @@ struct tsv_record* get_tsv_line(FILE* fp, int8_t meth_out_version, int64_t line_
     strtok_null_check(tmp,line_num);;
     record->num_cpgs = atoi(tmp);
     if(record->num_cpgs<0){
-        fprintf(stderr,"num_cpgs cannot be negative. Offending line is line number %ld (1-based index)\n",line_num);
+        fprintf(stderr,"num_cpgs cannot be negative. Offending line is line number %ld (1-based index)\n",(long)line_num);
         exit(EXIT_FAILURE);
     }
 
@@ -241,7 +241,7 @@ struct tsv_record* get_tsv_line(FILE* fp, int8_t meth_out_version, int64_t line_
     record->sequence = strdup(tmp);
 
     if(strtok(NULL, "\t\n")!=NULL){
-        fprintf(stderr,"encountered more columns than expected. Offending line is line number %ld (1-based index)\n",line_num);
+        fprintf(stderr,"encountered more columns than expected. Offending line is line number %ld (1-based index)\n",(long)line_num);
         exit(EXIT_FAILURE);
     }
 

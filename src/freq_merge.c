@@ -35,7 +35,7 @@ int read_line(int file_no,FILE* fp){
 static inline void strtok_null_check(char *tmp, int64_t line_num, char *buffer){
     // TODO: the file no is passed. have to change
     if(tmp == NULL){
-        fprintf(stderr,"Corrupted tsv file? Offending line is line number %ld (1-based index)\n",line_num);
+        fprintf(stderr,"Corrupted tsv file? Offending line is line number %ld (1-based index)\n",(long)line_num);
         free(buf);
         free(buffer);
         exit(EXIT_FAILURE);
@@ -75,7 +75,7 @@ void get_tsv_line(struct tsv_record* record, int file_no, int64_t line_num) {
     record->end = atoi(tmp);
 
     if(record->start<0 || record->end<0){
-        fprintf(stderr,"chromosome coordinates cannot be negative. Offending line is line number %ld (1-based index)\n",line_num);
+        fprintf(stderr,"chromosome coordinates cannot be negative. Offending line is line number %ld (1-based index)\n",(long)line_num);
         free(buffer);
         exit(EXIT_FAILURE);
     }
@@ -85,7 +85,7 @@ void get_tsv_line(struct tsv_record* record, int file_no, int64_t line_num) {
     strtok_null_check(tmp,line_num,buffer);;
     record->num_cpgs_in_group = atoi(tmp);
     if(record->num_cpgs_in_group<0){
-        fprintf(stderr,"num_cpgs_in_group cannot be negative. Offending line is line number %ld (1-based index)\n",line_num);
+        fprintf(stderr,"num_cpgs_in_group cannot be negative. Offending line is line number %ld (1-based index)\n",(long)line_num);
         free(buffer);
         exit(EXIT_FAILURE);
     }
@@ -114,7 +114,7 @@ void get_tsv_line(struct tsv_record* record, int file_no, int64_t line_num) {
     }
 
     if(strtok(NULL, "\t\n")!=NULL){
-        fprintf(stderr,"encountered more columns than expected. Offending line is line number %ld (1-based index)\n",line_num);
+        fprintf(stderr,"encountered more columns than expected. Offending line is line number %ld (1-based index)\n",(long)line_num);
         free(buffer);
         exit(EXIT_FAILURE);
     }
