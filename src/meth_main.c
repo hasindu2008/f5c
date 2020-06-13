@@ -418,7 +418,7 @@ int meth_main(int argc, char* argv[], int8_t mode) {
         fprintf(fp_help,"   --write-dump=yes|no        write the fast5 dump to a file or not\n");
         fprintf(fp_help,"   --read-dump=yes|no         read from a fast5 dump file or not\n");
     if(mode==0){
-        fprintf(fp_help,"   --meth-out-version [INT]   methylation tsv output version (2 if the strand coulmn is to be printed) [%d].\n",opt.meth_out_version);
+        fprintf(fp_help,"   --meth-out-version [INT]   methylation tsv output version (set 2 to print the strand column) [%d]\n",opt.meth_out_version);
     }
     if(mode==1){
         fprintf(fp_help,"   --summary FILE             summarise the alignment of each read/strand in FILE\n");
@@ -429,7 +429,7 @@ int meth_main(int argc, char* argv[], int8_t mode) {
     }
 #ifdef HAVE_CUDA
         fprintf(fp_help,"   - cuda-mem-frac FLOAT      Fraction of free GPU memory to allocate [0.9 (0.7 for tegra)]\n");
-        fprintf(fp_help,"   --cuda-block-size\n");
+        //fprintf(fp_help,"   --cuda-block-size\n");
 #endif
         if(fp_help == stdout){
             exit(EXIT_SUCCESS);
