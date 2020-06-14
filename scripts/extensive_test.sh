@@ -145,7 +145,7 @@ test_suit2 () {
 	echo "____________________________________________________________________"
 
 	echo "sectional benchmark"
-	"${exepath}" call-methylation -b "${bamfile}" -g "${ref}" -r "${reads}" -t "${NCPU}"  -K1024 -v5 --profile=yes > ${testdir}/result.txt 2> profile.log
+	"${exepath}" call-methylation -b "${bamfile}" -g "${ref}" -r "${reads}" -t "${NCPU}"  -K1024 -v5 --profile-cpu=yes > ${testdir}/result.txt 2> profile.log
 	evaluate
 	echo ""
 	echo "____________________________________________________________________"
