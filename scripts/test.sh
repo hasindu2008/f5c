@@ -63,16 +63,16 @@ execute_test() {
 		grep -w "chr20" ${testdir}/meth.exp | awk '{print $1$2$3$4$8$9$10"\t"$5"\t"$6"\t"$7}'  > ${testdir}/meth_float.txt
 
 		join  ${testdir}/result_float.txt ${testdir}/meth_float.txt | awk -v thresh=0.1 -f scripts/test.awk > ${testdir}/floatdiff.txt || handle_tests "${file}"
-	else	
+	else
 		tail -n +2 ${testdir}/result.txt | awk '{print $1,$2,$3,$4,$8,$9,$10}' > ${testdir}/result_exact.txt
 		awk '{print $1,$2,$3,$4,$8,$9,$10}' ${testdir}/meth.exp > ${testdir}/meth_exact.txt
-		diff -q ${testdir}/meth_exact.txt ${testdir}/result_exact.txt || die "diff ${testdir}/result_exact.txt ${testdir}/meth_exact.txt failed" 
+		diff -q ${testdir}/meth_exact.txt ${testdir}/result_exact.txt || die "diff ${testdir}/result_exact.txt ${testdir}/meth_exact.txt failed"
 
 		tail -n +2  ${testdir}/result.txt | awk '{print $1$2$3$4$8$9$10"\t"$5"\t"$6"\t"$7}' > ${testdir}/result_float.txt
-		awk '{print $1$2$3$4$8$9$10"\t"$5"\t"$6"\t"$7}' ${testdir}/meth.exp > ${testdir}/meth_float.txt	
+		awk '{print $1$2$3$4$8$9$10"\t"$5"\t"$6"\t"$7}' ${testdir}/meth.exp > ${testdir}/meth_float.txt
 
-		join -a 1 -a 2 ${testdir}/result_float.txt ${testdir}/meth_float.txt | awk -v thresh=0.1 -f scripts/test.awk > ${testdir}/floatdiff.txt || die "${file}: Validation failed" 
-	fi	
+		join -a 1 -a 2 ${testdir}/result_float.txt ${testdir}/meth_float.txt | awk -v thresh=0.1 -f scripts/test.awk > ${testdir}/floatdiff.txt || die "${file}: Validation failed"
+	fi
 }
 
 mode_test() {

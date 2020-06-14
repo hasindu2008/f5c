@@ -86,7 +86,7 @@ execute_test() {
 	paste ${testdir}/nanopolish.summary.txt ${testdir}/f5c.summary.txt > ${testdir}/joined_results.txt || echo "Join ran into an issue. Probably just a warning."
 	#if [ $testdir = test/chr22_meth_example ]; then
 	awk -f  scripts/test_eventalign_summary.awk ${testdir}/joined_results.txt > ${testdir}/joined_diff.txt || handle_tests "${file}"
-	#else	
+	#else
 	#	awk -f  scripts/test_eventalign_summary.awk ${testdir}/joined_results.txt || die "${file}: Validation failed"
 	#fi
 	echo "----------------summaries are good---------------------------------------------"
@@ -95,7 +95,7 @@ execute_test() {
 		echo "event by event test not implemented not yet implemented!"
 	else
 		test -d ${testdir}_big_testresults || download_ecoli_2kb_region_big_testresults
-		#test -e ${testdir}_big_testresults/eventalign.exp || wget "http://genome.cse.unsw.edu.au/tmp/f5c_ecoli_2kb_region_test_eventalign.exp.gz" -O ${testdir}_big_testresults/eventalign.exp.gz 
+		#test -e ${testdir}_big_testresults/eventalign.exp || wget "http://genome.cse.unsw.edu.au/tmp/f5c_ecoli_2kb_region_test_eventalign.exp.gz" -O ${testdir}_big_testresults/eventalign.exp.gz
 		#test -e ${testdir}_big_testresults/eventalign.exp || gunzip ${testdir}_big_testresults/eventalign.exp.gz
 		#tail -n +2 ${testdir}_big_testresults/eventalign.exp | awk 		'{print $1"\t"$2"\t"$3"\t"$4"\t"$5"\t"$6"\t"$7"\t"$8"\t"$10"\t"$11"\t"$12"\t"$13"\t"$14}'  > ${testdir}/nanopolish.txt
 		tail -n +2 ${testdir}_big_testresults/eventalign.exp   > ${testdir}/nanopolish.txt

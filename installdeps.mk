@@ -30,7 +30,7 @@ ifneq ($(HTS), autoconf)
     HTS_LIB =
     HTS_SYS_LIB = `pkg-config --libs htslib`
     HTS_INC = `pkg-config --cflags-only-I htslib`
-endif	
+endif
 endif
 
 CPPFLAGS += $(HDF5_INC) $(HTS_INC)

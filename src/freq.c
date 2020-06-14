@@ -215,12 +215,12 @@ struct tsv_record* get_tsv_line(FILE* fp, int8_t meth_out_version, int64_t line_
 
     tmp = strtok(NULL, "\t"); //readname
     strtok_null_check(tmp,line_num);;
-   
+
     //log_lik_ratio
     tmp = strtok(NULL, "\t");
     strtok_null_check(tmp,line_num);;
     record->log_lik_ratio = strtod(tmp, NULL);
-    
+
     tmp = strtok(NULL, "\t"); //log_lik_methylated
     tmp = strtok(NULL, "\t"); //log_lik_unmethylated
     tmp = strtok(NULL, "\t"); //num_calling_strands
@@ -292,7 +292,7 @@ int freq_main(int argc, char **argv) {
                             ERROR("failed to write the output to file %s : %s",optarg, strerror(errno));
                             exit(EXIT_FAILURE);
                         }
-                    }                   
+                    }
             default:
                       break;
         }
@@ -319,7 +319,7 @@ int freq_main(int argc, char **argv) {
     else if(strcmp(tmp,"chromosome\tstart\tend\tread_name\tlog_lik_ratio\tlog_lik_methylated\tlog_lik_unmethylated\tnum_calling_strands\tnum_motifs\tsequence\n")==0){
         meth_out_version=1;
         meth_out_cpg_or_motif=2;
-    }    
+    }
     else if(strcmp(tmp,"chromosome\tstrand\tstart\tend\tread_name\tlog_lik_ratio\tlog_lik_methylated\tlog_lik_unmethylated\tnum_calling_strands\tnum_cpgs\tsequence\n")==0){
         meth_out_version=2;
         meth_out_cpg_or_motif=1;
@@ -327,14 +327,14 @@ int freq_main(int argc, char **argv) {
     else if(strcmp(tmp,"chromosome\tstrand\tstart\tend\tread_name\tlog_lik_ratio\tlog_lik_methylated\tlog_lik_unmethylated\tnum_calling_strands\tnum_motifs\tsequence\n")==0){
         meth_out_version=2;
         meth_out_cpg_or_motif=2;
-    }    
+    }
     else{
         fprintf(stderr, "Incorrect header: %s\n", tmp);
         exit(EXIT_FAILURE);
     }
     line_num++;
     line_num++;
-    
+
     while ((record = get_tsv_line(input,meth_out_version,line_num)) != NULL) {
         line_num++;
         int num_sites = record->num_cpgs;

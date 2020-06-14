@@ -13,14 +13,14 @@ test(){
     echo "Test for $testdir"
 
 	if [ $testdir = test/chr22_meth_example ]; then
-        cat $testdir/meth.exp > $testdir/meth.txt	
+        cat $testdir/meth.exp > $testdir/meth.txt
     else
         echo -e "chromosome\tstart\tend\tread_name\tlog_lik_ratio\tlog_lik_methylated\tlog_lik_unmethylated\tnum_calling_strands\tnum_cpgs\tsequence" > $testdir/meth.txt
-        cat $testdir/meth.exp >> $testdir/meth.txt	
-        
+        cat $testdir/meth.exp >> $testdir/meth.txt
+
         echo "valgrind check"
-        valgrind --leak-check=full --error-exitcode=1 ./f5c meth-freq -i $testdir/meth.txt > $testdir/freq.txt || die "valgrind verification failed" 
-	
+        valgrind --leak-check=full --error-exitcode=1 ./f5c meth-freq -i $testdir/meth.txt > $testdir/freq.txt || die "valgrind verification failed"
+
         echo ""
         echo "testing with cpg group split -s"
         ./f5c meth-freq -i $testdir/meth.txt -s > $testdir/freq.txt
@@ -56,6 +56,3 @@ do
 done
 
 test "$testdir"
-
-
-

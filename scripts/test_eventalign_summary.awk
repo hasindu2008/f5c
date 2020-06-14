@@ -27,7 +27,7 @@ END {if (status > 0) {exit 1}}
 #2 check read_name
 #3 check fast5_path
 #4 check model_name
-#5 check strand 
+#5 check strand
 #6 check num_events
 #7 check num_steps
 #8 check num_skips

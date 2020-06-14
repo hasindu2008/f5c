@@ -1,6 +1,6 @@
 /* @f5c
 **
-** main 
+** main
 ** @author: Hasindu Gamaarachchi (hasindu@unsw.edu.au)
 ** @@
 ******************************************************************************/
@@ -63,7 +63,7 @@ int print_usage(FILE *fp_help){
         assert(0);
     }
 
-    
+
 }
 
 
@@ -85,7 +85,7 @@ int main(int argc, char* argv[]){
     }
     else if(strcmp(argv[1],"eventalign")==0){
         ret=meth_main(argc-1, argv+1,1);
-    }    
+    }
     else if(strcmp(argv[1],"meth-freq")==0){
         ret=freq_main(argc-1, argv+1);
     }

@@ -64,13 +64,13 @@ test_suit1 () {
 	echo "____________________________________________________________________"
 	echo "event alignment"
 	scripts/test_eventalign.sh 2> ecoli_eventalign.log || die "failed"
-	echo "____________________________________________________________________"	
+	echo "____________________________________________________________________"
 	echo "methylation frequency"
 	scripts/test_methfreq.sh 2> ecoli_methfreq.log || die "failed"
-	echo "____________________________________________________________________"	
+	echo "____________________________________________________________________"
 	echo "multi-fast5"
 	scripts/test_multifast5.sh 2> ecoli_multifast5.log  || die "failed"
-	echo "____________________________________________________________________"	
+	echo "____________________________________________________________________"
 
 	echo ""
 	echo "--------------------------------------------------------------------"
@@ -244,11 +244,11 @@ if [ "$mode" = "cpu" -o  "$mode" = "all" ]; then
 	test_suit2
 	test_suit_eventalign_extra
 fi
-if [ "$mode" = "gpu" -o  "$mode" = "all" ]; then	
+if [ "$mode" = "gpu" -o  "$mode" = "all" ]; then
 	test_suit1_cuda
 	test_suit2_cuda
 fi
-if [ "$mode" = "cpu" -o "$mode" != "gpu" -o "$mode" != "all" ]; then	
+if [ "$mode" = "cpu" -o "$mode" != "gpu" -o "$mode" != "all" ]; then
 	help_msg
 	exit 2;
 fi

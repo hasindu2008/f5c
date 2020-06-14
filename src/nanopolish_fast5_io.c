@@ -83,12 +83,12 @@ std::vector<std::string> fast5_get_multi_read_groups(fast5_file_t fh)
             exit(EXIT_FAILURE);
         }
         size += 1; // for null terminator
-           
+
         if(size > buffer_size) {
             buffer = (char*)realloc(buffer, size);
             buffer_size = size;
         }
-    
+
         // copy the group name
         H5Lget_name_by_idx(fh.hdf5_file, "/", H5_INDEX_NAME, H5_ITER_INC, group_idx, buffer, buffer_size, H5P_DEFAULT);
         buffer[size] = '\0';
@@ -114,7 +114,7 @@ std::string fast5_get_read_id_single_fast5(fast5_file_t fh)
     char* read_name_str = NULL;
 
     std::string out = "";
-    
+
     // Get the path to the raw read group
     std::string raw_read_group = fast5_get_raw_read_group(fh, "");
     if(raw_read_group == "") {
@@ -384,7 +384,7 @@ std::string fast5_get_string_attribute(fast5_file_t fh, const std::string& group
     }
 
 close_native_type:
-    H5Tclose(native_type);    
+    H5Tclose(native_type);
 close_type:
     H5Tclose(attribute_type);
 close_attr:

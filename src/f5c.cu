@@ -1,6 +1,6 @@
 /* @f5c
 **
-** f5c interface 
+** f5c interface
 ** @author: Hasindu Gamaarachchi (hasindu@unsw.edu.au)
 ** @@
 ******************************************************************************/
@@ -825,8 +825,8 @@ void load_balance(core_t *core, db_t *db, double cpu_process_time,double gpu_pro
     if(factor>thresh_factor){ //cpu too much time
         if (core->opt.verbosity>1) fprintf(stderr,"[%s] CPU too much time\n",__func__);
 
-        if(stat_n_gpu_mem_out > db->n_bam_rec * thresh_reads || 
-            stat_n_ultra_long_reads> db->n_bam_rec * thresh_reads || 
+        if(stat_n_gpu_mem_out > db->n_bam_rec * thresh_reads ||
+            stat_n_ultra_long_reads> db->n_bam_rec * thresh_reads ||
             stat_n_too_many_events > db->n_bam_rec * thresh_reads){
 
             if(stat_n_gpu_mem_out > db->n_bam_rec * thresh_reads){ //gpu run out of memory
@@ -856,7 +856,7 @@ void load_balance(core_t *core, db_t *db, double cpu_process_time,double gpu_pro
         }
 
     }
-    
+
     else if(factor<-thresh_factor){ //gpu too much time
         load_balance_advisor(core,LB_T5_DEC_MAX_LF_EPK);
         if (core->opt.verbosity>1) INFO("%s", "GPU got too much work. If this message repeats, consider increasing --ultra-thresh or decreasing --cuda-max-lf or decreasing --cuda-max-epk. If you tried all that means your GPU is not powerful enough to match the CPU and just ignore.");
@@ -907,7 +907,7 @@ void memory_balance(core_t *core, db_t *db, double cpu_process_time,double gpu_p
 
     //read arrays > 70%
     if(read_array_usage>100-thresh*100){
-        
+
         //event arrays > 70%
         if(event_array_usage>100-thresh*100){
             if (core->opt.verbosity>1) fprintf(stderr,"[%s] GPU array usage good\n",__func__);
@@ -951,10 +951,10 @@ void memory_balance(core_t *core, db_t *db, double cpu_process_time,double gpu_p
                         memory_balance_advisor(core,MEM_S3_INC_B);
                         if (core->opt.verbosity>1) INFO("%s", "GPU arrays are not fully utilised. If this message repeats, consider increasing the --max-bases (-B option)");
                 }
-            }            
+            }
             else{
                 //b<B
-                if(db->sum_bases < core->opt.batch_size_bases){       
+                if(db->sum_bases < core->opt.batch_size_bases){
                     memory_balance_advisor(core,MEM_S4_INC_K);
                     if (core->opt.verbosity>1) INFO("%s", "GPU arrays are not fully utilised. If this message repeats, consider increasing the --batchsize (-K option)");
                 }
@@ -964,7 +964,7 @@ void memory_balance(core_t *core, db_t *db, double cpu_process_time,double gpu_p
             }
         }
     }
- 
+
 }
 
 
@@ -1227,7 +1227,7 @@ core->align_cuda_memcpy += (realtime() - realtime1);
 
 realtime1 = realtime();
 
-    if(n_bam_rec_cuda>0){ 
+    if(n_bam_rec_cuda>0){
     /*pre kernel*/
     assert(BLOCK_LEN_BANDWIDTH>=ALN_BANDWIDTH);
         dim3 gridpre(1,(n_bam_rec_cuda + BLOCK_LEN_READS - 1) / BLOCK_LEN_READS);
@@ -1246,7 +1246,7 @@ core->align_pre_kernel_time += (realtime() - realtime1);
 realtime1 = realtime();
 
     /* core kernel*/
-    if(n_bam_rec_cuda>0){ 
+    if(n_bam_rec_cuda>0){
         assert(BLOCK_LEN_BANDWIDTH>=ALN_BANDWIDTH);
         dim3 grid1(1,(n_bam_rec_cuda + BLOCK_LEN_READS - 1) / BLOCK_LEN_READS);
         dim3 block1(BLOCK_LEN_BANDWIDTH,BLOCK_LEN_READS);
@@ -1263,7 +1263,7 @@ core->align_core_kernel_time += (realtime() - realtime1);
 realtime1 = realtime();
 
     /*post kernel*/
-    if(n_bam_rec_cuda>0){ 
+    if(n_bam_rec_cuda>0){
         int32_t BLOCK_LEN = core->opt.cuda_block_size;
         dim3 gridpost((n_bam_rec_cuda + BLOCK_LEN - 1) / BLOCK_LEN);
         dim3 blockpost(BLOCK_LEN);

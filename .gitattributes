@@ -2,8 +2,8 @@
 *.h text eol=lf
 *.cpp text eol=lf
 *.hpp text eol=lf
-*.cu text eol=lf 
-*.cuh text eol=lf 
+*.cu text eol=lf
+*.cuh text eol=lf
 *.sh text eol=lf
 *.py text eol=lf
 Makefile text eol=lf

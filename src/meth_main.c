@@ -311,7 +311,7 @@ int meth_main(int argc, char* argv[], int8_t mode) {
             opt.cuda_mem_frac = atof(optarg);
         } else if(c == 0 && longindex == 26){ //check for empty strings
             tmpfile = optarg;
-        } else if(c == 0 && longindex == 27){ 
+        } else if(c == 0 && longindex == 27){
             if(tmpfile==NULL){
                 WARNING("%s", "ultra-thresh has no effect without skip-ultra");
             }
@@ -373,7 +373,7 @@ int meth_main(int argc, char* argv[], int8_t mode) {
             }
             if(opt.meth_out_version<1 || opt.meth_out_version>2){
                 ERROR("--meth-out-version accepts only 1 or 2. You entered %d",opt.meth_out_version);
-                exit(EXIT_FAILURE); 
+                exit(EXIT_FAILURE);
             }
         }
     }
@@ -391,7 +391,7 @@ int meth_main(int argc, char* argv[], int8_t mode) {
         fprintf(fp_help,"   -B FLOAT[K/M/G]            max number of bases loaded at once [%.1fM]\n",opt.batch_size_bases/(float)(1000*1000));
         fprintf(fp_help,"   -h                         help\n");
         fprintf(fp_help,"   -o FILE                    output to file [stdout]\n");
-        fprintf(fp_help,"   --iop INT                  number of I/O processes to read fast5 files [%d]\n",opt.num_iop);        
+        fprintf(fp_help,"   --iop INT                  number of I/O processes to read fast5 files [%d]\n",opt.num_iop);
         fprintf(fp_help,"   --min-mapq INT             minimum mapping quality [%d]\n",opt.min_mapq);
         fprintf(fp_help,"   --secondary=yes|no         consider secondary mappings or not [%s]\n",(opt.flag&F5C_SECONDARY_YES)?"yes":"no");
         fprintf(fp_help,"   --verbose INT              verbosity level [%d]\n",opt.verbosity);
@@ -673,7 +673,7 @@ int meth_main(int argc, char* argv[], int8_t mode) {
     if((core->load_db_time - core->process_db_time) > (core->process_db_time*0.2) ){
         INFO("Performance bounded by file I/O. File I/O took %.3f sec than processing",core->load_db_time - core->process_db_time);
     }
-#endif 
+#endif
 
     #ifdef HAVE_CUDA
         fprintf(stderr, "max-lf: %.2f, avg-epk: %.2f, max-epk: %.2f, K: %d, B: %ld, T: %d, Ultra: %ld, Align: %.3f, Diff: %.3f\n",

@@ -352,7 +352,7 @@ core_t* init_core(const char* bamfilename, const char* fastafile,
         }
         hts_parse_reg(opt.region_str, &(core->clip_start) , &(core->clip_end));
     }
-    
+
 
     //open the bam file for writing skipped ultra long reads
     core->ultra_long_tmp=NULL; //todo :  at the moment this is used to detect if the load balance mode is enabled. A better method in the opt flags.
@@ -710,7 +710,7 @@ ret_status_t load_db1(core_t* core, db_t* db) { //old method
         result = sam_itr_next(core->m_bam_fh, core->itr, record);
         core->db_bam_time += realtime() - t;
 
-        //set read index 
+        //set read index
         db->read_idx[i]= core->read_index;
         core->read_index +=1;
 
@@ -997,7 +997,7 @@ ret_status_t load_db2(core_t* core, db_t* db) { //separately load fast5 for mult
         result = sam_itr_next(core->m_bam_fh, core->itr, record);
         core->db_bam_time += realtime() - t;
 
-        //set read index 
+        //set read index
         db->read_idx[i]= core->read_index;
         core->read_index +=1;
 
@@ -1383,7 +1383,7 @@ void meth_single(core_t* core, db_t* db, int32_t i){
                   db->bam_rec[i],db->read_len[i],
                   i,
                   core->clip_start,
-                  core->clip_end,  
+                  core->clip_end,
                   &(db->et[i]), core->model,db->base_to_event_map[i],db->scalings[i],db->events_per_base[i], db->f5[i]->sample_rate);
         }
     }
@@ -1489,8 +1489,8 @@ void process_single(core_t* core, db_t* db,int32_t i) {
                   db->bam_rec[i],db->read_len[i],
                   i,
                   core->clip_start,
-                  core->clip_end,  
-                  &(db->et[i]), core->model,db->base_to_event_map[i],db->scalings[i],db->events_per_base[i],db->f5[i]->sample_rate);    
+                  core->clip_end,
+                  &(db->et[i]), core->model,db->base_to_event_map[i],db->scalings[i],db->events_per_base[i],db->f5[i]->sample_rate);
     }
 }
 
@@ -1637,7 +1637,7 @@ void output_db(core_t* core, db_t* db) {
                     // fprintf(stderr, "%s\t%.2lf\t", qname, diff);
                     // fprintf(stderr, "%.2lf\t%.2lf\t", sum_ll_m, sum_ll_u);
                     // fprintf(stderr, "%d\t%d\t%s\n", ss.strands_scored, ss.n_cpg, ss.sequence.c_str());
-                    
+
                     // output only if inside the window boundaries
                     if( !( (core->clip_start != -1 && ss.start_position < core->clip_start) ||
                         (core->clip_end != -1 && ss.end_position >= core->clip_end) ) ) {

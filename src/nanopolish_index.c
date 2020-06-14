@@ -117,7 +117,7 @@ void index_file_from_fast5(ReadDB& read_db, const std::string& fn)
                 std::string read_id = group_name.substr(prefix.size());
                 read_db.add_signal_path(read_id, fn);
             }
-        }  
+        }
     } else {
         std::string read_id = fast5_get_read_id_single_fast5(f5_file);
         if(read_id != "") {
@@ -126,7 +126,7 @@ void index_file_from_fast5(ReadDB& read_db, const std::string& fn)
     }
     free(fast5_path);
     fast5_close(f5_file);
-} 
+}
 
 //
 void index_path(ReadDB& read_db, const std::string& path, const std::multimap<std::string, std::string>& fast5_to_read_name_map)

@@ -4,8 +4,8 @@
 CC       = gcc
 CXX      = g++
 LANG 	 = -x c++
-CFLAGS   += -g -Wall -O2 -std=c++11 
-LDFLAGS  += $(LIBS) -lpthread -lz -rdynamic 
+CFLAGS   += -g -Wall -O2 -std=c++11
+LDFLAGS  += $(LIBS) -lpthread -lz -rdynamic
 BUILD_DIR = build
 
 BINARY = f5c
@@ -82,17 +82,17 @@ $(BUILD_DIR)/hmm.o: src/hmm.c src/f5c.h src/fast5lite.h src/f5cmisc.h src/matrix
 	$(CXX) $(CFLAGS) $(CPPFLAGS) $(LANG) $< -c -o $@
 
 $(BUILD_DIR)/freq.o: src/freq.c src/khash.h
-	$(CXX) $(CFLAGS) $(CPPFLAGS) $(LANG) $< -c -o $@	
+	$(CXX) $(CFLAGS) $(CPPFLAGS) $(LANG) $< -c -o $@
 
 $(BUILD_DIR)/eventalign.o: src/eventalign.c
 	$(CXX) $(CFLAGS) $(CPPFLAGS) $(LANG) $< -c -o $@
 
 $(BUILD_DIR)/freq_merge.o: src/freq_merge.c
 	$(CXX) $(CFLAGS) $(CPPFLAGS) $(LANG) $< -c -o $@
-	
+
 # cuda stuff
 $(BUILD_DIR)/gpucode.o: $(CUDA_OBJ)
-	$(NVCC) $(CUDA_CFLAGS) -dlink $^ -o $@ 
+	$(NVCC) $(CUDA_CFLAGS) -dlink $^ -o $@
 
 $(BUILD_DIR)/f5c_cuda.o: src/f5c.cu src/error.h src/f5c.h src/fast5lite.h src/f5cmisc.cuh src/f5cmisc.h
 	$(NVCC) -x cu $(CUDA_CFLAGS) $(CPPFLAGS) -rdc=true -c $< -o $@
@@ -132,12 +132,12 @@ $(BUILD_DIR)/lib/libhdf5.a:
 	make -j8 && \
 	make install
 
-clean: 
+clean:
 	rm -rf $(BINARY) $(BUILD_DIR)/*.o
 
 # Delete all gitignored files (but not directories)
 distclean: clean
-	git clean -f -X 
+	git clean -f -X
 	rm -rf $(BUILD_DIR)/* autom4te.cache
 
 dist: distclean
@@ -150,7 +150,7 @@ dist: distclean
 	tar -zcf f5c-$(VERSION)-release.tar.gz f5c-$(VERSION)
 	rm -rf f5c-$(VERSION)
 
-binary: 
+binary:
 	mkdir -p f5c-$(VERSION)
 	make clean
 	make cuda=1 && mv f5c f5c-$(VERSION)/f5c_x86_64_linux_cuda && make clean

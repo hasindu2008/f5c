@@ -20,7 +20,7 @@ AlwaysBreakBeforeMultilineStrings: false
 AlwaysBreakTemplateDeclarations: false
 BinPackArguments: true
 BinPackParameters: true
-BraceWrapping:   
+BraceWrapping:
   AfterClass:      false
   AfterControlStatement: false
   AfterEnum:       false
@@ -55,12 +55,12 @@ DerivePointerAlignment: false
 DisableFormat:   false
 ExperimentalAutoDetectBinPacking: false
 FixNamespaceComments: true
-ForEachMacros:   
+ForEachMacros:
   - foreach
   - Q_FOREACH
   - BOOST_FOREACH
 IncludeBlocks:   Preserve
-IncludeCategories: 
+IncludeCategories:
   - Regex:           '^"(llvm|llvm-c|clang|clang-c)/'
     Priority:        2
   - Regex:           '^(<|"(gtest|gmock|isl|json)/)'
@@ -90,7 +90,7 @@ PenaltyBreakString: 1000
 PenaltyExcessCharacter: 1000000
 PenaltyReturnTypeOnItsOwnLine: 60
 PointerAlignment: Left
-RawStringFormats: 
+RawStringFormats:
   - Delimiter:       pb
     Language:        TextProto
     BasedOnStyle:    google
@@ -112,4 +112,3 @@ Standard:        Cpp11
 TabWidth:        8
 UseTab:          Never
 ...
-
