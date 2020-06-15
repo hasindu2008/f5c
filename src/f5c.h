@@ -18,7 +18,7 @@
 //required for eventalign
 #include <vector>
 
-#define F5C_VERSION "0.4"
+#define F5C_VERSION "0.4-dirty"
 
 /* hard coded numbers*/
 #define KMER_SIZE 6 //hard coded for now; todo : change to dynamic?
