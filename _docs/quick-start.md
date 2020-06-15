@@ -8,9 +8,9 @@ Note that currently the binary only runs on *x86_64* platform.
 For example:
 
 ```sh
-VERSION=v0.3-beta
-wget "https://github.com/hasindu2008/f5c/releases/download/$VERSION/f5c-$VERSION-binaries.tar.gz" 
-tar xvf f5c-$VERSION-binaries.tar.gz 
+VERSION=v0.4
+wget "https://github.com/hasindu2008/f5c/releases/download/$VERSION/f5c-$VERSION-binaries.tar.gz"
+tar xvf f5c-$VERSION-binaries.tar.gz
 cd f5c-$VERSION/
 ./f5c_x86_64_linux        # CPU version
 ./f5c_x86_64_linux_cuda   # cuda supported version

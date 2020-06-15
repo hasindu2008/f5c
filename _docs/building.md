@@ -11,7 +11,7 @@ git clone https://github.com/hasindu2008/f5c && cd f5c
 Alternatively, download the [latest release](https://github.com/hasindu2008/f5c/releases) tarball and extract.
 eg :
 ```sh
-VERSION=v0.3-beta
+VERSION=v0.4
 wget "https://github.com/hasindu2008/f5c/releases/download/$VERSION/f5c-$VERSION-release.tar.gz" && tar xvf f5c-$VERSION-release.tar.gz && cd f5c-$VERSION/
 ```
 
@@ -71,4 +71,3 @@ autoreconf                      # skip if compiling a release, only required whe
 ./configure --enable-systemhts
 make                            # or make cuda=1 if compiling for CUDA
 ```
-
