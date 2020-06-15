@@ -104,7 +104,8 @@ int main(int argc, char* argv[]){
         print_usage(stderr);
     }
 
-    fprintf(stderr, "\n[%s] CMD:", __func__);
+    fprintf(stderr,"[%s] Version: %s\n", __func__,F5C_VERSION);
+    fprintf(stderr, "[%s] CMD:", __func__);
     for (int i = 0; i < argc; ++i) {
         fprintf(stderr, " %s", argv[i]);
     }

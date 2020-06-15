@@ -1763,7 +1763,7 @@ void free_db(db_t* db) {
 
 void init_opt(opt_t* opt) {
     memset(opt, 0, sizeof(opt_t));
-    opt->min_mapq = 30;
+    opt->min_mapq = 20;
     opt->batch_size = 512;
     opt->batch_size_bases = 2*1000*1000;
     opt->num_thread = 8;
@@ -1794,35 +1794,33 @@ void init_opt(opt_t* opt) {
 //CHANGE: function that sets the parameter values based on specified profile name or config file.
 int set_profile(char *profile, opt_t *opt){
     //Load preset value if argument passed is the name of a machine for which there is a default profile
-    if(strcmp(profile,"nanojet") == 0){
+    if(strcmp(profile,"jetson-nano") == 0){
         set_opt_profile(opt,Nanojet);
-    }else if(strcmp(profile,"jetson") == 0){
-        set_opt_profile(opt,Jetson);
-    }else if(strcmp(profile,"xavier") == 0){
+    }else if(strcmp(profile,"jetson-tx2") == 0){
+        set_opt_profile(opt,JetsonTx2);
+    }else if(strcmp(profile,"jetson-xavier") == 0){
         set_opt_profile(opt,Xavier);
     }else{
         //Try to read from .profile file
         //profile name specifies a file from which to read values from.
         FILE *fptr = fopen(profile, "r");
+        F_CHK(fptr,profile);
         int32_t batch_size, num_thread;
         int64_t batch_size_bases, ultra_thresh;
         float cuda_max_readlen,cuda_avg_events_per_kmer,cuda_max_avg_events_per_kmer;
-        if(fptr == NULL){
-            fprintf(stderr,"File not found\n");
-            return 1;
-        }
 
         //read file and set parameter values
         int result = fscanf(fptr, "%f %f %f %d %" PRId64 " %d %" PRId64,
         &cuda_max_readlen,&cuda_avg_events_per_kmer,&cuda_max_avg_events_per_kmer,
         &batch_size,&batch_size_bases,&num_thread,&ultra_thresh);
 
-        fprintf(stderr,"PROFILE LOADED\nbatch_size: %d\nbatch_size_bases: %ld\nnum_thread: %d\nultra_thresh: %ld\ncuda_max_readlen: %f\ncuda_avg_events_per_kmer: %.2f\ncuda_max_avg_events_per_kmer: %.2f\n",
-        batch_size,(long)batch_size_bases,num_thread,(long)ultra_thresh,cuda_max_readlen,cuda_avg_events_per_kmer,cuda_max_avg_events_per_kmer);
+        fprintf(stderr,"[%s] Profile loaded\n",__func__);
+        fprintf(stderr,"[%s] batch_size: %d\nbatch_size_bases: %ld\nnum_thread: %d\nultra_thresh: %ld\ncuda_max_readlen: %f\ncuda_avg_events_per_kmer: %.2f\ncuda_max_avg_events_per_kmer: %.2f\n",
+        __func__,batch_size,(long)batch_size_bases,num_thread,(long)ultra_thresh,cuda_max_readlen,cuda_avg_events_per_kmer,cuda_max_avg_events_per_kmer);
 
         if(result < 7){
-            fprintf(stderr,"Error reading config file.\n");
-            return 1;
+            ERROR("%s","Malformed profile config file.");
+            exit(EXIT_FAILURE);
         }
 
         set_opts(opt,batch_size,batch_size_bases,num_thread,ultra_thresh,cuda_max_readlen,
@@ -1839,7 +1837,7 @@ void set_opt_profile(opt_t *opt, parameters machine){
     opt->batch_size = machine.batch_size;
     opt->batch_size_bases = machine.batch_size_bases;
     opt->num_thread = machine.num_thread;
-    opt->ultra_thresh = machine.num_thread;
+    opt->ultra_thresh = machine.ultra_thresh;
 }
 
 //CHANGE: helper function to set user specified options. Pass -1 to corresponding arg if using default parameter value.

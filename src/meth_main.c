@@ -610,7 +610,7 @@ int meth_main(int argc, char* argv[], int8_t mode) {
 #endif
 
 
-    fprintf(stderr, "\n[%s] total entries: %ld, qc fail: %ld, could not calibrate: %ld, no alignment: %ld, bad fast5: %ld",
+    fprintf(stderr, "[%s] total entries: %ld, qc fail: %ld, could not calibrate: %ld, no alignment: %ld, bad fast5: %ld",
              __func__,(long)core->total_reads, (long)core->qc_fail_reads, (long)core->failed_calibration_reads, (long)core->failed_alignment_reads, (long)core->bad_fast5_file);
     fprintf(stderr,"\n[%s] total bases: %.1f Mbases",__func__,core->sum_bases/(float)(1000*1000));
 
@@ -676,7 +676,7 @@ int meth_main(int argc, char* argv[], int8_t mode) {
 #endif
 
     #ifdef HAVE_CUDA
-        fprintf(stderr, "max-lf: %.2f, avg-epk: %.2f, max-epk: %.2f, K: %d, B: %ld, T: %d, Ultra: %ld, Align: %.3f, Diff: %.3f\n",
+        fprintf(stderr, "[%s] max-lf: %.2f, avg-epk: %.2f, max-epk: %.2f, K: %d, B: %ld, T: %d, Ultra: %ld, Align: %.3f, Diff: %.3f\n", __func__,
         opt.cuda_max_readlen,opt.cuda_avg_events_per_kmer,opt.cuda_max_avg_events_per_kmer,opt.batch_size,opt.batch_size_bases,opt.num_thread,opt.ultra_thresh,
         core->align_time,core->extra_load_cpu);
     #endif
