@@ -60,29 +60,29 @@ void* safe_malloc(size_t size) {
     return p;
 }
 
-/* Format chromosome, start and end to colon-delimited string. */
+/* Format chromosome, start and end to tab-delimited string. */
 char* make_key(char* chromosome, int start, int end) {
     int start_strlen = snprintf(NULL, 0, "%d", start);
     int end_strlen = snprintf(NULL, 0, "%d", end);
     int key_strlen = strlen(chromosome) + start_strlen + end_strlen + 3;
     char* key = ALLOC(char, key_strlen);
-    snprintf(key, key_strlen, "%s:%d:%d", chromosome, start, end);
+    snprintf(key, key_strlen, "%s\t%d\t%d", chromosome, start, end);
     return key;
 }
 
-/* Split colon-delimited keys */
+/* Split tab-delimited keys */
 char** split_key(char* key, int size) {
     char** tok = ALLOC(char*, size);
     char* cpy = strdup(key);
     char* cpy_start = cpy;
 
-    char* t = strtok(cpy, ":");
+    char* t = strtok(cpy, "\t");
     if (t) {
         tok[0] = strdup(t);
     }
 
     for (int i = 1; i < size; i++) {
-        char* t = strtok(NULL, ":");
+        char* t = strtok(NULL, "\t");
         if (t) {
             tok[i] = strdup(t);
         }
