@@ -16,6 +16,13 @@ enum HMMAlignmentFlags
     HAF_ALLOW_POST_CLIP = 2 // allow events to go unmatched after the aligning region
 };
 
+int set_profile(char* profile, opt_t *opt);
+void set_opts(opt_t *opt, int32_t batch_size, int64_t batch_size_bases, int32_t num_thread, int64_t ultra_thresh, float cuda_max_readlen, float cuda_avg_events_per_kmer, float cuda_max_avg_events_per_kmer); //CHANGE: Added method header
+void init_iop(core_t* core,opt_t opt);
+void free_iop(core_t* core,opt_t opt);
+ret_status_t load_db1(core_t* core, db_t* db);
+ret_status_t load_db2(core_t* core, db_t* db);
+
 event_table getevents(size_t nsample, float* rawptr);
 void read_model(model_t* model, const char* file);
 void set_model(model_t* model);
@@ -51,7 +58,7 @@ scalings_t scaling, model_t* cpgmodel,double events_per_base);
 void emit_event_alignment_tsv(FILE* fp,
                               uint32_t strand_idx,
                               const event_table* et, model_t* model, scalings_t scalings,
-                              const std::vector<event_alignment_t>& alignments, 
+                              const std::vector<event_alignment_t>& alignments,
                               int8_t print_read_names, int8_t scale_events, int8_t write_samples,
                               int64_t read_index, char* read_name, char *ref_name, float sample_rate);
 
@@ -62,8 +69,8 @@ void emit_sam_header(samFile* fp, const bam_hdr_t* hdr);
 void emit_event_alignment_sam(htsFile* fp,
                               char* read_name,
                               bam_hdr_t* base_hdr,
-                              bam1_t* base_record, 
-                              const std::vector<event_alignment_t>& alignments 
+                              bam1_t* base_record,
+                              const std::vector<event_alignment_t>& alignments
                               );
 
 void realign_read(std::vector<event_alignment_t>* event_alignment_result, EventalignSummary *summary, FILE *summary_fp,char* ref,
@@ -71,7 +78,7 @@ void realign_read(std::vector<event_alignment_t>* event_alignment_result, Eventa
                   const bam1_t* record, int32_t read_length,
                   size_t read_idx,
                   int region_start,
-                  int region_end, 
+                  int region_end,
                   event_table* events, model_t* model,index_pair_t* base_to_event_map,scalings_t scaling,double events_per_base, float sample_rate);
 
 //basically the functions in nanopolish_profile_hmm_r9.*
@@ -155,4 +162,3 @@ static inline void print_size(const char* name, uint64_t bytes)
 
 
 #endif
-

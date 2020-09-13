@@ -312,8 +312,8 @@ int32_t align(AlignedPair* out_2, char* sequence, int32_t sequence_len,
         // If the trim state is within the band, fill it in here
         int trim_offset = band_kmer_to_offset(band_idx, -1);
         if (is_offset_valid(trim_offset)) {
-            size_t event_idx = event_at_offset(band_idx, trim_offset);
-            if (event_idx >= 0 && event_idx < n_events) {
+            int64_t event_idx = event_at_offset(band_idx, trim_offset);
+            if (event_idx >= 0 && event_idx < (int64_t)n_events) {
                 BAND_ARRAY(band_idx,trim_offset) = lp_trim * (event_idx + 1);
                 TRACE_ARRAY(band_idx,trim_offset) = FROM_U;
             } else {

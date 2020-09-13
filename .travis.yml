@@ -20,8 +20,8 @@ jobs:
       addons:
         apt:
           packages:
-            - valgrind     
-      script: 
+            - valgrind
+      script:
         - autoreconf && ./scripts/install-hdf5.sh 2> /dev/null &&./scripts/install-hts.sh && ./configure --enable-localhdf5 && make && make test
         - valgrind --leak-check=full --error-exitcode=1 ./f5c call-methylation -b test/ecoli_2kb_region/reads.sorted.bam -g test/ecoli_2kb_region/draft.fa -r test/ecoli_2kb_region/reads.fasta -t 8 -K 256 -B 2M > /dev/null
     - name: "Ubuntu 16 pure make"
@@ -34,8 +34,8 @@ jobs:
         homebrew:
           packages:
             - hdf5
-          update: true  
-      script: autoreconf && ./scripts/install-hts.sh && ./configure && make && make test              
+          update: true
+      script: autoreconf && ./scripts/install-hts.sh && ./configure && make && make test
     - name: "OSX pure make"
       os: osx
       script: make && make test
@@ -46,18 +46,18 @@ jobs:
         apt:
           packages:
             - libhdf5-dev
-      before_script: 
+      before_script:
         - wget http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1404/x86_64/cuda-repo-ubuntu1404_7.0-28_amd64.deb
         - sudo dpkg -i cuda-repo-ubuntu1404_7.0-28_amd64.deb
         - sudo apt-get update -qq
         - sudo apt-get install -y cuda-drivers cuda-core-7-0 cuda-cudart-dev-7-0
         - sudo apt-get clean
         - sudo ln -s /usr/local/cuda-7.0/ ${CUDA_HOME}
-      script: autoreconf && ./scripts/install-hts.sh && ./configure && make cuda=1 
+      script: autoreconf && ./scripts/install-hts.sh && ./configure && make cuda=1
     - name: "Ubuntu 14 cuda 6.5"
       os: linux
       dist: trusty
-      before_script: 
+      before_script:
         - wget http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1404/x86_64/cuda-repo-ubuntu1404_7.0-28_amd64.deb
         - sudo dpkg -i cuda-repo-ubuntu1404_7.0-28_amd64.deb
         - sudo apt-get update -qq
@@ -72,12 +72,12 @@ jobs:
         apt:
           packages:
             - zlib1g-dev
-      script: autoreconf && ./scripts/install-hdf5.sh 2> /dev/null &&./scripts/install-hts.sh && ./configure --enable-localhdf5 && make && make test    
+      script: autoreconf && ./scripts/install-hdf5.sh 2> /dev/null &&./scripts/install-hts.sh && ./configure --enable-localhdf5 && make && make test
     - stage: deploy
       name: "GitHub Release"
       os: linux
       dist: trusty
-      before_script: 
+      before_script:
         - wget http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1404/x86_64/cuda-repo-ubuntu1404_7.0-28_amd64.deb
         - sudo dpkg -i cuda-repo-ubuntu1404_7.0-28_amd64.deb
         - sudo apt-get update -qq
@@ -97,7 +97,7 @@ jobs:
       deploy:
         provider: releases
         api_key:
-          secure: KT3XFGJDQaN4EIbjRqAxnNFcG3fpkSFKct32bupVdlTMbzoI2c9oPyYKmUESyJODZML2BAwKV1knXrzhU/8o+vEDmTFdQ5fRNNHP8kcx6RVIZMSsJ+rF2DDl7sitr0rndyPbT97ACbsSZSdRiWK8MKo6YeMUJNkhuBOjXISFl4uiNezK0HeFCepQdWwB8W7De/1kgNQa9ZL6O7deiB+6DDZOVF/jr/YvIxCjytGwhFW6E5/EDHVmTt+9aXRXVgffzq9Ltt5oS30uYfWNJfAsk+81XEnuZ7GUGSyN4N77Xk2cI1LD3E8m1kMHksd34tn0A97nT4CPPI+WoUootzLDh29fUmSDPXbqwCGFDk8FTVUSAuwxZQQAESJrFv9fVl1vWTh3Bj8NkzXAHgmTtaBCxeIUhN+pBX3d7QQMYGpUHGGdIENGpfVi9vnnAYSsYs1foJtfuhw534ejju4laZ0bXVUE0w5AAKEw8H1xA+lS413ugKwAXEX6naFAD6NkZaX3ISSVeewIqtIW6UFCNqt/U++OY9vcwzFDbUq/wEjZtNRLzXzHzaObomRsOKqldje3FxH9p1QIPZXWgLBx8FhdFG6P+Nilhifq7Dcgx1dybKGTWOOurXrPKVgC9bLtXe/49LVMk5TirYtj2gXmlofi1SD52T9HpZVWH9haJ+Rnjso=
+          secure: GxxykACnOG9AFT2jnYGVtIKnteIojPjD5xtQlK49GVrmnM9ymXLaAtWhg1+IfxV2EKoDiuElNq+4RijNJubpzKnauyi6xdaHZN8Q2FwL4sqWqU0Xv953wYhCOgyzdJ0aHPeG8eK+PhsFetTekfdGz28yEakPPNSb+fPxawvIG+noEAenXMxOEddX8nybeU6C7FQxij3YDtztxNJN99lwZyYM72Polylh+K6H2JFCvH8JFhi/EYJSW8MtL/R2axE7q9n8T19n1OCufjh7t5vVzdFGmPtpq3HsBsyGXIjcBGqygO2DieA3zLp6tlxApDNbv6oFPZ8eNjir1XE5eex8RspIWWHW/RTRqAuU2W2mkL9HTVWGpafnBNwCL7LaxEIigRQXavfeucFRJSAyZ42EyzDaZxeYMGO7uIgLFzmxNXSKYbWEgvFo/7f2y6FlFQhpsf88fiaFDexW/A4dCaSG6EoMel5B95uV68/VqPk1jOBMi8h1NsaV74vTn3ttThAHGzhPYNUGfHCpNmI7v9mhpaQx1s25gEYIVFRJIBPM7Qa5Pmk29Wx+4PA2eAePh5LsNUjHjA7HscAFzDa4WyTLt7e6FG0nMSOiHSF32N4zxzlTUsIZ9RFx2MB/rVYIc9e5Cj4wsvnMtJm93G0KfVDKiU2b9K+7lzuURmdTGWYMb9k=
         file_glob: true
         file: f5c-*.tar.gz
         skip_cleanup: true

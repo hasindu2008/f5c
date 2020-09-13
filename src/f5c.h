@@ -1,6 +1,6 @@
-/* @f5c
+/* @file f5c.h
 **
-** f5c interface
+** f5c framework interface
 ** @author: Hasindu Gamaarachchi (hasindu@unsw.edu.au)
 ** @@
 ******************************************************************************/
@@ -15,19 +15,24 @@
 #include "fast5lite.h"
 #include "nanopolish_read_db.h"
 
-//required for eventalign
-#include <vector>
+#include <vector> //required for eventalign
 
-#define F5C_VERSION "0.3-beta-dirty"
+#define F5C_VERSION "0.4-dirty"
 
-/* hard coded numbers*/
+/*******************************
+ * major hard coded parameters *
+ *******************************/
+
 #define KMER_SIZE 6 //hard coded for now; todo : change to dynamic?
 #define NUM_KMER 4096   //num k-mers for 6-mers DNA
 #define NUM_KMER_METH 15625 //number k-mers for 6-mers with methylated C
 //#define HAVE_CUDA 1 //if compiled for CUDA or not
 #define ALN_BANDWIDTH 100 // the band size in adaptive_banded_dynamic_alignment
 
-/*flags related to the user specified options (opt_t)*/
+/*******************************************************
+ * flags related to the user specified options (opt_t) *
+ *******************************************************/
+
 #define F5C_PRINT_RAW 0x001     //print the raw signal to stdio
 #define F5C_SECONDARY_YES 0x002 //consider secondary reads
 #define F5C_SKIP_UNREADABLE 0x004 //Skip unreadable fast5 and continue rather than exiting
@@ -44,16 +49,20 @@
 #define F5C_PRINT_RNAME 0x2000 // print read names instead of indexes (eventalign only)
 #define F5C_PRINT_SAMPLES 0x4000 //write the raw samples for the event to the tsv output (eventalign only)
 
+/*************************************************************
+ * flags for a read status (related to db_t->read_stat_flag) *
+ *************************************************************/
 
-/*flags for a read status (related to db_t->read_stat_flag)*/
 #define FAILED_CALIBRATION 0x001 //if the calibration failed
 #define FAILED_ALIGNMENT 0x002 //if the alignment failed
 #define FAILED_QUALITY_CHK  0x004 //if the quality check failed
 
 
-/* other hard coded options */
+/*******************************
+ * other hard coded parameters *
+ *******************************/
 
-/*CPU thread scheduling options for multithreading framework for processing*/
+//CPU thread scheduling options for multithreading framework for processing
 #define WORK_STEAL 1 //simple work stealing enabled or not (no work stealing mean no load balancing)
 #define STEAL_THRESH 1 //stealing threshold for the CPU only sections
 #define STEAL_THRESH_CUDA 0 //stealing threshold for the CPU part in a GPU accelerated workload
@@ -70,11 +79,13 @@
 #define ESL_LOG_SUM 1 // enable the fast log sum for HMM
 
 
-typedef int64_t ptr_t;
+/**********************************
+ * data types and data structures *
+ **********************************/
 
-/* data structures */
+typedef int64_t ptr_t; //abstract pointer data type
 
-//user options
+/* user specified options */
 typedef struct {
     int32_t min_mapq;           //minimum mapq
     const char* model_file;     //name of the model file
@@ -91,7 +102,7 @@ typedef struct {
     char *region_str; //the region string in format chr:start-end
     int8_t meth_out_version; //output tsv version for call-methylation
 
-    //todo : these are required only for HAVE_CUDA (but need to chnage the meth_main accordingly)
+    //todo : these are required only for HAVE_CUDA (but need to change the meth_main accordingly)
     int32_t cuda_block_size; //?
     float cuda_max_readlen; //max-lf
     float cuda_avg_events_per_kmer; //avg-epk
@@ -100,7 +111,7 @@ typedef struct {
     float cuda_mem_frac;
 } opt_t;
 
-// a single event : adapted from taken from scrappie
+/* a single signal-space event : adapted from taken from scrappie */
 typedef struct {
     uint64_t start;
     float length; //todo : cant be made int?
@@ -110,7 +121,7 @@ typedef struct {
     //int32_t state; //todo : always -1 can be removed
 } event_t;
 
-// event table : adapted from scrappie
+/* event table : adapted from scrappie */
 typedef struct {
     size_t n;     //todo : int32_t not enough?
     size_t start; //todo : always 0?
@@ -118,14 +129,13 @@ typedef struct {
     event_t* event;
 } event_table;
 
-//k-mer model
+/* k-mer model */
 typedef struct {
     float level_mean;
     float level_stdv;
 
 #ifdef CACHED_LOG
-    //calculated for efficiency
-    float level_log_stdv;
+    float level_log_stdv;     //pre-calculated for efficiency
 #endif
 
 #ifdef LOAD_SD_MEANSSTDV
@@ -135,7 +145,7 @@ typedef struct {
 #endif
 } model_t;
 
-//scaling parameters for the signal : taken from nanopolish
+/* scaling parameters for the signal : taken from nanopolish */
 typedef struct {
     // direct parameters that must be set
     float scale;
@@ -145,33 +155,32 @@ typedef struct {
     //float scale_sd;
     //float var_sd;
 
-    // derived parameters that are cached for efficiency
 #ifdef CACHED_LOG
-    float log_var;
+    float log_var;    // derived parameters that are cached for efficiency
 #endif
     //float scaled_var;
     //float log_scaled_var;
 } scalings_t;
 
-//from nanopolish
+/* from nanopolish */
 typedef struct {
         int event_idx;
         int kmer_idx;
 } EventKmerPair;
 
-//from nanopolish
+/* from nanopolish */
 typedef struct {
     int ref_pos;
     int read_pos;
 } AlignedPair;
 
-//from nanopolish
+/* from nanopolish */
 typedef struct {
     int32_t start;
     int32_t stop; // inclusive
 } index_pair_t;
 
-//from nanopolish
+/* from nanopolish */
 typedef struct {
     // ref data
     //char* ref_name;
@@ -189,7 +198,7 @@ typedef struct {
     char hmm_state;
 } event_alignment_t;
 
-//from nanopolish
+/* from nanopolish */
 struct ScoredSite
 {
     //toto : clean up unused
@@ -217,8 +226,7 @@ struct ScoredSite
     static bool sort_by_position(const ScoredSite& a, const ScoredSite& b) { return a.start_position < b.start_position; }
 };
 
-//eventalign related
-// Summarize the event alignment for a read strand
+/*  Summarize the event alignment for a read strand : taken from nanopolish*/
 typedef struct
 {
     // //cleanup this part
@@ -244,9 +252,7 @@ typedef struct
     int reference_span;
 }EventalignSummary;
 
-
-
-// a data batch (dynamic data based on the reads)
+/* a batch of read data (dynamic data based on the reads) */
 typedef struct {
     // region string
     //char* region;
@@ -263,6 +269,7 @@ typedef struct {
     //read sequence //todo : optimise by grabbing it from bam seq. is it possible due to clipping?
     char** read;
     int32_t* read_len;
+    int64_t* read_idx; //the index of the read entry in the BAM file
 
     // fast5 file //should flatten this to reduce mallocs
     fast5_t** f5;
@@ -302,10 +309,9 @@ typedef struct {
     //TODO : convert this to a C array and get rid of include <vector>
     std::vector<event_alignment_t> **event_alignment_result;
 
-
 } db_t;
 
-//cuda core data structure : allocated array pointers
+/* cuda core data structure (allocated array pointers, mostly static data throughout the program lifetime).  */
 #ifdef HAVE_CUDA
     typedef struct{
     ptr_t* event_ptr_host;
@@ -340,7 +346,7 @@ typedef struct {
     } cuda_data_t;
 #endif
 
-//core data structure (mostly static data throughout the program lifetime)
+/* core data structure (mostly static data throughout the program lifetime) */
 typedef struct {
     // bam file related
     htsFile* m_bam_fh;
@@ -439,7 +445,7 @@ typedef struct {
 
 } core_t;
 
-//argument wrapper for the multithreading framework for processing
+/* argument wrapper for the multithreaded framework used for data processing */
 typedef struct {
     core_t* core;
     db_t* db;
@@ -456,7 +462,7 @@ typedef struct {
 #endif
 } pthread_arg_t;
 
-//argument wrapper for Input/processing/output interleave thread framework
+/* argument wrapper for multithreaded framework used for input/processing/output interleaving */
 typedef struct {
     core_t* core;
     db_t* db;
@@ -466,20 +472,30 @@ typedef struct {
     int8_t finished;
 } pthread_arg2_t;
 
-//return status by the load_db - used for termination when all the data is processed
+/* return status by the load_db - used for termination when all the data is processed */
 typedef struct {
     int32_t num_reads;
     int64_t num_bases;
 } ret_status_t;
 
+/******************************************
+ * function prototype for major functions *
+ ******************************************/
 
-/* Function prototype for major functions */
-
+/* initialise a data batch */
 db_t* init_db(core_t* core);
+
+/* load a data batch from disk */
 ret_status_t load_db(core_t* dg, db_t* db);
+
+/* initialise the core data structure */
 core_t* init_core(const char* bamfilename, const char* fastafile,
                   const char* fastqfile, const char* tmpfile, opt_t opt,double realtime0, int8_t mode, char *eventalignsummary);
+
+/* process a data batch */
 void process_db(core_t* dg, db_t* db);
+
+
 void pthread_db(core_t* core, db_t* db, void (*func)(core_t*,db_t*,int));
 void align_db(core_t* core, db_t* db);
 void align_single(core_t* core, db_t* db, int32_t i);
@@ -488,13 +504,10 @@ void free_core(core_t* core,opt_t opt);
 void free_db_tmp(db_t* db);
 void free_db(db_t* db);
 void init_opt(opt_t* opt);
-int set_profile(char* profile, opt_t *opt); //CHANGE: Added method header
-void set_opts(opt_t *opt, int32_t batch_size, int64_t batch_size_bases, int32_t num_thread, int64_t ultra_thresh, float cuda_max_readlen, float cuda_avg_events_per_kmer, float cuda_max_avg_events_per_kmer); //CHANGE: Added method header
 
 #ifdef HAVE_CUDA
     void init_cuda(core_t* core);
     void free_cuda(core_t* core);
-
 #endif
 
 /* Function prototypes for other non-major functions are in f5cmisc.h (and f5cmisc.cuh for CUDA)*/

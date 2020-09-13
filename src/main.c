@@ -1,6 +1,6 @@
 /* @f5c
 **
-** main 
+** main
 ** @author: Hasindu Gamaarachchi (hasindu@unsw.edu.au)
 ** @@
 ******************************************************************************/
@@ -52,7 +52,7 @@ int print_usage(FILE *fp_help){
     fprintf(fp_help,"         call-methylation    Classify nucleotides as methylated or not (optimised nanopolish call-methylation)\n");
     fprintf(fp_help,"         meth-freq           Calculate methylation frequency at genomic CpG sites (optimised nanopolish calculate_methylation_frequency.py)\n");
     fprintf(fp_help,"         eventalign          Align nanopore events to reference k-mers (optimised nanopolish eventalign)\n");
-    fprintf(fp_help,"         freq-merge          Merge calculated methylation frequency tsv files)\n\n");
+    fprintf(fp_help,"         freq-merge          Merge calculated methylation frequency tsv files\n\n");
     if(fp_help==stderr){
         exit(EXIT_FAILURE);
     }
@@ -63,7 +63,7 @@ int print_usage(FILE *fp_help){
         assert(0);
     }
 
-    
+
 }
 
 
@@ -85,7 +85,7 @@ int main(int argc, char* argv[]){
     }
     else if(strcmp(argv[1],"eventalign")==0){
         ret=meth_main(argc-1, argv+1,1);
-    }    
+    }
     else if(strcmp(argv[1],"meth-freq")==0){
         ret=freq_main(argc-1, argv+1);
     }
@@ -104,7 +104,8 @@ int main(int argc, char* argv[]){
         print_usage(stderr);
     }
 
-    fprintf(stderr, "\n[%s] CMD:", __func__);
+    fprintf(stderr,"[%s] Version: %s\n", __func__,F5C_VERSION);
+    fprintf(stderr, "[%s] CMD:", __func__);
     for (int i = 0; i < argc; ++i) {
         fprintf(stderr, " %s", argv[i]);
     }
