@@ -104,18 +104,14 @@ $(BUILD_DIR)/eventalign.o: src/eventalign.c
 	$(CXX) $(CFLAGS) $(CPPFLAGS) $(LANG) $< -c -o $@
 
 $(BUILD_DIR)/freq_merge.o: src/freq_merge.c
-<<<<<<< HEAD
-	$(CXX) $(CFLAGS) $(CPPFLAGS) $< -c -o $@
-
-#simd stuff
-$(BUILD_DIR)/align_simd.o: src/align_simd.c src/f5c.h src/fast5lite.h
-	$(CXX) $(CFLAGS) $(CPPFLAGS) $< -c -o $@
-=======
 	$(CXX) $(CFLAGS) $(CPPFLAGS) $(LANG) $< -c -o $@
 
 $(BUILD_DIR)/profiles.o: src/profiles.c src/profiles.h
 	$(CXX) $(CFLAGS) $(CPPFLAGS) $(LANG) $< -c -o $@
->>>>>>> dev
+
+#simd stuff
+$(BUILD_DIR)/align_simd.o: src/align_simd.c src/f5c.h src/fast5lite.h
+	$(CXX) $(CFLAGS) $(CPPFLAGS) $(LANG) $< -c -o $@
 
 # cuda stuff
 $(BUILD_DIR)/gpucode.o: $(CUDA_OBJ)
