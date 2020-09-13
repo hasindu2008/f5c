@@ -12,6 +12,7 @@ BINARY = f5c
 OBJ = $(BUILD_DIR)/main.o \
       $(BUILD_DIR)/meth_main.o \
       $(BUILD_DIR)/f5c.o \
+	  $(BUILD_DIR)/f5cio.o \
       $(BUILD_DIR)/events.o \
       $(BUILD_DIR)/nanopolish_read_db.o \
       $(BUILD_DIR)/nanopolish_index.o \
@@ -22,7 +23,8 @@ OBJ = $(BUILD_DIR)/main.o \
       $(BUILD_DIR)/hmm.o \
       $(BUILD_DIR)/freq.o \
       $(BUILD_DIR)/eventalign.o \
-      $(BUILD_DIR)/freq_merge.o
+      $(BUILD_DIR)/freq_merge.o \
+	  $(BUILD_DIR)/profiles.o
 
 PREFIX = /usr/local
 VERSION = `git describe --tags`
@@ -30,7 +32,7 @@ VERSION = `git describe --tags`
 ifdef cuda
     CUDA_ROOT = /usr/local/cuda
     CUDA_LIB ?= $(CUDA_ROOT)/lib64
-    CUDA_OBJ = $(BUILD_DIR)/f5c_cuda.o $(BUILD_DIR)/align_cuda.o
+    CUDA_OBJ = $(BUILD_DIR)/f5c_cuda.o $(BUILD_DIR)/f5c_cuda_gpuonly.o $(BUILD_DIR)/align_cuda.o
     NVCC ?= nvcc
     CUDA_CFLAGS += -g  -O2 -std=c++11 -lineinfo $(CUDA_ARCH) -Xcompiler -Wall
     CUDA_LDFLAGS = -L$(CUDA_LIB) -lcudart_static -lrt -ldl
@@ -55,6 +57,9 @@ $(BUILD_DIR)/meth_main.o: src/meth_main.c src/f5c.h src/fast5lite.h src/f5cmisc.
 	$(CXX) $(CFLAGS) $(CPPFLAGS) $(LANG) $< -c -o $@
 
 $(BUILD_DIR)/f5c.o: src/f5c.c src/f5c.h src/fast5lite.h src/f5cmisc.h
+	$(CXX) $(CFLAGS) $(CPPFLAGS) $(LANG) $< -c -o $@
+
+$(BUILD_DIR)/f5cio.o: src/f5cio.c src/f5c.h src/fast5lite.h src/f5cmisc.h
 	$(CXX) $(CFLAGS) $(CPPFLAGS) $(LANG) $< -c -o $@
 
 $(BUILD_DIR)/events.o: src/events.c src/f5c.h src/fast5lite.h src/f5cmisc.h src/fast5lite.h src/nanopolish_read_db.h src/ksort.h
@@ -90,11 +95,17 @@ $(BUILD_DIR)/eventalign.o: src/eventalign.c
 $(BUILD_DIR)/freq_merge.o: src/freq_merge.c
 	$(CXX) $(CFLAGS) $(CPPFLAGS) $(LANG) $< -c -o $@
 
+$(BUILD_DIR)/profiles.o: src/profiles.c src/profiles.h
+	$(CXX) $(CFLAGS) $(CPPFLAGS) $(LANG) $< -c -o $@
+
 # cuda stuff
 $(BUILD_DIR)/gpucode.o: $(CUDA_OBJ)
 	$(NVCC) $(CUDA_CFLAGS) -dlink $^ -o $@
 
 $(BUILD_DIR)/f5c_cuda.o: src/f5c.cu src/error.h src/f5c.h src/fast5lite.h src/f5cmisc.cuh src/f5cmisc.h
+	$(NVCC) -x cu $(CUDA_CFLAGS) $(CPPFLAGS) -rdc=true -c $< -o $@
+
+$(BUILD_DIR)/f5c_cuda_gpuonly.o: src/f5c_gpuonly.cu src/error.h src/f5c.h src/fast5lite.h src/f5cmisc.cuh src/f5cmisc.h
 	$(NVCC) -x cu $(CUDA_CFLAGS) $(CPPFLAGS) -rdc=true -c $< -o $@
 
 $(BUILD_DIR)/align_cuda.o: src/align.cu src/f5c.h src/fast5lite.h src/f5cmisc.cuh
