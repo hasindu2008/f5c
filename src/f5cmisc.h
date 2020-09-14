@@ -17,7 +17,6 @@ enum HMMAlignmentFlags
 };
 
 int set_profile(char* profile, opt_t *opt);
-void set_opts(opt_t *opt, int32_t batch_size, int64_t batch_size_bases, int32_t num_thread, int64_t ultra_thresh, float cuda_max_readlen, float cuda_avg_events_per_kmer, float cuda_max_avg_events_per_kmer); //CHANGE: Added method header
 void init_iop(core_t* core,opt_t opt);
 void free_iop(core_t* core,opt_t opt);
 ret_status_t load_db1(core_t* core, db_t* db);
