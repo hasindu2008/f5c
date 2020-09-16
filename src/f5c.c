@@ -106,13 +106,15 @@ core_t* init_core(const char* bamfilename, const char* fastafile,
 
     //load the model from files
     if (opt.model_file) {
-        read_model(core->model, opt.model_file);
+        read_model(core->model, opt.model_file, NUM_KMER);
     } else {
         set_model(core->model);
     }
-
-    //todo (low priority) : load the cpg model from file
-    set_cpgmodel(core->cpgmodel);
+    if (opt.meth_model_file) {
+        read_model(core->cpgmodel, opt.meth_model_file, NUM_KMER_METH);
+    } else {
+        set_cpgmodel(core->cpgmodel);
+    }
 
     core->opt = opt;
 

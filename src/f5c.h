@@ -88,7 +88,8 @@ typedef int64_t ptr_t; //abstract pointer data type
 /* user specified options */
 typedef struct {
     int32_t min_mapq;           //minimum mapq
-    const char* model_file;     //name of the model file
+    const char* model_file;     //name of the k-mer model file
+    const char* meth_model_file;//name of the methylation model file
     uint32_t flag;              //flags
     int32_t batch_size;         //max reads loaded at once: K
     int64_t batch_size_bases;   //max bases loaded at once: B

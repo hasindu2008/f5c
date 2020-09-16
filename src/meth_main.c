@@ -61,7 +61,7 @@ static struct option long_options[] = {
     {"version", no_argument, 0, 'V'},              //8
     {"min-mapq", required_argument, 0, 0},         //9 consider only reads with MAPQ>=min-mapq [30]
     {"secondary", required_argument, 0, 0},        //10 consider secondary alignments or not [yes]
-    {"kmer-model", required_argument, 0, 0},       //11 custom k-mer model file (used for debugging)
+    {"kmer-model", required_argument, 0, 0},       //11 custom nucleotide k-mer model file
     {"skip-unreadable", required_argument, 0, 0},  //12 skip any unreadable fast5 or terminate program [yes]
     {"print-events", required_argument, 0, 0},     //13 prints the event table (used for debugging)
     {"print-banded-aln", required_argument, 0, 0}, //14 prints the event alignment (used for debugging)
@@ -89,7 +89,8 @@ static struct option long_options[] = {
     {"print-read-names",no_argument,0,0},          //36 print read names instead of indexes (eventalign only)
     {"samples",no_argument,0,0},                   //37 write the raw samples for the event to the tsv output (eventalign only)
     {"meth-out-version",required_argument,0,0},    //38 specify the version of the tsv output for methylation (call-methylation only)
-    {"profile",required_argument, 0,'x'},          //CHANGE: 39 profile used to tune parameters for GPU
+    {"profile",required_argument, 0,'x'},          //39 profile used to tune parameters for GPU
+    {"meth-model",required_argument,0,0},          //40 custom methylation k-mer model file
     {0, 0, 0, 0}};
 
 
@@ -274,7 +275,7 @@ int meth_main(int argc, char* argv[], int8_t mode) {
             opt.min_mapq = atoi(optarg); //todo : check whether this is between 0 and 60
         } else if (c == 0 && longindex == 10) { //consider secondary mappings or not
             yes_or_no(&opt, F5C_SECONDARY_YES, longindex, optarg, 1);
-        } else if (c == 0 && longindex == 11) { //custom model file
+        } else if (c == 0 && longindex == 11) { //custom nucleotide model file
             opt.model_file = optarg;
         } else if (c == 0 && longindex == 12) {
             yes_or_no(&opt, F5C_SKIP_UNREADABLE, longindex, optarg, 1);
@@ -375,7 +376,14 @@ int meth_main(int argc, char* argv[], int8_t mode) {
                 ERROR("--meth-out-version accepts only 1 or 2. You entered %d",opt.meth_out_version);
                 exit(EXIT_FAILURE);
             }
+        } else if (c == 0 && longindex == 40){ //custom methylation k-mer model
+            if(mode!=0){
+                ERROR("%s","Option --meth-model is available only in call-methylation");
+                exit(EXIT_FAILURE);
+            }
+            opt.meth_model_file = optarg;
         }
+
     }
 
     if (fastqfile == NULL || bamfilename == NULL || fastafile == NULL || fp_help == stdout) {
@@ -405,7 +413,7 @@ int meth_main(int argc, char* argv[], int8_t mode) {
         fprintf(fp_help,"   --cuda-max-epk FLOAT       reads with events per kmer <= cuda_max_epk on GPU, rest on CPU [%.1f]\n",opt.cuda_max_avg_events_per_kmer);
 #endif
         fprintf(fp_help,"advanced options:\n");
-        fprintf(fp_help,"   --kmer-model FILE          custom k-mer model file\n");
+        fprintf(fp_help,"   --kmer-model FILE          custom nucleotide k-mer model file\n");
         fprintf(fp_help,"   --skip-unreadable=yes|no   skip any unreadable fast5 or terminate program [%s]\n",(opt.flag&F5C_SKIP_UNREADABLE?"yes":"no"));
         fprintf(fp_help,"   --print-events=yes|no      prints the event table\n");
         fprintf(fp_help,"   --print-banded-aln=yes|no  prints the event alignment\n");
@@ -419,6 +427,7 @@ int meth_main(int argc, char* argv[], int8_t mode) {
         fprintf(fp_help,"   --read-dump=yes|no         read from a fast5 dump file or not\n");
     if(mode==0){
         fprintf(fp_help,"   --meth-out-version [INT]   methylation tsv output version (set 2 to print the strand column) [%d]\n",opt.meth_out_version);
+        fprintf(fp_help,"   --meth-model FILE          custom methylation k-mer model file\n");
     }
     if(mode==1){
         fprintf(fp_help,"   --summary FILE             summarise the alignment of each read/strand in FILE\n");

@@ -23,7 +23,7 @@ ret_status_t load_db1(core_t* core, db_t* db);
 ret_status_t load_db2(core_t* core, db_t* db);
 
 event_table getevents(size_t nsample, float* rawptr);
-void read_model(model_t* model, const char* file);
+void read_model(model_t* model, const char* file, uint32_t num_kmer);
 void set_model(model_t* model);
 void set_cpgmodel(model_t* model);
 scalings_t estimate_scalings_using_mom(char* sequence, int32_t sequence_len,
