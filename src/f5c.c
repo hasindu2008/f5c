@@ -106,13 +106,15 @@ core_t* init_core(const char* bamfilename, const char* fastafile,
 
     //load the model from files
     if (opt.model_file) {
-        read_model(core->model, opt.model_file);
+        read_model(core->model, opt.model_file, NUM_KMER);
     } else {
         set_model(core->model);
     }
-
-    //todo (low priority) : load the cpg model from file
-    set_cpgmodel(core->cpgmodel);
+    if (opt.meth_model_file) {
+        read_model(core->cpgmodel, opt.meth_model_file, NUM_KMER_METH);
+    } else {
+        set_cpgmodel(core->cpgmodel);
+    }
 
     core->opt = opt;
 
@@ -540,19 +542,27 @@ void scaling_db(core_t* core, db_t* db){
 }
 
 void align_single(core_t* core, db_t* db, int32_t i) {
-    #ifdef HAVE_SIMD
-    if (!(core->opt.flag & F5C_DISABLE_SIMD)) {
-        db->n_event_align_pairs[i] = align_simd(
+    if ((db->et[i].n)/(float)(db->read_len[i]) < AVG_EVENTS_PER_KMER_MAX){
+        #ifdef HAVE_SIMD
+        if (!(core->opt.flag & F5C_DISABLE_SIMD)) {
+            db->n_event_align_pairs[i] = align_simd(
+                    db->event_align_pairs[i], db->read[i], db->read_len[i], db->et[i],
+                    core->model, db->scalings[i], db->f5[i]->sample_rate);
+        }
+        #endif
+
+        if (core->opt.flag & F5C_DISABLE_SIMD) {
+            db->n_event_align_pairs[i] = align(
                 db->event_align_pairs[i], db->read[i], db->read_len[i], db->et[i],
                 core->model, db->scalings[i], db->f5[i]->sample_rate);
+            //fprintf(stderr,"readlen %d,n_events %d\n",db->read_len[i],n_event_align_pairs);
+        }
     }
-    #endif
-
-    if (core->opt.flag & F5C_DISABLE_SIMD) {
-        db->n_event_align_pairs[i] = align(
-            db->event_align_pairs[i], db->read[i], db->read_len[i], db->et[i],
-            core->model, db->scalings[i], db->f5[i]->sample_rate);
-        //fprintf(stderr,"readlen %d,n_events %d\n",db->read_len[i],n_event_align_pairs);
+    else{//todo : too many avg events per base - oversegmented
+        db->n_event_align_pairs[i]=0;
+        if(core->opt.verbosity > 0){
+            STDERR("Skipping over-segmented read %s with %f events per base",bam_get_qname(db->bam_rec[i]), (db->et[i].n)/(float)(db->read_len[i]));
+        }
     }
 }
 

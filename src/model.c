@@ -8,15 +8,18 @@
 
 //#define DEBUG_MODEL_PRINT 1
 
-void read_model(model_t* model, const char* file) {
+void read_model(model_t* model, const char* file, uint32_t num_kmer) {
+
+    WARNING("Reading the model from file %s. This is an experimental feature. Use with caution", file);
+
     FILE* fp = fopen(file, "r");
     F_CHK(fp, file);
 
-    //these two are discarded from the model. hollow vars
+    //these two are discarded from the model. dummy vars
     char kmer[10];
     float weight;
 
-    //buffers for geline
+    //buffers for getline
     char* buffer =
         (char*)malloc(sizeof(char) * (100)); //READ+newline+nullcharacter
     MALLOC_CHK(buffer);
@@ -37,7 +40,7 @@ void read_model(model_t* model, const char* file) {
             //fprintf(stderr, "%s\n", buffer);
             continue;
         } else {
-            //as sd_mean and sd_stdv seems not to be used just read to the summy weight
+            //as sd_mean and sd_stdv seems not to be used just read to the dummy weight
             #ifdef LOAD_SD_MEANSSTDV
                 int32_t ret =
                     sscanf(buffer, "%s\t%f\t%f\t%f\t%f\t%f", kmer,
@@ -45,38 +48,38 @@ void read_model(model_t* model, const char* file) {
                         &model[num_k].sd_mean, &model[num_k].sd_stdv, &weight);
             #else
                 int32_t ret =
-                    sscanf(buffer, "%s\t%f\t%f\t%f\t%f\t%f", kmer,
+                    sscanf(buffer, "%s\t%f\t%f\t%f\t%f", kmer,
                         &model[num_k].level_mean, &model[num_k].level_stdv,
-                        &weight, &weight, &weight);
+                        &weight, &weight);
             #endif
             #ifdef CACHED_LOG
                 model[num_k].level_log_stdv=log(model[num_k].level_stdv);
             #endif
             num_k++;
-            if (ret != 6) {
+            if (ret != 5) {
                 ERROR("File %s is corrupted at line %d", file, i);
             }
-            if (num_k > NUM_KMER) {
+            if (num_k > num_kmer) {
                 ERROR("File %s has too many entries. Expected %d kmers in the "
                       "model, but file had more than that",
-                      file, NUM_KMER);
+                      file, num_kmer);
                 exit(EXIT_FAILURE);
             }
         }
         i++;
     }
 
-    if (num_k != NUM_KMER) {
+    if (num_k != num_kmer) {
         ERROR("File %s prematurely ended. Expected %d kmers in the model, but "
-              "file had only%d",
-              file, NUM_KMER, num_k);
+              "file had only %d",
+              file, num_kmer, num_k);
         exit(EXIT_FAILURE);
     }
 
 #ifdef DEBUG_MODEL_PRINT
     i = 0;
     fprintf(stderr, "level_mean\tlevel_stdv\tsd_mean\tsd_stdv\n");
-    for (i = 0; i < NUM_KMER; i++) {
+    for (i = 0; i < num_kmer; i++) {
         fprintf(stderr, "%f\t%f\t%f\t%f\n", model[i].level_mean,
                 model[i].level_stdv, model[i].sd_mean, model[i].sd_stdv);
     }

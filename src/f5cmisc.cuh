@@ -12,7 +12,7 @@
 
 #define CUDA_DEBUG 1 //whether perform CUDA_device_synchronise or not
 #define CUDA_PRE_MALLOC 1 //whether static cuda/cpu arrays are preallocated
-//#define CPU_GPU_PROC 1 //CUDA_PRE_MALLOC should be always 1 if this is set
+#define CPU_GPU_PROC 1 //CUDA_PRE_MALLOC should be always 1 if this is set
 //#define CUDA_DYNAMIC_MALLOC 1 //only effective with CPU_GPU_PROC (whether big dynamic loops are statically preallocated)
 #define WARP_HACK 1 //whether the kernels are  performed in 1D with a warp hack (effective only  if specific TWODIM_ALIGN is not defined)
 
@@ -32,8 +32,6 @@
 //if average events per base of a read < AVG_EVENTS_PER_KMER_GPU_THRESH process on GPU
 //else go for the CPU
 #define AVG_EVENTS_PER_KMER_GPU_THRESH (core->opt.cuda_max_avg_events_per_kmer)
-
-#define AVG_EVENTS_PER_KMER_MAX 15.0f //if average events per base of a read >AVG_EVENTS_PER_KMER_MAX do not process
 
 #define TEGRA_MEM_FACTOR 0.7f //in tegra we cannot grab all  (can be overriden by user options)
 //the free memory as we have to reserve some space for RAM as well

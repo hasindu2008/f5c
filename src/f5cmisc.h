@@ -9,6 +9,8 @@
 #define MIN_CALIBRATION_VAR 2.5
 #define MAX_EVENT_TO_BP_RATIO 20
 
+#define AVG_EVENTS_PER_KMER_MAX 15.0f //if average events per base of a read >AVG_EVENTS_PER_KMER_MAX do not process
+
 // Flags to modify the behaviour of the HMM
 enum HMMAlignmentFlags
 {
@@ -17,14 +19,13 @@ enum HMMAlignmentFlags
 };
 
 int set_profile(char* profile, opt_t *opt);
-void set_opts(opt_t *opt, int32_t batch_size, int64_t batch_size_bases, int32_t num_thread, int64_t ultra_thresh, float cuda_max_readlen, float cuda_avg_events_per_kmer, float cuda_max_avg_events_per_kmer); //CHANGE: Added method header
 void init_iop(core_t* core,opt_t opt);
 void free_iop(core_t* core,opt_t opt);
 ret_status_t load_db1(core_t* core, db_t* db);
 ret_status_t load_db2(core_t* core, db_t* db);
 
 event_table getevents(size_t nsample, float* rawptr);
-void read_model(model_t* model, const char* file);
+void read_model(model_t* model, const char* file, uint32_t num_kmer);
 void set_model(model_t* model);
 void set_cpgmodel(model_t* model);
 scalings_t estimate_scalings_using_mom(char* sequence, int32_t sequence_len,
