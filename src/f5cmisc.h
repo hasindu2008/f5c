@@ -9,6 +9,8 @@
 #define MIN_CALIBRATION_VAR 2.5
 #define MAX_EVENT_TO_BP_RATIO 20
 
+#define AVG_EVENTS_PER_KMER_MAX 15.0f //if average events per base of a read >AVG_EVENTS_PER_KMER_MAX do not process
+
 // Flags to modify the behaviour of the HMM
 enum HMMAlignmentFlags
 {
