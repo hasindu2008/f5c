@@ -21,8 +21,8 @@ else
 fi
 # execution mode (valgrind/gdb/cpu/cuda/echo)
 mode=
-testset_url="http://genome.cse.unsw.edu.au/tmp/f5c_ecoli_2kb_region_test.tgz"
-fallback_url="https://ndownloader.figshare.com/files/13784075?private_link=b04e3976eaed2225b848"
+testset_url="https://f5c.page.link/f5c_ecoli_2kb_region_test"
+fallback_url="https://f5c.page.link/f5c_ecoli_2kb_region_test_fallback"
 
 # download test set given url
 #
@@ -42,6 +42,15 @@ download_test_set() {
 	rm -f $tar_path
 }
 
+
+download_ecoli_2kb_region_big_testresults() {
+	mkdir -p test
+	tar_path=test/data.tgz
+	wget -O $tar_path "https://f5c.page.link/f5c_ecoli_2kb_region_big_testresults" || rm -rf $tar_path ${testdir}_big_testresults
+	echo "Extracting. Please wait."
+	tar -xf $tar_path -C test || rm -rf $tar_path ${testdir}_big_testresults
+	rm -f $tar_path
+}
 
 
 handle_tests() {
@@ -74,10 +83,11 @@ execute_test() {
 	tail -n +2 ${testdir}/eventalign.summary.exp | awk '{print $1"\t"$2"\t"$3"\tdna\t"$4"\t"$5"\t"$6"\t"$7"\t"$8"\t"$9"\t"$10"\t"$11"\t"$12"\t"$13}' > ${testdir}/nanopolish.summary.txt
 	tail -n +2 ${testdir}/f5c_event_align.summary.txt | awk '{print $1"\t"$2"\t"$3"\t"$4"\t"$5"\t"$6"\t"$7"\t"$8"\t"$9"\t"$10"\t"$11"\t"$12"\t"$13"\t"$14}' > ${testdir}/f5c.summary.txt
 	#join ${testdir}/nanopolish.summary.txt ${testdir}/f5c.summary.txt > ${testdir}/joined_results.txt || echo "Join ran into an issue. Probably just a warning."
+	#todo : this must be fixed for join with two columns ideally
 	paste ${testdir}/nanopolish.summary.txt ${testdir}/f5c.summary.txt > ${testdir}/joined_results.txt || echo "Join ran into an issue. Probably just a warning."
 	#if [ $testdir = test/chr22_meth_example ]; then
 	awk -f  scripts/test_eventalign_summary.awk ${testdir}/joined_results.txt > ${testdir}/joined_diff.txt || handle_tests "${file}"
-	#else	
+	#else
 	#	awk -f  scripts/test_eventalign_summary.awk ${testdir}/joined_results.txt || die "${file}: Validation failed"
 	#fi
 	echo "----------------summaries are good---------------------------------------------"
@@ -85,13 +95,14 @@ execute_test() {
 	if [ $testdir = test/chr22_meth_example ]; then
 		echo "event by event test not implemented not yet implemented!"
 	else
-		test -d ${testdir}_big_testresults || mkdir ${testdir}_big_testresults/
-		test -e ${testdir}_big_testresults/eventalign.exp || wget "http://genome.cse.unsw.edu.au/tmp/f5c_ecoli_2kb_region_test_eventalign.exp.gz" -O ${testdir}_big_testresults/eventalign.exp.gz 
-		test -e ${testdir}_big_testresults/eventalign.exp || gunzip ${testdir}_big_testresults/eventalign.exp.gz
+		test -d ${testdir}_big_testresults || download_ecoli_2kb_region_big_testresults
+		#test -e ${testdir}_big_testresults/eventalign.exp || wget "http://genome.cse.unsw.edu.au/tmp/f5c_ecoli_2kb_region_test_eventalign.exp.gz" -O ${testdir}_big_testresults/eventalign.exp.gz
+		#test -e ${testdir}_big_testresults/eventalign.exp || gunzip ${testdir}_big_testresults/eventalign.exp.gz
 		#tail -n +2 ${testdir}_big_testresults/eventalign.exp | awk 		'{print $1"\t"$2"\t"$3"\t"$4"\t"$5"\t"$6"\t"$7"\t"$8"\t"$10"\t"$11"\t"$12"\t"$13"\t"$14}'  > ${testdir}/nanopolish.txt
 		tail -n +2 ${testdir}_big_testresults/eventalign.exp   > ${testdir}/nanopolish.txt
 		#tail -n +2 ${testdir}/result.txt | awk '{print $1"\t"$2"\t"$3"\t"$4"\t"$5"\t"$6"\t"$7"\t"$8"\t"$10"\t"$11"\t"$12"\t"$13"\t"$14}' > ${testdir}/f5c.txt
 		tail -n +2 ${testdir}/result.txt  > ${testdir}/f5c.txt
+		#todo : this must be fixed for join with two columns ideally
 		paste ${testdir}/nanopolish.txt ${testdir}/f5c.txt > ${testdir}/joined_results.txt
 		awk -f  scripts/test_eventalign.awk ${testdir}/joined_results.txt > ${testdir}/joined_diff.txt || handle_tests2 "${file}"
 	fi
@@ -142,11 +153,11 @@ do
 		   bamfile=${testdir}/reads.sorted.bam
 		   ref=${testdir}/humangenome.fa
 		   reads=${testdir}/reads.fastq
-		   testset_url="http://genome.cse.unsw.edu.au/tmp/f5c_na12878_test.tgz"
-		   fallback_url="https://ndownloader.figshare.com/files/13784792?private_link=5dd2077f1041412a9518";;
+		   testset_url="https://f5c.page.link/f5c_na12878_test"
+		   fallback_url="https://f5c.page.link/f5c_na12878_test_fallback";;
 		K) batchsize="$OPTARG";;
 		B) max_bases="$OPTARG";;
-		d) download_test_set "http://genome.cse.unsw.edu.au/tmp/f5c_na12878_test.tgz" "https://ndownloader.figshare.com/files/13784792?private_link=5dd2077f1041412a9518"
+		d) download_test_set "https://f5c.page.link/f5c_na12878_test" "https://f5c.page.link/f5c_na12878_test_fallback"
 		   exit 0;;
 		h) help_msg
 		   exit 0;;

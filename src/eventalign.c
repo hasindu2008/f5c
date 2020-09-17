@@ -251,7 +251,7 @@ static inline uint32_t get_rank(char base) {
     } else if (base == 'T') {
         return 3;
     } else if (base == 'N') {
-        return 0;        
+        return 0;
     } else {
         WARNING("A None ACGTN base found : %c", base);
         return 0;
@@ -521,11 +521,11 @@ inline float profile_hmm_fill_generic_r9(const char *m_seq,
             scores.x[HMT_FROM_SOFT] = (kmer_idx == 0 &&
                                         (event_idx == e_start ||
                                              (hmm_flags & HAF_ALLOW_PRE_CLIP))) ? lp_sm + pre_flank[row - 1] : -INFINITY;
-            // fprintf(stderr, "%f %f %f %f %f %f %f \n",scores.x[0],scores.x[1],scores.x[2],scores.x[3],scores.x[4],scores.x[5]);                           
+            // fprintf(stderr, "%f %f %f %f %f %f %f \n",scores.x[0],scores.x[1],scores.x[2],scores.x[3],scores.x[4],scores.x[5]);
 
             output.update_cell(row, curr_block_offset + PSR9_MATCH, scores, lp_emission_m);
             // fprintf(stderr, "cell value = %f\n",output.get(row, curr_block_offset + PSR9_MATCH));
-    
+
             // state PSR9_BAD_EVENT
             scores.x[HMT_FROM_SAME_M] = bt.lp_mb + output.get(row - 1, curr_block_offset + PSR9_MATCH);
             scores.x[HMT_FROM_PREV_M] = -INFINITY; // not allowed
@@ -533,7 +533,7 @@ inline float profile_hmm_fill_generic_r9(const char *m_seq,
             scores.x[HMT_FROM_PREV_B] = -INFINITY;
             scores.x[HMT_FROM_PREV_K] = -INFINITY;
             scores.x[HMT_FROM_SOFT] = -INFINITY;
-            // fprintf(stderr, "%f %f %f %f %f %f %f \n",scores.x[0],scores.x[1],scores.x[2],scores.x[3],scores.x[4],scores.x[5]);                           
+            // fprintf(stderr, "%f %f %f %f %f %f %f \n",scores.x[0],scores.x[1],scores.x[2],scores.x[3],scores.x[4],scores.x[5]);
             output.update_cell(row, curr_block_offset + PSR9_BAD_EVENT, scores, lp_emission_b);
             // fprintf(stderr, "cell value = %f\n",output.get(row, curr_block_offset + PSR9_BAD_EVENT));
 
@@ -552,7 +552,7 @@ inline float profile_hmm_fill_generic_r9(const char *m_seq,
             // last kmer/event match.
                 tester_inside++;
             if(kmer_idx == last_kmer_idx && ( (hmm_flags & HAF_ALLOW_POST_CLIP) || row == last_event_row_idx)) {
-                // fprintf(stderr, "inside\n");    
+                // fprintf(stderr, "inside\n");
                 float lp1 = lp_ms + output.get(row, curr_block_offset + PSR9_MATCH) + post_flank[row - 1];
                 float lp2 = lp_ms + output.get(row, curr_block_offset + PSR9_BAD_EVENT) + post_flank[row - 1];
                 float lp3 = lp_ms + output.get(row, curr_block_offset + PSR9_KMER_SKIP) + post_flank[row - 1];
@@ -605,7 +605,7 @@ inline float profile_hmm_fill_generic_r9(const char *m_seq,
     //     for(size_t j = 0 ; j < output.get_num_columns(); j++){
     //         woutput_mat << output.get(i,j) << " ";
     //     }
-    // }    
+    // }
     return output.get_end();
 }
 
@@ -617,7 +617,7 @@ class ProfileHMMViterbiOutputR9
 {
     public:
         ProfileHMMViterbiOutputR9(FloatMatrix* pf, UInt8Matrix* pb) : p_fm(pf), p_bm(pb), lp_end(-INFINITY) {}
-        
+
         inline void update_cell(uint32_t row, uint32_t col, const HMMUpdateScores& scores, float lp_emission)
         {
             // probability update
@@ -631,7 +631,7 @@ class ProfileHMMViterbiOutputR9
             set(*p_fm, row, col, max + lp_emission);
             set(*p_bm, row, col, from);
         }
-        
+
         // add in the probability of ending the alignment at row,col
         inline void update_end(float v, uint32_t row, uint32_t col)
         {
@@ -653,7 +653,7 @@ class ProfileHMMViterbiOutputR9
         {
             return lp_end;
         }
-        
+
         // get the row/col that lead to the end state
         inline void get_end_cell(uint32_t& row, uint32_t& col)
         {
@@ -670,7 +670,7 @@ class ProfileHMMViterbiOutputR9
         {
             return p_fm->n_rows;
         }
-    
+
     private:
         ProfileHMMViterbiOutputR9(); // not allowed
 
@@ -771,7 +771,7 @@ static inline std::vector<HMMAlignmentState> profile_hmm_align(
                                 cpgmodel,
                                 e_start,
                                 e_end,
-                                strand,     
+                                strand,
                                 event_stride,
                                 rc,
                                 e_start,
@@ -784,7 +784,7 @@ static inline std::vector<HMMAlignmentState> profile_hmm_align(
     //         woutput_mat_3 << output.get(i,j) << " ";
     //     }
     // }
-   
+
 
 
    //? profile_hmm_fill_generic_r9(sequence, data, e_start, flags, output);
@@ -842,14 +842,14 @@ static inline std::vector<HMMAlignmentState> profile_hmm_align(
             // fprintf(stderr, "HMT_FROM_SOFT , row = %d \n", row);
             break;
         }
-        
+
         // update kmer_idx and state
         ProfileStateR9 next_ps;
         switch(movement) {
-            case HMT_FROM_SAME_M: 
+            case HMT_FROM_SAME_M:
                 next_ps = PSR9_MATCH;
                 break;
-            case HMT_FROM_PREV_M: 
+            case HMT_FROM_PREV_M:
                 kmer_idx -= 1;
                 next_ps = PSR9_MATCH;
                 break;
@@ -869,10 +869,10 @@ static inline std::vector<HMMAlignmentState> profile_hmm_align(
                 break;
             case HMT_NUM_MOVEMENT_TYPES:
                 assert(0);
-                break;    
+                break;
             default:
                 assert(0);
-                break;    
+                break;
         }
 
         // update row (event) idx only if this isn't a kmer skip, which is silent
@@ -885,7 +885,7 @@ static inline std::vector<HMMAlignmentState> profile_hmm_align(
         col = PSR9_NUM_STATES * (kmer_idx + 1) + next_ps;
     }
     // fprintf(stderr, "row = %d\n",row);
-    // fprintf(stderr, "tester_j = %d\n",tester_j);    
+    // fprintf(stderr, "tester_j = %d\n",tester_j);
 
 #if HMM_REVERSE_FIX
 // change the strand of the kmer indices if we aligned to the reverse strand
@@ -933,12 +933,12 @@ static void trim_aligned_pairs_to_ref_region(std::vector<AlignedPair>& aligned_p
 {
     std::vector<AlignedPair> trimmed;
     for(size_t i = 0; i < aligned_pairs.size(); ++i) {
-        if(aligned_pairs[i].ref_pos >= ref_start && 
+        if(aligned_pairs[i].ref_pos >= ref_start &&
            aligned_pairs[i].ref_pos <= ref_end) {
             trimmed.push_back(aligned_pairs[i]);
         }
     }
-    
+
     aligned_pairs.swap(trimmed);
 }
 //from nanopolish eventalign.c
@@ -959,7 +959,7 @@ static void trim_aligned_pairs_to_kmer(std::vector<AlignedPair>& aligned_pairs, 
 
 //from https://github.com/hasindu2008/f5c/blob/64d9d51cd773e46e1a72dbf2e2bf333be24df7c4/meth.c
 //helper for get_closest_event_to
-static inline int get_next_event(int start, int stop, int stride,index_pair_t* base_to_event_map) 
+static inline int get_next_event(int start, int stop, int stride,index_pair_t* base_to_event_map)
 {
     while(start != stop) {
 
@@ -1128,11 +1128,11 @@ static std::vector<AlignedSegment> get_aligned_segments_two_params(const bam1_t*
     // query pos is an index in the query string that is recorded in the bam
     // we record this as a sanity check
     //int query_pos = 0;
-    
+
     int ref_pos = c->pos;
 
     for (uint32_t ci = 0; ci < c->n_cigar; ++ci) {
-        
+
         int cigar_len = cigar[ci] >> 4;
         int cigar_op = cigar[ci] & 0xf;
 
@@ -1140,7 +1140,7 @@ static std::vector<AlignedSegment> get_aligned_segments_two_params(const bam1_t*
         // based on the cigar operation
         int read_inc = 0;
         int ref_inc = 0;
- 
+
         // Process match between the read and the reference
         bool is_aligned = false;
         if(cigar_op == BAM_CMATCH || cigar_op == BAM_CEQUAL || cigar_op == BAM_CDIFF) {
@@ -1148,7 +1148,7 @@ static std::vector<AlignedSegment> get_aligned_segments_two_params(const bam1_t*
             read_inc = read_stride;
             ref_inc = 1;
         } else if(cigar_op == BAM_CDEL) {
-            ref_inc = 1;   
+            ref_inc = 1;
         } else if(cigar_op == BAM_CREF_SKIP) {
             // end the current segment and start a new one
             out.push_back(AlignedSegment());
@@ -1223,7 +1223,7 @@ struct EventAlignmentParameters
         record = NULL;
         model = NULL;
         //strand_idx = NUM_STRANDS;
-        
+
         alphabet = "";
         read_idx = -1;
         region_start = -1;
@@ -1250,7 +1250,7 @@ struct EventAlignmentParameters
     //size_t strand_idx;
 
     double events_per_base;
-    
+
     // optional
     std::string alphabet;
     int read_idx; //todo : probably redundant
@@ -1276,23 +1276,23 @@ struct EventAlignmentParameters
     //const PoreModel* pore_model = params.get_model(); // --hasindu this is model now
 
     std::vector<event_alignment_t> alignment_output;
-    
+
 
     // Extract the reference subsequence for the entire alignment
     // int fetched_len = 0;
     int ref_offset = params.record->core.pos;
     // std::string ref_name(params.hdr->target_name[params.record->core.tid]);
-    // std::string ref_seq = get_reference_region_ts(params.fai, ref_name.c_str(), ref_offset, 
+    // std::string ref_seq = get_reference_region_ts(params.fai, ref_name.c_str(), ref_offset,
     //                                               bam_endpos(params.record), &fetched_len);
     // hasindu - a hack to get the reference sequence
     std::string ref_seq = ref;
     // fprintf(stderr, "std::string ref_seq len = %d\n",ref_seq.length());
 
-    
+
 
     // convert to upper case
     std::transform(ref_seq.begin(), ref_seq.end(), ref_seq.begin(), ::toupper);
-    
+
     // k from read pore model
     const uint32_t k = KMER_SIZE;
     // If the reference sequence contains ambiguity codes
@@ -1344,12 +1344,12 @@ struct EventAlignmentParameters
         // get the event range of the read to re-align
         int read_kidx_start = aligned_pairs.front().read_pos;
         int read_kidx_end = aligned_pairs.back().read_pos;
-        
+
         if(do_base_rc) {
             read_kidx_start = flip_k_strand(params.read_length,read_kidx_start, k);
             read_kidx_end = flip_k_strand(params.read_length,read_kidx_end, k);
         }
-        
+
         assert(read_kidx_start >= 0);
         assert(read_kidx_end >= 0);
 
@@ -1372,11 +1372,11 @@ struct EventAlignmentParameters
         size_t tester_i = 0;
         while( (forward && curr_start_event < last_event) ||
                (!forward && curr_start_event > last_event)) {
-            
+
         // while(tester_i == 0 ){
             // Get the index of the aligned pair approximately align_stride away
             int end_pair_idx = get_end_pair(aligned_pairs, curr_start_ref + align_stride, curr_pair_idx);
-        
+
             int curr_end_ref = aligned_pairs[end_pair_idx].ref_pos;
             int curr_end_read = aligned_pairs[end_pair_idx].read_pos;
 
@@ -1398,7 +1398,7 @@ struct EventAlignmentParameters
             // std::ofstream wfile("wfile");
             // wfile << fwd_subseq << "\n";
             // wfile << rc_subseq << "\n";
-            
+
             // Require a minimum amount of sequence to align to
             if(fwd_subseq.length() < 2 * k) {
                 break;
@@ -1412,15 +1412,15 @@ struct EventAlignmentParameters
             // is that we can get segments that have very few alignable events. We
             // just stop processing them for now
             int input_event_stop_idx = get_closest_event_to(curr_end_read, params.base_to_event_map, params.read_length-KMER_SIZE + 1);
-            
+
             // fprintf(stderr, "input_event_stop_idx = %d curr_start_event = %d\n",input_event_stop_idx, curr_start_event);
             if(abs((int)curr_start_event - input_event_stop_idx) < 2)
                 break;
             uint8_t input_strand = 0;
 
 
-            int8_t event_stride = curr_start_event < input_event_stop_idx ? 1 : -1;  
-            
+            int8_t event_stride = curr_start_event < input_event_stop_idx ? 1 : -1;
+
             // fprintf(stderr, "event_stride =  %d\n",event_stride);
             uint8_t input_rc = rc_flags[input_strand];
             std::vector<HMMAlignmentState> event_alignment = profile_hmm_align(
@@ -1435,8 +1435,8 @@ struct EventAlignmentParameters
                 k,  //uint32_t k, //KMER_SIZE
                 curr_start_event,   //uint32_t e_start, //curr_start_event;
                 input_event_stop_idx,   //uint32_t e_end, //input_event_stop_idx
-                event_stride);  //int8_t event_stride) // event_stride 
-            
+                event_stride);  //int8_t event_stride) // event_stride
+
 
 
             // fprintf(stderr, "std::vector<HMMAlignmentState> event_alignment len= %d\n",event_alignment.size());
@@ -1455,12 +1455,12 @@ struct EventAlignmentParameters
             // If we aligned to the last event, output everything and stop
             bool last_section = end_pair_idx == (int)aligned_pairs.size() - 1;
 
-           
+
 
             int last_event_output = 0;
             int last_ref_kmer_output = 0;
-            
-            for(; event_align_idx < event_alignment.size() && 
+
+            for(; event_align_idx < event_alignment.size() &&
                   (num_output < output_stride || last_section); event_align_idx++) {
 
 
@@ -1468,11 +1468,11 @@ struct EventAlignmentParameters
                 if(as.state != 'K' && (int)as.event_idx != curr_start_event) {
 
                     event_alignment_t ea;
-                    
-                    
+
+
                     ea.ref_position = curr_start_ref + as.kmer_idx;
                     std::string ref__kmer = ref_seq.substr(ea.ref_position - ref_offset, k);
-                    kmer_cpy(ea.ref_kmer, ref__kmer.c_str(),KMER_SIZE); 
+                    kmer_cpy(ea.ref_kmer, ref__kmer.c_str(),KMER_SIZE);
 
                     // event
                     ea.read_idx = params.read_idx;
@@ -1582,7 +1582,7 @@ EventalignSummary summarize_alignment(uint32_t strand_idx,
                                       const std::vector<event_alignment_t>& alignments, float sample_rate)
 {
     EventalignSummary summary;
- 
+
     summary.num_events = 0;
     summary.num_steps = 0;
     summary.num_stays = 0;
@@ -1700,7 +1700,7 @@ std::vector<uint32_t> event_alignment_to_cigar(const std::vector<event_alignment
             incoming = (r_step - 1) << BAM_CIGAR_SHIFT;
             incoming |= BAM_CDEL;
             out.push_back(incoming);
-            
+
             incoming = 1 << BAM_CIGAR_SHIFT;
             incoming |= BAM_CMATCH;
         } else {
@@ -1712,7 +1712,7 @@ std::vector<uint32_t> event_alignment_to_cigar(const std::vector<event_alignment
         // If the operation matches the previous, extend the length
         // otherwise append a new op
         if(bam_cigar_op(out.back()) == bam_cigar_op(incoming)) {
-            uint32_t sum = bam_cigar_oplen(out.back()) + 
+            uint32_t sum = bam_cigar_oplen(out.back()) +
                            bam_cigar_oplen(incoming);
             out.back() = sum << BAM_CIGAR_SHIFT | bam_cigar_op(incoming);
         } else {
@@ -1731,14 +1731,14 @@ std::vector<uint32_t> event_alignment_to_cigar(const std::vector<event_alignment
 void emit_event_alignment_sam(htsFile* fp,
                               char* read_name,
                               bam_hdr_t* base_hdr,
-                              bam1_t* base_record, 
-                              const std::vector<event_alignment_t>& alignments 
+                              bam1_t* base_record,
+                              const std::vector<event_alignment_t>& alignments
                               )
 {
     if(alignments.empty())
         return;
     bam1_t* event_record = bam_init1();
-    
+
     int strand_idx=0;
     // Variable-length data
     //std::string qname = read_name + (alignments.front().strand_idx == 0 ? ".template" : ".complement");
@@ -1753,7 +1753,7 @@ void emit_event_alignment_sam(htsFile* fp,
     event_record->core.flag = alignments.front().rc ? 16 : 0;
 
     event_record->core.l_qseq = 0;
-    
+
     event_record->core.mtid = -1;
     event_record->core.mpos = -1;
     event_record->core.isize = 0;
@@ -1766,23 +1766,23 @@ void emit_event_alignment_sam(htsFile* fp,
                            event_record->core.n_cigar * 4 + // 4 bytes per cigar op
                            event_record->core.l_qseq + // query seq
                            event_record->core.l_qseq; // query quality
-        
+
     // nothing copied yet
     event_record->l_data = 0;
-    
+
     // allocate data
     event_record->data = (uint8_t*)malloc(event_record->m_data);
 
     // copy q name
     assert(event_record->core.l_qname <= event_record->m_data);
-    strncpy(bam_get_qname(event_record), 
+    strncpy(bam_get_qname(event_record),
             qname.c_str(),
             event_record->core.l_qname);
     event_record->l_data += event_record->core.l_qname;
-    
+
     // cigar
     assert(event_record->l_data + event_record->core.n_cigar * 4 <= event_record->m_data);
-    memcpy(bam_get_cigar(event_record), 
+    memcpy(bam_get_cigar(event_record),
            &cigar[0],
            event_record->core.n_cigar * 4);
     event_record->l_data += event_record->core.n_cigar * 4;
@@ -1808,7 +1808,7 @@ inline float get_fully_scaled_level(const event_table* events,scalings_t scaling
     //float get_drift_scaled_level =  level - time * scalings.drift;
     //todo : is drift 0?
     float get_drift_scaled_level =  level ;
-    return (get_drift_scaled_level - scalings.shift) / scalings.scale;   
+    return (get_drift_scaled_level - scalings.shift) / scalings.scale;
 }
 
 inline model_t get_scaled_gaussian_from_pore_model_state(const event_table* events, model_t* models, scalings_t scaling,
@@ -1817,7 +1817,7 @@ inline model_t get_scaled_gaussian_from_pore_model_state(const event_table* even
 {
     float gp_mean =
     scaling.scale * models[kmer_rank].level_mean + scaling.shift;
-    float gp_stdv = models[kmer_rank].level_stdv * scaling.var; 
+    float gp_stdv = models[kmer_rank].level_stdv * scaling.var;
 
     model_t scaled_model;
     scaled_model.level_mean = gp_mean;
@@ -1853,7 +1853,7 @@ inline model_t get_scaled_gaussian_from_pore_model_state(const event_table* even
 void emit_event_alignment_tsv(FILE* fp,
                               uint32_t strand_idx,
                               const event_table* et, model_t* model, scalings_t scalings,
-                              const std::vector<event_alignment_t>& alignments, 
+                              const std::vector<event_alignment_t>& alignments,
                               int8_t print_read_names, int8_t scale_events, int8_t write_samples,
                               int64_t read_index, char* read_name, char *ref_name,float sample_rate)
 {
@@ -1871,8 +1871,8 @@ void emit_event_alignment_tsv(FILE* fp,
                     ref_name, //ea.ref_name.c_str(),
                     ea.ref_position,
                     ea.ref_kmer,
-                    read_index,
-                    't'); //"tc"[ea.strand_idx]); 
+                    (long)read_index,
+                    't'); //"tc"[ea.strand_idx]);
         }
         else
         {
@@ -1907,7 +1907,7 @@ void emit_event_alignment_tsv(FILE* fp,
 
             // scale model to the reads
             if(ea.hmm_state != 'B') {
-                
+
                 model_t model1 = get_scaled_gaussian_from_pore_model_state(et, model, scalings, rank, ea.event_idx );
                 model_mean = model1.level_mean;
                 model_stdv = model1.level_stdv;
@@ -1944,7 +1944,7 @@ void realign_read(std::vector<event_alignment_t>* event_alignment_result,Evental
                   const bam1_t* record,int32_t read_length,
                   size_t read_idx,
                   int region_start,
-                  int region_end, 
+                  int region_end,
                   event_table* events, model_t* model, index_pair_t* base_to_event_map, scalings_t scalings,
                   double events_per_base, float sample_rate)
 {
@@ -1954,7 +1954,7 @@ void realign_read(std::vector<event_alignment_t>* event_alignment_result,Evental
     // load read -- hasindu : we have to get rid of this sr
     //SquiggleRead sr(read_name, read_db, opt::write_samples ? SRF_LOAD_RAW_SAMPLES : 0);
 
-    //hiruna 
+    //hiruna
     //commented this
     // if(opt::verbose > 1) {
     //     fprintf(stderr, "Realigning %s [%zu]\n",
@@ -1976,7 +1976,7 @@ void realign_read(std::vector<event_alignment_t>* event_alignment_result,Evental
         //params.hdr = hdr;
         params.record = record;
        // params.strand_idx = strand_idx; -- hasindu : only 1 stand in our case
-        
+
         params.read_idx = read_idx;
         params.read_length = read_length;
         params.region_start = region_start;
@@ -1999,7 +1999,7 @@ void realign_read(std::vector<event_alignment_t>* event_alignment_result,Evental
         //EventalignSummary summary;
         //FILE* summary_fp = fopen("test/ecoli_2kb_region/f5c_event_align.summary","a");
         //F_CHK(summary_fp,"test/ecoli_2kb_region/f5c_event_align.summary");
-        //todo : fix this 
+        //todo : fix this
         //FILE *summary_fp = stderr;
         if(summary_fp != NULL) {
             *summary = summarize_alignment(0, params, alignment, sample_rate);
@@ -2016,10 +2016,10 @@ void realign_read(std::vector<event_alignment_t>* event_alignment_result,Evental
 
         // if(summary_fp != NULL)
         //     fprintf(stderr, "debug summary_fp != NULL alignment.size() = %d \n",alignment.size());
-        
+
         // if(summary.num_events > 0)
         //     fprintf(stderr, "debug summary.num_events > 0 read_idx = %d \n",read_idx);
-        
+
         // if(summary_fp != NULL && summary.num_events > 0) {
         //     size_t strand_idx = 0;
         //     fprintf(summary_fp, "%zu\t%s\t", read_idx, read_name.c_str());
@@ -2029,7 +2029,7 @@ void realign_read(std::vector<event_alignment_t>* event_alignment_result,Evental
 
         // }
         // fclose(summary_fp);
-        
+
     //}
 }
 

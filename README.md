@@ -14,7 +14,7 @@ First the reads have to be indexed using `f5c index`. Then invoke `f5c call-meth
 
 If you are a Linux user and want to quickly try out download the compiled binaries from the [latest release](https://github.com/hasindu2008/f5c/releases). For example:
 ```sh
-VERSION=v0.3-beta
+VERSION=v0.4
 wget "https://github.com/hasindu2008/f5c/releases/download/$VERSION/f5c-$VERSION-binaries.tar.gz" && tar xvf f5c-$VERSION-binaries.tar.gz && cd f5c-$VERSION/
 ./f5c_x86_64_linux        # CPU version
 ./f5c_x86_64_linux_cuda   # cuda supported version
@@ -26,10 +26,10 @@ Binaries should work on most Linux distributions and the only dependency is `zli
 Users are recommended to build from the  [latest release](https://github.com/hasindu2008/f5c/releases) tar ball. You need a compiler that supports C++11. Quick example for Ubuntu :
 ```sh
 sudo apt-get install libhdf5-dev zlib1g-dev   #install HDF5 and zlib development libraries
-VERSION=v0.3-beta
+VERSION=v0.4
 wget "https://github.com/hasindu2008/f5c/releases/download/$VERSION/f5c-$VERSION-release.tar.gz" && tar xvf f5c-$VERSION-release.tar.gz && cd f5c-$VERSION/
 scripts/install-hts.sh  # download and compile the htslib
-./configure             
+./configure
 make                    # make cuda=1 to enable CUDA support
 ```
 The commands to install hdf5 (and zlib) __development libraries__ on some popular distributions :
@@ -48,7 +48,7 @@ Instruction to build a docker image is detailed [here](https://hasindu2008.githu
 
 ### NVIDIA CUDA support
 
-To build for the GPU, you need to have the CUDA toolkit installed. Make nvcc (NVIDIA C Compiler) is in your PATH.  
+To build for the GPU, you need to have the CUDA toolkit installed. Make nvcc (NVIDIA C Compiler) is in your PATH.
 
 The building instructions are the same as above except that you should call make as :
 ```
@@ -80,7 +80,7 @@ Visit the [man page](https://hasindu2008.github.io/f5c/docs/commands) for all th
 Follow the same steps as in [Nanopolish tutorial](https://nanopolish.readthedocs.io/en/latest/quickstart_call_methylation.html) while replacing `nanopolish` with `f5c`. If you only want to perform a quick test of f5c :
 ```sh
 #download and extract the dataset including sorted alignments
-wget -O f5c_na12878_test.tgz "http://genome.cse.unsw.edu.au/tmp/f5c_na12878_test.tgz"
+wget -O f5c_na12878_test.tgz "https://f5c.page.link/f5c_na12878_test"
 tar xf f5c_na12878_test.tgz
 
 #index, call methylation and get methylation frequencies
@@ -91,7 +91,7 @@ f5c meth-freq -i chr22_meth_example/result.tsv > chr22_meth_example/freq.tsv
 f5c eventalign -b chr22_meth_example/reads.sorted.bam -g chr22_meth_example/humangenome.fa -r chr22_meth_example/reads.fastq > chr22_meth_example/events.tsv
 ```
 
-## Acknowledgement 
+## Acknowledgement
 This reuses code and methods from [Nanopolish](https://github.com/jts/nanopolish).
 The event detection code is from Oxford Nanopore's [Scrappie basecaller](https://github.com/nanoporetech/scrappie).
 Some code snippets have been taken from [Minimap2](https://github.com/lh3/minimap2) and [Samtools](http://samtools.sourceforge.net/).

@@ -64,9 +64,9 @@ log_probability_match_r9(scalings_t scaling, model_t* models, event_t* event,
                          int event_idx, uint32_t kmer_rank) {
     // event level mean, scaled with the drift value
     //strand = 0;
- #ifdef DEBUG_ADAPTIVE   
+ #ifdef DEBUG_ADAPTIVE
     assert(kmer_rank < 4096);
- #endif   
+ #endif
     //float level = read.get_drift_scaled_level(event_idx, strand);
 
     //float time =
@@ -129,7 +129,7 @@ log_probability_match_r9(scalings_t scaling, model_t* models, event_t* event,
 #else
     #define min_average_log_emission -5.0f
     #define epsilon 1e-10f
-#endif    
+#endif
 
 
 
@@ -155,7 +155,7 @@ __global__ void align_kernel_pre_2d(char* read,
         model_t* model_kmer_cache = &model_kmer_caches[read_ptr[i]];
         float *bands = &bands1[(read_ptr[i]+event_ptr[i])*ALN_BANDWIDTH];
         uint8_t *trace = &trace1[(read_ptr[i]+event_ptr[i])*ALN_BANDWIDTH];
-        EventKmerPair* band_lower_left = &band_lower_left1[read_ptr[i]+event_ptr[i]];    
+        EventKmerPair* band_lower_left = &band_lower_left1[read_ptr[i]+event_ptr[i]];
 
         //int32_t n_events = n_event;
         int32_t n_kmers = sequence_len - KMER_SIZE + 1;
@@ -185,7 +185,7 @@ __global__ void align_kernel_pre_2d(char* read,
         // Initialize
         // Precompute k-mer ranks to avoid doing this in the inner loop
 
-    // #ifdef  PRE_3D    
+    // #ifdef  PRE_3D
     //     if(band_i<n_kmers && band_j==0){
     // #else
     //     if(band_i<n_kmers){
@@ -244,20 +244,20 @@ __global__ void align_kernel_pre_2d(char* read,
 #define kmer_at_offset_shm(bi, offset) band_lower_left_shm[(bi)].kmer_idx + (offset)
 
 #define BAND_ARRAY_SHM(r, c) ( bands_shm[(r)][(c)] )
-__global__ void 
+__global__ void
 //__launch_bounds__(MY_KERNEL_MAX_THREADS, MY_KERNEL_MIN_BLOCKS)
 align_kernel_core_2d_shm(int32_t* read_len, ptr_t* read_ptr,
     event_t* event_table, int32_t* n_events1,
-    ptr_t* event_ptr, 
+    ptr_t* event_ptr,
     scalings_t* scalings, int32_t n_bam_rec,model_t* model_kmer_caches,float *band,uint8_t *traces, EventKmerPair* band_lower_lefts) {
-   
+
     int i = blockDim.y * blockIdx.y + threadIdx.y;
     int offset=blockIdx.x*blockDim.x+threadIdx.x;
 
     __shared__ float  bands_shm[3][ALN_BANDWIDTH];
     __shared__ EventKmerPair  band_lower_left_shm[3];
 
-    if (i < n_bam_rec && offset<ALN_BANDWIDTH) {   
+    if (i < n_bam_rec && offset<ALN_BANDWIDTH) {
 
         int32_t sequence_len = read_len[i];
         event_t* events = &event_table[event_ptr[i]];
@@ -281,7 +281,7 @@ align_kernel_core_2d_shm(int32_t* read_len, ptr_t* read_ptr,
         // this was empirically determined
         //double epsilon = 1e-10;
 
-#ifndef ALIGN_KERNEL_FLOAT       
+#ifndef ALIGN_KERNEL_FLOAT
         double lp_skip = log(epsilon);
         double lp_stay = log(p_stay);
         double lp_step = log(1.0 - exp(lp_skip) - exp(lp_stay));
@@ -295,7 +295,7 @@ align_kernel_core_2d_shm(int32_t* read_len, ptr_t* read_ptr,
         // dp matrix
         int32_t n_rows = n_events + 1;
         int32_t n_cols = n_kmers + 1;
-        int32_t n_bands = n_rows + n_cols;                                    
+        int32_t n_bands = n_rows + n_cols;
 
 
         BAND_ARRAY_SHM(0,offset) = BAND_ARRAY(2,offset);
@@ -310,7 +310,7 @@ align_kernel_core_2d_shm(int32_t* read_len, ptr_t* read_ptr,
 
         // fill in remaining bands
         for (int32_t band_idx = 2; band_idx < n_bands; ++band_idx) {
-            
+
             if(offset==0){
                 // Determine placement of this band according to Suzuki's adaptive algorithm
                 // When both ll and ur are out-of-band (ob) we alternate movements
@@ -331,10 +331,10 @@ align_kernel_core_2d_shm(int32_t* read_len, ptr_t* read_ptr,
 
                 if (right) {
                     band_lower_left[band_idx] = band_lower_left_shm[0] =
-                        move_right(band_lower_left_shm[1]);                        
+                        move_right(band_lower_left_shm[1]);
                 } else {
                     band_lower_left[band_idx] = band_lower_left_shm[0] =
-                        move_down(band_lower_left_shm[1]);                        
+                        move_down(band_lower_left_shm[1]);
                 }
                 // If the trim state is within the band, fill it in here
                 int trim_offset = band_kmer_to_offset_shm(0, -1);
@@ -365,8 +365,8 @@ align_kernel_core_2d_shm(int32_t* read_len, ptr_t* read_ptr,
             int max_offset = MIN(kmer_max_offset, event_max_offset);
             max_offset = MIN(max_offset, bandwidth);
 
-            __syncthreads();    
-   
+            __syncthreads();
+
             if(offset>=min_offset && offset< max_offset) {
 
                 int event_idx = event_at_offset_shm(0, offset);
@@ -409,21 +409,21 @@ align_kernel_core_2d_shm(int32_t* read_len, ptr_t* read_ptr,
                 float gp_mean =
                     scaling.scale * model.level_mean + scaling.shift;
                 float gp_stdv = model.level_stdv ; //scaling.var = 1;
-                
+
                 #ifdef  CACHED_LOG
                     float gp_log_stdv = model.level_log_stdv;
                 #else
-                    #ifndef ALIGN_KERNEL_FLOAT  
+                    #ifndef ALIGN_KERNEL_FLOAT
                         float gp_log_stdv = log(gp_stdv); // scaling.log_var = log(1)=0;
                     #else
                         float gp_log_stdv = logf(gp_stdv); // scaling.log_var = log(1)=0;
-                    #endif  
+                    #endif
                 #endif
 
                 float a = (scaledLevel - gp_mean) / gp_stdv;
                 float lp_emission  = log_inv_sqrt_2pi - gp_log_stdv + (-0.5f * a * a);
 
-            #endif    
+            #endif
 
 
                 float score_d = diag + lp_step + lp_emission;
@@ -456,11 +456,11 @@ align_kernel_core_2d_shm(int32_t* read_len, ptr_t* read_ptr,
                 //fills += 1;
             }
 
-            
+
 
             __syncthreads();
             BAND_ARRAY(band_idx,offset) = BAND_ARRAY_SHM(0,offset);
-            
+
             BAND_ARRAY_SHM(2,offset) = BAND_ARRAY_SHM(1,offset);
             BAND_ARRAY_SHM(1,offset) = BAND_ARRAY_SHM(0,offset);
             BAND_ARRAY_SHM(0,offset) = -INFINITY;
@@ -471,7 +471,7 @@ align_kernel_core_2d_shm(int32_t* read_len, ptr_t* read_ptr,
             }
 
 
-            __syncthreads();  
+            __syncthreads();
 
         }
     }
@@ -482,20 +482,20 @@ align_kernel_core_2d_shm(int32_t* read_len, ptr_t* read_ptr,
 
 //align post kernel
 __global__ void align_kernel_post(AlignedPair* event_align_pairs,
-    int32_t* n_event_align_pairs, 
+    int32_t* n_event_align_pairs,
     int32_t* read_len, ptr_t* read_ptr,
     event_t* event_table, int32_t* n_events,
-    ptr_t* event_ptr, 
+    ptr_t* event_ptr,
     scalings_t* scalings, int32_t n_bam_rec,model_t* model_kmer_caches,float *bands1,uint8_t *trace1, EventKmerPair* band_lower_left1) {
 
-    #ifndef WARP_HACK        
+    #ifndef WARP_HACK
         int i = blockDim.x * blockIdx.x + threadIdx.x;
         if (i < n_bam_rec) {
     #else
         int tid = blockDim.x * blockIdx.x + threadIdx.x;
-        int i = tid/32;    
+        int i = tid/32;
         if (i < n_bam_rec && tid%32==0) {
-    #endif  
+    #endif
         AlignedPair* out_2 = &event_align_pairs[event_ptr[i] * 2];
         int32_t sequence_len = read_len[i];
         event_t* events = &event_table[event_ptr[i]];
@@ -505,7 +505,7 @@ __global__ void align_kernel_post(AlignedPair* event_align_pairs,
         float *bands = &bands1[(read_ptr[i]+event_ptr[i])*ALN_BANDWIDTH];
         uint8_t *trace = &trace1[(read_ptr[i]+event_ptr[i])*ALN_BANDWIDTH];
         EventKmerPair* band_lower_left = &band_lower_left1[read_ptr[i]+event_ptr[i]];;
- 
+
         //fprintf(stderr, "%s\n", sequence);
         //fprintf(stderr, "Scaling %f %f", scaling.scale, scaling.shift);
 
@@ -536,7 +536,7 @@ __global__ void align_kernel_post(AlignedPair* event_align_pairs,
         // setting a tiny skip penalty helps keep the true alignment within the adaptive band
         // this was empirically determined
         //double epsilon = 1e-10;
-#ifndef ALIGN_KERNEL_FLOAT       
+#ifndef ALIGN_KERNEL_FLOAT
         double lp_skip = log(epsilon);
         double lp_stay = log(p_stay);
         double lp_step = log(1.0 - exp(lp_skip) - exp(lp_stay));
@@ -546,7 +546,7 @@ __global__ void align_kernel_post(AlignedPair* event_align_pairs,
         float lp_stay = logf(p_stay);
         float lp_step = logf(1.0f - expf(lp_skip) - expf(lp_stay));
         float lp_trim = logf(0.01f);
-#endif        
+#endif
         // dp matrix
         int32_t n_rows = n_events + 1;
         int32_t n_cols = n_kmers + 1;
@@ -628,22 +628,22 @@ __global__ void align_kernel_post(AlignedPair* event_align_pairs,
                 float gp_mean =
                     scaling.scale * model.level_mean + scaling.shift;
                 float gp_stdv = model.level_stdv ; //scaling.var = 1;
-                
+
                 #ifdef  CACHED_LOG
                     float gp_log_stdv = model.level_log_stdv;
                 #else
-                    #ifndef ALIGN_KERNEL_FLOAT  
+                    #ifndef ALIGN_KERNEL_FLOAT
                         float gp_log_stdv = log(gp_stdv); // scaling.log_var = log(1)=0;
                     #else
                         float gp_log_stdv = logf(gp_stdv); // scaling.log_var = log(1)=0;
-                    #endif  
+                    #endif
                 #endif
 
                 float a = (scaledLevel - gp_mean) / gp_stdv;
                 float tempLogProb  = log_inv_sqrt_2pi - gp_log_stdv + (-0.5f * a * a);
 
-            #endif 
-                
+            #endif
+
 
             sum_emission += tempLogProb;
             //fprintf(stderr, "lp_emission %f \n", tempLogProb);
@@ -670,7 +670,7 @@ __global__ void align_kernel_post(AlignedPair* event_align_pairs,
             }
         }
 
-    
+
 #ifndef REVERSAL_ON_CPU
         //>>>>>>>>New replacement begin
         // std::reverse(out.begin(), out.end());
@@ -700,9 +700,9 @@ __global__ void align_kernel_post(AlignedPair* event_align_pairs,
         bool spanned = out_2[0].ref_pos == 0 &&
                     out_2[outIndex - 1].ref_pos == int(n_kmers - 1);
 
-        //assert(spanned==spanned_before_rev);            
+        //assert(spanned==spanned_before_rev);
         // bool spanned = out.front().ref_pos == 0 && out.back().ref_pos == n_kmers - 1;
-        //<<<<<<<<<<<<<New replacement over        
+        //<<<<<<<<<<<<<New replacement over
 #else
         bool spanned = out_2[outIndex - 1].ref_pos == 0 &&
                     out_2[0].ref_pos == int(n_kmers - 1);
@@ -735,8 +735,6 @@ __global__ void align_kernel_post(AlignedPair* event_align_pairs,
         //outSize=outIndex;
         //if(outIndex>500000)fprintf(stderr, "Max outSize %d\n", outIndex);
         n_event_align_pairs[i] = outIndex;
-    
+
     }
 }
-
-

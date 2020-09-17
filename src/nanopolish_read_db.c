@@ -73,7 +73,7 @@ void ReadDB::load(const std::string& input_reads_filename)
     // generate input filenames
     m_indexed_reads_filename = input_reads_filename + GZIPPED_READS_SUFFIX;
     std::string in_filename = m_indexed_reads_filename + READ_DB_SUFFIX;
-    
+
     //
     std::ifstream in_file(in_filename.c_str());
     bool success = false;
@@ -97,7 +97,7 @@ void ReadDB::load(const std::string& input_reads_filename)
         if(m_fai != NULL) {
             success = true;
         }
-    } 
+    }
 
     if(!success) {
         fprintf(stderr, "error: could not load the index files for input file %s\n",input_reads_filename.c_str());
@@ -162,7 +162,7 @@ void ReadDB::import_reads(const std::string& input_filename, const std::string& 
                 path = "";
             }
         }
-        
+
         // sanity check that the read does not exist in the database
         // JTS 04/2019: changed error to warning to account for duplicate reads coming out of
         // some versions of guppy.
@@ -171,7 +171,7 @@ void ReadDB::import_reads(const std::string& input_filename, const std::string& 
             fprintf(stderr, "Warning: duplicate read name %s found in fasta file\n", seq->name.s);
             continue;
         }
-        
+
         // add path
         add_signal_path(seq->name.s, path);
 
@@ -197,7 +197,7 @@ void ReadDB::import_reads(const std::string& input_filename, const std::string& 
 
     // cleanup
     kseq_destroy(seq);
-    
+
     gzclose(gz_read_fp);
     fclose(read_fp);
 
@@ -229,7 +229,7 @@ std::string ReadDB::get_signal_path(const std::string& read_id) const
 }
 //
 std::string ReadDB::get_read_sequence(const std::string& read_id) const
-{    
+{
     assert(m_fai != NULL);
 
     int length;

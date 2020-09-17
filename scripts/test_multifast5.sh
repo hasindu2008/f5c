@@ -21,7 +21,7 @@ else
 fi
 # execution mode (valgrind/gdb/cpu/cuda/echo)
 mode=
-testset_url="http://genome.cse.unsw.edu.au/tmp/f5c_ecoli_2kb_region_multifast5_test.tgz"
+testset_url="https://f5c.page.link/f5c_ecoli_2kb_region_multifast5_test"
 fallback_url=""
 
 # download test set given url
@@ -63,16 +63,16 @@ execute_test() {
 		grep -w "chr20" ${testdir}/meth.exp | awk '{print $1$2$3$4$8$9$10"\t"$5"\t"$6"\t"$7}'  > ${testdir}/meth_float.txt
 
 		join  ${testdir}/result_float.txt ${testdir}/meth_float.txt | awk -v thresh=0.1 -f scripts/test.awk > ${testdir}/floatdiff.txt || handle_tests "${file}"
-	else	
+	else
 		tail -n +2 ${testdir}/result.txt | awk '{print $1,$2,$3,$4,$8,$9,$10}' > ${testdir}/result_exact.txt
 		awk '{print $1,$2,$3,$4,$8,$9,$10}' ${testdir}/meth.exp > ${testdir}/meth_exact.txt
-		diff -q ${testdir}/meth_exact.txt ${testdir}/result_exact.txt || die "diff ${testdir}/result_exact.txt ${testdir}/meth_exact.txt failed" 
+		diff -q ${testdir}/meth_exact.txt ${testdir}/result_exact.txt || die "diff ${testdir}/result_exact.txt ${testdir}/meth_exact.txt failed"
 
 		tail -n +2  ${testdir}/result.txt | awk '{print $1$2$3$4$8$9$10"\t"$5"\t"$6"\t"$7}' > ${testdir}/result_float.txt
-		awk '{print $1$2$3$4$8$9$10"\t"$5"\t"$6"\t"$7}' ${testdir}/meth.exp > ${testdir}/meth_float.txt	
+		awk '{print $1$2$3$4$8$9$10"\t"$5"\t"$6"\t"$7}' ${testdir}/meth.exp > ${testdir}/meth_float.txt
 
-		join -a 1 -a 2 ${testdir}/result_float.txt ${testdir}/meth_float.txt | awk -v thresh=0.1 -f scripts/test.awk > ${testdir}/floatdiff.txt || die "${file}: Validation failed" 
-	fi	
+		join -a 1 -a 2 ${testdir}/result_float.txt ${testdir}/meth_float.txt | awk -v thresh=0.1 -f scripts/test.awk > ${testdir}/floatdiff.txt || die "${file}: Validation failed"
+	fi
 }
 
 mode_test() {
@@ -124,11 +124,11 @@ do
 		   bamfile=${testdir}/reads.sorted.bam
 		   ref=test/chr22_meth_example/humangenome.fa
 		   reads=${testdir}/reads.fastq
-		   testset_url="http://genome.cse.unsw.edu.au/tmp/f5c_na12878_multifast5_test.tgz"
+		   testset_url="https://f5c.page.link/f5c_na12878_multifast5_test"
 		   fallback_url="";;
 		K) batchsize="$OPTARG";;
 		B) max_bases="$OPTARG";;
-		d) download_test_set "http://genome.cse.unsw.edu.au/tmp/f5c_na12878_multifast5_test.tgz" ""
+		d) download_test_set "https://f5c.page.link/f5c_na12878_multifast5_test" ""
 		   exit 0;;
 		h) help_msg
 		   exit 0;;

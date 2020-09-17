@@ -21,6 +21,16 @@ else
 fi
 
 
+download_ecoli_2kb_region_big_testresults() {
+	mkdir -p test
+	tar_path=test/data.tgz
+	wget -O $tar_path "https://f5c.page.link/f5c_ecoli_2kb_region_big_testresults" || rm -rf $tar_path ${testdir}_big_testresults
+	echo "Extracting. Please wait."
+	tar -xf $tar_path -C test || rm -rf $tar_path ${testdir}_big_testresults
+	rm -f $tar_path
+}
+
+
 handle_tests() {
 	numfailed=$(cat  ${testdir}/joined_diff.txt | awk '{print $NF}' | sort -u -k1,1 | wc -l)
 	numcases=$(wc -l < ${testdir}/nanopolish.summary.txt)
@@ -54,7 +64,7 @@ execute_test() {
 	paste ${testdir}/nanopolish.summary.txt ${testdir}/f5c.summary.txt > ${testdir}/joined_results.txt || echo "Join ran into an issue. Probably just a warning."
 	#if [ $testdir = test/chr22_meth_example ]; then
 	awk -f  scripts/test_eventalign_summary.awk ${testdir}/joined_results.txt > ${testdir}/joined_diff.txt || handle_tests "${file}"
-	#else	
+	#else
 	#	awk -f  scripts/test_eventalign_summary.awk ${testdir}/joined_results.txt || die "${file}: Validation failed"
 	#fi
 	echo "----------------summaries are good---------------------------------------------"
@@ -70,21 +80,21 @@ execute_test() {
 
 }
 
-
+test -d ${testdir}_big_testresults || download_ecoli_2kb_region_big_testresults
 
 ${exepath} index -d ${testdir}/fast5_files ${testdir}/reads.fasta
 echo "************************************** --print-read-names ****************************"
 ${exepath} eventalign -b ${bamfile} -g ${ref} -r ${reads} --secondary=yes --min-mapq=0 -B "$max_bases" --summary ${testdir}/f5c_event_align.summary.txt --print-read-names > ${testdir}/result.txt
-execute_test "events_print_read_names.exp" 
+execute_test "events_print_read_names.exp"
 echo ""
 echo "************************************** --scale-events ****************************"
 ${exepath} eventalign -b ${bamfile} -g ${ref} -r ${reads} --secondary=yes --min-mapq=0 -B "$max_bases" --summary ${testdir}/f5c_event_align.summary.txt --scale-events > ${testdir}/result.txt
-execute_test "events_scale_events.exp" 
+execute_test "events_scale_events.exp"
 echo ""
 echo "************************************** --sam****************************"
 ${exepath} eventalign -b ${bamfile} -g ${ref} -r ${reads} --secondary=yes --min-mapq=0 -B "$max_bases" --summary ${testdir}/f5c_event_align.summary.txt --sam> ${testdir}/result.txt
 numfailed=$(diff -y --suppress-common-lines ${testdir}_big_testresults/events.sam.exp ${testdir}/result.txt  | wc -l)
-numcases=$(wc -l < ${testdir}_big_testresults/events.sam.exp) 
+numcases=$(wc -l < ${testdir}_big_testresults/events.sam.exp)
 failp=$(echo "$numfailed*100/$numcases" | bc)
 echo "$failp of $numcases test cases deviated."
 [ "$failp" -gt 5 ] && die "${1}: Validation failed"

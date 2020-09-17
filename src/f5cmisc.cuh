@@ -1,6 +1,6 @@
 /* @f5c
 **
-** f5c interface 
+** f5c interface
 ** @author: Hasindu Gamaarachchi (hasindu@unsw.edu.au)
 ** @@
 ******************************************************************************/
@@ -32,8 +32,6 @@
 //if average events per base of a read < AVG_EVENTS_PER_KMER_GPU_THRESH process on GPU
 //else go for the CPU
 #define AVG_EVENTS_PER_KMER_GPU_THRESH (core->opt.cuda_max_avg_events_per_kmer)
-
-#define AVG_EVENTS_PER_KMER_MAX 15.0f //if average events per base of a read >AVG_EVENTS_PER_KMER_MAX do not process
 
 #define TEGRA_MEM_FACTOR 0.7f //in tegra we cannot grab all  (can be overriden by user options)
 //the free memory as we have to reserve some space for RAM as well

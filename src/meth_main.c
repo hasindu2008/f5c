@@ -61,7 +61,7 @@ static struct option long_options[] = {
     {"version", no_argument, 0, 'V'},              //8
     {"min-mapq", required_argument, 0, 0},         //9 consider only reads with MAPQ>=min-mapq [30]
     {"secondary", required_argument, 0, 0},        //10 consider secondary alignments or not [yes]
-    {"kmer-model", required_argument, 0, 0},       //11 custom k-mer model file (used for debugging)
+    {"kmer-model", required_argument, 0, 0},       //11 custom nucleotide k-mer model file
     {"skip-unreadable", required_argument, 0, 0},  //12 skip any unreadable fast5 or terminate program [yes]
     {"print-events", required_argument, 0, 0},     //13 prints the event table (used for debugging)
     {"print-banded-aln", required_argument, 0, 0}, //14 prints the event alignment (used for debugging)
@@ -90,7 +90,8 @@ static struct option long_options[] = {
     {"samples",no_argument,0,0},                   //37 write the raw samples for the event to the tsv output (eventalign only)
     {"meth-out-version",required_argument,0,0},    //38 specify the version of the tsv output for methylation (call-methylation only)
     {"profile",required_argument, 0,'x'},          //39 profile used to tune parameters for GPU
-    {"disable-simd", required_argument, 0, 0},     //40 disable running on SIMD [yes] (only if compiled for SIMD)
+    {"meth-model",required_argument,0,0},          //40 custom methylation k-mer model file
+    {"disable-simd", required_argument, 0, 0},     //41 disable running on SIMD [yes] (only if compiled for SIMD)
     {0, 0, 0, 0}};
 
 
@@ -275,7 +276,7 @@ int meth_main(int argc, char* argv[], int8_t mode) {
             opt.min_mapq = atoi(optarg); //todo : check whether this is between 0 and 60
         } else if (c == 0 && longindex == 10) { //consider secondary mappings or not
             yes_or_no(&opt, F5C_SECONDARY_YES, longindex, optarg, 1);
-        } else if (c == 0 && longindex == 11) { //custom model file
+        } else if (c == 0 && longindex == 11) { //custom nucleotide model file
             opt.model_file = optarg;
         } else if (c == 0 && longindex == 12) {
             yes_or_no(&opt, F5C_SKIP_UNREADABLE, longindex, optarg, 1);
@@ -312,7 +313,7 @@ int meth_main(int argc, char* argv[], int8_t mode) {
             opt.cuda_mem_frac = atof(optarg);
         } else if(c == 0 && longindex == 26){ //check for empty strings
             tmpfile = optarg;
-        } else if(c == 0 && longindex == 27){ 
+        } else if(c == 0 && longindex == 27){
             if(tmpfile==NULL){
                 WARNING("%s", "ultra-thresh has no effect without skip-ultra");
             }
@@ -374,15 +375,21 @@ int meth_main(int argc, char* argv[], int8_t mode) {
             }
             if(opt.meth_out_version<1 || opt.meth_out_version>2){
                 ERROR("--meth-out-version accepts only 1 or 2. You entered %d",opt.meth_out_version);
-                exit(EXIT_FAILURE); 
+                exit(EXIT_FAILURE);
+            }       
+        } else if (c == 0 && longindex == 40){ //custom methylation k-mer model
+            if(mode!=0){
+                ERROR("%s","Option --meth-model is available only in call-methylation");
+                exit(EXIT_FAILURE);
             }
-        } else if (c == 0 && longindex == 40){ //disable running on SIMD [yes] (only if compiled for SIMD)
+            opt.meth_model_file = optarg;
+        } else if (c == 0 && longindex == 41){ //disable running on SIMD [yes] (only if compiled for SIMD)
         #ifdef HAVE_SIMD
                     yes_or_no(&opt, F5C_DISABLE_SIMD, longindex, optarg, 1);
         #else
-                    WARNING("%s", "disable-cuda has no effect when compiled without SIMD support");
+                    WARNING("%s", "disable-simd has no effect when compiled without SIMD support");
         #endif
-        }        
+        } 
     }
 
     if (fastqfile == NULL || bamfilename == NULL || fastafile == NULL || fp_help == stdout) {
@@ -398,24 +405,24 @@ int meth_main(int argc, char* argv[], int8_t mode) {
         fprintf(fp_help,"   -B FLOAT[K/M/G]            max number of bases loaded at once [%.1fM]\n",opt.batch_size_bases/(float)(1000*1000));
         fprintf(fp_help,"   -h                         help\n");
         fprintf(fp_help,"   -o FILE                    output to file [stdout]\n");
-        fprintf(fp_help,"   --iop INT                  number of I/O processes to read fast5 files [%d]\n",opt.num_iop);        
+        fprintf(fp_help,"   --iop INT                  number of I/O processes to read fast5 files [%d]\n",opt.num_iop);
         fprintf(fp_help,"   --min-mapq INT             minimum mapping quality [%d]\n",opt.min_mapq);
         fprintf(fp_help,"   --secondary=yes|no         consider secondary mappings or not [%s]\n",(opt.flag&F5C_SECONDARY_YES)?"yes":"no");
         fprintf(fp_help,"   --verbose INT              verbosity level [%d]\n",opt.verbosity);
         fprintf(fp_help,"   --version                  print version\n");
+        fprintf(fp_help,"   -x STRING                  profile to be used for better parameter selection. user-specified parameters will override profile values\n"); //CHANGE: Added option in help
 #ifdef HAVE_CUDA
         fprintf(fp_help,"   --disable-cuda=yes|no      disable running on CUDA [%s]\n",(opt.flag&F5C_DISABLE_CUDA?"yes":"no"));
         fprintf(fp_help,"   --cuda-dev-id INT          CUDA device ID to run kernels on [%d]\n",opt.cuda_dev_id);
         fprintf(fp_help,"   --cuda-max-lf FLOAT        reads with length <= cuda-max-lf*avg_readlen on GPU, rest on CPU [%.1f]\n",opt.cuda_max_readlen);
         fprintf(fp_help,"   --cuda-avg-epk FLOAT       average number of events per kmer - for allocating GPU arrays [%.1f]\n",opt.cuda_avg_events_per_kmer);
         fprintf(fp_help,"   --cuda-max-epk FLOAT       reads with events per kmer <= cuda_max_epk on GPU, rest on CPU [%.1f]\n",opt.cuda_max_avg_events_per_kmer);
-        fprintf(fp_help,"   -x STRING                  profile to be used for optimal CUDA parameter selection. user-specified parameters will override profile values\n"); //CHANGE: Added option in help
 #endif
 #ifdef HAVE_SIMD
         fprintf(fp_help,"   --disable-simd=yes|no      disable running on SIMD [%s]\n",(opt.flag&F5C_DISABLE_SIMD?"yes":"no"));
 #endif
         fprintf(fp_help,"advanced options:\n");
-        fprintf(fp_help,"   --kmer-model FILE          custom k-mer model file\n");
+        fprintf(fp_help,"   --kmer-model FILE          custom nucleotide k-mer model file\n");
         fprintf(fp_help,"   --skip-unreadable=yes|no   skip any unreadable fast5 or terminate program [%s]\n",(opt.flag&F5C_SKIP_UNREADABLE?"yes":"no"));
         fprintf(fp_help,"   --print-events=yes|no      prints the event table\n");
         fprintf(fp_help,"   --print-banded-aln=yes|no  prints the event alignment\n");
@@ -424,11 +431,12 @@ int meth_main(int argc, char* argv[], int8_t mode) {
         fprintf(fp_help,"   --debug-break [INT]        break after processing the specified batch\n");
         fprintf(fp_help,"   --profile-cpu=yes|no       process section by section (used for profiling on CPU)\n");
         fprintf(fp_help,"   --skip-ultra FILE          skip ultra long reads and write those entries to the bam file provided as the argument\n");
-        fprintf(fp_help,"   --ultra-thresh [INT]       threshold to skip ultra long reads [%ld]\n",opt.ultra_thresh);
+        fprintf(fp_help,"   --ultra-thresh [INT]       threshold to skip ultra long reads [%ld]\n",(long)opt.ultra_thresh);
         fprintf(fp_help,"   --write-dump=yes|no        write the fast5 dump to a file or not\n");
         fprintf(fp_help,"   --read-dump=yes|no         read from a fast5 dump file or not\n");
     if(mode==0){
-        fprintf(fp_help,"   --meth-out-version [INT]   methylation tsv output version (2 if the strand coulmn is to be printed) [%d].\n",opt.meth_out_version);
+        fprintf(fp_help,"   --meth-out-version [INT]   methylation tsv output version (set 2 to print the strand column) [%d]\n",opt.meth_out_version);
+        fprintf(fp_help,"   --meth-model FILE          custom methylation k-mer model file\n");
     }
     if(mode==1){
         fprintf(fp_help,"   --summary FILE             summarise the alignment of each read/strand in FILE\n");
@@ -438,8 +446,8 @@ int meth_main(int argc, char* argv[], int8_t mode) {
         fprintf(fp_help,"   --samples                  write the raw samples for the event to the tsv output\n");
     }
 #ifdef HAVE_CUDA
-        fprintf(fp_help,"   - cuda-mem-frac FLOAT      Fraction of free GPU memory to allocate [0.9 (0.7 for tegra)]\n");
-        fprintf(fp_help,"   --cuda-block-size\n");
+        fprintf(fp_help,"   --cuda-mem-frac FLOAT      Fraction of free GPU memory to allocate [0.9 (0.7 for tegra)]\n");
+        //fprintf(fp_help,"   --cuda-block-size\n");
 #endif
         if(fp_help == stdout){
             exit(EXIT_SUCCESS);
@@ -549,7 +557,7 @@ int meth_main(int argc, char* argv[], int8_t mode) {
             if(opt.verbosity>1){
                 fprintf(stderr, "[%s::%.3f*%.2f] Joined to processor thread %ld\n", __func__,
                 realtime() - realtime0, cputime() / (realtime() - realtime0),
-                tid_p);
+                (long)tid_p);
             }
             slow_fast5_warn(core);
         }
@@ -570,7 +578,7 @@ int meth_main(int argc, char* argv[], int8_t mode) {
         if(opt.verbosity>1){
             fprintf(stderr, "[%s::%.3f*%.2f] Spawned processor thread %ld\n", __func__,
                 realtime() - realtime0, cputime() / (realtime() - realtime0),
-                tid_p);
+                (long)tid_p);
         }
 
         if(first_flag_pp){ //if not the first time of the post-process wait for the previous post-process
@@ -579,7 +587,7 @@ int meth_main(int argc, char* argv[], int8_t mode) {
             if(opt.verbosity>1){
                 fprintf(stderr, "[%s::%.3f*%.2f] Joined to post-processor thread %ld\n", __func__,
                 realtime() - realtime0, cputime() / (realtime() - realtime0),
-                tid_pp);
+                (long)tid_pp);
             }
         }
         first_flag_pp=1;
@@ -591,7 +599,7 @@ int meth_main(int argc, char* argv[], int8_t mode) {
         if(opt.verbosity>1){
             fprintf(stderr, "[%s::%.3f*%.2f] Spawned post-processor thread %ld\n", __func__,
                 realtime() - realtime0, cputime() / (realtime() - realtime0),
-                tid_pp);
+                (long)tid_pp);
         }
 
         if(opt.debug_break==counter){
@@ -606,22 +614,22 @@ int meth_main(int argc, char* argv[], int8_t mode) {
     if(opt.verbosity>1){
         fprintf(stderr, "[%s::%.3f*%.2f] Joined to last processor thread %ld\n", __func__,
                 realtime() - realtime0, cputime() / (realtime() - realtime0),
-                tid_p);
+                (long)tid_p);
     }
     ret = pthread_join(tid_pp, NULL);
     NEG_CHK(ret);
     if(opt.verbosity>1){
     fprintf(stderr, "[%s::%.3f*%.2f] Joined to last post-processor thread %ld\n", __func__,
                 realtime() - realtime0, cputime() / (realtime() - realtime0),
-                tid_pp);
+                (long)tid_pp);
     }
 
 
 #endif
 
 
-    fprintf(stderr, "\n[%s] total entries: %ld, qc fail: %ld, could not calibrate: %ld, no alignment: %ld, bad fast5: %ld",
-             __func__,core->total_reads, core->qc_fail_reads, core->failed_calibration_reads, core->failed_alignment_reads, core->bad_fast5_file);
+    fprintf(stderr, "[%s] total entries: %ld, qc fail: %ld, could not calibrate: %ld, no alignment: %ld, bad fast5: %ld",
+             __func__,(long)core->total_reads, (long)core->qc_fail_reads, (long)core->failed_calibration_reads, (long)core->failed_alignment_reads, (long)core->bad_fast5_file);
     fprintf(stderr,"\n[%s] total bases: %.1f Mbases",__func__,core->sum_bases/(float)(1000*1000));
 
     fprintf(stderr, "\n[%s] Data loading time: %.3f sec", __func__,core->load_db_time);
@@ -674,7 +682,7 @@ int meth_main(int argc, char* argv[], int8_t mode) {
 
     if(core->ultra_long_skipped>0){
         assert(tmpfile!=NULL);
-        WARNING("%ld ultra long reads (>%.1f kbases) were skipped.",core->ultra_long_skipped,core->opt.ultra_thresh/1000.0);
+        WARNING("%ld ultra long reads (>%.1f kbases) were skipped.",(long)core->ultra_long_skipped,core->opt.ultra_thresh/1000.0);
         fprintf(stderr," Please run samtools index on '%s' followed by f5c with a larger -B on the CPU.\n",tmpfile);
     }
 
@@ -683,10 +691,10 @@ int meth_main(int argc, char* argv[], int8_t mode) {
     if((core->load_db_time - core->process_db_time) > (core->process_db_time*0.2) ){
         INFO("Performance bounded by file I/O. File I/O took %.3f sec than processing",core->load_db_time - core->process_db_time);
     }
-#endif 
+#endif
 
     #ifdef HAVE_CUDA
-        fprintf(stderr, "max-lf: %.2f, avg-epk: %.2f, max-epk: %.2f, K: %d, B: %ld, T: %d, Ultra: %ld, Align: %.3f, Diff: %.3f\n",
+        fprintf(stderr, "[%s] max-lf: %.2f, avg-epk: %.2f, max-epk: %.2f, K: %d, B: %ld, T: %d, Ultra: %ld, Align: %.3f, Diff: %.3f\n", __func__,
         opt.cuda_max_readlen,opt.cuda_avg_events_per_kmer,opt.cuda_max_avg_events_per_kmer,opt.batch_size,opt.batch_size_bases,opt.num_thread,opt.ultra_thresh,
         core->align_time,core->extra_load_cpu);
     #endif

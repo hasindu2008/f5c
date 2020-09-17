@@ -108,15 +108,15 @@ static inline fast5_file_t fast5_open(char* filename) {
     }
 #else
     fh.is_multi_fast5 = false;
-#endif   
+#endif
 
 
     return fh;
 }
 
 //from nanopolish_fast5_io.cpp
-static inline void fast5_close(fast5_file_t fh) { 
-    H5Fclose(fh.hdf5_file); 
+static inline void fast5_close(fast5_file_t fh) {
+    H5Fclose(fh.hdf5_file);
 }
 
 //from nanopolish_fast5_io.cpp
@@ -144,7 +144,7 @@ static inline float fast5_read_float_attribute(hid_t group,
 
 
 static inline int32_t fast5_read_single_fast5(fast5_file_t fh, fast5_t* f5) {
-    
+
     hid_t hdf5_file = fh.hdf5_file;
     f5->rawptr = NULL;
     hid_t space;
@@ -263,7 +263,7 @@ static inline int32_t fast5_read_single_fast5(fast5_file_t fh, fast5_t* f5) {
 #ifndef SINGLE_FAST5_ONLY
 
 static inline int32_t fast5_read_multi_fast5(fast5_file_t fh, fast5_t* f5, std::string read_id) {
-    
+
     hid_t hdf5_file = fh.hdf5_file;
     f5->rawptr = NULL;
     hid_t space;
