@@ -113,17 +113,18 @@ parameters hpc_cpu = {
     .disable_cuda=1
 };
 
+parameters nci_gadi = {
+    .cuda_max_readlen = 5.0,
+    .cuda_avg_events_per_kmer = 2.0,
+    .cuda_max_events_per_kmer = 5.0,
+    .batch_size = 2048,
+    .batch_size_bases = 20000000,
+    .num_thread = 12,
+    .ultra_thresh = 100000,
+    .num_iop = 64,
+    .disable_cuda = 0
+};
 
-// parameters laptop_gpu = {
-//     .cuda_max_readlen = 5.0,
-//     .cuda_avg_events_per_kmer = 2.0,
-//     .cuda_max_events_per_kmer = 5.0,
-//     .batch_size = 512,
-//     .batch_size_bases = 2.5*1000*1000,
-//     .num_thread = 12,
-//     .ultra_thresh = 100000,
-//     .num_iop = 1
-// };
 
 void set_opt_profile(opt_t *opt, parameters machine);
 #endif

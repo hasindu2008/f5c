@@ -68,8 +68,8 @@ int set_profile(char *profile, opt_t *opt){
         set_opt_profile(opt,hpc_cpu);
     }else if(strcmp(profile,"hpc-gpu") == 0){
         set_opt_profile(opt,hpc_gpu);
-
-
+    }else if(strcmp(profile,"nci-gadi") == 0){
+        set_opt_profile(opt,nci_gadi);
     }else{
         ERROR("Unknown profile %s. Trying to read profile from file.",profile);
         //Try to read from .profile file
