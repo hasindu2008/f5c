@@ -64,10 +64,26 @@ int set_profile(char *profile, opt_t *opt){
     }else if(strcmp(profile,"laptop-high") == 0){
         set_opt_profile(opt,laptop_high);
 
+    }else if(strcmp(profile,"desktop-low") == 0){
+        set_opt_profile(opt,laptop_low);
+    }else if(strcmp(profile,"desktop-mid") == 0){
+        set_opt_profile(opt,laptop_mid);
+    }else if(strcmp(profile,"desktop-high") == 0){
+        set_opt_profile(opt,laptop_high);
+
+    }else if(strcmp(profile,"hpc-low") == 0){
+        set_opt_profile(opt,laptop_low);
+    }else if(strcmp(profile,"hpc-mid") == 0){
+        set_opt_profile(opt,laptop_mid);
+    }else if(strcmp(profile,"hpc-high") == 0){
+        set_opt_profile(opt,laptop_high);
+
+
     }else if(strcmp(profile,"hpc-cpu") == 0){
         set_opt_profile(opt,hpc_cpu);
     }else if(strcmp(profile,"hpc-gpu") == 0){
         set_opt_profile(opt,hpc_gpu);
+
     }else if(strcmp(profile,"nci-gadi") == 0){
         set_opt_profile(opt,nci_gadi);
     }else{
