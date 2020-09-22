@@ -155,7 +155,7 @@ parameters hpc_mid = {
     .batch_size_bases = 20000000,
     .num_thread = 48,
     .ultra_thresh = 100000,
-    .num_iop = 48,
+    .num_iop = 64,
     .disable_cuda=0
 };
 
@@ -168,7 +168,7 @@ parameters hpc_low = {
     .batch_size_bases = 10000000,
     .num_thread = 32,
     .ultra_thresh = 100000,
-    .num_iop = 32,
+    .num_iop = 64,
     .disable_cuda=0
 };
 
