@@ -50,7 +50,7 @@ parameters jetson_xavier = {
     .batch_size_bases = 4700000,
     .num_thread = 8,
     .ultra_thresh = 100000,
-    .num_iop = 1,
+    .num_iop = 2,
     .disable_cuda=0
 };
 
