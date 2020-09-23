@@ -12,6 +12,7 @@ command:
          call-methylation    Classify nucleotides as methylated or not (optimised nanopolish call-methylation)
          meth-freq           Calculate methylation frequency at genomic CpG sites (optimised nanopolish calculate_methylation_frequency.py)
          eventalign          Align nanopore events to reference k-mers (optimised nanopolish eventalign)
+         freq-merge          Merge calculated methylation frequency tsv files (new feature)
 ```
 
 ### Indexing
@@ -124,3 +125,13 @@ advanced options:
    --samples                  write the raw samples for the event to the tsv output
    --cuda-mem-frac FLOAT      Fraction of free GPU memory to allocate [0.9 (0.7 for tegra)]
 ```
+
+### Merge methylation frequency calculated tsv files
+```
+Usage: meth-freq [options...]
+For each methylation calling output (.tsv) file, perform methylation frequency calculation separately (no concatenation required). Then feed those output (.tsv) files to this tool, to obtain the final methylation frequency calculated file. 
+
+  -o [float]        Output file.
+  -n [INT]          Number of methylation frequency .tsv files to be merged
+  -f                n number of input filepaths should be followed
+  ```
