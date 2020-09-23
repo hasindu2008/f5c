@@ -1,4 +1,11 @@
 
+/* @file model.c
+**
+** load a pore model from file or memory
+** @author: Hasindu Gamaarachchi (hasindu@unsw.edu.au)
+** @@
+******************************************************************************/
+
 #include "model.h"
 #include "f5c.h"
 #include "f5cmisc.h"

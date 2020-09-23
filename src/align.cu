@@ -1,3 +1,10 @@
+/* @file align.cu
+**
+**  GPU implementation of the Adaptive banded Event Alignment algorithm
+** @author: Hasindu Gamaarachchi (hasindu@unsw.edu.au)
+** @@
+******************************************************************************/
+
 #include "f5c.h"
 #include <assert.h>
 #include "f5cmisc.cuh"

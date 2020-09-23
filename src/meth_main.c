@@ -1,3 +1,10 @@
+/* @file meth_main.c
+**
+** f5c call-methylation/eventalign entry point implementation
+** @author: Hasindu Gamaarachchi (hasindu@unsw.edu.au)
+** @@
+******************************************************************************/
+
 #include "f5c.h"
 #include "f5cmisc.h"
 #include <assert.h>

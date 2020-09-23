@@ -1,6 +1,6 @@
-/* @f5c
+/* @file f5cio.c
 **
-** f5c interface
+** f5c interface implementation - input related functions
 ** @author: Hasindu Gamaarachchi (hasindu@unsw.edu.au)
 ** @@
 ******************************************************************************/

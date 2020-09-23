@@ -1,6 +1,7 @@
-/* @f5c
+/* @file f5c_gpuonly.cu
 **
-** f5c interface
+** implementation of the f5c GPU-only framework (opposed to the CPU-GPU hybrid approach in f5c.cu)
+** not compiled by default
 ** @author: Hasindu Gamaarachchi (hasindu@unsw.edu.au)
 ** @@
 ******************************************************************************/

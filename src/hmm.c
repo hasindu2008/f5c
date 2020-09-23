@@ -1,3 +1,11 @@
+/* @file hmm.c
+**
+** implementation of HMM
+** Code adapted from Nanopolish HMM
+** @@
+******************************************************************************/
+
+
 #include "f5c.h"
 #include "f5cmisc.h"
 #include "matrix.h"

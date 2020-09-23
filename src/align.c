@@ -1,3 +1,11 @@
+/* @file align.c
+**
+** CPU implementation of the Adaptive banded Event Alignment algorithm
+** Code was adapted from Nanopolish: nanopolish_raw_loader.cpp originally authored by Jared Simpson
+** Code was adapted by Hiruna Samarakoon and Gihan Jayatilaka
+** @@
+******************************************************************************/
+
 #include "f5c.h"
 #include <assert.h>
 //#define DEBUG_ESTIMATED_SCALING 1

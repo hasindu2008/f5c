@@ -1,6 +1,6 @@
-/* @f5c
+/* @file main.c
 **
-** main
+** main function of f5c
 ** @author: Hasindu Gamaarachchi (hasindu@unsw.edu.au)
 ** @@
 ******************************************************************************/

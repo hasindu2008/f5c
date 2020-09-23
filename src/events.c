@@ -1,3 +1,13 @@
+/* @file events.c
+**
+** implementation of event detection related functions
+** Code was taken from scrappie at https://github.com/nanoporetech/scrappie (c) 2016 Oxford Nanopore Technologies Ltd.
+   scrappie is licensed under the Mozilla Public License 2.0
+   https://github.com/nanoporetech/scrappie/blob/master/LICENSE.md
+** @@
+******************************************************************************/
+
+
 #include <assert.h>
 #include <errno.h>
 #include <float.h>

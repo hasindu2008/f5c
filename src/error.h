@@ -1,3 +1,11 @@
+/* @file error.h
+**
+** error checking macros/functions and error messages
+** @author: Thomas Daniell
+** @author: Hasindu Gamaarachchi (hasindu@unsw.edu.au)
+** @@
+******************************************************************************/
+
 #ifndef ERROR_H
 #define ERROR_H
 

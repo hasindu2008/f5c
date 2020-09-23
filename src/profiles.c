@@ -1,6 +1,6 @@
-/* @pofiles
+/* @file profiles.c
 **
-** profiles
+** implementation of profiles for various systems for better performance
 ** @author: David Hyland
 ** @author: Hasindu Gamaarachchi (hasindu@unsw.edu.au)
 ** @@

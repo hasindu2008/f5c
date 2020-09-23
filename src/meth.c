@@ -1,3 +1,11 @@
+/* @file meth.c
+**
+** implementation of methylation calling functions
+** Code was adapted from Nanopolish methylation calling module originally authored by Jared Simpson
+** Code was adapted by Hasindu Gamaarachchi, Hiruna Samarakoon and Gihan Jayatilaka
+** @@
+******************************************************************************/
+
 #include <assert.h>
 #include <stdlib.h>
 #include <stdio.h>

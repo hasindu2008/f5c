@@ -1,3 +1,11 @@
+/* @file profiles.h
+**
+** profiles for various systems for better performance
+** @author: David Hyland
+** @author: Hasindu Gamaarachchi (hasindu@unsw.edu.au)
+** @@
+******************************************************************************/
+
 #ifndef PROFILES_H
 #define PROFILES_H
 

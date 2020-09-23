@@ -1,3 +1,11 @@
+
+/* @file model.h
+**
+** pore models
+** models  taken from nanopolish
+** @@
+******************************************************************************/
+
 #ifndef MODEL_H
 #define MODEL_H
 

@@ -1,6 +1,6 @@
-/* @f5c
+/* @file f5c.c
 **
-** f5c interface
+** f5c interface implementation
 ** @author: Hasindu Gamaarachchi (hasindu@unsw.edu.au)
 ** @@
 ******************************************************************************/

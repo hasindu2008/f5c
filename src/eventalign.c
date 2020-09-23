@@ -1,3 +1,11 @@
+/* @file eventalign.c
+**
+** implementation of eventalign related functions
+** Code was adapted from Nanopolish eventalign module originally authored by Jared Simpson
+** Code was adapted by Hiruna Samarakoon and Gihan Jayatilaka
+** @@
+******************************************************************************/
+
 #include <assert.h>
 #include <stdlib.h>
 #include <stdio.h>

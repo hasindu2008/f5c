@@ -1,6 +1,6 @@
-/* @f5c
+/* @file f5cmisc.cuh
 **
-** f5c interface
+** miscellaneous definitions and function prototypes to f5c GPU framework
 ** @author: Hasindu Gamaarachchi (hasindu@unsw.edu.au)
 ** @@
 ******************************************************************************/
@@ -16,21 +16,19 @@
 //#define CUDA_DYNAMIC_MALLOC 1 //only effective with CPU_GPU_PROC (whether big dynamic loops are statically preallocated)
 #define WARP_HACK 1 //whether the kernels are  performed in 1D with a warp hack (effective only  if specific TWODIM_ALIGN is not defined)
 
-//align-core-kernel options
-
+/* align-core-kernel options */
 #define BLOCK_LEN_READS 1 //the block size along y axis (the number of reads) - never change this as you might end up with wrong answers
 #define BLOCK_LEN_BANDWIDTH 128 //the block size along the x axis, should be >= ALN_BANDWIDTH
 #define ALIGN_KERNEL_FLOAT 1 //(for 2d kernel only)
 
-//align-pre-kernel options
+/* align-pre-kernel options */
 #define BLOCK_LEN_NUMBAND 16    //the block size along the x axis (BANDWDITH)
 #define BLOCK_LEN_READS2 16 // //the block size along y axis (the number of reads)
 
 #define AVG_EVENTS_PER_KMER (core->opt.cuda_avg_events_per_kmer) // the average number of events per base/k-mer
 //AVG_EVENTS_PER_KMER is used to pre-allocate arrays on GPU that depends on the number of events
 
-//if average events per base of a read < AVG_EVENTS_PER_KMER_GPU_THRESH process on GPU
-//else go for the CPU
+//if average events per base of a read < AVG_EVENTS_PER_KMER_GPU_THRESH process on GPU else go for the CPU
 #define AVG_EVENTS_PER_KMER_GPU_THRESH (core->opt.cuda_max_avg_events_per_kmer)
 
 #define TEGRA_MEM_FACTOR 0.7f //in tegra we cannot grab all  (can be overriden by user options)
@@ -68,9 +66,6 @@ __global__ void align_kernel_post(AlignedPair* event_align_pairs,
     ptr_t* event_ptr,
     scalings_t* scalings, int32_t n_bam_rec,model_t* model_kmer_caches,float *bands1,uint8_t *trace1, EventKmerPair* band_lower_left1);
 
-
-
-
 static inline void gpu_assert(const char* file, uint64_t line) {
     cudaError_t code = cudaGetLastError();
     if (code != cudaSuccess) {
@@ -90,7 +85,6 @@ static inline void gpu_assert(const char* file, uint64_t line) {
         }
         exit(-1);
     }
-
 }
 
 static inline int32_t cuda_exists() {
@@ -111,7 +105,6 @@ static inline int32_t cuda_exists() {
                         "Run with --disable-cuda=yes to run on the CPU\033[0m\n",__func__);
         exit(1);
     }
-
     return nDevices;
 }
 

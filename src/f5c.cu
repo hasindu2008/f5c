@@ -1,6 +1,6 @@
-/* @f5c
+/* @file f5c.cu
 **
-** f5c interface
+** implementation of the f5c GPU framework
 ** @author: Hasindu Gamaarachchi (hasindu@unsw.edu.au)
 ** @@
 ******************************************************************************/

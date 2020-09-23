@@ -1,7 +1,8 @@
-/* @f5c
+/* @file freq.c
 **
-** calculate methylation frequency
+** calculate methylation frequency using per-read methylation calls in tsv format
 ** @author: Thomas Lam
+** @author: Hasindu Gamaarachchi (hasindu@unsw.edu.au)
 ** @@
 ******************************************************************************/
 

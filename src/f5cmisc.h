@@ -1,3 +1,10 @@
+/* @file f5cmisc.h
+**
+** miscellaneous definitions and function prototypes to f5c framework
+** @author: Hasindu Gamaarachchi (hasindu@unsw.edu.au)
+** @@
+******************************************************************************/
+
 #ifndef F5CMISC_H
 #define F5CMISC_H
 
@@ -8,7 +15,6 @@
 
 #define MIN_CALIBRATION_VAR 2.5
 #define MAX_EVENT_TO_BP_RATIO 20
-
 #define AVG_EVENTS_PER_KMER_MAX 15.0f //if average events per base of a read >AVG_EVENTS_PER_KMER_MAX do not process
 
 // Flags to modify the behaviour of the HMM
@@ -18,88 +24,81 @@ enum HMMAlignmentFlags
     HAF_ALLOW_POST_CLIP = 2 // allow events to go unmatched after the aligning region
 };
 
+/* performance related parameter profiles for various systems*/
 int set_profile(char* profile, opt_t *opt);
+
+/* I/O processes for fast5 reading*/
 void init_iop(core_t* core,opt_t opt);
 void free_iop(core_t* core,opt_t opt);
+
+/* input */
 ret_status_t load_db1(core_t* core, db_t* db);
 ret_status_t load_db2(core_t* core, db_t* db);
 
-event_table getevents(size_t nsample, float* rawptr);
+/* models */
 void read_model(model_t* model, const char* file, uint32_t num_kmer);
 void set_model(model_t* model);
 void set_cpgmodel(model_t* model);
-scalings_t estimate_scalings_using_mom(char* sequence, int32_t sequence_len,
-                                       model_t* pore_model, event_table et);
+
+/* events */
+event_table getevents(size_t nsample, float* rawptr);
+
+/* alignment related */
+scalings_t estimate_scalings_using_mom(char* sequence, int32_t sequence_len, model_t* pore_model, event_table et);
 int32_t align(AlignedPair* out_2, char* sequence, int32_t sequence_len,
               event_table events, model_t* models, scalings_t scaling,
               float sample_rate);
 int32_t postalign(event_alignment_t* alignment, index_pair_t* base_to_event_map, double* events_per_base,
-                  char* sequence, int32_t n_kmers, AlignedPair* event_alignment,
-                  int32_t n_events);
-bool recalibrate_model(model_t* pore_model, event_table et,
-                       scalings_t* scallings,
-                       const event_alignment_t* alignment_output,
-                       int32_t num_alignments, bool scale_var);
+                  char* sequence, int32_t n_kmers, AlignedPair* event_alignment, int32_t n_events);
+bool recalibrate_model(model_t* pore_model, event_table et, scalings_t* scallings,
+                       const event_alignment_t* alignment_output, int32_t num_alignments, bool scale_var);
 
-float profile_hmm_score(const char *m_seq,const char *m_rc_seq, event_t* event, scalings_t scaling,  model_t* cpgmodel, uint32_t event_start_idx,
-    uint32_t event_stop_idx,
-    uint8_t strand,
-    int8_t event_stride,
-    uint8_t rc,double events_per_base,uint32_t hmm_flags
-);
-void calculate_methylation_for_read(std::map<int, ScoredSite>* site_score_map, char* ref, bam1_t* record, int32_t read_length, event_t* event, index_pair_t* base_to_event_map,
-scalings_t scaling, model_t* cpgmodel,double events_per_base);
+/* methylation call */
+void calculate_methylation_for_read(std::map<int, ScoredSite>* site_score_map, char* ref, bam1_t* record,
+                                    int32_t read_length, event_t* event, index_pair_t* base_to_event_map,
+                                    scalings_t scaling, model_t* cpgmodel,double events_per_base);
 
+/* event alignment */
 void emit_event_alignment_tsv(FILE* fp,
                               uint32_t strand_idx,
                               const event_table* et, model_t* model, scalings_t scalings,
                               const std::vector<event_alignment_t>& alignments,
                               int8_t print_read_names, int8_t scale_events, int8_t write_samples,
                               int64_t read_index, char* read_name, char *ref_name, float sample_rate);
-
 void emit_event_alignment_tsv_header(FILE* fp, int8_t print_read_names, int8_t write_samples);
-
 void emit_sam_header(samFile* fp, const bam_hdr_t* hdr);
-
-void emit_event_alignment_sam(htsFile* fp,
-                              char* read_name,
-                              bam_hdr_t* base_hdr,
-                              bam1_t* base_record,
-                              const std::vector<event_alignment_t>& alignments
-                              );
-
+void emit_event_alignment_sam(htsFile* fp, char* read_name, bam_hdr_t* base_hdr, bam1_t* base_record,
+                              const std::vector<event_alignment_t>& alignments);
 void realign_read(std::vector<event_alignment_t>* event_alignment_result, EventalignSummary *summary, FILE *summary_fp,char* ref,
-                  const bam_hdr_t* hdr,
-                  const bam1_t* record, int32_t read_length,
-                  size_t read_idx,
-                  int region_start,
-                  int region_end,
-                  event_table* events, model_t* model,index_pair_t* base_to_event_map,scalings_t scaling,double events_per_base, float sample_rate);
+                  const bam_hdr_t* hdr, const bam1_t* record, int32_t read_length,
+                  size_t read_idx, int region_start, int region_end,
+                  event_table* events, model_t* model,index_pair_t* base_to_event_map,
+                  scalings_t scaling,double events_per_base, float sample_rate);
 
-//basically the functions in nanopolish_profile_hmm_r9.*
+
+/* hmm */
+float profile_hmm_score(const char *m_seq,const char *m_rc_seq, event_t* event, scalings_t scaling,
+                        model_t* cpgmodel, uint32_t event_start_idx,
+                        uint32_t event_stop_idx, uint8_t strand, int8_t event_stride,
+                        uint8_t rc,double events_per_base,uint32_t hmm_flags);
 float profile_hmm_score_r9(const char *m_seq,
-                                const char *m_rc_seq,
-                                event_t* event,
-                                scalings_t scaling,
-                                model_t* cpgmodel,
-                                uint32_t event_start_idx,
-                                uint32_t event_stop_idx,
-                                uint8_t strand,
-                                int8_t event_stride,
-                                uint8_t rc,
-                                double events_per_base,
-                                uint32_t hmm_flags);
+                            const char *m_rc_seq,
+                            event_t* event,
+                            scalings_t scaling,
+                            model_t* cpgmodel,
+                            uint32_t event_start_idx,
+                            uint32_t event_stop_idx,
+                            uint8_t strand,
+                            int8_t event_stride,
+                            uint8_t rc,
+                            double events_per_base,
+                            uint32_t hmm_flags);
 
-
-
-
-
-
-
-
+//void pthread_db(core_t* core, db_t* db, void (*func)(core_t*,db_t*,int));
 
 #ifdef HAVE_CUDA
-void align_cuda(core_t* core, db_t* db);
+    /* alignment on GPU */
+    void align_cuda(core_t* core, db_t* db);
 #endif
 
 // taken from minimap2/misc
@@ -154,6 +153,5 @@ static inline void print_size(const char* name, uint64_t bytes)
     else
         fprintf(stderr, "[%s] %s : %.1f %s\n", __func__, name, count, suffixes[s]);
 }
-
 
 #endif

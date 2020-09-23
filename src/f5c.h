@@ -1,6 +1,6 @@
 /* @file f5c.h
 **
-** f5c framework interface
+** high level interface to f5c framework - major definitions and function prototypes
 ** @author: Hasindu Gamaarachchi (hasindu@unsw.edu.au)
 ** @@
 ******************************************************************************/
@@ -483,31 +483,46 @@ typedef struct {
  * function prototype for major functions *
  ******************************************/
 
+/* initialise user specified options */
+void init_opt(opt_t* opt);
+
+/* initialise the core data structure */
+core_t* init_core(const char* bamfilename, const char* fastafile,
+                  const char* fastqfile, const char* tmpfile, opt_t opt,double realtime0, int8_t mode, char *eventalignsummary);
+
 /* initialise a data batch */
 db_t* init_db(core_t* core);
 
 /* load a data batch from disk */
 ret_status_t load_db(core_t* dg, db_t* db);
 
-/* initialise the core data structure */
-core_t* init_core(const char* bamfilename, const char* fastafile,
-                  const char* fastqfile, const char* tmpfile, opt_t opt,double realtime0, int8_t mode, char *eventalignsummary);
-
-/* process a data batch */
+/* completely process a data batch
+   (all steps: event detection, adaptive banded event alignment, ...., HMM) */
 void process_db(core_t* dg, db_t* db);
 
-
-void pthread_db(core_t* core, db_t* db, void (*func)(core_t*,db_t*,int));
+/* align a data batch (perform ABEA for a data batch) */
 void align_db(core_t* core, db_t* db);
+
+/* align a single read specified by index i (perform ABEA for a single read) */
 void align_single(core_t* core, db_t* db, int32_t i);
+
+/* write the output for a processed data batch */
 void output_db(core_t* core, db_t* db);
-void free_core(core_t* core,opt_t opt);
+
+/* partially free a data batch - only the read dependent allocations are freed */
 void free_db_tmp(db_t* db);
+
+/* completely free a data batch */
 void free_db(db_t* db);
-void init_opt(opt_t* opt);
+
+/* free the core data structure */
+void free_core(core_t* core,opt_t opt);
 
 #ifdef HAVE_CUDA
+    /* initalise GPU */
     void init_cuda(core_t* core);
+
+    /* free the GPU*/
     void free_cuda(core_t* core);
 #endif
 

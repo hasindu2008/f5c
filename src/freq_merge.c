@@ -1,3 +1,12 @@
+/* @file freq_merge.c
+**
+** merge multiple methylation frequency tsvs together
+** @author: Hiruna Samarakoon
+** @author: Anjana Senanayake
+** @author: Sanoj Punchihewa
+** @@
+******************************************************************************/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

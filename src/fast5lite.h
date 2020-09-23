@@ -1,3 +1,11 @@
+/* @file fast5lite.h
+**
+** lightweight fast5 reading
+** adapted from Nanopolish: nanopolish_fast5_io.cpp originally authored by Jared Simpson
+** Code was adapted by Hasindu Gamaarachchi
+** @@
+******************************************************************************/
+
 #ifndef FAST5LITE_H
 #define FAST5LITE_H
 
