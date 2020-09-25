@@ -130,8 +130,21 @@ void get_tsv_line(struct tsv_record* record, int file_no, int64_t line_num) {
     free(buffer);
 }
 
+// static const char *MAP_REDUCE_USAGE_MESSAGE =
+//         "Usage: f5c freq-merge -o [OUTPUT_FILE_NAME] -n [NO_OF_INPUT_FILES] -f [INPUT_FILE_1] [INPUT_FILE_2] ...\n";
+
 static const char *MAP_REDUCE_USAGE_MESSAGE =
-        "Usage: f5c freq-merge -o [OUTPUT_FILE_NAME] -n [NO_OF_INPUT_FILES] -f [INPUT_FILE_1] [INPUT_FILE_2] ...\n";
+        "\nUsage: freq-merge [options...]\n"
+"To merge multiple methylation frequency files to a single file.\n"
+"For each methylation calling output (.tsv) file, perform methylation frequency calculation separately (no concatenation required).\n"
+"Then feed those output (.tsv) files to this tool, to obtain the final methylation frequency calculated file."
+"\n\n"
+" -o FILE           Output file.\n"
+" -n [INT]          Number of methylation frequency .tsv files to be merged\n"
+" -f                n number of input filepaths should be followed\n\n"
+"e.g. freq-merge -o merged_freq.tsv -n 2 -f data1_freq.tsv data2_freq.tsv"
+"\n\n"
+;
 
 int freq_merge_main(int argc, char **argv) {
     // buf is a 2D array no_of_files X FILE_NAME_LENGTH
