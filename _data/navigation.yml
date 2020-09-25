@@ -15,8 +15,8 @@ docs:
         url:    /docs/quick-start
       - title:  Building
         url:    /docs/building
-      - title:  Docker
-        url:    /docs/docker
+      - title:  Docker/Conda
+        url:    /docs/misc-install
   - title:      Usage
     children:
       - title:  Commands and options
