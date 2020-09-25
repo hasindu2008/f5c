@@ -5,7 +5,9 @@ An optimised re-implementation of the *call-methylation* and *eventalign* module
 First, the reads have to be indexed using `f5c index`. Then, invoke `f5c call-methylation` to detect methylated cytosine bases. Finally, you may use `f5c meth-freq` to obtain methylation frequencies. Alternatively, invoke `f5c eventalign` to perform event alignment. The results are almost the same as from nanopolish except a few differences due to floating point approximations.
 
 *Full Documentation* : [https://hasindu2008.github.io/f5c/docs/overview](https://hasindu2008.github.io/f5c/docs/overview)
+
 *Pre-print* : [https://doi.org/10.1101/756122](https://www.biorxiv.org/content/10.1101/756122v1)
+
 *Publication* : [https://doi.org/10.1186/s12859-020-03697-x](https://bmcbioinformatics.biomedcentral.com/articles/10.1186/s12859-020-03697-x)
 
 [![GitHub Downloads](https://img.shields.io/github/downloads/hasindu2008/f5c/total?logo=GitHub)](https://github.com/hasindu2008/f5c/releases)
@@ -23,7 +25,7 @@ wget "https://github.com/hasindu2008/f5c/releases/download/$VERSION/f5c-$VERSION
 ```
 Binaries should work on most Linux distributions and the only dependency is `zlib` which is available by default on most distros.
 
-## Building
+## Building from source
 
 Users are recommended to build from the  [latest release](https://github.com/hasindu2008/f5c/releases) tar ball. You need a compiler that supports C++11. Quick example for Ubuntu :
 ```sh
@@ -41,7 +43,7 @@ On Fedora/CentOS : sudo dnf/yum install hdf5-devel zlib-devel
 On Arch Linux: sudo pacman -S hdf5
 On OS X : brew install hdf5
 ```
-If you skip `scripts/install-hts.sh` and `./configure` hdf5 will be compiled locally. It is a good option if you cannot install hdf5 library system wide. However, building hdf5 takes ages.
+If you skip `scripts/install-hts.sh` and `./configure`, hdf5 will be compiled locally. It is a good option if you cannot install hdf5 library system wide. However, building hdf5 takes ages.
 
 Building from the Github repository additionally requires `autoreconf` which can be installed on Ubuntu using `sudo apt-get install autoconf automake`.
 
