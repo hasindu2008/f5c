@@ -17,7 +17,6 @@ docs:
         url:    /docs/building
       - title:  Docker/Conda
         url:    /docs/misc-install
-      - url:    /docs/docker  
   - title:      Usage
     children:
       - title:  Commands and options
