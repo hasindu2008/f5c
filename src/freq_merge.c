@@ -130,9 +130,6 @@ void get_tsv_line(struct tsv_record* record, int file_no, int64_t line_num) {
     free(buffer);
 }
 
-// static const char *MAP_REDUCE_USAGE_MESSAGE =
-//         "Usage: f5c freq-merge -o [OUTPUT_FILE_NAME] -n [NO_OF_INPUT_FILES] -f [INPUT_FILE_1] [INPUT_FILE_2] ...\n";
-
 static const char *MAP_REDUCE_USAGE_MESSAGE =
         "\nUsage: freq-merge [options...]\n"
 "To merge multiple methylation frequency files to a single file.\n"
