@@ -71,7 +71,7 @@ parameters laptop_high = {
     .batch_size_bases = 2500000,
     .num_thread = 12,
     .ultra_thresh = 100000,
-    .num_iop = 1,
+    .num_iop = 2,
     .disable_cuda=0
 };
 
@@ -84,7 +84,7 @@ parameters laptop_mid = {
     .batch_size_bases = 2000000,
     .num_thread = 8,
     .ultra_thresh = 100000,
-    .num_iop = 1,
+    .num_iop = 2,
     .disable_cuda=0
 };
 
@@ -220,5 +220,4 @@ parameters nci_gadi = {
 };
 
 
-void set_opt_profile(opt_t *opt, parameters machine);
 #endif

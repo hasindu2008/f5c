@@ -240,7 +240,7 @@ int meth_main(int argc, char* argv[], int8_t mode) {
         } else if (c == 'g') {
             fastafile = optarg;
 
-        } else if (c == 'x') {  //CHANGE: Set profile values. Any user-specified arguments will override the profile values.
+        } else if (c == 'x') {  //Set profile values. Any user-specified arguments will override the profile values.
             profilename = optarg;
             int profile_return = set_profile(profilename,&opt);
             if(profile_return == 1){
@@ -394,9 +394,8 @@ int meth_main(int argc, char* argv[], int8_t mode) {
     }
 
     if (fastqfile == NULL || bamfilename == NULL || fastafile == NULL || fp_help == stdout) {
-        fprintf(
-            fp_help,
-            "Usage: f5c %s [OPTIONS] -r reads.fa -b alignments.bam -g genome.fa\n",mode==1 ? "eventalign" : "call-methylation");
+        fprintf(fp_help,"Usage: f5c %s [OPTIONS] -r reads.fa -b alignments.bam -g genome.fa\n",mode==1 ? "eventalign" : "call-methylation");
+        fprintf(fp_help,"\nbasic options:\n");
         fprintf(fp_help,"   -r FILE                    fastq/fasta read file\n");
         fprintf(fp_help,"   -b FILE                    sorted bam file\n");
         fprintf(fp_help,"   -g FILE                    reference genome\n");
@@ -406,12 +405,14 @@ int meth_main(int argc, char* argv[], int8_t mode) {
         fprintf(fp_help,"   -B FLOAT[K/M/G]            max number of bases loaded at once [%.1fM]\n",opt.batch_size_bases/(float)(1000*1000));
         fprintf(fp_help,"   -h                         help\n");
         fprintf(fp_help,"   -o FILE                    output to file [stdout]\n");
+        fprintf(fp_help,"   -x STR                     parameter profile to be used for better performance (always applied before other options)\n"); //Added option in help
+        fprintf(fp_help,"                              e.g., laptop, desktop, hpc; see https://f5c.page.link/profiles for the full list\n");
         fprintf(fp_help,"   --iop INT                  number of I/O processes to read fast5 files [%d]\n",opt.num_iop);
         fprintf(fp_help,"   --min-mapq INT             minimum mapping quality [%d]\n",opt.min_mapq);
         fprintf(fp_help,"   --secondary=yes|no         consider secondary mappings or not [%s]\n",(opt.flag&F5C_SECONDARY_YES)?"yes":"no");
         fprintf(fp_help,"   --verbose INT              verbosity level [%d]\n",opt.verbosity);
         fprintf(fp_help,"   --version                  print version\n");
-        fprintf(fp_help,"   -x STRING                  profile to be used for better parameter selection. user-specified parameters will override profile values\n"); //CHANGE: Added option in help
+
 #ifdef HAVE_CUDA
         fprintf(fp_help,"   --disable-cuda=yes|no      disable running on CUDA [%s]\n",(opt.flag&F5C_DISABLE_CUDA?"yes":"no"));
         fprintf(fp_help,"   --cuda-dev-id INT          CUDA device ID to run kernels on [%d]\n",opt.cuda_dev_id);
@@ -419,22 +420,14 @@ int meth_main(int argc, char* argv[], int8_t mode) {
         fprintf(fp_help,"   --cuda-avg-epk FLOAT       average number of events per kmer - for allocating GPU arrays [%.1f]\n",opt.cuda_avg_events_per_kmer);
         fprintf(fp_help,"   --cuda-max-epk FLOAT       reads with events per kmer <= cuda_max_epk on GPU, rest on CPU [%.1f]\n",opt.cuda_max_avg_events_per_kmer);
 #endif
-        fprintf(fp_help,"advanced options:\n");
-        fprintf(fp_help,"   --kmer-model FILE          custom nucleotide k-mer model file\n");
-        fprintf(fp_help,"   --skip-unreadable=yes|no   skip any unreadable fast5 or terminate program [%s]\n",(opt.flag&F5C_SKIP_UNREADABLE?"yes":"no"));
-        fprintf(fp_help,"   --print-events=yes|no      prints the event table\n");
-        fprintf(fp_help,"   --print-banded-aln=yes|no  prints the event alignment\n");
-        fprintf(fp_help,"   --print-scaling=yes|no     prints the estimated scalings\n");
-        fprintf(fp_help,"   --print-raw=yes|no         prints the raw signal\n");
-        fprintf(fp_help,"   --debug-break [INT]        break after processing the specified batch\n");
-        fprintf(fp_help,"   --profile-cpu=yes|no       process section by section (used for profiling on CPU)\n");
+        fprintf(fp_help,"\nadvanced options:\n");
         fprintf(fp_help,"   --skip-ultra FILE          skip ultra long reads and write those entries to the bam file provided as the argument\n");
         fprintf(fp_help,"   --ultra-thresh [INT]       threshold to skip ultra long reads [%ld]\n",(long)opt.ultra_thresh);
-        fprintf(fp_help,"   --write-dump=yes|no        write the fast5 dump to a file or not\n");
-        fprintf(fp_help,"   --read-dump=yes|no         read from a fast5 dump file or not\n");
+        fprintf(fp_help,"   --skip-unreadable=yes|no   skip any unreadable fast5 or terminate program [%s]\n",(opt.flag&F5C_SKIP_UNREADABLE?"yes":"no"));
+        fprintf(fp_help,"   --kmer-model FILE          custom nucleotide k-mer model file\n");
     if(mode==0){
-        fprintf(fp_help,"   --meth-out-version [INT]   methylation tsv output version (set 2 to print the strand column) [%d]\n",opt.meth_out_version);
         fprintf(fp_help,"   --meth-model FILE          custom methylation k-mer model file\n");
+        fprintf(fp_help,"   --meth-out-version [INT]   methylation tsv output version (set 2 to print the strand column) [%d]\n",opt.meth_out_version);
     }
     if(mode==1){
         fprintf(fp_help,"   --summary FILE             summarise the alignment of each read/strand in FILE\n");
@@ -447,6 +440,16 @@ int meth_main(int argc, char* argv[], int8_t mode) {
         fprintf(fp_help,"   --cuda-mem-frac FLOAT      Fraction of free GPU memory to allocate [0.9 (0.7 for tegra)]\n");
         //fprintf(fp_help,"   --cuda-block-size\n");
 #endif
+
+        fprintf(fp_help,"\ndeveloper options:\n");
+        fprintf(fp_help,"   --print-events=yes|no      prints the event table\n");
+        fprintf(fp_help,"   --print-banded-aln=yes|no  prints the event alignment\n");
+        fprintf(fp_help,"   --print-scaling=yes|no     prints the estimated scalings\n");
+        fprintf(fp_help,"   --print-raw=yes|no         prints the raw signal\n");
+        fprintf(fp_help,"   --debug-break [INT]        break after processing the specified batch\n");
+        fprintf(fp_help,"   --profile-cpu=yes|no       process section by section (used for profiling on CPU)\n");
+        fprintf(fp_help,"   --write-dump=yes|no        write the fast5 dump to a file or not\n");
+        fprintf(fp_help,"   --read-dump=yes|no         read from a fast5 dump file or not\n");
         if(fp_help == stdout){
             exit(EXIT_SUCCESS);
         }
