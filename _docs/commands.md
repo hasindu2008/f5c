@@ -133,7 +133,7 @@ To merge multiple methylation frequency files to a single file.
 For each methylation calling output (.tsv) file, perform methylation frequency calculation separately (no concatenation required). 
 Then feed those output (.tsv) files to this tool, to obtain the final methylation frequency calculated file. 
 
-  -o [float]        Output file.
+  -o FILE        Output file.
   -n [INT]          Number of methylation frequency .tsv files to be merged
   -f                n number of input filepaths should be followed
   e.g. freq-merge -o merged_freq.tsv -n 2 -f data1_freq.tsv data2_freq.tsv 
