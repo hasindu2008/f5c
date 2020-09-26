@@ -2,9 +2,9 @@
 title: Parameter Profiles
 ---
 
-For achieving maximal runtime performance in f5c, performance governing parameters must be selected by the user as explained in [f5c-perf-hints](https://hasindu2008.github.io/f5c/docs/f5c-perf-hints). From f5c-v0.5 onwards, preset parameter profiles are provided for a wide range of computer systems from embedded systems to servers. The user can simply specify the parameter profile to f5c with *-x* option followed by the name of the profile (See tables below) that closely matches the specification of the user's computer system.  Performance governing paramaters currently set by a profile are *t*, *K*, *B*, *max-lf*, *avg-epk* and *max-epk*. Note that the user can also provide any of these parameters explitly in addition to a profile. In such a circumstance, parameters set by *-x* will be overridden by the user provided parameters.
+For achieving maximal runtime performance in f5c, performance governing parameters must be selected by the user as explained in [f5c-perf-hints](https://hasindu2008.github.io/f5c/docs/f5c-perf-hints). From f5c-v0.5 onwards, preset parameter profiles are provided for a wide range of computer systems from embedded systems to servers. The user can simply specify the parameter profile to f5c with *-x* option followed by the name of the profile (See tables below) that closely matches the specification of the user's computer system.  Performance governing parameters currently set by a profile are *t*, *K*, *B*, *max-lf*, *avg-epk* and *max-epk*. Note that the user can also provide any of these parameters explicitly in addition to a profile. In such a circumstance, parameters set by *-x* will be overridden by the user provided parameters.
 
-In the tables below, the number of cores are including hyper threads in Intel processors. The GPU specification can be ignored if you are using the CPU only version of f5c.
+In the tables below, the number of cores includes hyper-threads in Intel processors. The GPU specification can be ignored if you are using the CPU only version of f5c.
 
 ## Generic profiles
 
@@ -35,7 +35,7 @@ In the tables below, the number of cores are including hyper threads in Intel pr
 - The above profiles are for a typical nanopore dataset and if your dataset properties (e.g., read lengths, events per k-mer) are quite different, the user may still have to follow steps in [f5c-perf-hints](https://hasindu2008.github.io/f5c/docs/f5c-perf-hints) for best performance.
 - The above list of computer systems is not exhaustive. I will keep adding new profiles whenever I get hold of a new computer system. If you wish a new profile to be added for a particular computer system, please open an [issue](https://github.com/hasindu2008/f5c/issues).
 - Some of the above profiles are based on values obtained by running [f5c-tools](https://github.com/dkhyland/f5c-tools). As this method requires a number of iterations and thus very time consuming, some profiles contain interpolated values.
-- The parameter values set by a particular profile can be found [here]() 
+- The parameter values set by a particular profile can be found [here](). 
 
 ### Acknowledgement:
 This parameters profile feature in f5c was developed by [David Hyland](https://github.com/dkhyland).
