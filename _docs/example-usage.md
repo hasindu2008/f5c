@@ -26,7 +26,7 @@ f5c eventalign -b chr22_meth_example/reads.sorted.bam -g chr22_meth_example/huma
 todo
   
 
-## Methylation calling Workflow for a dsitibuted system
+## Methylation calling Workflow for a distributed system
 
 todo: meth-freq stuff
   
