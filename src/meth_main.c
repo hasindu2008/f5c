@@ -400,7 +400,7 @@ int meth_main(int argc, char* argv[], int8_t mode) {
         fprintf(fp_help,"   -b FILE                    sorted bam file\n");
         fprintf(fp_help,"   -g FILE                    reference genome\n");
         fprintf(fp_help,"   -w STR[chr:start-end]      limit processing to genomic region STR\n");
-        fprintf(fp_help,"   -t INT                     number of threads [%d]\n",opt.num_thread);
+        fprintf(fp_help,"   -t INT                     number of processing threads [%d]\n",opt.num_thread);
         fprintf(fp_help,"   -K INT                     batch size (max number of reads loaded at once) [%d]\n",opt.batch_size);
         fprintf(fp_help,"   -B FLOAT[K/M/G]            max number of bases loaded at once [%.1fM]\n",opt.batch_size_bases/(float)(1000*1000));
         fprintf(fp_help,"   -h                         help\n");
@@ -422,12 +422,12 @@ int meth_main(int argc, char* argv[], int8_t mode) {
 #endif
         fprintf(fp_help,"\nadvanced options:\n");
         fprintf(fp_help,"   --skip-ultra FILE          skip ultra long reads and write those entries to the bam file provided as the argument\n");
-        fprintf(fp_help,"   --ultra-thresh [INT]       threshold to skip ultra long reads [%ld]\n",(long)opt.ultra_thresh);
+        fprintf(fp_help,"   --ultra-thresh INT         threshold to skip ultra long reads [%ld]\n",(long)opt.ultra_thresh);
         fprintf(fp_help,"   --skip-unreadable=yes|no   skip any unreadable fast5 or terminate program [%s]\n",(opt.flag&F5C_SKIP_UNREADABLE?"yes":"no"));
-        fprintf(fp_help,"   --kmer-model FILE          custom nucleotide k-mer model file\n");
+        fprintf(fp_help,"   --kmer-model FILE          custom nucleotide 6-mer model file (format similar to test/r9-models/r9.4_450bps.nucleotide.6mer.template.model)\n");
     if(mode==0){
-        fprintf(fp_help,"   --meth-model FILE          custom methylation k-mer model file\n");
-        fprintf(fp_help,"   --meth-out-version [INT]   methylation tsv output version (set 2 to print the strand column) [%d]\n",opt.meth_out_version);
+        fprintf(fp_help,"   --meth-model FILE          custom methylation 6-mer model file (format similar to test/r9-models/r9.4_450bps.cpg.6mer.template.model)\n");
+        fprintf(fp_help,"   --meth-out-version INT     methylation tsv output version (set 2 to print the strand column) [%d]\n",opt.meth_out_version);
     }
     if(mode==1){
         fprintf(fp_help,"   --summary FILE             summarise the alignment of each read/strand in FILE\n");
@@ -446,7 +446,7 @@ int meth_main(int argc, char* argv[], int8_t mode) {
         fprintf(fp_help,"   --print-banded-aln=yes|no  prints the event alignment\n");
         fprintf(fp_help,"   --print-scaling=yes|no     prints the estimated scalings\n");
         fprintf(fp_help,"   --print-raw=yes|no         prints the raw signal\n");
-        fprintf(fp_help,"   --debug-break [INT]        break after processing the specified batch\n");
+        fprintf(fp_help,"   --debug-break INT          break after processing the specified no. of batches\n");
         fprintf(fp_help,"   --profile-cpu=yes|no       process section by section (used for profiling on CPU)\n");
         fprintf(fp_help,"   --write-dump=yes|no        write the fast5 dump to a file or not\n");
         fprintf(fp_help,"   --read-dump=yes|no         read from a fast5 dump file or not\n");
