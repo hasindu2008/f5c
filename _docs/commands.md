@@ -1,9 +1,36 @@
 ---
-title: Commands and options
+title: f5c - Manual Page
 ---
 
-## Available f5c tools
+## NAME
 
+f5c - Ultra-fast methylation calling and event alignment tool for nanopore sequencing data (supports CUDA acceleration)
+
+## SYNOPSIS
+
+```
+indexing:
+
+         f5c index -d [fast5_folder] [read.fastq|fasta]
+
+methylation calling:
+
+         f5c call-methylation -b [reads.sorted.bam] -g [ref.fa] -r [reads.fastq|fasta] > [meth.tsv]
+         f5c meth-freq -i [meth.tsv] > [freq.tsv]
+
+event alignment:
+
+         f5c eventalign -b [reads.sorted.bam] -g [ref.fa] -r [reads.fastq|fasta] > [events.tsv]
+```
+
+## DESCRIPTION
+
+Given a set of base-called nanopore reads and associated raw signals, f5c call-methylation detects the methylated cytosine and f5c eventalign aligns raw nanopore DNA signals (events) to the base-called read. f5c can optionally utilise CUDA enabled NVIDIA graphics cards for acceleration. f5c is a heavily re-engineered and optimised implementation of the call-methylation and eventalign modules in Nanopolish.
+
+## COMMANDS AND OPTIONS
+
+
+## Available f5c tools
 ```
 Usage: f5c <command> [options]
 
@@ -14,7 +41,7 @@ command:
          eventalign          Align nanopore events to reference k-mers (optimised nanopolish eventalign)
 ```
 
-### Indexing
+### index
 
 ```
 Usage: f5c index [OPTIONS] -d nanopore_raw_file_directory reads.fastq
@@ -28,7 +55,7 @@ f5c index is equivalent to nanopolish index by Jared Simpson
   -f, --summary-fofn                   file containing the paths to the sequencing summary files (one per line)
 ```
 
-### Calling methylation
+### call-methylation
 
 ```
 Usage: f5c call-methylation [OPTIONS] -r reads.fa -b alignments.bam -g genome.fa
@@ -69,7 +96,7 @@ advanced options:
    --cuda-mem-frac FLOAT      Fraction of free GPU memory to allocate [0.9 (0.7 for tegra)]
 ```
 
-### Calculate methylation frequency
+### meth-freq
 ```
 Usage: meth-freq [options...]
 
@@ -80,7 +107,7 @@ Usage: meth-freq [options...]
   ```
 
 
-### Aligning events
+### eventalign
 
 ```
 Usage: f5c eventalign [OPTIONS] -r reads.fa -b alignments.bam -g genome.fa
@@ -124,3 +151,37 @@ advanced options:
    --samples                  write the raw samples for the event to the tsv output
    --cuda-mem-frac FLOAT      Fraction of free GPU memory to allocate [0.9 (0.7 for tegra)]
 ```
+
+## EXAMPLES
+
+```
+#download and extract the dataset including sorted alignments
+wget -O f5c_na12878_test.tgz "https://f5c.page.link/f5c_na12878_test"
+tar xf f5c_na12878_test.tgz
+
+#index, call methylation and get methylation frequencies
+f5c index -d chr22_meth_example/fast5_files chr22_meth_example/reads.fastq
+f5c call-methylation -b chr22_meth_example/reads.sorted.bam -g chr22_meth_example/humangenome.fa -r chr22_meth_example/reads.fastq > chr22_meth_example/result.tsv
+f5c meth-freq -i chr22_meth_example/result.tsv > chr22_meth_example/freq.tsv
+
+#event alignment
+f5c eventalign -b chr22_meth_example/reads.sorted.bam -g chr22_meth_example/humangenome.fa -r chr22_meth_example/reads.fastq > chr22_meth_example/events.tsv
+```
+
+## AUTHOR
+
+Hasindu Gamaarachchi wrote the framework of f5c, CUDA code and integrated with adapted components from Jared T. Simpson's Nanopolish [https://github.com/jts/nanopolish], with tremendous support from Chun Wai Lam, Gihan Jayatilaka and Hiruna Samarakoon. 
+
+## LICENSE
+
+f5c is licensed under the MIT License. f5c reuses code and methods from Nanopolish [https://github.com/jts/nanopolish] which is also under the MIT License. The event detection code in f5c is from Oxford Nanopore's Scrappie basecaller [https://github.com/nanoporetech/scrappie] which is under Mozilla Public License 2.0. Some code snippets have been taken from Minimap2 [https://github.com/lh3/minimap2] and Samtools [https://github.com/samtools/samtools] that are under the MIT License.
+
+If you use f5c, please cite Gamaarachchi, H., Lam, C.W., Jayatilaka, G. et al. GPU accelerated adaptive banded event alignment for rapid comparative nanopore signal analysis. BMC Bioinformatics 21, 343 (2020). https://doi.org/10.1186/s12859-020-03697-x
+
+## SEE ALSO
+
+Full documentation: https://hasindu2008.github.io/f5c/docs/overview
+
+Source code: https://github.com/hasindu2008/f5c/
+
+Publication: https://bmcbioinformatics.biomedcentral.com/articles/10.1186/s12859-020-03697-x
