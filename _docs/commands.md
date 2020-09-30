@@ -10,16 +10,13 @@ f5c - Ultra-fast methylation calling and event alignment tool for nanopore seque
 
 ```
 indexing:
-
          f5c index -d [fast5_folder] [read.fastq|fasta]
 
 methylation calling:
-
          f5c call-methylation -b [reads.sorted.bam] -g [ref.fa] -r [reads.fastq|fasta] > [meth.tsv]
          f5c meth-freq -i [meth.tsv] > [freq.tsv]
 
 event alignment:
-
          f5c eventalign -b [reads.sorted.bam] -g [ref.fa] -r [reads.fastq|fasta] > [events.tsv]
 ```
 
@@ -27,19 +24,16 @@ event alignment:
 
 Given a set of base-called nanopore reads and associated raw signals, f5c call-methylation detects the methylated cytosine and f5c eventalign aligns raw nanopore DNA signals (events) to the base-called read. f5c can optionally utilise CUDA enabled NVIDIA graphics cards for acceleration. f5c is a heavily re-engineered and optimised implementation of the call-methylation and eventalign modules in Nanopolish.
 
-## COMMANDS AND OPTIONS
+## COMMANDS 
 
-
-## Available f5c tools
 ```
-Usage: f5c <command> [options]
-
-command:
-         index               Build an index mapping from basecalled reads to the signals measured by the sequencer (same as nanopolish index)
-         call-methylation    Classify nucleotides as methylated or not (optimised nanopolish call-methylation)
-         meth-freq           Calculate methylation frequency at genomic CpG sites (optimised nanopolish calculate_methylation_frequency.py)
-         eventalign          Align nanopore events to reference k-mers (optimised nanopolish eventalign)
+index               Build an index mapping from basecalled reads to the signals measured by the sequencer (same as nanopolish index)
+call-methylation    Classify nucleotides as methylated or not (optimised nanopolish call-methylation)
+meth-freq           Calculate methylation frequency at genomic CpG sites (optimised nanopolish calculate_methylation_frequency.py)
+eventalign          Align nanopore events to reference k-mers (optimised nanopolish eventalign)
 ```
+
+## OPTIONS
 
 ### index
 
