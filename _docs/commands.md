@@ -1,24 +1,27 @@
 ---
-title: f5c - Manual Page
+title: Commands and Options
 ---
 
-## NAME
+f5c(1) - Ultra-fast methylation calling and event alignment tool for nanopore sequencing data with optional CUDA acceleration
+====================
 
-f5c - Ultra-fast methylation calling and event alignment tool for nanopore sequencing data (supports CUDA acceleration)
 
 ## SYNOPSIS
 
-```
-indexing:
-         f5c index -d [fast5_folder] [read.fastq|fasta]
+* indexing:
+  ```
+  f5c index -d [fast5_folder] [read.fastq|fasta]
+  ```
+* methylation calling:
+  ```
+  f5c call-methylation -b [reads.sorted.bam] -g [ref.fa] -r [reads.fastq|fasta] > [meth.tsv]
+  f5c meth-freq -i [meth.tsv] > [freq.tsv]
+  ```
+* event alignment:
+  ```
+  f5c eventalign -b [reads.sorted.bam] -g [ref.fa] -r [reads.fastq|fasta] > [events.tsv]
+  ```
 
-methylation calling:
-         f5c call-methylation -b [reads.sorted.bam] -g [ref.fa] -r [reads.fastq|fasta] > [meth.tsv]
-         f5c meth-freq -i [meth.tsv] > [freq.tsv]
-
-event alignment:
-         f5c eventalign -b [reads.sorted.bam] -g [ref.fa] -r [reads.fastq|fasta] > [events.tsv]
-```
 
 ## DESCRIPTION
 
@@ -26,33 +29,42 @@ Given a set of base-called nanopore reads and associated raw signals, f5c call-m
 
 ## COMMANDS 
 
-```
-index               Build an index mapping from basecalled reads to the signals measured by the sequencer (same as nanopolish index)
-call-methylation    Classify nucleotides as methylated or not (optimised nanopolish call-methylation)
-meth-freq           Calculate methylation frequency at genomic CpG sites (optimised nanopolish calculate_methylation_frequency.py)
-eventalign          Align nanopore events to reference k-mers (optimised nanopolish eventalign)
-```
+* `index`:               
+         Build an index mapping from basecalled reads to the signals measured by the sequencer (same as nanopolish index)
+* `call-methylation`:    
+         Classify nucleotides as methylated or not (optimised nanopolish call-methylation)
+* `meth-freq`:           
+         Calculate methylation frequency at genomic CpG sites (optimised nanopolish calculate_methylation_frequency.py)
+* `eventalign`:          
+         Align nanopore events to reference k-mers (optimised nanopolish eventalign)
+
 
 ## OPTIONS
 
 ### index
 
-```
-Usage: f5c index [OPTIONS] -d nanopore_raw_file_directory reads.fastq
-Build an index mapping from basecalled reads to the signals measured by the sequencer
-f5c index is equivalent to nanopolish index by Jared Simpson
+`f5c index [OPTIONS] -d nanopore_raw_file_directory reads.fastq`
 
-  -h, --help                           display this help and exit
-  -v, --verbose                        display verbose output
-  -d, --directory                      path to the directory containing the raw ONT signal files. This option can be given multiple times.
-  -s, --sequencing-summary             the sequencing summary file from albacore, providing this option will make indexing much faster
-  -f, --summary-fofn                   file containing the paths to the sequencing summary files (one per line)
-```
+Build an index mapping from basecalled reads to the signals measured by the sequencer. f5c index is equivalent to nanopolish index by Jared Simpson.
+
+
+*  `-h`, `--help`:                           
+         display this help and exit
+*  `-v`, `--verbose`:                        
+         display verbose output
+*  `-d`, `--directory`:                      
+         path to the directory containing the raw ONT signal files. This option can be given multiple times.
+*  `-s`, `--sequencing-summary`:             
+         the sequencing summary file from albacore, providing this option will make indexing much faster
+*  `-f`, `--summary-fofn`:                   
+         file containing the paths to the sequencing summary files (one per line)
+
 
 ### call-methylation
 
+`f5c call-methylation [OPTIONS] -r reads.fa -b alignments.bam -g genome.fa`
+
 ```
-Usage: f5c call-methylation [OPTIONS] -r reads.fa -b alignments.bam -g genome.fa
    -r FILE                    fastq/fasta read file
    -b FILE                    sorted bam file
    -g FILE                    reference genome
@@ -91,9 +103,10 @@ advanced options:
 ```
 
 ### meth-freq
-```
-Usage: meth-freq [options...]
 
+`meth-freq [options...]`
+
+```
   -c [float]        Call threshold. Default is 2.5.
   -i [file]         Input file. Read from stdin if not specified.
   -o [file]         Output file. Write to stdout if not specified.
@@ -103,8 +116,9 @@ Usage: meth-freq [options...]
 
 ### eventalign
 
+`f5c eventalign [OPTIONS] -r reads.fa -b alignments.bam -g genome.fa`
+
 ```
-Usage: f5c eventalign [OPTIONS] -r reads.fa -b alignments.bam -g genome.fa
    -r FILE                    fastq/fasta read file
    -b FILE                    sorted bam file
    -g FILE                    reference genome
@@ -148,19 +162,22 @@ advanced options:
 
 ## EXAMPLES
 
-```
-#download and extract the dataset including sorted alignments
-wget -O f5c_na12878_test.tgz "https://f5c.page.link/f5c_na12878_test"
-tar xf f5c_na12878_test.tgz
 
-#index, call methylation and get methylation frequencies
-f5c index -d chr22_meth_example/fast5_files chr22_meth_example/reads.fastq
-f5c call-methylation -b chr22_meth_example/reads.sorted.bam -g chr22_meth_example/humangenome.fa -r chr22_meth_example/reads.fastq > chr22_meth_example/result.tsv
-f5c meth-freq -i chr22_meth_example/result.tsv > chr22_meth_example/freq.tsv
-
-#event alignment
-f5c eventalign -b chr22_meth_example/reads.sorted.bam -g chr22_meth_example/humangenome.fa -r chr22_meth_example/reads.fastq > chr22_meth_example/events.tsv
-```
+* download and extract the dataset including sorted alignments:
+  ```
+  wget -O f5c_na12878_test.tgz "https://f5c.page.link/f5c_na12878_test"
+  tar xf f5c_na12878_test.tgz
+  ```
+* index, call methylation and get methylation frequencies:
+   ```
+   f5c index -d chr22_meth_example/fast5_files chr22_meth_example/reads.fastq
+   f5c call-methylation -b chr22_meth_example/reads.sorted.bam -g chr22_meth_example/humangenome.fa -r chr22_meth_example/reads.fastq > chr22_meth_example/result.tsv
+   f5c meth-freq -i chr22_meth_example/result.tsv > chr22_meth_example/freq.tsv
+   ```
+* event alignment:
+  ```
+  f5c eventalign -b chr22_meth_example/reads.sorted.bam -g chr22_meth_example/humangenome.fa -r chr22_meth_example/reads.fastq > chr22_meth_example/events.tsv
+  ```
 
 ## AUTHOR
 
