@@ -2,9 +2,9 @@
 title: Commands and Options
 ---
 
-f5c(1) - Ultra-fast methylation calling and event alignment tool for nanopore sequencing data with optional CUDA acceleration
-====================
+## NAME
 
+f5c(1) - Ultra-fast methylation calling and event alignment tool for nanopore sequencing data with optional CUDA acceleration
 
 ## SYNOPSIS
 
