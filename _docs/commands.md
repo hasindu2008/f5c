@@ -87,7 +87,7 @@ Classify nucleotides as methylated or not (optimised nanopolish call-methylation
   output to file [stdout]
 * `-x STR`:                     
   parameter profile to be used for better performance (always applied before other options)
-                           e.g., laptop, desktop, hpc; see https://f5c.page.link/profiles for the full list
+                           e.g., laptop, desktop, hpc; see [profiles](https://f5c.page.link/profiles) for the full list
 * `--iop INT`:                  
   number of I/O processes to read fast5 files [1]
 * `--min-mapq INT`:             
@@ -229,7 +229,7 @@ Hasindu Gamaarachchi wrote the framework of f5c, CUDA code and integrated with a
 
 ## LICENSE
 
-f5c is licensed under the MIT License. f5c reuses code and methods from Nanopolish [https://github.com/jts/nanopolish] which is also under the MIT License. The event detection code in f5c is from Oxford Nanopore's Scrappie basecaller [https://github.com/nanoporetech/scrappie] which is under Mozilla Public License 2.0. Some code snippets have been taken from Minimap2 [https://github.com/lh3/minimap2] and Samtools [https://github.com/samtools/samtools] that are under the MIT License.
+f5c is licensed under the MIT License. f5c reuses code and methods from [Nanopolish](https://github.com/jts/nanopolish) which is also under the MIT License. The event detection code in f5c is from Oxford Nanopore's [Scrappie basecaller](https://github.com/nanoporetech/scrappie) which is under Mozilla Public License 2.0. Some code snippets have been taken from [Minimap2](https://github.com/lh3/minimap2) and [Samtools](https://github.com/samtools/samtools) that are under the MIT License.
 
 If you use f5c, please cite Gamaarachchi, H., Lam, C.W., Jayatilaka, G. et al. GPU accelerated adaptive banded event alignment for rapid comparative nanopore signal analysis. BMC Bioinformatics 21, 343 (2020). https://doi.org/10.1186/s12859-020-03697-x
 
