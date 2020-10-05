@@ -4,7 +4,7 @@ title: Commands and Options
 
 ## NAME
 
-f5c(1) - Ultra-fast methylation calling and event alignment tool for nanopore sequencing data with optional CUDA acceleration
+f5c(1) - Ultra-fast methylation calling and event alignment tool for nanopore sequencing data with optional GPU (CUDA) acceleration
 
 ## SYNOPSIS
 
@@ -25,14 +25,14 @@ f5c(1) - Ultra-fast methylation calling and event alignment tool for nanopore se
 
 ## DESCRIPTION
 
-Given a set of base-called nanopore reads and associated raw signals, f5c call-methylation detects the methylated cytosine and f5c eventalign aligns raw nanopore DNA signals (events) to the base-called read. f5c can optionally utilise CUDA enabled NVIDIA graphics cards for acceleration. f5c is a heavily re-engineered and optimised implementation of the call-methylation and eventalign modules in Nanopolish.
+Given a set of base-called nanopore reads and associated raw signals, f5c call-methylation detects the methylated cytosine at genomic CpG cites and f5c eventalign aligns raw nanopore DNA signals (events) to the base-called read. f5c can optionally utilise CUDA enabled NVIDIA graphics cards for acceleration. f5c is a heavily re-engineered and optimised implementation of the call-methylation and eventalign modules in Nanopolish.
 
 ## COMMANDS 
 
 * `index`:               
-         Build an index mapping from basecalled reads to the signals measured by the sequencer (same as nanopolish index).
+         Build an index map from basecalled reads to the signals measured by the sequencer (same as nanopolish index).
 * `call-methylation`:    
-         Classify nucleotides as methylated or not (optimised nanopolish call-methylation).
+         Classify nucleotides as methylated or not at genomic CpG sites (optimised nanopolish call-methylation).
 * `meth-freq`:           
          Calculate methylation frequency at genomic CpG sites (optimised nanopolish calculate_methylation_frequency.py).
 * `eventalign`:          
@@ -45,7 +45,7 @@ Given a set of base-called nanopore reads and associated raw signals, f5c call-m
 
 `f5c index [OPTIONS] -d nanopore_raw_file_directory reads.fastq`
 
-Build an index mapping from basecalled reads to the signals measured by the sequencer. f5c index is equivalent to nanopolish index by Jared Simpson.
+Build an index map from basecalled reads to the signals measured by the sequencer. f5c index is equivalent to nanopolish index by Jared Simpson.
 
 *  `-h`, `--help`:                           
          display this help and exit
@@ -63,51 +63,50 @@ Build an index mapping from basecalled reads to the signals measured by the sequ
 
 `f5c call-methylation [OPTIONS] -r reads.fa -b alignments.bam -g genome.fa`
 
-Classify nucleotides as methylated or not (optimised nanopolish call-methylation).
+Classify nucleotides as methylated or not at genomic CpG cites (optimised nanopolish call-methylation). Note that the list below contains the options for both CPU-only and CPU-GPU versions of f5c.  Options related to the GPU (CUDA) do NOT apply to the CPU-only version.
 
 #### basic options
 
 * `-r FILE`:                     
-  fastq/fasta read file
+  The file containing the base-called reads in FASTQ or FASTA format. Can be gzip compressed files.
 * `-b FILE`:                    
-  sorted bam file
+  The file contaning the alignment records sorted based on genomic coordinates in BAM format.
 * `-g FILE`:                    
-  reference genome
-* `-w STR[chr:start-end]`:      
-  limit processing to genomic region STR
+  The file containing the reference genome in FASTA format.
+* `-w STR`:      
+  Only process the specified genomic region STR. STR should be in the format *chr:start-end*. Currently, multiple region strings are not supported. If this option is not specified, the whole genome will be processed.
 * `-t INT`:                     
-  number of processing threads [8]
+  Number of processing threads [default value: 8].
 * `-K INT`:                     
-  batch size (max number of reads loaded at once) [512]
+  Maximum number of reads loaded at once to the memory [default value: 512]. A larger value maximises multithreading performance at cost of increased peak RAM.
 * `-B FLOAT[K/M/G]`:            
-  max number of bases loaded at once [2.0M]
+  Maximum number of bases loaded at once to the memory [default value: 2.0M]. A larger value maximises multithreading performance at cost of increased peak RAM.
 * `-h`:                         
-  help
+  Print the help to the standard out.
 * `-o FILE`:                    
-  output to file [stdout]
+  The file to write the output. If this option is not specified, the output will be written to the standard out. 
 * `-x STR`:                     
-  parameter profile to be used for better performance (always applied before other options)
-                           e.g., laptop, desktop, hpc; see [profiles](https://f5c.page.link/profiles) for the full list
+  Parameter profile to be used for maximising the performance to a particular computer system. The profile parameters are always applied before other options, i.e., the user can override these parameters explicitly. Some example profiles are laptop, desktop, hpc. See [profiles](https://f5c.page.link/profiles) for the full list and details.
 * `--iop INT`:                  
-  number of I/O processes to read fast5 files [1]
+  Number of I/O processes to read FAST5 files [default value: 1]. Increase this value if reading FAST5 limits the overall performance. A higher value is always preferred for systems with multiple disks (RAID) and network file systems.
 * `--min-mapq INT`:             
-  minimum mapping quality [20]
+  Minimum mapping quality of an alignment (MAPQ in the BAM record) to be considered for methylation calling [default value: 20].
 * `--secondary=yes|no`:         
-  consider secondary mappings or not [no]
+  Whether secondary alignments are considered or not for methylation calling [default value: no].
 * `--verbose INT`:              
-  verbosity level [0]
+  Verbosity level for the log messages [default value: 0].
 * `--version`:                  
-  print version
+  Print the version number to the standard out.
 * `--disable-cuda=yes|no`:      
-  disable running on CUDA [no]
+  Disable running on the GPU or not [default value: no]. If this option is set to yes, GPU acceleration is disabled. 
 * `--cuda-dev-id INT`:          
-  CUDA device ID to run kernels on [0]
+  CUDA device identifier to run GPU kernels on [default value: 0]. The device identifier of the first GPU is 0, the second GPU is 1 and so on. This can be found by invoking the  `nvidia-smi` command. Currently, only a single GPU can be specified. To utilise multiple GPUs, you have to manually invoke multiple f5c commands on different datasets with a different device identifier.  
 * `--cuda-max-lf FLOAT`:        
-  reads with length <= cuda-max-lf*avg_readlen on GPU, rest on CPU [3.0]
+  Process reads with read-length less than or equal to the product of *cuda-max-lf* and the average read length in the current batch on GPU. The rest is processed on CPU [default value: 3.0]. Useful for tuning the CPU-GPU load balance for atypical datasets. Refer to [performance guidelines](https://hasindu2008.github.io/f5c/docs/f5c-perf-hints) for details.
 * `--cuda-avg-epk FLOAT`:       
-  average number of events per kmer - for allocating GPU arrays [2.0]
+  The average number of events-per-kmer used for allocating the arrays in GPU memory [default value: 2.0]. Useful for tuning the CPU-GPU load balance for atypical datasets. Refer to [performance guidelines](https://hasindu2008.github.io/f5c/docs/f5c-perf-hints) for details.
 * `--cuda-max-epk FLOAT`:       
-  reads with events per kmer <= cuda_max_epk on GPU, rest on CPU [5.0]
+  process the reads with events-per-kmer less than or equal to *cuda_max_epk* on GPU. The rest is processed on CPU [default value: 5.0]. Useful for tuning the CPU-GPU load balance for atypical datasets. Refer to [performance guidelines](https://hasindu2008.github.io/f5c/docs/f5c-perf-hints) for details.
 
 #### advanced options
 
