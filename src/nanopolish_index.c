@@ -16,11 +16,18 @@
 #include <fstream>
 #include <sstream>
 #include <getopt.h>
+#include <assert.h>
+#include <string.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <unistd.h>
 
 #include "nanopolish_read_db.h"
+#include "error.h"
 #include <vector>
 #include <dirent.h>
 #include "fast5lite.h"
+#include "f5cmisc.h"
 
 // ref: http://stackoverflow.com/a/612176/717706
 // return true if the given name is a directory
@@ -64,6 +71,7 @@ static const char *INDEX_USAGE_MESSAGE =
 "  -d, --directory                      path to the directory containing the raw ONT signal files. This option can be given multiple times.\n"
 "  -s, --sequencing-summary             the sequencing summary file from albacore, providing this option will make indexing much faster\n"
 "  -f, --summary-fofn                   file containing the paths to the sequencing summary files (one per line)\n"
+"  --iop INT                            number of I/O processes to read fast5 files\n"
 "\n\n"
 ;
 
@@ -74,6 +82,7 @@ namespace opt
     static std::string reads_file;
     static std::vector<std::string> sequencing_summary_files;
     static std::string sequencing_summary_fofn;
+    int iop = 1;
 }
 //static std::ostream* os_p;
 
@@ -244,20 +253,22 @@ enum {
 };
 
 static const struct option longopts[] = {
-    { "help",                      no_argument,       NULL, OPT_HELP },
-    { "version",                   no_argument,       NULL, OPT_VERSION },
-    { "verbose",                   no_argument,       NULL, 'v' },
-    { "directory",                 required_argument, NULL, 'd' },
-    { "sequencing-summary-file",   required_argument, NULL, 's' },
-    { "summary-fofn",              required_argument, NULL, 'f' },
+    { "help",                      no_argument,       NULL, OPT_HELP },     //0
+    { "version",                   no_argument,       NULL, OPT_VERSION },  //1
+    { "verbose",                   no_argument,       NULL, 'v' },          //2
+    { "directory",                 required_argument, NULL, 'd' },          //3
+    { "sequencing-summary-file",   required_argument, NULL, 's' },          //4
+    { "summary-fofn",              required_argument, NULL, 'f' },          //5
+    { "iop",                       required_argument, NULL, 0},             //6
     { NULL, 0, NULL, 0 }
 };
 
 void parse_index_options(int argc, char** argv)
 {
     bool die = false;
+    int longindex = 0;
     //std::vector< std::string> log_level;
-    for (int c; (c = getopt_long(argc, argv, shortopts, longopts, NULL)) != -1;) {
+    for (int c; (c = getopt_long(argc, argv, shortopts, longopts, &longindex)) != -1;) {
         std::istringstream arg(optarg != NULL ? optarg : "");
         switch (c) {
             case OPT_HELP:
@@ -273,7 +284,26 @@ void parse_index_options(int argc, char** argv)
             case 's': opt::sequencing_summary_files.push_back(arg.str()); break;
             case 'd': opt::raw_file_directories.push_back(arg.str()); break;
             case 'f': arg >> opt::sequencing_summary_fofn; break;
+            case  0 :
+                if (longindex == 6) {
+                    arg >> opt::iop;
+                    if (opt::iop < 1) {
+                        ERROR("Number of I/O processes should be larger than 0. You entered %d", opt::iop);
+                        exit(EXIT_FAILURE);
+                    }
+                }
+                break;
         }
+    }
+
+    if(opt::iop > 1){
+        if(!opt::sequencing_summary_fofn.empty()){
+            WARNING("%s","--iop is not to be used with sequencing summary files. Option --summary-fofn will be ignored");
+        }
+        if(!opt::sequencing_summary_files.empty()){
+            WARNING("%s","--iop is not to be used with sequencing summary files. Option --sequencing-summary-file will be ignored");
+        }
+
     }
 
     // set log levels
@@ -326,41 +356,275 @@ void clean_fast5_map(std::multimap<std::string, std::string>& mmap)
     }
 }
 
+
+
+void find_all_fast5(const std::string& path, std::vector<std::string>& fast5_files)
+{
+    STDERR("Looking for fast5 in %s", path.c_str());
+    if (is_directory(path)) {
+        auto dir_list = list_directory(path);
+        for (const auto& fn : dir_list) {
+            if(fn == "." or fn == "..") {
+                continue;
+            }
+
+            std::string full_fn = path + "/" + fn;
+            bool is_fast5 = full_fn.find(".fast5") != std::string::npos;
+            // JTS 04/19: is_directory is painfully slow
+            if(is_directory(full_fn)) {
+                // recurse
+                find_all_fast5(full_fn,fast5_files);
+            } else if (is_fast5) {
+                fast5_files.push_back(full_fn);
+                //add to the list
+            }
+        }
+    }
+}
+
+typedef struct {
+    int32_t starti;
+    int32_t endi;
+    int32_t proc_index;
+    std::string tmp_file;
+}proc_arg_t;
+
+
+// find the readids in a given fast5 file and dump to the tmp_file
+// todo : repeated content with index_file_from_fast5, can be modularised
+void get_readids_from_fast5(const std::string& fn, FILE *tmp_file)
+{
+    //PROFILE_FUNC("index_file_from_fast5")
+
+    char* fast5_path =(char*)malloc(fn.size()+1);
+    strcpy(fast5_path, fn.c_str());
+
+    fast5_file_t f5_file =  fast5_open(fast5_path);
+    hid_t hdf5_file = f5_file.hdf5_file;
+    if(hdf5_file < 0) {
+        fprintf(stderr, "could not open fast5 file: %s\n", fast5_path);
+    }
+
+    if(f5_file.is_multi_fast5) {
+        std::vector<std::string> read_groups = fast5_get_multi_read_groups(f5_file);
+        std::string prefix = "read_";
+        for(size_t group_idx = 0; group_idx < read_groups.size(); ++group_idx) {
+            std::string group_name = read_groups[group_idx];
+            if(group_name.find(prefix) == 0) {
+                std::string read_id = group_name.substr(prefix.size());
+                fprintf(tmp_file,"%s\t%s\n",read_id.c_str(), fast5_path);
+            }
+        }
+    } else {
+        std::string read_id = fast5_get_read_id_single_fast5(f5_file);
+        if(read_id != "") {
+            fprintf(tmp_file,"%s\t%s\n",read_id.c_str(), fast5_path);
+        }
+    }
+    free(fast5_path);
+    fast5_close(f5_file);
+}
+
+
+// what a child process should do, i.e. open a tmp file, go through the fast5 files
+void f5c_index_child_worker(proc_arg_t args, const std::vector<std::string>& fast5_files){
+
+    FILE *tmp_file = fopen(args.tmp_file.c_str(),"w");
+    F_CHK(tmp_file,args.tmp_file.c_str());
+
+    int i=0;
+    for (i = args.starti; i < args.endi; i++) {
+        get_readids_from_fast5(fast5_files[i], tmp_file);
+    }
+
+    fclose(tmp_file);
+
+}
+
+// find all fast5 files in the specified directories, divide the work and spawn multiple I/O processes
+void f5c_index_iop(int iop, std::string reads_file, std::vector<std::string> raw_file_directories, int verbosity){
+
+    double realtime0 = realtime();
+    std::vector<std::string> fast5_files;
+    for(const auto& dir_name : opt::raw_file_directories) {
+        find_all_fast5(dir_name, fast5_files);
+    }
+    int64_t num_fast5_files = fast5_files.size();
+    fprintf(stderr, "[%s] %ld fast5 files found - took %.3fs\n", __func__, fast5_files.size(), realtime() - realtime0);
+
+
+    realtime0 = realtime();
+    //create processes
+    pid_t pids[iop];
+    proc_arg_t proc_args[iop];
+    int32_t t;
+    int32_t i = 0;
+    int32_t step = (num_fast5_files + iop - 1) / iop;
+    //todo : check for higher num of threads than the data
+    //current works but many threads are created despite
+
+    //set the data structures
+    for (t = 0; t < iop; t++) {
+        proc_args[t].starti = i;
+        i += step;
+        if (i > num_fast5_files) {
+            proc_args[t].endi = num_fast5_files;
+        } else {
+            proc_args[t].endi = i;
+        }
+        proc_args[t].proc_index = t;
+
+        char tmp[11];
+        sprintf(tmp, "%d",t);
+        proc_args[t].tmp_file = reads_file + ".readdb.tmp" + tmp;
+    }
+
+    //create processes
+    STDERR("Spawning %d I/O processes to circumvent HDF hell",iop);
+    for(t = 0; t < iop; t++){
+        pids[t] = fork();
+
+        if(pids[t]==-1){
+            ERROR("%s","Fork failed");
+            perror("");
+            exit(EXIT_FAILURE);
+        }
+        if(pids[t]==0){ //child
+            f5c_index_child_worker(proc_args[t],fast5_files);
+            exit(EXIT_SUCCESS);
+        }
+        if(pids[t]>0){ //parent
+            continue;
+        }
+    }
+
+    //wait for processes
+    int status,w;
+    for (t = 0; t < iop; t++) {
+        if(verbosity>1){
+            STDERR("parent : Waiting for child with pid %d",pids[t]);
+        }
+
+            w = waitpid(pids[t], &status, 0);
+            if (w == -1) {
+                ERROR("%s","waitpid failed");
+                perror("");
+                exit(EXIT_FAILURE);
+            }
+            else if (WIFEXITED(status)){
+                if(verbosity>1){
+                    STDERR("child process %d exited, status=%d", pids[t], WEXITSTATUS(status));
+                }
+                if(WEXITSTATUS(status)!=0){
+                    ERROR("child process %d exited with status=%d",pids[t], WEXITSTATUS(status));
+                    exit(EXIT_FAILURE);
+                }
+            }
+            else {
+                if (WIFSIGNALED(status)) {
+                    ERROR("child process %d killed by signal %d", pids[t], WTERMSIG(status));
+                } else if (WIFSTOPPED(status)) {
+                    ERROR("child process %d stopped by signal %d", pids[t], WSTOPSIG(status));
+                } else {
+                    ERROR("child process %d did not exit propoerly: status %d", pids[t], status);
+                }
+                exit(EXIT_FAILURE);
+            }
+
+
+    }
+    fprintf(stderr, "[%s] Parallel indexing done - took %.3fs\n", __func__,  realtime() - realtime0);
+
+}
+
+void f5c_index_merge(ReadDB& read_db, int iop, std::string reads_file){
+
+    double realtime0 = realtime();
+    int i;
+    for(i=0;i<iop;i++){
+        char tmp[11];
+        sprintf(tmp, "%d",i);
+        std::string filename = reads_file + ".readdb.tmp" + tmp;
+
+        std::ifstream in_file(filename.c_str());
+        if(!in_file.good()) {
+            fprintf(stderr, "error: could not read the temporary file %s\n", filename.c_str());
+            exit(EXIT_FAILURE);
+        }
+
+        // read the database
+        std::string line;
+        while(getline(in_file, line)) {
+            std::vector<std::string> fields = split(line, '\t');
+
+            std::string name = "";
+            std::string path = "";
+            if(fields.size() == 2) {
+                name = fields[0];
+                path = fields[1];
+                read_db.add_signal_path(name, path);
+            }
+        }
+
+
+        remove(filename.c_str());
+    }
+    fprintf(stderr, "[%s] Indexing merging done - took %.3fs.\n", __func__, realtime() - realtime0);
+
+}
+
+
 int index_main(int argc, char** argv)
 {
     parse_index_options(argc, argv);
 
-    // Read a map from fast5 files to read name from the sequencing summary files (if any)
-    process_summary_fofn();
     std::multimap<std::string, std::string> fast5_to_read_name_map;
-    for(const auto& ss_filename : opt::sequencing_summary_files) {
-        if(opt::verbose > 2) {
-            fprintf(stderr, "summary: %s\n", ss_filename.c_str());
+
+    if(opt::iop == 1){
+
+        // Read a map from fast5 files to read name from the sequencing summary files (if any)
+        process_summary_fofn();
+        for(const auto& ss_filename : opt::sequencing_summary_files) {
+            if(opt::verbose > 2) {
+                fprintf(stderr, "summary: %s\n", ss_filename.c_str());
+            }
+            parse_sequencing_summary(ss_filename, fast5_to_read_name_map);
         }
-        parse_sequencing_summary(ss_filename, fast5_to_read_name_map);
+
+        // Detect non-unique fast5 file names in the summary file
+        // This occurs when a file with the same name (abc_0.fast5) appears in both fast5_pass
+        // and fast5_fail. This will be fixed by ONT but in the meantime we check for
+        // fast5 files that have a non-standard number of reads (>4000) and remove them
+        // from the map. These fast5s will be indexed the slow way.
+        clean_fast5_map(fast5_to_read_name_map);
+
     }
 
-    // Detect non-unique fast5 file names in the summary file
-    // This occurs when a file with the same name (abc_0.fast5) appears in both fast5_pass
-    // and fast5_fail. This will be fixed by ONT but in the meantime we check for
-    // fast5 files that have a non-standard number of reads (>4000) and remove them
-    // from the map. These fast5s will be indexed the slow way.
-    clean_fast5_map(fast5_to_read_name_map);
+    if(opt::iop>1){ //forking is better before allocating bug memories
+        f5c_index_iop(opt::iop, opt::reads_file, opt::raw_file_directories, opt::verbose);
+    }
 
     // import read names, and possibly fast5 paths, from the fasta/fastq file
+    double realtime0 = realtime();
     ReadDB read_db;
     read_db.build(opt::reads_file);
     bool all_reads_have_paths = read_db.check_signal_paths();
+    if(opt::verbose > 0) fprintf(stderr, "[%s] Readdb built - took %.3fs\n", __func__, realtime() - realtime0);
 
     // if the input fastq did not contain a complete set of paths
     // use the fofn/directory provided to augment the index
-    if(!all_reads_have_paths) {
-
-        for(const auto& dir_name : opt::raw_file_directories) {
-            index_path(read_db, dir_name, fast5_to_read_name_map);
+    if(opt::iop==1){
+        if(!all_reads_have_paths) {
+            for(const auto& dir_name : opt::raw_file_directories) {
+                index_path(read_db, dir_name, fast5_to_read_name_map);
+            }
         }
     }
+    else{
+        f5c_index_merge(read_db, opt::iop, opt::reads_file);
+    }
 
+    realtime0 = realtime();
     size_t num_with_path = read_db.get_num_reads_with_path();
     if(num_with_path == 0) {
         fprintf(stderr, "Error: no fast5 files found\n");
@@ -369,5 +633,7 @@ int index_main(int argc, char** argv)
         read_db.print_stats();
         read_db.save();
     }
+    if(opt::verbose > 0) fprintf(stderr, "[%s] Readdb saved - took %.3fs\n", __func__, realtime() - realtime0);
+
     return 0;
 }
