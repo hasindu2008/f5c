@@ -15,7 +15,7 @@ OBJ = $(BUILD_DIR)/main.o \
 	  $(BUILD_DIR)/f5cio.o \
       $(BUILD_DIR)/events.o \
       $(BUILD_DIR)/nanopolish_read_db.o \
-      $(BUILD_DIR)/nanopolish_index.o \
+      $(BUILD_DIR)/index.o \
       $(BUILD_DIR)/nanopolish_fast5_io.o \
       $(BUILD_DIR)/model.o \
       $(BUILD_DIR)/align.o \
@@ -68,7 +68,7 @@ $(BUILD_DIR)/events.o: src/events.c src/f5c.h src/fast5lite.h src/f5cmisc.h src/
 $(BUILD_DIR)/nanopolish_read_db.o: src/nanopolish_read_db.c src/nanopolish_read_db.h
 	$(CXX) $(CFLAGS) $(CPPFLAGS) $(LANG) $< -c -o $@
 
-$(BUILD_DIR)/nanopolish_index.o: src/nanopolish_index.c src/nanopolish_read_db.h src/fast5lite.h
+$(BUILD_DIR)/index.o: src/index.c src/nanopolish_read_db.h src/fast5lite.h
 	$(CXX) $(CFLAGS) $(CPPFLAGS) $(LANG) $< -c -o $@
 
 $(BUILD_DIR)/nanopolish_fast5_io.o: src/nanopolish_fast5_io.c src/fast5lite.h
