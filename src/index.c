@@ -554,9 +554,13 @@ void f5c_index_merge(ReadDB& read_db, int iop, std::string reads_file){
                 read_db.add_signal_path(name, path);
             }
         }
+        in_file.close();
+        int ret = remove(filename.c_str());
+        if(ret != 0){
+            WARNING("Removing temporary file %s failed",filename.c_str());
+            perror("");
+        }
 
-
-        remove(filename.c_str());
     }
     fprintf(stderr, "[%s] Indexing merging done - took %.3fs.\n", __func__, realtime() - realtime0);
 
