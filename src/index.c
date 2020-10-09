@@ -279,11 +279,12 @@ void parse_index_options(int argc, char** argv)
             case 'd': opt::raw_file_directories.push_back(arg.str()); break;
             case 'f': arg >> opt::sequencing_summary_fofn; break;
             case 't':
-                arg >> opt::threads; break;
-                 if (opt::threads < 1) {
+                arg >> opt::threads;
+                if (opt::threads < 1) {
                     ERROR("Number of threads should be larger than 0. You entered %d", opt::threads);
                     exit(EXIT_FAILURE);
                 }
+                break;
             case  0 :
                 if (longindex == 6) {
                     arg >> opt::iop;
