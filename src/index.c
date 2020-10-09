@@ -67,6 +67,7 @@ static const char *INDEX_USAGE_MESSAGE =
 "  -d STR            path to the directory containing fast5 files. This option can be given multiple times.\n"
 "  -s STR            the sequencing summary file\n"
 "  -f STR            file containing the paths to the sequencing summary files (one per line)\n"
+"  -t INT            number of threads used for bgzf compression\n"
 "  --iop INT         number of I/O processes to read fast5 files (makes indexing faster)\n"
 "  --verbose INT     verbosity level\n"
 "  --version         print version\n"
@@ -81,6 +82,7 @@ namespace opt
     static std::vector<std::string> sequencing_summary_files;
     static std::string sequencing_summary_fofn;
     int iop = 1;
+    int threads = 1;
 }
 //static std::ostream* os_p;
 
@@ -243,7 +245,7 @@ void parse_sequencing_summary(const std::string& filename, std::multimap<std::st
     }
 }
 
-static const char* shortopts = "Vhd:f:s:v:";
+static const char* shortopts = "Vhd:f:s:v:t:";
 
 static const struct option longopts[] = {
     { "help",                      no_argument,       NULL, 'h' },     //0
@@ -253,6 +255,7 @@ static const struct option longopts[] = {
     { "sequencing-summary-file",   required_argument, NULL, 's' },          //4
     { "summary-fofn",              required_argument, NULL, 'f' },          //5
     { "iop",                       required_argument, NULL, 0},             //6
+    { "threads",                   required_argument, NULL, 't'},           //7
     { NULL, 0, NULL, 0 }
 };
 
@@ -275,6 +278,12 @@ void parse_index_options(int argc, char** argv)
             case 's': opt::sequencing_summary_files.push_back(arg.str()); break;
             case 'd': opt::raw_file_directories.push_back(arg.str()); break;
             case 'f': arg >> opt::sequencing_summary_fofn; break;
+            case 't':
+                arg >> opt::threads; break;
+                 if (opt::threads < 1) {
+                    ERROR("Number of threads should be larger than 0. You entered %d", opt::threads);
+                    exit(EXIT_FAILURE);
+                }
             case  0 :
                 if (longindex == 6) {
                     arg >> opt::iop;
@@ -593,14 +602,14 @@ int index_main(int argc, char** argv)
 
     }
 
-    if(opt::iop>1){ //forking is better before allocating bug memories
+    if(opt::iop>1){ //forking is better before doing big memory allocations
         f5c_index_iop(opt::iop, opt::reads_file, opt::raw_file_directories, opt::verbose);
     }
 
     // import read names, and possibly fast5 paths, from the fasta/fastq file
     double realtime0 = realtime();
     ReadDB read_db;
-    read_db.build(opt::reads_file);
+    read_db.build(opt::reads_file, opt::threads);
     bool all_reads_have_paths = read_db.check_signal_paths();
     if(opt::verbose > 0) fprintf(stderr, "[%s] Readdb built - took %.3fs\n", __func__, realtime() - realtime0);
 

@@ -21,14 +21,14 @@ test(){
     echo "testing with iop options"
     ./f5c index -d $testdir/fast5_files $testdir/reads.fasta
     mv $testdir/reads.fasta.index.readdb $testdir/reads.fasta.index.readdb2
-    ./f5c index -d $testdir/fast5_files $testdir/reads.fasta --iop 8
+    ./f5c index -d $testdir/fast5_files $testdir/reads.fasta --iop 8 -t 8
     diff $testdir/reads.fasta.index.readdb $testdir/reads.fasta.index.readdb2  || die "verification failed"
 
     rm $testdir/reads.fasta.index.readdb2
     echo "______________________________________________________________"
     echo ""
     echo "valgrind check"
-    valgrind --leak-check=full --error-exitcode=1 ./f5c index -d $testdir/fast5_files $testdir/reads.fasta --iop 8 || die "valgrind verification failed"
+    valgrind --leak-check=full --error-exitcode=1 ./f5c index -d $testdir/fast5_files $testdir/reads.fasta --iop 8 -t 8 || die "valgrind verification failed"
 
 
 
