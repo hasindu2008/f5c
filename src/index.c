@@ -67,7 +67,7 @@ static const char *INDEX_USAGE_MESSAGE =
 "  -d STR            path to the directory containing fast5 files. This option can be given multiple times.\n"
 "  -s STR            the sequencing summary file\n"
 "  -f STR            file containing the paths to the sequencing summary files (one per line)\n"
-"  -t INT            number of threads used for bgzf compression\n"
+"  -t INT            number of threads used for bgzf compression (makes indexing faster)\n"
 "  --iop INT         number of I/O processes to read fast5 files (makes indexing faster)\n"
 "  --verbose INT     verbosity level\n"
 "  --version         print version\n"
@@ -299,12 +299,20 @@ void parse_index_options(int argc, char** argv)
 
     if(opt::iop > 1){
         if(!opt::sequencing_summary_fofn.empty()){
-            WARNING("%s","--iop is not to be used with sequencing summary files. Option --summary-fofn will be ignored");
+            WARNING("%s","--iop is incompatible with sequencing summary files. Option --summary-fofn will be ignored");
         }
         if(!opt::sequencing_summary_files.empty()){
-            WARNING("%s","--iop is not to be used with sequencing summary files. Option --sequencing-summary-file will be ignored");
+            WARNING("%s","--iop is incompatible with sequencing summary files. Option --sequencing-summary-file will be ignored");
         }
+    }
+    else {
+        if(opt::sequencing_summary_fofn.empty() && opt::sequencing_summary_files.empty()){
+            INFO("%s","Consider using --iop option for fast parallel indexing");
+        }
+    }
 
+    if(opt::threads == 1){
+        INFO("%s","Consider using -t option for fast multi-threaded bgzf");
     }
 
     if (argc - optind < 1) {
