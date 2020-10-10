@@ -202,7 +202,7 @@ test_suit2_cuda () {
 	echo "____________________________________________________________________"
 
 	echo "CUDA test : dynamic malloc"
-	make clean && CFLAGS_CUDA+="-DCUDA_DYNAMIC_MALLOC=1" make cuda=1
+	make clean && CUDA_CFLAGS+="-DCUDA_DYNAMIC_MALLOC=1" make cuda=1
 	"${exepath}" call-methylation -b "${bamfile}" -g "${ref}" -r "${reads}" -t "${NCPU}"  -K256 -v5 > ${testdir}/result.txt 2> cuda_malloc.log
 	evaluate
 	echo ""
@@ -256,7 +256,7 @@ if [ "$mode" = "gpu" -o  "$mode" = "all" ]; then
 	test_suit1_cuda
 	test_suit2_cuda
 fi
-if [ "$mode" = "cpu" -o "$mode" != "gpu" -o "$mode" != "all" ]; then
+if ! [ "$mode" = "cpu" -o "$mode" = "gpu" -o "$mode" = "all" ]; then
 	help_msg
 	exit 2;
 fi
