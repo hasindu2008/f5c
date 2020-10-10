@@ -71,6 +71,7 @@ static const char *INDEX_USAGE_MESSAGE =
 "  --iop INT         number of I/O processes to read fast5 files (makes indexing faster)\n"
 "  --verbose INT     verbosity level\n"
 "  --version         print version\n"
+"\nSee the manual page for details (`man ./docs/f5c.1' or https://f5c.page.link/man)."
 "\n\n"
 ;
 

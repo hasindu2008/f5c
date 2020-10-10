@@ -71,6 +71,9 @@ test_suit1 () {
 	echo "multi-fast5"
 	scripts/test_multifast5.sh 2> ecoli_multifast5.log  || die "failed"
 	echo "____________________________________________________________________"
+	echo "index"
+	scripts/test_index.sh 2> ecoli_index.log || die "failed"
+	echo ""
 
 	echo ""
 	echo "--------------------------------------------------------------------"
@@ -89,6 +92,9 @@ test_suit1 () {
 	echo "multi-fast5"
 	scripts/test_multifast5.sh -c 2> na12878_multifast5.log || die "failed"
 	echo "____________________________________________________________________"
+	echo "index"
+	scripts/test_index.sh -c 2> na12878_index.log || die "failed"
+	echo ""
 
 }
 

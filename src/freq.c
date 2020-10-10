@@ -30,7 +30,9 @@ static const char usage[] = "Usage: %s [options...]\n"
                             "  -c [float]        Call threshold. Default is 2.5.\n"
                             "  -i [file]         Input file. Read from stdin if not specified.\n"
                             "  -o [file]         Output file. Write to stdout if not specified.\n"
-                            "  -s                Split groups\n";
+                            "  -s                Split groups\n"
+                            "\nSee the manual page for details (`man ./docs/f5c.1' or https://f5c.page.link/man).\n"
+                            ;
 
 struct site_stats {
     int num_reads;

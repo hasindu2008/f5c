@@ -440,7 +440,6 @@ int meth_main(int argc, char* argv[], int8_t mode) {
         fprintf(fp_help,"   --cuda-mem-frac FLOAT      Fraction of free GPU memory to allocate [0.9 (0.7 for tegra)]\n");
         //fprintf(fp_help,"   --cuda-block-size\n");
 #endif
-
         fprintf(fp_help,"\ndeveloper options:\n");
         fprintf(fp_help,"   --print-events=yes|no      prints the event table\n");
         fprintf(fp_help,"   --print-banded-aln=yes|no  prints the event alignment\n");
@@ -450,6 +449,7 @@ int meth_main(int argc, char* argv[], int8_t mode) {
         fprintf(fp_help,"   --profile-cpu=yes|no       process section by section (used for profiling on CPU)\n");
         fprintf(fp_help,"   --write-dump=yes|no        write the fast5 dump to a file or not\n");
         fprintf(fp_help,"   --read-dump=yes|no         read from a fast5 dump file or not\n");
+        fprintf(fp_help,"\nSee the manual page for details (`man ./docs/f5c.1' or https://f5c.page.link/man).\n");
         if(fp_help == stdout){
             exit(EXIT_SUCCESS);
         }
@@ -695,9 +695,11 @@ int meth_main(int argc, char* argv[], int8_t mode) {
 #endif
 
     #ifdef HAVE_CUDA
-        fprintf(stderr, "[%s] max-lf: %.2f, avg-epk: %.2f, max-epk: %.2f, K: %d, B: %ld, T: %d, Ultra: %ld, Align: %.3f, Diff: %.3f\n", __func__,
-        opt.cuda_max_readlen,opt.cuda_avg_events_per_kmer,opt.cuda_max_avg_events_per_kmer,opt.batch_size,opt.batch_size_bases,opt.num_thread,opt.ultra_thresh,
-        core->align_time,core->extra_load_cpu);
+        if(opt.verbosity>0){
+            fprintf(stderr, "[%s] max-lf: %.2f, avg-epk: %.2f, max-epk: %.2f, K: %d, B: %ld, T: %d, Ultra: %ld, Align: %.3f, Diff: %.3f\n", __func__,
+            opt.cuda_max_readlen,opt.cuda_avg_events_per_kmer,opt.cuda_max_avg_events_per_kmer,opt.batch_size,opt.batch_size_bases,opt.num_thread,opt.ultra_thresh,
+            core->align_time,core->extra_load_cpu);
+        }
     #endif
 
     //free the core data structure
