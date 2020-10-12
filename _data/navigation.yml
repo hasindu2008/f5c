@@ -24,7 +24,9 @@ docs:
       - title:  Examples
         url:    /docs/example-usage
       - title:  Performance guidelines
-        url:    /docs/f5c-perf-hints       
+        url:    /docs/f5c-perf-hints      
+      - title:  Profiles
+        url:    /docs/profiles  
   - title:      Miscellaneous
     children:
       - title:  F5C CPU performance
