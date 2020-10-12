@@ -35,6 +35,8 @@ Given a set of base-called nanopore reads and associated raw signals, f5c call-m
          Classify nucleotides as methylated or not at genomic CpG sites (optimised nanopolish call-methylation).
 * `meth-freq`:           
          Calculate methylation frequency at genomic CpG sites (optimised nanopolish calculate_methylation_frequency.py).
+* `freq-merge`:          
+         Merge multiple methylation frequency tsv files.        
 * `eventalign`:          
          Align nanopore events to reference k-mers (optimised nanopolish eventalign).
 
@@ -153,17 +155,30 @@ Classify nucleotides as methylated or not at genomic CpG cites (optimised nanopo
          
 ### meth-freq
 
-Calculate methylation frequency at genomic CpG sites (optimised nanopolish calculate_methylation_frequency.py).
+Calculate methylation frequency at genomic CpG sites from a tsv file containing per-read methylation calls (optimised nanopolish calculate_methylation_frequency.py). Both tsv formats (with/without strand column and/or num_cpg/num_motif) are supported and is detected automaticaly.
 
 `meth-freq [options...]`
 
 ```
-  -c [float]        Call threshold. Default is 2.5.
-  -i [file]         Input file. Read from stdin if not specified.
+  -c float]         Call threshold. Default is 2.5.
+  -i [file]         Input tsv file containing per-read methylation calls. Read from stdin if not specified.
   -o [file]         Output file. Write to stdout if not specified.
   -s                Split groups
   ```
 
+### freq-merge
+
+ merge multiple methylation frequency tsv files to a single tsv file. Useful to combine the results when meth-freq was run separately on batches, for instance, when performing methylation calling on-the-fly.
+For each methylation calling output (.tsv) file, perform meth-freq separately (no concatenation required). Then feed those output (.tsv) files to this tool, to obtain the final methylation frequency calculated file. 
+
+```
+freq-merge [options...]
+  -o FILE           Output file.
+  -n [INT]          Number of methylation frequency .tsv files to be merged
+  -f                n number of input filepaths should be followed
+  e.g. freq-merge -o merged_freq.tsv -n 2 -f data1_freq.tsv data2_freq.tsv 
+  ```
+=======
 
 ### eventalign
 
@@ -246,3 +261,4 @@ Full documentation: https://hasindu2008.github.io/f5c/docs/overview
 Source code: https://github.com/hasindu2008/f5c/
 
 Publication: https://bmcbioinformatics.biomedcentral.com/articles/10.1186/s12859-020-03697-x
+
