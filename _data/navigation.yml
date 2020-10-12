@@ -27,17 +27,19 @@ docs:
         url:    /docs/f5c-perf-hints      
       - title:  Profiles
         url:    /docs/profiles  
-  - title:      Miscellaneous
-    children:
-      - title:  F5C CPU performance
-        url:    /docs/f5c-cpu-perf
-      - title:  F5C GPU performance
-        url:    /docs/f5c-gpu-perf        
-      - title:  HDF5 Performance
-        url:    /docs/hdf5-performance
-      - title:  Portable binary
-        url:    /docs/portable-binary
   - title:      Troubleshooting
     children:
       - title:  CUDA
-        url:    /docs/cuda-troubleshoot
+        url:    /docs/cuda-troubleshoot        
+  - title:      Miscellaneous
+    children:
+      - title:  F5C GPU performance
+        url:    /docs/f5c-gpu-perf        
+      - title:  Portable binary
+        url:    /docs/portable-binary
+  - title:      Archived
+    children:
+      - title:  F5C CPU performance
+        url:    /docs/f5c-cpu-perf    
+      - title:  HDF5 performance
+        url:    /docs/hdf5-performance
