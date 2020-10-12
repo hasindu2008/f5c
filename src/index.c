@@ -298,6 +298,22 @@ void parse_index_options(int argc, char** argv)
         }
     }
 
+    if (argc - optind < 1) {
+        std::cerr << "[f5c index]  not enough arguments\n";
+        die = true;
+    }
+
+    if (argc - optind > 1) {
+        std::cerr << "[f5c index] too many arguments\n";
+        die = true;
+    }
+
+    if (die)
+    {
+        std::cout << "\n" << INDEX_USAGE_MESSAGE;
+        exit(EXIT_FAILURE);
+    }
+
     if(opt::iop > 1){
         if(!opt::sequencing_summary_fofn.empty()){
             WARNING("%s","--iop is incompatible with sequencing summary files. Option --summary-fofn will be ignored");
@@ -314,22 +330,6 @@ void parse_index_options(int argc, char** argv)
 
     if(opt::threads == 1){
         INFO("%s","Consider using -t option for fast multi-threaded bgzf");
-    }
-
-    if (argc - optind < 1) {
-        std::cerr << "[f5c index]  not enough arguments\n";
-        die = true;
-    }
-
-    if (argc - optind > 1) {
-        std::cerr << "[f5c index] too many arguments\n";
-        die = true;
-    }
-
-    if (die)
-    {
-        std::cout << "\n" << INDEX_USAGE_MESSAGE;
-        exit(EXIT_FAILURE);
     }
 
     opt::reads_file = argv[optind++];
