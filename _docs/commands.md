@@ -56,9 +56,9 @@ Build an index that maps read IDs in a fastq/fasta file to the corresponding fas
 *  `-f`, `--summary-fofn`:                   
    File containing the paths to the sequencing summary files (one per line). This option is not encouraged as inconsistencies in the format of sequencing summary files lead to issues during subsequent steps.
 *  `-t INT`:
-    Number of threads used for bgzf compression [default value: 1]. Increasing the number of threads makes indexing faster. Ideally this should be the number of CPU cores.
+    Number of threads used for bgzf compression [default value: 1]. Increasing the number of threads makes indexing faster. Ideally, this should be the number of CPU cores.
 *  `--iop INT`:
-    Number of I/O processes to read fast5 files [default value: 1]. Increasing the number of I/O processes makes indexing significantly faster, especially on HPC with RAID systems (multiple disks). Note that unless value of iop is 1, options -s and -f  are ignored.
+    Number of I/O processes to read fast5 files [default value: 1]. Increasing the number of I/O processes makes indexing significantly faster, especially on HPC with RAID systems (multiple disks) where this can be as high as 64. Note that unless value of iop is 1, options -s and -f  are ignored.
 *  `--verbose INT`:
     Verbosity level for the log messages [default value: 0].
 *  `--version`:
@@ -82,7 +82,7 @@ Classify nucleotides as methylated or not at genomic CpG cites (optimised nanopo
 * `-w STR`:      
   Only process the specified genomic region STR. STR should be in the format *chr:start-end*. Currently, multiple region strings are not supported. If this option is not specified, the whole genome will be processed.
 * `-t INT`:                     
-  Number of processing threads [default value: 8].
+  Number of processing threads [default value: 8]. Ideally, this should be the number of CPU cores.
 * `-K INT`:                     
   Maximum number of reads loaded at once to the memory [default value: 512]. A larger value maximises multithreading performance at cost of increased peak RAM.
 * `-B FLOAT[K/M/G]`:            
@@ -94,7 +94,7 @@ Classify nucleotides as methylated or not at genomic CpG cites (optimised nanopo
 * `-x STR`:                     
   Parameter profile to be used for maximising the performance to a particular computer system. The profile parameters are always applied before other options, i.e., the user can override these parameters explicitly. Some example profiles are laptop, desktop, hpc. See [profiles](https://f5c.page.link/profiles) for the full list and details.
 * `--iop INT`:                  
-  Number of I/O processes to read FAST5 files [default value: 1]. Increase this value if reading FAST5 limits the overall performance. A higher value is always preferred for systems with multiple disks (RAID) and network file systems.
+  Number of I/O processes to read FAST5 files [default value: 1]. Increase this value if reading FAST5 limits the overall performance. A higher value (can be as high as 64) is always preferred for systems with multiple disks (RAID) and network file systems.
 * `--min-mapq INT`:             
   Minimum mapping quality of an alignment (MAPQ in the BAM record) to be considered for methylation calling [default value: 20].
 * `--secondary=yes|no`:         
@@ -112,46 +112,48 @@ Classify nucleotides as methylated or not at genomic CpG cites (optimised nanopo
 * `--cuda-avg-epk FLOAT`:       
   The average number of events-per-kmer used for allocating the arrays in GPU memory [default value: 2.0]. Useful for tuning the CPU-GPU load balance for atypical datasets. Refer to [performance guidelines](https://hasindu2008.github.io/f5c/docs/f5c-perf-hints) for details.
 * `--cuda-max-epk FLOAT`:       
-  process the reads with events-per-kmer less than or equal to *cuda_max_epk* on GPU. The rest is processed on CPU [default value: 5.0]. Useful for tuning the CPU-GPU load balance for atypical datasets. Refer to [performance guidelines](https://hasindu2008.github.io/f5c/docs/f5c-perf-hints) for details.
+  Process the reads with events-per-kmer less than or equal to *cuda_max_epk* on GPU. The rest is processed on CPU [default value: 5.0]. Useful for tuning the CPU-GPU load balance for atypical datasets. Refer to [performance guidelines](https://hasindu2008.github.io/f5c/docs/f5c-perf-hints) for details.
 
 #### advanced options
 
 * `--skip-ultra FILE`:    
-  skip ultra long reads and write those entries to the bam file provided as the argument
+  Skip ultra-long reads and write those alignment entries to the bam file provided as the argument. Ultra-long reads refer to reads longer than 100 kbases by default, unless specified by --ultra-thresh option below. Useful for tuning the CPU-GPU load balance for datasets containing many ultra-long reads. Also useful to cap the peak RAM usage in systems with limited memory. After the execution, ultra-long reads cab be separately processed, i.e., f5c can be again invoked on the produced bam file as the input.  Refer to [performance guidelines](https://hasindu2008.github.io/f5c/docs/f5c-perf-hints) for details. 
 * `--ultra-thresh INT`:  
-  threshold to skip ultra long reads [100000]
+  Threshold to skip ultra-long reads [default value: 100000]. This option is to be used in conjunction with  `--skip-ultra` above.
 * `--skip-unreadable=yes|no`:  
-  skip any unreadable fast5 or terminate program [yes]
+  Whether to skip any unreadable fast5 files or to terminate the program [default value: yes]. If `yes`, the programme will continue to run while skipping unreadable fast5 files. If `no`, the programme will terminate with an error when an unreadable fast5 file is found.
 * `--kmer-model FILE`:  
-  custom nucleotide 6-mer model file (format similar to test/r9-models/r9.4_450bps.nucleotide.6mer.template.model)
+  Custom nucleotide 6-mer model file. The file should adhere to the format in [r9.4_450bps.nucleotide.6mer.template.model](https://github.com/hasindu2008/f5c/blob/master/test/r9-models/r9.4_450bps.nucleotide.6mer.template.model). 
 * `--meth-model FILE`:  
-  custom methylation 6-mer model file (format similar to test/r9-models/r9.4_450bps.cpg.6mer.template.model)
+  custom methylation 6-mer model file. The file should adhere to the format in [r9.4_450bps.cpg.6mer.template.model](https://github.com/hasindu2008/f5c/blob/master/test/r9-models/r9.4_450bps.cpg.6mer.template.model).
 * `--meth-out-version INT`:  
-  methylation tsv output version (set 2 to print the strand column) [1]
+  Format version of the output Methylation tsv file. If set to 1, the columns printed adhere to the output format of Nanopolish early versions. If set to 2, adhere to the latest nanopolish output format that additionally includes the strand column and the header num_cpgs renamed to *num_motifs*) [default value: 1]
 * `--cuda-mem-frac FLOAT`:  
-  Fraction of free GPU memory to allocate [0.9 (0.7 for tegra)]
+  Fraction of free GPU memory to allocate [default value: 0.9 for non-tegra GPUs and 0.7 for tegra GPUs]. On GPUs with dedicated RAM (e.g., GeForce, Tesla and Quadro) almost all available free GPU memory can be allocated. A slightly lower value such as 0.9 is preferred instead of 1.0 to prevent unexpected crashes. In GPUs with integrated memory shared with RAM (e.g., Tegra GPUs that are in Jetson boards), this value should be at most 0.7 to allow enough free RAM for both f5c and other programmes.
 
 
 #### developer options
 
 * `--print-events=yes|no`:  
-  prints the event table
+  Print the event table (the output of the event detection step) to the standard out.
 * `--print-banded-aln=yes|no`:  
-  prints the event alignment
+  Print the event alignment (the output of the adaptive banded event alignment step) to the standard out.
 * `--print-scaling=yes|no`:  
-  prints the estimated scalings
+  Prints the estimated scaling values to the standard out.
 * `--print-raw=yes|no`:  
-  prints the raw signal
+  Prints the raw signal to the standard out.
 * `--debug-break INT`:  
-  break after processing the specified no. of batches
+  Terminate the programme after processing the specified batch number. E.g., If 0 is specified, the programme breaks after processing the 0th batch.
 * `--profile-cpu=yes|no`:  
-  process section by section (used for profiling on CPU)
+  Process section by section and separately print the time spent on different steps such as the event detection, ABEA and HMM. This option is used for profiling the workloads on the CPU. 
 * `--write-dump=yes|no`:  
-  write the fast5 dump to a file or not
+  Write the fast5 dump to a file or not. The file name is hardcoded to f5c.tmp.bin and will be written to the current working directory. The required raw signal data in the fast5 files subsequent processing will be serially written to *f5c.tmp.bin*.
 * `--read-dump=yes|no`:  
-  read from a fast5 dump file or not
+  Read from a fast5 dump file or not. This is used to read from a dump file generated using `--write-dump` above. The raw signal data will be serially loaded from the dump file instead of the fast5 files.
          
 ### meth-freq
+
+Calculate methylation frequency at genomic CpG sites (optimised nanopolish calculate_methylation_frequency.py).
 
 `meth-freq [options...]`
 
@@ -168,46 +170,45 @@ Classify nucleotides as methylated or not at genomic CpG cites (optimised nanopo
 `f5c eventalign [OPTIONS] -r reads.fa -b alignments.bam -g genome.fa`
 
 ```
+basic options:
    -r FILE                    fastq/fasta read file
    -b FILE                    sorted bam file
    -g FILE                    reference genome
-   -w STR[chr:start-end]      limit processing to genomic region STR
-   -t INT                     number of threads [8]
+   -w STR                     limit processing to genomic region string of format chr:start-end
+   -t INT                     number of processing threads [8]
    -K INT                     batch size (max number of reads loaded at once) [512]
-   -B FLOAT[K/M/G]            max number of bases loaded at once [2.0M]
+   -B FLOAT[K/M/G]            max number of bases loaded at once [5.0M]
    -h                         help
    -o FILE                    output to file [stdout]
+   -x STR                     parameter profile to be used for better performance (always applied before other options)
+                              e.g., laptop, desktop, hpc; see https://f5c.page.link/profiles for the full list
    --iop INT                  number of I/O processes to read fast5 files [1]
-   --min-mapq INT             minimum mapping quality [30]
+   --min-mapq INT             minimum mapping quality [20]
    --secondary=yes|no         consider secondary mappings or not [no]
    --verbose INT              verbosity level [0]
    --version                  print version
-   --disable-cuda=yes|no      disable running on CUDA [no]
-   --cuda-dev-id INT          CUDA device ID to run kernels on [0]
-   --cuda-max-lf FLOAT        reads with length <= cuda-max-lf*avg_readlen on GPU, rest on CPU [3.0]
-   --cuda-avg-epk FLOAT       average number of events per kmer - for allocating GPU arrays [2.0]
-   --cuda-max-epk FLOAT       reads with events per kmer <= cuda_max_epk on GPU, rest on CPU [5.0]
-   -x STRING                  profile to be used for optimal CUDA parameter selection. user-specified parameters will override profile values
+
 advanced options:
-   --kmer-model FILE          custom k-mer model file
-   --skip-unreadable=yes|no   skip any unreadable fast5 or terminate program [yes]
-   --print-events=yes|no      prints the event table
-   --print-banded-aln=yes|no  prints the event alignment
-   --print-scaling=yes|no     prints the estimated scalings
-   --print-raw=yes|no         prints the raw signal
-   --debug-break [INT]        break after processing the specified batch
-   --profile-cpu=yes|no       process section by section (used for profiling on CPU)
    --skip-ultra FILE          skip ultra long reads and write those entries to the bam file provided as the argument
-   --ultra-thresh [INT]       threshold to skip ultra long reads [100000]
-   --write-dump=yes|no        write the fast5 dump to a file or not
-   --read-dump=yes|no         read from a fast5 dump file or not
+   --ultra-thresh INT         threshold to skip ultra long reads [100000]
+   --skip-unreadable=yes|no   skip any unreadable fast5 or terminate program [yes]
+   --kmer-model FILE          custom nucleotide 6-mer model file (format similar to test/r9-models/r9.4_450bps.nucleotide.6mer.template.model)
    --summary FILE             summarise the alignment of each read/strand in FILE
    --sam                      write output in SAM format
    --print-read-names         print read names instead of indexes
    --scale-events             scale events to the model, rather than vice-versa
    --samples                  write the raw samples for the event to the tsv output
-   --cuda-mem-frac FLOAT      Fraction of free GPU memory to allocate [0.9 (0.7 for tegra)]
-```
+
+developer options:
+   --print-events=yes|no      prints the event table
+   --print-banded-aln=yes|no  prints the event alignment
+   --print-scaling=yes|no     prints the estimated scalings
+   --print-raw=yes|no         prints the raw signal
+   --debug-break INT          break after processing the specified no. of batches
+   --profile-cpu=yes|no       process section by section (used for profiling on CPU)
+   --write-dump=yes|no        write the fast5 dump to a file or not
+   --read-dump=yes|no         read from a fast5 dump file or not
+```   
 
 ## EXAMPLES
 
