@@ -178,7 +178,6 @@ freq-merge [options...]
   -f                n number of input filepaths should be followed
   e.g. freq-merge -o merged_freq.tsv -n 2 -f data1_freq.tsv data2_freq.tsv 
   ```
-=======
 
 ### eventalign
 
@@ -246,7 +245,7 @@ developer options:
 
 ## AUTHOR
 
-Hasindu Gamaarachchi wrote the framework of f5c, CUDA code and integrated with adapted components from Jared T. Simpson's Nanopolish [https://github.com/jts/nanopolish], with tremendous support from Chun Wai Lam, Gihan Jayatilaka and Hiruna Samarakoon. 
+Hasindu Gamaarachchi wrote the framework of f5c, CUDA code and integrated with adapted components from Jared T. Simpson's [Nanopolish](https://github.com/jts/nanopolish), with tremendous support from Chun Wai Lam, Gihan Jayatilaka and Hiruna Samarakoon. 
 
 ## LICENSE
 
