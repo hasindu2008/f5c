@@ -254,11 +254,22 @@ int freq_merge_main(int argc, char **argv) {
         }
     }
 
+    /*
+     * the raws are first sorted in lexicographic order of the chromosomes.
+     * Then sorted by the start position of the read.
+     * Consider two such sorted tables.
+     * To merge them, we can use two pointers that point to chromosome values of the read and compare them row by row.
+     * If the two pointer values match then we compare the start position values.
+     * If the start position values match we take the avearge methylated frequency and shift both pointers by a row,
+     * otherwise we shift the pointer with lesser value by a row and repeat.
+     * This strategy can be extended to compare and merge more than two files,
+     * e.g., for N files N pointers should be maintained
+     */
 
     while(active_file!=-1){
         for(int i = 0; i<no_of_files; i++){
             if(lines[i]!=-1){
-//                sscanf( buf[i], "%s\t%d", chromosome[i], &starts[i]);
+
                 char* tmp;
                 char * buffer = strdup(buf[i]);
                 //chromosome
@@ -340,7 +351,6 @@ int freq_merge_main(int argc, char **argv) {
                 while(next!=-1){
                     assert(starts[next] == min_start);
                     get_tsv_line(rcd,next,next);
-//                    sscanf( buf[next], "%s\t%d\t%d\t%d\t%d\t%d\t%f\t%s", chromosome[next], &starts[next], &end, &num_cpgs_in_group, &temp_called_sites, &temp_called_sites_methylated, &methylated_frequency, group_sequence);
                     called_sites += rcd->called_sites;
                     called_sites_methylated += rcd->called_sites_methylated;
                     free(buf[next]);
