@@ -1,7 +1,8 @@
 /* @file hmm.c
 **
 ** implementation of HMM
-** Code adapted from Nanopolish HMM
+** Code was adapted from Nanopolish HMM originally authored by Jared Simpson
+** Code was adapted by Hiruna Samarakoon and Gihan Jayatilaka
 ** @@
 ******************************************************************************/
 

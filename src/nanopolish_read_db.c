@@ -48,14 +48,14 @@ ReadDB::ReadDB() : m_fai(NULL)
 }
 
 //
-void ReadDB::build(const std::string& input_reads_filename)
+void ReadDB::build(const std::string& input_reads_filename, int threads)
 {
     // generate output filename
     m_indexed_reads_filename = input_reads_filename + GZIPPED_READS_SUFFIX;
 
     // Populate database with read names and convert the fastq
     // input into fasta for faidx
-    import_reads(input_reads_filename, m_indexed_reads_filename);
+    import_reads(input_reads_filename, m_indexed_reads_filename, threads);
 
     // build faidx
     int ret = fai_build(m_indexed_reads_filename.c_str());
@@ -114,7 +114,7 @@ ReadDB::~ReadDB()
 }
 
 //
-void ReadDB::import_reads(const std::string& input_filename, const std::string& out_fasta_filename)
+void ReadDB::import_reads(const std::string& input_filename, const std::string& out_fasta_filename, int threads)
 {
     // Open readers
     FILE* read_fp = fopen(input_filename.c_str(), "r");
@@ -140,6 +140,13 @@ void ReadDB::import_reads(const std::string& input_filename, const std::string& 
     if(bgzf_write_fp == NULL) {
         fprintf(stderr, "error: could not open %s for bgzipped write\n", out_fasta_filename.c_str());
         exit(EXIT_FAILURE);
+    }
+
+    if(threads>1){
+        int mt_status = bgzf_mt(bgzf_write_fp, threads, 64);
+        if(mt_status!=0){
+            fprintf(stderr,"Setting bgzf multi-threading failed. Proceeding with a single thread.");
+        }
     }
 
     // read input sequences, add to DB and convert to fasta

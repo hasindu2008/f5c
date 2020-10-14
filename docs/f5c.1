@@ -1,187 +1,419 @@
-.TH "f5c" "1" "2019-01-25"
+.\" generated with Ronn/v0.7.3
+.\" http://github.com/rtomayko/ronn/tree/0.7.3
+.
+.TH "F5C" "1" "October 2020" "" ""
+.
+.SH "NAME"
+\fBf5c\fR \- Ultra\-fast methylation calling and event alignment tool for nanopore sequencing data with optional CUDA acceleration
+.
+.SH "SYNOPSIS"
+.
+.TP
+indexing
+\fBf5c index \-d [fast5_folder] [read\.fastq|fasta]\fR
+.
+.TP
+methylation calling
+\fBf5c call\-methylation \-b [reads\.sorted\.bam] \-g [ref\.fa] \-r [reads\.fastq|fasta] > [meth\.tsv] f5c meth\-freq \-i [meth\.tsv] > [freq\.tsv]\fR
+.
+.TP
+event alignment
+\fBf5c eventalign \-b [reads\.sorted\.bam] \-g [ref\.fa] \-r [reads\.fastq|fasta] > [events\.tsv]\fR
+.
+.SH "DESCRIPTION"
+Given a set of base\-called nanopore reads and associated raw signals, f5c call\-methylation detects the methylated cytosine at genomic CpG cites and f5c eventalign aligns raw nanopore DNA signals (events) to the base\-called read\. f5c can optionally utilise CUDA enabled NVIDIA graphics cards for acceleration\. f5c is a heavily re\-engineered and optimised implementation of the call\-methylation and eventalign modules in Nanopolish\.
+.
+.SH "COMMANDS"
+.
+.IP "\(bu" 4
+\fBindex\fR:
+.
+.br
+Build an index map from basecalled reads to the signals measured by the sequencer (same as nanopolish index)\.
+.
+.IP "\(bu" 4
+\fBcall\-methylation\fR:
+.
+.br
+Classify nucleotides as methylated or not at genomic CpG sites (optimised nanopolish call\-methylation)\.
+.
+.IP "\(bu" 4
+\fBmeth\-freq\fR:
+.
+.br
+Calculate methylation frequency at genomic CpG sites (optimised nanopolish calculate_methylation_frequency\.py)\.
+.
+.IP "\(bu" 4
+\fBeventalign\fR:
+.
+.br
+Align nanopore events to reference k\-mers (optimised nanopolish eventalign)\.
+.
+.IP "" 0
+.
+.SH "OPTIONS"
+.
+.SS "index"
+\fBf5c index [OPTIONS] \-d nanopore_raw_file_directory reads\.fastq\fR
+.
 .P
-.SH NAME
+Build an index map from basecalled reads to the signals measured by the sequencer\. f5c index is equivalent to nanopolish index by Jared Simpson\.
+.
+.IP "\(bu" 4
+\fB\-h\fR, \fB\-\-help\fR:
+.
+.br
+display this help and exit
+.
+.IP "\(bu" 4
+\fB\-v\fR, \fB\-\-verbose\fR:
+.
+.br
+display verbose output
+.
+.IP "\(bu" 4
+\fB\-d\fR, \fB\-\-directory\fR:
+.
+.br
+path to the directory containing the raw ONT signal files\. This option can be given multiple times\.
+.
+.IP "\(bu" 4
+\fB\-s\fR, \fB\-\-sequencing\-summary\fR:
+.
+.br
+the sequencing summary file from albacore, providing this option will make indexing much faster
+.
+.IP "\(bu" 4
+\fB\-f\fR, \fB\-\-summary\-fofn\fR:
+.
+.br
+file containing the paths to the sequencing summary files (one per line)
+.
+.IP "" 0
+.
+.SS "call\-methylation"
+\fBf5c call\-methylation [OPTIONS] \-r reads\.fa \-b alignments\.bam \-g genome\.fa\fR
+.
 .P
-f5c - a faster implementation of Nanopolish call-methylation
+Classify nucleotides as methylated or not at genomic CpG cites (optimised nanopolish call\-methylation)\. Note that the list below contains the options for both CPU\-only and CPU\-GPU versions of f5c\. Options related to the GPU (CUDA) do NOT apply to the CPU\-only version\.
+.
+.IP "\(bu" 4
+\fB\-r FILE\fR:
+.
+.br
+The file containing the base\-called reads in FASTQ or FASTA format\. Can be gzip compressed files\.
+.
+.IP "\(bu" 4
+\fB\-b FILE\fR:
+.
+.br
+The file contaning the alignment records sorted based on genomic coordinates in BAM format\.
+.
+.IP "\(bu" 4
+\fB\-g FILE\fR:
+.
+.br
+The file containing the reference genome in FASTA format\.
+.
+.IP "\(bu" 4
+\fB\-w STR\fR:
+.
+.br
+Only process the specified genomic region STR\. STR should be in the format \fIchr:start\-end\fR\. Currently, multiple region strings are not supported\. If this option is not specified, the whole genome will be processed\.
+.
+.IP "\(bu" 4
+\fB\-t INT\fR:
+.
+.br
+Number of processing threads [default value: 8]\.
+.
+.IP "\(bu" 4
+\fB\-K INT\fR:
+.
+.br
+Maximum number of reads loaded at once to the memory [default value: 512]\. A larger value maximises multithreading performance at cost of increased peak RAM\.
+.
+.IP "\(bu" 4
+\fB\-B FLOAT[K/M/G]\fR:
+.
+.br
+Maximum number of bases loaded at once to the memory [default value: 2\.0M]\. A larger value maximises multithreading performance at cost of increased peak RAM\.
+.
+.IP "\(bu" 4
+\fB\-h\fR:
+.
+.br
+Print the help to the standard out\.
+.
+.IP "\(bu" 4
+\fB\-o FILE\fR:
+.
+.br
+The file to write the output\. If this option is not specified, the output will be written to the standard out\.
+.
+.IP "\(bu" 4
+\fB\-x STR\fR:
+.
+.br
+Parameter profile to be used for maximising the performance to a particular computer system\. The profile parameters are always applied before other options, i\.e\., the user can override these parameters explicitly\. Some example profiles are laptop, desktop, hpc\. See profiles \fIhttps://f5c\.page\.link/profiles\fR for the full list and details\.
+.
+.IP "\(bu" 4
+\fB\-\-iop INT\fR:
+.
+.br
+Number of I/O processes to read FAST5 files [default value: 1]\. Increase this value if reading FAST5 limits the overall performance\. A higher value is always preferred for systems with multiple disks (RAID) and network file systems\.
+.
+.IP "\(bu" 4
+\fB\-\-min\-mapq INT\fR:
+.
+.br
+Minimum mapping quality of an alignment (MAPQ in the BAM record) to be considered for methylation calling [default value: 20]\.
+.
+.IP "\(bu" 4
+\fB\-\-secondary=yes|no\fR:
+.
+.br
+Whether secondary alignments are considered or not for methylation calling [default value: no]\.
+.
+.IP "\(bu" 4
+\fB\-\-verbose INT\fR:
+.
+.br
+Verbosity level for the log messages [default value: 0]\.
+.
+.IP "\(bu" 4
+\fB\-\-version\fR:
+.
+.br
+Print the version number to the standard out\.
+.
+.IP "\(bu" 4
+\fB\-\-disable\-cuda=yes|no\fR:
+.
+.br
+Disable running on the GPU or not [default value: no]\. If this option is set to yes, GPU acceleration is disabled\.
+.
+.IP "\(bu" 4
+\fB\-\-cuda\-dev\-id INT\fR:
+.
+.br
+CUDA device identifier to run GPU kernels on [default value: 0]\. The device identifier of the first GPU is 0, the second GPU is 1 and so on\. This can be found by invoking the \fBnvidia\-smi\fR command\. Currently, only a single GPU can be specified\. To utilise multiple GPUs, you have to manually invoke multiple f5c commands on different datasets with a different device identifier\.
+.
+.IP "\(bu" 4
+\fB\-\-cuda\-max\-lf FLOAT\fR:
+.
+.br
+Process reads with read\-length less than or equal to the product of \fIcuda\-max\-lf\fR and the average read length in the current batch on GPU\. The rest is processed on CPU [default value: 3\.0]\. Useful for tuning the CPU\-GPU load balance for atypical datasets\. Refer to performance guidelines \fIhttps://hasindu2008\.github\.io/f5c/docs/f5c\-perf\-hints\fR for details\.
+.
+.IP "\(bu" 4
+\fB\-\-cuda\-avg\-epk FLOAT\fR:
+.
+.br
+The average number of events\-per\-kmer used for allocating the arrays in GPU memory [default value: 2\.0]\. Useful for tuning the CPU\-GPU load balance for atypical datasets\. Refer to performance guidelines \fIhttps://hasindu2008\.github\.io/f5c/docs/f5c\-perf\-hints\fR for details\.
+.
+.IP "\(bu" 4
+\fB\-\-cuda\-max\-epk FLOAT\fR:
+.
+.br
+process the reads with events\-per\-kmer less than or equal to \fIcuda_max_epk\fR on GPU\. The rest is processed on CPU [default value: 5\.0]\. Useful for tuning the CPU\-GPU load balance for atypical datasets\. Refer to performance guidelines \fIhttps://hasindu2008\.github\.io/f5c/docs/f5c\-perf\-hints\fR for details\.
+.
+.IP "" 0
+.
+.IP "\(bu" 4
+\fB\-\-skip\-ultra FILE\fR:
+.
+.br
+skip ultra long reads and write those entries to the bam file provided as the argument
+.
+.IP "\(bu" 4
+\fB\-\-ultra\-thresh INT\fR:
+.
+.br
+threshold to skip ultra long reads [100000]
+.
+.IP "\(bu" 4
+\fB\-\-skip\-unreadable=yes|no\fR:
+.
+.br
+skip any unreadable fast5 or terminate program [yes]
+.
+.IP "\(bu" 4
+\fB\-\-kmer\-model FILE\fR:
+.
+.br
+custom nucleotide 6\-mer model file (format similar to test/r9\-models/r9\.4_450bps\.nucleotide\.6mer\.template\.model)
+.
+.IP "\(bu" 4
+\fB\-\-meth\-model FILE\fR:
+.
+.br
+custom methylation 6\-mer model file (format similar to test/r9\-models/r9\.4_450bps\.cpg\.6mer\.template\.model)
+.
+.IP "\(bu" 4
+\fB\-\-meth\-out\-version INT\fR:
+.
+.br
+methylation tsv output version (set 2 to print the strand column) [1]
+.
+.IP "\(bu" 4
+\fB\-\-cuda\-mem\-frac FLOAT\fR:
+.
+.br
+Fraction of free GPU memory to allocate [0\.9 (0\.7 for tegra)]
+.
+.IP "" 0
+.
+.TP
+\fB\-\-print\-events=yes|no\fR:
+.
+.br
+prints the event table
+
+.
+.TP
+\fB\-\-print\-banded\-aln=yes|no\fR:
+.
+.br
+prints the event alignment
+
+.
+.TP
+\fB\-\-print\-scaling=yes|no\fR:
+.
+.br
+prints the estimated scalings
+
+.
+.TP
+\fB\-\-print\-raw=yes|no\fR:
+.
+.br
+prints the raw signal
+
+.
+.TP
+\fB\-\-debug\-break INT\fR:
+.
+.br
+break after processing the specified no\. of batches
+
+.
+.TP
+\fB\-\-profile\-cpu=yes|no\fR:
+.
+.br
+process section by section (used for profiling on CPU)
+
+.
+.TP
+\fB\-\-write\-dump=yes|no\fR:
+.
+.br
+write the fast5 dump to a file or not
+
+.
+.TP
+\fB\-\-read\-dump=yes|no\fR:
+.
+.br
+read from a fast5 dump file or not
+
+.
+.SS "meth\-freq"
+\fBmeth\-freq [options\.\.\.]\fR
+.
+.IP "" 4
+.
+.nf
+
+  \-c [float]        Call threshold\. Default is 2\.5\.
+  \-i [file]         Input file\. Read from stdin if not specified\.
+  \-o [file]         Output file\. Write to stdout if not specified\.
+  \-s                Split groups
+.
+.fi
+.
+.IP "" 0
+.
+.SS "eventalign"
+\fBf5c eventalign [OPTIONS] \-r reads\.fa \-b alignments\.bam \-g genome\.fa\fR
+.
+.IP "" 4
+.
+.nf
+
+   \-r FILE                    fastq/fasta read file
+   \-b FILE                    sorted bam file
+   \-g FILE                    reference genome
+   \-w STR[chr:start\-end]      limit processing to genomic region STR
+   \-t INT                     number of threads [8]
+   \-K INT                     batch size (max number of reads loaded at once) [512]
+   \-B FLOAT[K/M/G]            max number of bases loaded at once [2\.0M]
+   \-h                         help
+   \-o FILE                    output to file [stdout]
+   \-\-iop INT                  number of I/O processes to read fast5 files [1]
+   \-\-min\-mapq INT             minimum mapping quality [30]
+   \-\-secondary=yes|no         consider secondary mappings or not [no]
+   \-\-verbose INT              verbosity level [0]
+   \-\-version                  print version
+   \-\-disable\-cuda=yes|no      disable running on CUDA [no]
+   \-\-cuda\-dev\-id INT          CUDA device ID to run kernels on [0]
+   \-\-cuda\-max\-lf FLOAT        reads with length <= cuda\-max\-lf*avg_readlen on GPU, rest on CPU [3\.0]
+   \-\-cuda\-avg\-epk FLOAT       average number of events per kmer \- for allocating GPU arrays [2\.0]
+   \-\-cuda\-max\-epk FLOAT       reads with events per kmer <= cuda_max_epk on GPU, rest on CPU [5\.0]
+   \-x STRING                  profile to be used for optimal CUDA parameter selection\. user\-specified parameters will override profile values
+advanced options:
+   \-\-kmer\-model FILE          custom k\-mer model file
+   \-\-skip\-unreadable=yes|no   skip any unreadable fast5 or terminate program [yes]
+   \-\-print\-events=yes|no      prints the event table
+   \-\-print\-banded\-aln=yes|no  prints the event alignment
+   \-\-print\-scaling=yes|no     prints the estimated scalings
+   \-\-print\-raw=yes|no         prints the raw signal
+   \-\-debug\-break [INT]        break after processing the specified batch
+   \-\-profile\-cpu=yes|no       process section by section (used for profiling on CPU)
+   \-\-skip\-ultra FILE          skip ultra long reads and write those entries to the bam file provided as the argument
+   \-\-ultra\-thresh [INT]       threshold to skip ultra long reads [100000]
+   \-\-write\-dump=yes|no        write the fast5 dump to a file or not
+   \-\-read\-dump=yes|no         read from a fast5 dump file or not
+   \-\-summary FILE             summarise the alignment of each read/strand in FILE
+   \-\-sam                      write output in SAM format
+   \-\-print\-read\-names         print read names instead of indexes
+   \-\-scale\-events             scale events to the model, rather than vice\-versa
+   \-\-samples                  write the raw samples for the event to the tsv output
+   \-\-cuda\-mem\-frac FLOAT      Fraction of free GPU memory to allocate [0\.9 (0\.7 for tegra)]
+.
+.fi
+.
+.IP "" 0
+.
+.SH "EXAMPLES"
+.
+.TP
+download and extract the dataset including sorted alignments
+\fBwget \-O f5c_na12878_test\.tgz "https://f5c\.page\.link/f5c_na12878_test" tar xf f5c_na12878_test\.tgz\fR
+.
+.TP
+index, call methylation and get methylation frequencies
+\fBf5c index \-d chr22_meth_example/fast5_files chr22_meth_example/reads\.fastq f5c call\-methylation \-b chr22_meth_example/reads\.sorted\.bam \-g chr22_meth_example/humangenome\.fa \-r chr22_meth_example/reads\.fastq > chr22_meth_example/result\.tsv f5c meth\-freq \-i chr22_meth_example/result\.tsv > chr22_meth_example/freq\.tsv\fR
+.
+.TP
+event alignment
+\fBf5c eventalign \-b chr22_meth_example/reads\.sorted\.bam \-g chr22_meth_example/humangenome\.fa \-r chr22_meth_example/reads\.fastq > chr22_meth_example/events\.tsv\fR
+.
+.SH "AUTHOR"
+Hasindu Gamaarachchi wrote the framework of f5c, CUDA code and integrated with adapted components from Jared T\. Simpson\'s Nanopolish [https://github\.com/jts/nanopolish], with tremendous support from Chun Wai Lam, Gihan Jayatilaka and Hiruna Samarakoon\.
+.
+.SH "LICENSE"
+f5c is licensed under the MIT License\. f5c reuses code and methods from Nanopolish \fIhttps://github\.com/jts/nanopolish\fR which is also under the MIT License\. The event detection code in f5c is from Oxford Nanopore\'s Scrappie basecaller \fIhttps://github\.com/nanoporetech/scrappie\fR which is under Mozilla Public License 2\.0\. Some code snippets have been taken from Minimap2 \fIhttps://github\.com/lh3/minimap2\fR and Samtools \fIhttps://github\.com/samtools/samtools\fR that are under the MIT License\.
+.
 .P
-.SH SYNOPSIS
+If you use f5c, please cite Gamaarachchi, H\., Lam, C\.W\., Jayatilaka, G\. et al\. GPU accelerated adaptive banded event alignment for rapid comparative nanopore signal analysis\. BMC Bioinformatics 21, 343 (2020)\. https://doi\.org/10\.1186/s12859\-020\-03697\-x
+.
+.SH "SEE ALSO"
+Full documentation: https://hasindu2008\.github\.io/f5c/docs/overview
+.
 .P
-\fIf5c\fR <command> [options...]
+Source code: https://github\.com/hasindu2008/f5c/
+.
 .P
-.SH DESCRIPTION
-.P
-An optimised re-implementation of the call-methylation module in Nanopolish. Given a set of basecalled Nanopore reads and the raw signals, f5c detects the methylated cytosine bases. f5c can optionally utilise NVIDIA graphics cards for acceleration.
-.P
-First the reads have to be indexed using \fIf5c index\fR (or \fInanopolish index\fR - \fIf5c index\fR is the same code as \fInanopolish index\fR). Then invoke \fIf5c call-methylation\fR to detect methylated cytosine bases. The result is almost the same as from nanopolish except a few differences due to floating point approximations.
-.P
-.SH COMMANDS
-.P
-\fBindex\fR
-.RS 4
-Build an index mapping from basecalled reads to the signals measured by the sequencer. Same as the \fInanopolish index\fR command.
-.P
-.RE
-\fBcall-methylation\fR
-.RS 4
-Classify nucleotides as methylated or not. Same as the \fInanopolish call-methylation\fR command.
-.P
-.RE
-.SH INDEX OPTIONS
-.P
-\fB-h, --help\fR
-.RS 4
-Show \fIindex\fR help message and quit.
-.P
-.RE
-\fB-v, --verbose\fR
-.RS 4
-Display verbose output.
-.P
-.RE
-\fB-d, --directory\fR <path>
-.RS 4
-Path to the directory containing the raw ONT signal files. This option can be given multiple times.
-.P
-.RE
-\fB-s, --sequencing-summary\fR <file>
-.RS 4
-The sequencing summary file from albacore, providing this option will make indexing much faster
-.P
-.RE
-\fB-f, --summary-fofn\fR <file>
-.RS 4
-File containing the paths to the sequencing summary files (one per line)
-.P
-.RE
-.SH CALL-METHYLATION OPTIONS
-.P
-\fB-r\fR <file>
-.RS 4
-fastq/fasta read file. Required.
-.P
-.RE
-\fB-b\fR <file>
-.RS 4
-Sorted bam file. Required.
-.P
-.RE
-\fB-g\fR <file>
-.RS 4
-Reference genome. Required.
-.P
-.RE
-\fB-t\fR <num>
-.RS 4
-Number of threads. Default is 8.
-.P
-.RE
-\fB-K\fR <size>
-.RS 4
-Batch size (number of reads loaded at once). Default is 512.
-.RE
-\fB-h\fR
-.RS 4
-Show \fIcall-methylation\fR help message and quit.
-.P
-.RE
-\fB--min-mapq\fR <int>
-.RS 4
-Minimum mapping quality. Default is 30.
-.P
-.RE
-\fB--secondary\fR <yes|no>
-.RS 4
-Consider secondary mappings or not. Disabled by default.
-.P
-.RE
-\fB--skip-unreadable\fR <yes|no>
-.RS 4
-Skip any unreadable fast5 or terminate program. Enabled by default.
-.P
-.RE
-\fB--verbose\fR <int>
-.RS 4
-Verbosity level. Default if 0.
-.P
-.RE
-\fB--version\fR
-.RS 4
-Print version.
-.P
-.RE
-\fB--disable-cuda\fR <yes|no>
-.RS 4
-disable running on CUDA. Enabled by default.
-.P
-.RE
-\fB--cuda-dev-id\fR <int>
-.RS 4
-CUDA device ID to run kernels on. Default is 0.
-.P
-.RE
-\fB--cuda-max-lf\fR <float>
-.RS 4
-Reads with length <= cuda-max-lf * avg_readlen on GPU, rest on CPU. Default is 3.0
-.P
-.RE
-\fB--cuda-avg-epk\fR <float>
-.RS 4
-Average number of events per kmer - for allocating GPU arrays. Default is 2.0.
-.P
-.RE
-\fB--cuda-max-epk\fR <float>
-.RS 4
-Reads with events per kmer <= cuda_max_epk on GPU, rest on CPU. Default is 5.0.
-.P
-.RE
-.SS DEBUGGING OPTIONS
-.P
-\fB--kmer-model\fR <file>
-.RS 4
-Custom k-mer model file.
-.P
-.RE
-\fB--print-events\fR <yes|no>
-.RS 4
-Prints the event table.
-.P
-.RE
-\fB--print-banded-aln\fR <yes|no>
-.RS 4
-Prints the event alignment.
-.P
-.RE
-\fB--print-scaling\fR <yes|no>
-.RS 4
-Prints the estimated scalings.
-.P
-.RE
-\fB--print-raw\fR <yes|no>
-.RS 4
-Prints the raw signal.
-.P
-.RE
-\fB--debug-break\fR <int>
-.RS 4
-Break after processing the specified batch.
-.P
-.RE
-\fB--profile-cpu\fR <yes|no>
-.RS 4
-Enable this to process section by section (used for profiling on CPU)
-.P
-.RE
-\fB--cuda-mem-frac\fR <float>
-.RS 4
-Fraction of free GPU memory to allocate. Default is 0.9. 0.7 for Tegra GPU.
-.P
-.RE
-.SH SEE ALSO
-.P
-Full documentation at: <https://hasindu2008.github.io/f5c>
-.RE
-and Nanopolish documentation at: <https://nanopolish.readthedocs.io/en/latest/>
-.P
-.SH AUTHOR
-.P
-Hasindu Gamaarachchi (hasindu2008@gmail.com)
+Publication: https://bmcbioinformatics\.biomedcentral\.com/articles/10\.1186/s12859\-020\-03697\-x

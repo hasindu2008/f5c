@@ -59,24 +59,24 @@ int set_profile(char *profile, opt_t *opt){
 
     }else if(strcmp(profile,"laptop-low") == 0){
         set_opt_profile(opt,laptop_low);
-    }else if(strcmp(profile,"laptop-mid") == 0){
+    }else if(strcmp(profile,"laptop-mid") == 0 || strcmp(profile,"laptop") == 0 ){
         set_opt_profile(opt,laptop_mid);
     }else if(strcmp(profile,"laptop-high") == 0){
         set_opt_profile(opt,laptop_high);
 
     }else if(strcmp(profile,"desktop-low") == 0){
-        set_opt_profile(opt,laptop_low);
-    }else if(strcmp(profile,"desktop-mid") == 0){
-        set_opt_profile(opt,laptop_mid);
+        set_opt_profile(opt,desktop_low);
+    }else if(strcmp(profile,"desktop-mid") == 0 || strcmp(profile,"desktop") == 0){
+        set_opt_profile(opt,desktop_mid);
     }else if(strcmp(profile,"desktop-high") == 0){
-        set_opt_profile(opt,laptop_high);
+        set_opt_profile(opt,desktop_high);
 
     }else if(strcmp(profile,"hpc-low") == 0){
-        set_opt_profile(opt,laptop_low);
-    }else if(strcmp(profile,"hpc-mid") == 0){
-        set_opt_profile(opt,laptop_mid);
+        set_opt_profile(opt,hpc_low);
+    }else if(strcmp(profile,"hpc-mid") == 0 || strcmp(profile,"hpc") == 0){
+        set_opt_profile(opt,hpc_mid);
     }else if(strcmp(profile,"hpc-high") == 0){
-        set_opt_profile(opt,laptop_high);
+        set_opt_profile(opt,hpc_high);
 
 
     }else if(strcmp(profile,"hpc-cpu") == 0){

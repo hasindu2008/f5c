@@ -71,7 +71,7 @@ parameters laptop_high = {
     .batch_size_bases = 2500000,
     .num_thread = 12,
     .ultra_thresh = 100000,
-    .num_iop = 1,
+    .num_iop = 2,
     .disable_cuda=0
 };
 
@@ -84,7 +84,7 @@ parameters laptop_mid = {
     .batch_size_bases = 2000000,
     .num_thread = 8,
     .ultra_thresh = 100000,
-    .num_iop = 1,
+    .num_iop = 2,
     .disable_cuda=0
 };
 
@@ -106,8 +106,8 @@ parameters desktop_high = {
     .cuda_max_readlen = 5.0,
     .cuda_avg_events_per_kmer = 2.0,
     .cuda_max_events_per_kmer = 5.0,
-    .batch_size = 512,
-    .batch_size_bases = 25000000,
+    .batch_size = 1024,
+    .batch_size_bases = 7500000,
     .num_thread = 16,
     .ultra_thresh = 100000,
     .num_iop = 6,
@@ -119,7 +119,7 @@ parameters desktop_mid = {
     .cuda_max_readlen = 5.0,
     .cuda_avg_events_per_kmer = 2.0,
     .cuda_max_events_per_kmer = 5.0,
-    .batch_size = 512,
+    .batch_size = 768,
     .batch_size_bases = 6250000,
     .num_thread = 12,
     .ultra_thresh = 100000,
@@ -220,5 +220,4 @@ parameters nci_gadi = {
 };
 
 
-void set_opt_profile(opt_t *opt, parameters machine);
 #endif

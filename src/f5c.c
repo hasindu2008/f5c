@@ -551,7 +551,7 @@ void align_single(core_t* core, db_t* db, int32_t i) {
     }
     else{//todo : too many avg events per base - oversegmented
         db->n_event_align_pairs[i]=0;
-        if(core->opt.verbosity >= 0){
+        if(core->opt.verbosity > 0){
             STDERR("Skipping over-segmented read %s with %f events per base",bam_get_qname(db->bam_rec[i]), (db->et[i].n)/(float)(db->read_len[i]));
         }
     }
