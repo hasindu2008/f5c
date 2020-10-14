@@ -131,15 +131,12 @@ void get_tsv_line(struct tsv_record* record, int file_no, int64_t line_num) {
 }
 
 static const char *MAP_REDUCE_USAGE_MESSAGE =
-        "\nUsage: freq-merge [options...]\n"
+        "\nUsage: freq-merge -o [output file] [input files]\n"
 "To merge multiple methylation frequency files to a single file.\n"
 "For each methylation calling output (.tsv) file, perform methylation frequency calculation separately (no concatenation required).\n"
 "Then feed those output (.tsv) files to this tool, to obtain the final methylation frequency calculated file."
 "\n\n"
-" -o FILE           Output file.\n"
-" -n [INT]          Number of methylation frequency .tsv files to be merged\n"
-" -f                n number of input filepaths should be followed\n\n"
-"e.g. freq-merge -o merged_freq.tsv -n 2 -f data1_freq.tsv data2_freq.tsv"
+"e.g. freq-merge -o merged_freq.tsv data1_freq.tsv data2_freq.tsv"
 "\n\n"
 ;
 
@@ -158,17 +155,14 @@ int freq_merge_main(int argc, char **argv) {
         exit(EXIT_FAILURE);
     }
 
-    while ((c = getopt (argc, argv, "o:n:f")) != -1)
+    while ((c = getopt (argc, argv, "o")) != -1)
         switch (c) {
             case 'o':
-                outputFileName = optarg;
-                break;
-            case 'n':
-                no_of_files = atoi(optarg);
+                outputFileName = strdup(argv[optind++]);
+                no_of_files = argc - optind;
                 inputfileNames = (char**)malloc(sizeof(char*) * no_of_files);
                 MALLOC_CHK(inputfileNames);
-                break;
-            case 'f':
+
                 for(index = 0; optind < argc && *argv[optind] != '-'; optind++, index++){
                     inputfileNames[index] = strdup(argv[optind]);
                 }
@@ -184,7 +178,6 @@ int freq_merge_main(int argc, char **argv) {
                 fprintf (stderr, "%s", MAP_REDUCE_USAGE_MESSAGE);
                 exit(EXIT_FAILURE);
         }
-
 
     FILE* file_pointers [no_of_files];
     char header_version0[] = {"chromosome\tstart\tend\tnum_cpgs_in_group\tcalled_sites\tcalled_sites_methylated\tmethylated_frequency\tgroup_sequence\n"};
@@ -261,11 +254,22 @@ int freq_merge_main(int argc, char **argv) {
         }
     }
 
+    /*
+     * the raws are first sorted in lexicographic order of the chromosomes.
+     * Then sorted by the start position of the read.
+     * Consider two such sorted tables.
+     * To merge them, we can use two pointers that point to chromosome values of the read and compare them row by row.
+     * If the two pointer values match then we compare the start position values.
+     * If the start position values match we take the avearge methylated frequency and shift both pointers by a row,
+     * otherwise we shift the pointer with lesser value by a row and repeat.
+     * This strategy can be extended to compare and merge more than two files,
+     * e.g., for N files N pointers should be maintained
+     */
 
     while(active_file!=-1){
         for(int i = 0; i<no_of_files; i++){
             if(lines[i]!=-1){
-//                sscanf( buf[i], "%s\t%d", chromosome[i], &starts[i]);
+
                 char* tmp;
                 char * buffer = strdup(buf[i]);
                 //chromosome
@@ -347,7 +351,6 @@ int freq_merge_main(int argc, char **argv) {
                 while(next!=-1){
                     assert(starts[next] == min_start);
                     get_tsv_line(rcd,next,next);
-//                    sscanf( buf[next], "%s\t%d\t%d\t%d\t%d\t%d\t%f\t%s", chromosome[next], &starts[next], &end, &num_cpgs_in_group, &temp_called_sites, &temp_called_sites_methylated, &methylated_frequency, group_sequence);
                     called_sites += rcd->called_sites;
                     called_sites_methylated += rcd->called_sites_methylated;
                     free(buf[next]);
