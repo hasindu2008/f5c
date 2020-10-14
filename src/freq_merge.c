@@ -131,15 +131,12 @@ void get_tsv_line(struct tsv_record* record, int file_no, int64_t line_num) {
 }
 
 static const char *MAP_REDUCE_USAGE_MESSAGE =
-        "\nUsage: freq-merge [options...]\n"
+        "\nUsage: freq-merge -o [output file] [input files]\n"
 "To merge multiple methylation frequency files to a single file.\n"
 "For each methylation calling output (.tsv) file, perform methylation frequency calculation separately (no concatenation required).\n"
 "Then feed those output (.tsv) files to this tool, to obtain the final methylation frequency calculated file."
 "\n\n"
-" -o FILE           Output file.\n"
-" -n [INT]          Number of methylation frequency .tsv files to be merged\n"
-" -f                n number of input filepaths should be followed\n\n"
-"e.g. freq-merge -o merged_freq.tsv -n 2 -f data1_freq.tsv data2_freq.tsv"
+"e.g. freq-merge -o merged_freq.tsv data1_freq.tsv data2_freq.tsv"
 "\n\n"
 ;
 
@@ -158,17 +155,14 @@ int freq_merge_main(int argc, char **argv) {
         exit(EXIT_FAILURE);
     }
 
-    while ((c = getopt (argc, argv, "o:n:f")) != -1)
+    while ((c = getopt (argc, argv, "o")) != -1)
         switch (c) {
             case 'o':
-                outputFileName = optarg;
-                break;
-            case 'n':
-                no_of_files = atoi(optarg);
+                outputFileName = strdup(argv[optind++]);
+                no_of_files = argc - optind;
                 inputfileNames = (char**)malloc(sizeof(char*) * no_of_files);
                 MALLOC_CHK(inputfileNames);
-                break;
-            case 'f':
+
                 for(index = 0; optind < argc && *argv[optind] != '-'; optind++, index++){
                     inputfileNames[index] = strdup(argv[optind]);
                 }
@@ -184,7 +178,6 @@ int freq_merge_main(int argc, char **argv) {
                 fprintf (stderr, "%s", MAP_REDUCE_USAGE_MESSAGE);
                 exit(EXIT_FAILURE);
         }
-
 
     FILE* file_pointers [no_of_files];
     char header_version0[] = {"chromosome\tstart\tend\tnum_cpgs_in_group\tcalled_sites\tcalled_sites_methylated\tmethylated_frequency\tgroup_sequence\n"};
