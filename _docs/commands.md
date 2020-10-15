@@ -159,17 +159,17 @@ Classify nucleotides as methylated or not at genomic CpG cites (optimised nanopo
 
 Calculate methylation frequency at genomic CpG sites from a tsv file containing methylation calls produced by f5c call-methylation. This is an optimised version of the nanopolish *calculate_methylation_frequency.py* script. 
 
-*  `-c FLOAT`:
+* `-c FLOAT`:   
   Call threshold for the log likelihood ratio [default value:  2.5]. If *abs(log_lik_ratio) < c*, those sites are considered ambigious and ignored when computing *called_sites* and *called_sites_methylated*. If  *log_lik_ratio >= c*, those are considered methylated (*called_sites_methylated*).
-*  `-i FILE`:
+* `-i FILE`:    
   Input file containing methylation calls in tsv format (output of f5c call-methylation). Read from stdin if not specified. Any tsv file produced by f5c call-methylation despite what was specified for `--meth-out-version` (with/without strand column and/or num_cpg/num_motif) is supported and the format is automatically detected.
-*  `-o FILE`:
+* `-o FILE`:    
   Output file to write the methylation frequencies  in tsv format. Write to stdout if not specified.
-*  `-s`:
+* `-s`:   
   Split groups. If not specified, the default behaviour is to compute the methylation frequency per each group (a group contains nearby CpG sites considered together when calling methylation). If methylation frequency is required at an individual base resolution, this option must be specified to split the groups.
-*  `-h`:
+* `-h`:   
   Print the help to the standard out.
-*  `--version`: 
+* `--version`:    
   Print the version number to the standard out.   
 
 ### freq-merge
@@ -180,11 +180,11 @@ Merge multiple methylation frequency tsv files (output files from f5c meth-freq)
 
 For each methylation calling output (.tsv) file, perform meth-freq separately (without concatenation the input tsv files manually). Then feed those output (.tsv) files to this tool, to obtain the final methylation frequency file. 
 
-*  `-o FILE`:
+*  `-o FILE`:     
   Output file to write the methylation frequencies  in tsv format. Write to stdout if not specified.
-*  `-h`:
+*  `-h`:      
   Print the help to the standard out.
-*  `--version`: 
+*  `--version`:       
   Print the version number to the standard out.   
   
 
@@ -192,46 +192,40 @@ For each methylation calling output (.tsv) file, perform meth-freq separately (w
 
 `f5c eventalign [OPTIONS] -r reads.fa -b alignments.bam -g genome.fa`
 
-```
-basic options:
-   -r FILE                    fastq/fasta read file
-   -b FILE                    sorted bam file
-   -g FILE                    reference genome
-   -w STR                     limit processing to genomic region string of format chr:start-end
-   -t INT                     number of processing threads [8]
-   -K INT                     batch size (max number of reads loaded at once) [512]
-   -B FLOAT[K/M/G]            max number of bases loaded at once [5.0M]
-   -h                         help
-   -o FILE                    output to file [stdout]
-   -x STR                     parameter profile to be used for better performance (always applied before other options)
-                              e.g., laptop, desktop, hpc; see https://f5c.page.link/profiles for the full list
-   --iop INT                  number of I/O processes to read fast5 files [1]
-   --min-mapq INT             minimum mapping quality [20]
-   --secondary=yes|no         consider secondary mappings or not [no]
-   --verbose INT              verbosity level [0]
-   --version                  print version
+Align nanopore events to reference k-mers (optimised nanopolish eventalign). Note that the list below contains the options for both CPU-only and CPU-GPU versions of f5c.  Options related to the GPU (CUDA) do NOT apply to the CPU-only version. As most
 
-advanced options:
-   --skip-ultra FILE          skip ultra long reads and write those entries to the bam file provided as the argument
-   --ultra-thresh INT         threshold to skip ultra long reads [100000]
-   --skip-unreadable=yes|no   skip any unreadable fast5 or terminate program [yes]
-   --kmer-model FILE          custom nucleotide 6-mer model file (format similar to test/r9-models/r9.4_450bps.nucleotide.6mer.template.model)
-   --summary FILE             summarise the alignment of each read/strand in FILE
-   --sam                      write output in SAM format
-   --print-read-names         print read names instead of indexes
-   --scale-events             scale events to the model, rather than vice-versa
-   --samples                  write the raw samples for the event to the tsv output
+#### basic options 
 
-developer options:
-   --print-events=yes|no      prints the event table
-   --print-banded-aln=yes|no  prints the event alignment
-   --print-scaling=yes|no     prints the estimated scalings
-   --print-raw=yes|no         prints the raw signal
-   --debug-break INT          break after processing the specified no. of batches
-   --profile-cpu=yes|no       process section by section (used for profiling on CPU)
-   --write-dump=yes|no        write the fast5 dump to a file or not
-   --read-dump=yes|no         read from a fast5 dump file or not
-```   
+Same as those for call-methylation and thus not repeated here.
+
+#### advanced options 
+
+
+* `--skip-ultra FILE`:      
+  Same as for call-methylation.
+* `--ultra-thresh INT`:   
+   Same as for call-methylation.
+* `--skip-unreadable=yes|no`:   
+   Same as for call-methylation.
+* `--kmer-model FILE`:    
+   Same as for call-methylation.
+* `--summary FILE`:     
+   Write the summarise of the alignment of each read to the file specified.
+* `--sam`:      
+   Write the alignment output in SAM format instead of tsv.
+*  `--print-read-names`:      
+   Print read IDs instead of indexes.
+* `--scale-events`:     
+   Scale events to the model, rather than vice-versa.
+* `--samples`:      
+   Write the raw samples for the event to the tsv output.
+* `--cuda-mem-frac FLOAT`:           
+   Same as for call-methylation.
+
+
+#### developer options 
+Same as those for call-methylation and thus not repeated here.
+
 
 ## EXAMPLES
 
