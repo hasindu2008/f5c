@@ -15,6 +15,7 @@
 #include <getopt.h>
 #include "error.h"
 #include "khash.h"
+#include "f5c.h"
 
 #define KEY_SIZE 3
 
@@ -25,12 +26,14 @@
 // need to check for empty newline chars
 // todo : can improve peak memory by disk based sorting - futuristic next level
 
-static const char usage[] = "Usage: %s [options...]\n"
+static const char usage[] = "Usage: %s [OPTIONS] -i methcalls.tsv\n"
                             "\n"
-                            "  -c [float]        Call threshold. Default is 2.5.\n"
-                            "  -i [file]         Input file. Read from stdin if not specified.\n"
-                            "  -o [file]         Output file. Write to stdout if not specified.\n"
-                            "  -s                Split groups\n"
+                            "  -c FLOAT        call threshold for the log likelihood ratio. Default is 2.5. \n"
+                            "  -i FILE         input file. Read from stdin if not specified\n"
+                            "  -o FILE         output file. Write to stdout if not specified\n"
+                            "  -s              split groups\n"
+                            "  -h              help\n"
+                            "  --version       print version\n"
                             "\nSee the manual page for details (`man ./docs/f5c.1' or https://f5c.page.link/man).\n"
                             ;
 
@@ -263,41 +266,59 @@ int freq_main(int argc, char **argv) {
     int8_t meth_out_cpg_or_motif=0; //the output from methylation call - if the columns are named num_cpg meth_out_cpg_or_motif =1, if num_motifs then meth_out_cpg_or_motif=2
     int64_t line_num=0;
 
+    int longindex = 0;
+    const char *short_opts = "c:i:o:shV";
     //extern char* optarg;
     //extern int optind, optopt;
 
-    while ((c = getopt(argc, argv, "c:i:o:s")) != -1) {
+    static struct option long_opts[] = {
+        {"call-threshold", required_argument, 0, 'c'},
+        {"input", required_argument, 0, 'i'},
+        {"output", required_argument, 0, 'o'},
+        {"split-groups", no_argument, 0, 's'},
+        {"help",no_argument, 0, 'h'},
+        {"version",no_argument, 0, 'V'},
+        {0, 0, 0, 0}};
+
+    while ((c = getopt_long(argc, argv, short_opts, long_opts, &longindex)) != -1) {
         switch(c) {
             case 'c':
                 /* TODO handle overflow when calling strtod */
                 call_threshold = strtod(optarg, NULL);
                 break;
-            case 'i': {
-                          FILE* in = fopen(optarg, "r");
-                          F_CHK(in,optarg)
-                          input = in;
-                          break;
-                      }
+            case 'i':
+            {
+                FILE* in = fopen(optarg, "r");
+                F_CHK(in,optarg)
+                input = in;
+                break;
+            }
             case 's':
-                      split_groups = true;
-                      break;
+                split_groups = true;
+                break;
             case ':':
-                      fprintf(stderr, "Option -%c requires an operand\n", optopt);
-                      fprintf(stderr, usage, argv[0]);
-                      exit(EXIT_FAILURE);
+                fprintf(stderr, "Option -%c requires an operand\n", optopt);
+                fprintf(stderr, usage, argv[0]);
+                exit(EXIT_FAILURE);
             case '?':
-                      fprintf(stderr, "Unrecognized option: -%c\n", optopt);
-                      fprintf(stderr, usage, argv[0]);
-                      exit(EXIT_FAILURE);
+                fprintf(stderr, "Unrecognized option: -%c\n", optopt);
+                fprintf(stderr, usage, argv[0]);
+                exit(EXIT_FAILURE);
             case 'o':
-                    if (strcmp(optarg, "-") != 0) {
-                        if (freopen(optarg, "wb", stdout) == NULL) {
-                            ERROR("failed to write the output to file %s : %s",optarg, strerror(errno));
-                            exit(EXIT_FAILURE);
-                        }
+                if (strcmp(optarg, "-") != 0) {
+                    if (freopen(optarg, "wb", stdout) == NULL) {
+                        ERROR("failed to write the output to file %s : %s",optarg, strerror(errno));
+                        exit(EXIT_FAILURE);
                     }
+                }
+            case 'h':
+                fprintf(stdout, usage, argv[0]);
+                exit(EXIT_SUCCESS);
+            case 'V':
+                fprintf(stdout,"F5C %s\n",F5C_VERSION);
+                exit(EXIT_SUCCESS);
             default:
-                      break;
+                break;
         }
     }
 

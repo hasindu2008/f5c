@@ -212,7 +212,6 @@ int meth_main(int argc, char* argv[], int8_t mode) {
 
     //signal(SIGSEGV, sig_handler);
 
-    //CHANGE: need to add x as an option here?
     const char* optstring = "r:b:g:t:B:K:v:o:x:hV";
 
     int longindex = 0;
@@ -222,9 +221,10 @@ int meth_main(int argc, char* argv[], int8_t mode) {
     char* fastafile = NULL;
     char* fastqfile = NULL;
     char *tmpfile = NULL;
-    char* profilename = NULL; //CHANGE: Create variable to store profile arg
+    char* profilename = NULL; //Create variable to store profile arg
     char *eventalignsummary = NULL;
 
+    int8_t is_ultra_thresh_set = 0;
 
     FILE *fp_help = stderr;
 
@@ -320,10 +320,8 @@ int meth_main(int argc, char* argv[], int8_t mode) {
         } else if(c == 0 && longindex == 26){ //check for empty strings
             tmpfile = optarg;
         } else if(c == 0 && longindex == 27){
-            if(tmpfile==NULL){
-                WARNING("%s", "ultra-thresh has no effect without skip-ultra");
-            }
             opt.ultra_thresh = atoi(optarg);
+            is_ultra_thresh_set = 1;
         } else if(c == 0 && longindex == 28){ //write the raw dump of the fast5 files
             yes_or_no(&opt, F5C_WR_RAW_DUMP, longindex, optarg, 1);
         } else if(c == 0 && longindex == 29){ //read the raw dump of the fast5 files
@@ -391,6 +389,10 @@ int meth_main(int argc, char* argv[], int8_t mode) {
             opt.meth_model_file = optarg;
         }
 
+    }
+
+    if(is_ultra_thresh_set ==1 && tmpfile==NULL){
+        WARNING("%s", "--ultra-thresh has no effect without --skip-ultra");
     }
 
     if (fastqfile == NULL || bamfilename == NULL || fastafile == NULL || fp_help == stdout) {

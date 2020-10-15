@@ -13,9 +13,9 @@
 #include <signal.h>
 #include <unistd.h>
 #include <assert.h>
-
+#include <getopt.h>
 #include "error.h"
-
+#include "f5c.h"
 
 char ** buf;
 
@@ -131,13 +131,13 @@ void get_tsv_line(struct tsv_record* record, int file_no, int64_t line_num) {
 }
 
 static const char *MAP_REDUCE_USAGE_MESSAGE =
-        "\nUsage: freq-merge -o [output file] [input files]\n"
-"To merge multiple methylation frequency files to a single file.\n"
-"For each methylation calling output (.tsv) file, perform methylation frequency calculation separately (no concatenation required).\n"
-"Then feed those output (.tsv) files to this tool, to obtain the final methylation frequency calculated file."
-"\n\n"
-"e.g. freq-merge -o merged_freq.tsv data1_freq.tsv data2_freq.tsv"
-"\n\n"
+        "Usage: f5c freq-merge [OPTIONS] input1.tsv input2.tsv ...\n"
+        "Merge multiple methylation frequency files into one.\n\n"
+        "   -o FILE         output file. Write to stdout if not specified\n"
+        "   -h              help\n"
+        "   --version       print version\n"
+        "\nSee the manual page for details (`man ./docs/f5c.1' or https://f5c.page.link/man)."
+        "\n\n"
 ;
 
 int freq_merge_main(int argc, char **argv) {
@@ -149,35 +149,46 @@ int freq_merge_main(int argc, char **argv) {
     int no_of_files = 13;
     int index = 0;
     int c;
-    FILE *fout;
-    if(argc == 1){
-        fprintf (stderr, "%s", MAP_REDUCE_USAGE_MESSAGE);
-        exit(EXIT_FAILURE);
-    }
+    FILE *fout = stdout;
 
-    while ((c = getopt (argc, argv, "o")) != -1)
+    int longindex = 0;
+    const char *short_opts = "o:hV";
+
+    static struct option long_opts[] = {
+        {"output", required_argument, 0, 'o'},
+        {"help",no_argument, 0, 'h'},
+        {"version",no_argument, 0, 'V'},
+        {0, 0, 0, 0}};
+
+    while ((c = getopt_long(argc, argv, short_opts, long_opts, &longindex)) != -1){
         switch (c) {
             case 'o':
-                outputFileName = strdup(argv[optind++]);
-                no_of_files = argc - optind;
-                inputfileNames = (char**)malloc(sizeof(char*) * no_of_files);
-                MALLOC_CHK(inputfileNames);
-
-                for(index = 0; optind < argc && *argv[optind] != '-'; optind++, index++){
-                    inputfileNames[index] = strdup(argv[optind]);
-                }
-                if (index != no_of_files){
-                    fprintf (stderr, "Number of input files and input file names mismatch\n");
-                    if(inputfileNames){
-                        free(inputfileNames);
-                    }
-                    exit(EXIT_FAILURE);
-                }
+                outputFileName = optarg;
                 break;
+            case 'h':
+                fprintf (stdout, "%s", MAP_REDUCE_USAGE_MESSAGE);
+                exit(EXIT_SUCCESS);
+            case 'V':
+                fprintf(stdout,"F5C %s\n",F5C_VERSION);
+                exit(EXIT_SUCCESS);
             default:
                 fprintf (stderr, "%s", MAP_REDUCE_USAGE_MESSAGE);
                 exit(EXIT_FAILURE);
         }
+    }
+
+    no_of_files = argc - optind;
+    if (no_of_files < 2) {
+        fprintf (stderr, "%s", MAP_REDUCE_USAGE_MESSAGE);
+        exit(EXIT_FAILURE);
+    }
+
+    inputfileNames = (char**)malloc(sizeof(char*) * no_of_files);
+    MALLOC_CHK(inputfileNames);
+
+    for(index = 0; optind < argc; optind++, index++){
+        inputfileNames[index] = strdup(argv[optind]);
+    }
 
     FILE* file_pointers [no_of_files];
     char header_version0[] = {"chromosome\tstart\tend\tnum_cpgs_in_group\tcalled_sites\tcalled_sites_methylated\tmethylated_frequency\tgroup_sequence\n"};
@@ -218,12 +229,13 @@ int freq_merge_main(int argc, char **argv) {
     }
     free(inputfileNames);
 
-    fout = fopen(outputFileName, "w"); // read mode
-    if (fout == NULL){
-        perror("Error while opening output file.\n");
-        exit(EXIT_FAILURE);
+    if(outputFileName != NULL){
+        fout = fopen(outputFileName, "w"); // read mode
+        if (fout == NULL){
+            perror("Error while opening output file.\n");
+            exit(EXIT_FAILURE);
+        }
     }
-
 
     // buf is a 2D array no_of_files X TSV_HEADER_LENGTH
     buf = (char**)malloc(sizeof(char*)*no_of_files);
