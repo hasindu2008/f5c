@@ -155,29 +155,38 @@ Classify nucleotides as methylated or not at genomic CpG cites (optimised nanopo
          
 ### meth-freq
 
-Calculate methylation frequency at genomic CpG sites from a tsv file containing per-read methylation calls (optimised nanopolish calculate_methylation_frequency.py). Both tsv formats (with/without strand column and/or num_cpg/num_motif) are supported and is detected automaticaly.
+`meth-freq [OPTIONS] -i methcalls.tsv`
 
-`meth-freq [options...]`
+Calculate methylation frequency at genomic CpG sites from a tsv file containing methylation calls produced by f5c call-methylation. This is an optimised version of the nanopolish *calculate_methylation_frequency.py* script. 
 
-```
-  -c float]         Call threshold. Default is 2.5.
-  -i [file]         Input tsv file containing per-read methylation calls. Read from stdin if not specified.
-  -o [file]         Output file. Write to stdout if not specified.
-  -s                Split groups
-  ```
+*  `-c FLOAT`:
+  Call threshold for the log likelihood ratio [default value:  2.5]. If *abs(log_lik_ratio) < c*, those sites are considered ambigious and ignored when computing *called_sites* and *called_sites_methylated*. If  *log_lik_ratio >= c*, those are considered methylated (*called_sites_methylated*).
+*  `-i FILE`:
+  Input file containing methylation calls in tsv format (output of f5c call-methylation). Read from stdin if not specified. Any tsv file produced by f5c call-methylation despite what was specified for `--meth-out-version` (with/without strand column and/or num_cpg/num_motif) is supported and the format is automatically detected.
+*  `-o FILE`:
+  Output file to write the methylation frequencies  in tsv format. Write to stdout if not specified.
+*  `-s`:
+  Split groups. If not specified, the default behaviour is to compute the methylation frequency per each group (a group contains nearby CpG sites considered together when calling methylation). If methylation frequency is required at an individual base resolution, this option must be specified to split the groups.
+*  `-h`:
+  Print the help to the standard out.
+*  `--version`: 
+  Print the version number to the standard out.   
 
 ### freq-merge
 
- merge multiple methylation frequency tsv files to a single tsv file. Useful to combine the results when meth-freq was run separately on batches, for instance, when performing methylation calling on-the-fly.
-For each methylation calling output (.tsv) file, perform meth-freq separately (no concatenation required). Then feed those output (.tsv) files to this tool, to obtain the final methylation frequency calculated file. 
+`f5c freq-merge [OPTIONS] input1.tsv input2.tsv ...`
 
-```
-freq-merge [options...]
-  -o FILE           Output file.
-  -n [INT]          Number of methylation frequency .tsv files to be merged
-  -f                n number of input filepaths should be followed
-  e.g. freq-merge -o merged_freq.tsv -n 2 -f data1_freq.tsv data2_freq.tsv 
-  ```
+Merge multiple methylation frequency tsv files (output files from f5c meth-freq) to a single tsv file. Useful to combine the results when meth-freq was run separately on batches of reads, for instance, when performing real-time methylation calling or an SGE array job. Can be also used to merge methylation frequency tsv files from different samples as long as the reference genome used was the same.
+
+For each methylation calling output (.tsv) file, perform meth-freq separately (without concatenation the input tsv files manually). Then feed those output (.tsv) files to this tool, to obtain the final methylation frequency file. 
+
+*  `-o FILE`:
+  Output file to write the methylation frequencies  in tsv format. Write to stdout if not specified.
+*  `-h`:
+  Print the help to the standard out.
+*  `--version`: 
+  Print the version number to the standard out.   
+  
 
 ### eventalign
 
