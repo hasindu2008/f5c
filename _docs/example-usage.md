@@ -37,7 +37,7 @@ f5c call-methylation -t 8 -r reads.fq -g ref.fa -b reads.bam -K 512 -B 2M > meth
 f5c meth-freq -i meth.tsv -s > meth-freq.tsv
 ```
 
-## Resource efficient Methylation calling workflow for a dataset with many ultra-long reads
+## Resource efficient methylation calling workflow for a dataset with many ultra-long reads
 
 In the following example, the system is assumed to have an 32-core CPU and a GPU with 16 GB memory. You can change the number of threads depending on your CPU. Set -K and -B depending on the available GPU memory. 
 
