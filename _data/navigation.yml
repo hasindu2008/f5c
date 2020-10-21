@@ -29,6 +29,8 @@ docs:
         url:    /docs/profiles  
   - title:      Troubleshooting
     children:
+      - title:  General
+        url:    /docs/general-troubleshoot     
       - title:  CUDA
         url:    /docs/cuda-troubleshoot        
   - title:      Miscellaneous
