@@ -31,11 +31,11 @@ In the tables below, the number of cores includes hyper-threads in Intel process
 
 
 
-### Notes:
+### Notes
 - The above profiles are for a typical nanopore dataset and if your dataset properties (e.g., read lengths, events per k-mer) are quite different, the user may still have to follow steps in [f5c-perf-hints](https://hasindu2008.github.io/f5c/docs/f5c-perf-hints) for best performance.
 - The above list of computer systems is not exhaustive. I will keep adding new profiles whenever I get hold of a new computer system. If you wish a new profile to be added for a particular computer system, please open an [issue](https://github.com/hasindu2008/f5c/issues).
 - Some of the above profiles are based on values obtained by running [f5c-tools](https://github.com/dkhyland/f5c-tools). As this method requires a number of iterations and thus very time consuming, some profiles contain interpolated values.
-- The parameter values set by a particular profile can be found [here](). 
+- The parameter values set by a particular profile can be found [here](https://github.com/hasindu2008/f5c/blob/master/src/profiles.h). 
 
-### Acknowledgement:
+### Acknowledgement
 This parameters profile feature in f5c was developed by [David Hyland](https://github.com/dkhyland).
