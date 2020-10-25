@@ -6,6 +6,7 @@ title: Commands and Options
 
 f5c(1) - Ultra-fast methylation calling and event alignment tool for nanopore sequencing data with optional GPU (CUDA) acceleration
 
+
 ## SYNOPSIS
 
 * indexing:
@@ -73,7 +74,7 @@ Build an index that maps read IDs in a fastq/fasta file to the corresponding fas
 
 Classify nucleotides as methylated or not at genomic CpG cites (optimised nanopolish call-methylation). Note that the list below contains the options for both CPU-only and CPU-GPU versions of f5c.  Options related to the GPU (CUDA) do NOT apply to the CPU-only version.
 
-#### basic options
+#### basic options:
 
 * `-r FILE`:                     
   The file containing the base-called reads in FASTQ or FASTA format. Can be gzip compressed files.
@@ -116,41 +117,41 @@ Classify nucleotides as methylated or not at genomic CpG cites (optimised nanopo
 * `--cuda-max-epk FLOAT`:       
   Process the reads with events-per-kmer less than or equal to *cuda_max_epk* on GPU. The rest is processed on CPU [default value: 5.0]. Useful for tuning the CPU-GPU load balance for atypical datasets. Refer to [performance guidelines](https://hasindu2008.github.io/f5c/docs/f5c-perf-hints) for details.
 
-#### advanced options
+#### advanced options:
 
-* `--skip-ultra FILE`:    
+* `--skip-ultra FILE`:           
   Skip ultra-long reads and write those alignment entries to the bam file provided as the argument. Ultra-long reads refer to reads longer than 100 kbases by default, unless specified by --ultra-thresh option below. Useful for tuning the CPU-GPU load balance for datasets containing many ultra-long reads. Also useful to cap the peak RAM usage in systems with limited memory. After the execution, ultra-long reads cab be separately processed, i.e., f5c can be again invoked on the produced bam file as the input.  Refer to [performance guidelines](https://hasindu2008.github.io/f5c/docs/f5c-perf-hints) for details. 
-* `--ultra-thresh INT`:  
+* `--ultra-thresh INT`:         
   Threshold to skip ultra-long reads [default value: 100000]. This option is to be used in conjunction with  `--skip-ultra` above.
-* `--skip-unreadable=yes|no`:  
+* `--skip-unreadable=yes|no`:         
   Whether to skip any unreadable fast5 files or to terminate the program [default value: yes]. If `yes`, the programme will continue to run while skipping unreadable fast5 files. If `no`, the programme will terminate with an error when an unreadable fast5 file is found.
-* `--kmer-model FILE`:  
+* `--kmer-model FILE`:         
   Custom nucleotide 6-mer model file. The file should adhere to the format in [r9.4_450bps.nucleotide.6mer.template.model](https://github.com/hasindu2008/f5c/blob/master/test/r9-models/r9.4_450bps.nucleotide.6mer.template.model). 
-* `--meth-model FILE`:  
+* `--meth-model FILE`:         
   custom methylation 6-mer model file. The file should adhere to the format in [r9.4_450bps.cpg.6mer.template.model](https://github.com/hasindu2008/f5c/blob/master/test/r9-models/r9.4_450bps.cpg.6mer.template.model).
-* `--meth-out-version INT`:  
+* `--meth-out-version INT`:         
   Format version of the output Methylation tsv file. If set to 1, the columns printed adhere to the output format of Nanopolish early versions. If set to 2, adhere to the latest nanopolish output format that additionally includes the strand column and the header num_cpgs renamed to *num_motifs*) [default value: 1]
-* `--cuda-mem-frac FLOAT`:  
+* `--cuda-mem-frac FLOAT`:         
   Fraction of free GPU memory to allocate [default value: 0.9 for non-tegra GPUs and 0.7 for tegra GPUs]. On GPUs with dedicated RAM (e.g., GeForce, Tesla and Quadro) almost all available free GPU memory can be allocated. A slightly lower value such as 0.9 is preferred instead of 1.0 to prevent unexpected crashes. In GPUs with integrated memory shared with RAM (e.g., Tegra GPUs that are in Jetson boards), this value should be at most 0.7 to allow enough free RAM for both f5c and other programmes.
 
 
-#### developer options
+#### developer options:
 
-* `--print-events=yes|no`:  
+* `--print-events=yes|no`:         
   Print the event table (the output of the event detection step) to the standard out.
-* `--print-banded-aln=yes|no`:  
+* `--print-banded-aln=yes|no`:         
   Print the event alignment (the output of the adaptive banded event alignment step) to the standard out.
-* `--print-scaling=yes|no`:  
+* `--print-scaling=yes|no`:         
   Prints the estimated scaling values to the standard out.
-* `--print-raw=yes|no`:  
+* `--print-raw=yes|no`:         
   Prints the raw signal to the standard out.
-* `--debug-break INT`:  
+* `--debug-break INT`:         
   Terminate the programme after processing the specified batch number. E.g., If 0 is specified, the programme breaks after processing the 0th batch.
-* `--profile-cpu=yes|no`:  
+* `--profile-cpu=yes|no`:         
   Process section by section and separately print the time spent on different steps such as the event detection, ABEA and HMM. This option is used for profiling the workloads on the CPU. 
-* `--write-dump=yes|no`:  
+* `--write-dump=yes|no`:         
   Write the fast5 dump to a file or not. The file name is hardcoded to f5c.tmp.bin and will be written to the current working directory. The required raw signal data in the fast5 files subsequent processing will be serially written to *f5c.tmp.bin*.
-* `--read-dump=yes|no`:  
+* `--read-dump=yes|no`:         
   Read from a fast5 dump file or not. This is used to read from a dump file generated using `--write-dump` above. The raw signal data will be serially loaded from the dump file instead of the fast5 files.
          
 ### meth-freq
@@ -194,12 +195,11 @@ For each methylation calling output (.tsv) file, perform meth-freq separately (w
 
 Align nanopore events to reference k-mers (optimised nanopolish eventalign). Note that the list below contains the options for both CPU-only and CPU-GPU versions of f5c.  Options related to the GPU (CUDA) do NOT apply to the CPU-only version. As most
 
-#### basic options 
+#### basic options: 
 
-Same as those for call-methylation and thus not repeated here.
+	Same as those for call-methylation and thus not repeated here.
 
-#### advanced options 
-
+#### advanced options: 
 
 * `--skip-ultra FILE`:      
   Same as for call-methylation.
@@ -223,8 +223,9 @@ Same as those for call-methylation and thus not repeated here.
    Same as for call-methylation.
 
 
-#### developer options 
-Same as those for call-methylation and thus not repeated here.
+#### developer options:
+ 
+	Same as those for call-methylation and thus not repeated here.
 
 
 ## EXAMPLES
