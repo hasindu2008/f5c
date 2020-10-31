@@ -61,7 +61,9 @@ f5c meth-freq -i meth.tsv -s > meth-freq.tsv
 f5c meth-freq -i meth-ultra.tsv -s > meth-ultra-freq.tsv
 f5c freq-merge meth-freq.tsv meth-ultra-freq.tsv > meth-freq-combined.tsv
 ```
-  
+
+Scripts that implement the above example for two HPC environments are available in the repository:  a [Sun Grid Engine (SGE) script](https://github.com/hasindu2008/f5c/blob/master/scripts/pipelines/methcall-ultra-pipeline.sge.sh) and a 
+[Portable Batch System (PBS) script](https://github.com/hasindu2008/f5c/blob/master/scripts/pipelines/methcall-ultra-pipeline.pbs.sh).
 
 ## Methylation calling workflow for a dataset containing independent batches
 
