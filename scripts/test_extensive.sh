@@ -84,7 +84,7 @@ test_suit1 () {
 	scripts/test.sh -c 2> na12878_methcalling.log || die "failed"
 	echo "____________________________________________________________________"
 	echo "event alignment"
-	scripts/test_eventalign.sh -c 2> na12878_eventalign.log || echo "failed"
+	scripts/test_eventalign.sh -c 2> na12878_eventalign.log || die "failed"
 	#todo set this to die when the event align test script is fixed to accomodate missing entries
 	echo "____________________________________________________________________"
 	echo "methylation frequency"
@@ -128,7 +128,7 @@ test_suit1_cuda () {
 	scripts/test.sh -c 2> na12878_methcalling_cuda.log || die "failed"
 	echo "____________________________________________________________________"
 	echo "event alignment"
-	scripts/test_eventalign.sh -c 2> na12878_eventalign_cuda.log || echo "failed"
+	scripts/test_eventalign.sh -c 2> na12878_eventalign_cuda.log || die "failed"
 	#todo set this to die when the event align test script is fixed to accomodate missing entries
 	echo "____________________________________________________________________"
 	echo "methylation frequency"
