@@ -85,7 +85,6 @@ test_suit1 () {
 	echo "____________________________________________________________________"
 	echo "event alignment"
 	scripts/test_eventalign.sh -c 2> na12878_eventalign.log || die "failed"
-	#todo set this to die when the event align test script is fixed to accomodate missing entries
 	echo "____________________________________________________________________"
 	echo "methylation frequency"
 	scripts/test_methfreq.sh -c 2> na12878_methfreq.log || die "failed"
@@ -129,7 +128,6 @@ test_suit1_cuda () {
 	echo "____________________________________________________________________"
 	echo "event alignment"
 	scripts/test_eventalign.sh -c 2> na12878_eventalign_cuda.log || die "failed"
-	#todo set this to die when the event align test script is fixed to accomodate missing entries
 	echo "____________________________________________________________________"
 	echo "methylation frequency"
 	scripts/test_methfreq.sh -c 2> na12878_methfreq_cuda.log || die "failed"
@@ -213,12 +211,12 @@ test_suit2_cuda () {
 #these are redundant for cuda
 test_suit_eventalign_extra () {
 	echo "valgrind test"
-	scripts/test_eventalign.sh valgrind 2> valgrind_event_align.txt
+	scripts/test_eventalign.sh valgrind 2> valgrind_event_align.txt || die "failed"
 	echo ""
 	echo "____________________________________________________________________"
 
 	echo "Event align parameter tests"
-	scripts/test_eventalign_parameters.sh 2> event_align_parameters.txt
+	scripts/test_eventalign_parameters.sh 2> event_align_parameters.txt || die "failed"
 	echo ""
 	echo "____________________________________________________________________"
 
@@ -261,4 +259,5 @@ if ! [ "$mode" = "cpu" -o "$mode" = "gpu" -o "$mode" = "all" ]; then
 	exit 2;
 fi
 
+echo "all done"
 exit 0

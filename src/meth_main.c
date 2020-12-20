@@ -98,6 +98,7 @@ static struct option long_options[] = {
     {"meth-out-version",required_argument,0,0},    //38 specify the version of the tsv output for methylation (call-methylation only)
     {"profile",required_argument, 0,'x'},          //39 profile used to tune parameters for GPU
     {"meth-model",required_argument,0,0},          //40 custom methylation k-mer model file
+    {"signal-index", no_argument,0,0},             //41 write the raw signal start and end index values for the event to the tsv output (eventalign only)
     {0, 0, 0, 0}};
 
 
@@ -369,8 +370,8 @@ int meth_main(int argc, char* argv[], int8_t mode) {
                 exit(EXIT_FAILURE);
             }
             yes_or_no(&opt, F5C_PRINT_SAMPLES, longindex, "yes", 1);
-            ERROR ("%s","--samples not yet implemented. Submit a github request if you need this feature.");
-            exit(EXIT_FAILURE);
+            //ERROR ("%s","--samples not yet implemented. Submit a github request if you need this feature.");
+            //exit(EXIT_FAILURE);
         } else if (c == 0 && longindex == 38){ //specify the version of the tsv output for methylation (call-methylation only)
             opt.meth_out_version=atoi(optarg);
             if(mode!=0){
@@ -387,6 +388,12 @@ int meth_main(int argc, char* argv[], int8_t mode) {
                 exit(EXIT_FAILURE);
             }
             opt.meth_model_file = optarg;
+        } else if (c == 0 && longindex == 41){ //write the raw signal start and end index values for the event to the tsv output
+            if(mode!=1){
+                ERROR("%s","Option --signal-index is available only in eventalign");
+                exit(EXIT_FAILURE);
+            }
+            yes_or_no(&opt, F5C_PRINT_SIGNAL_INDEX, longindex, "yes", 1);
         }
 
     }
@@ -437,6 +444,8 @@ int meth_main(int argc, char* argv[], int8_t mode) {
         fprintf(fp_help,"   --print-read-names         print read names instead of indexes\n");
         fprintf(fp_help,"   --scale-events             scale events to the model, rather than vice-versa\n");
         fprintf(fp_help,"   --samples                  write the raw samples for the event to the tsv output\n");
+        fprintf(fp_help,"   --signal-index             write the raw signal start and end index values for the event to the tsv output\n");
+
     }
 #ifdef HAVE_CUDA
         fprintf(fp_help,"   --cuda-mem-frac FLOAT      Fraction of free GPU memory to allocate [0.9 (0.7 for tegra)]\n");
@@ -485,10 +494,11 @@ int meth_main(int argc, char* argv[], int8_t mode) {
         }
         int8_t print_read_names = (core->opt.flag & F5C_PRINT_RNAME) ? 1 : 0 ;
         int8_t write_samples = (core->opt.flag & F5C_PRINT_SAMPLES) ? 1 : 0 ;
+        int8_t write_signal_index = (core->opt.flag & F5C_PRINT_SIGNAL_INDEX) ? 1 : 0;
         int8_t sam_output =  (core->opt.flag & F5C_SAM) ? 1 : 0 ;
 
         if(sam_output==0){
-            emit_event_alignment_tsv_header(stdout, print_read_names, write_samples);
+            emit_event_alignment_tsv_header(stdout, print_read_names, write_samples, write_signal_index);
         }
         else{
             emit_sam_header(core->sam_output, core->m_hdr);

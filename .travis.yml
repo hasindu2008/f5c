@@ -34,7 +34,7 @@ jobs:
         homebrew:
           packages:
             - hdf5
-          update: true
+          update: false
       script: autoreconf && ./scripts/install-hts.sh && ./configure && make && make test
     - name: "OSX pure make"
       os: osx

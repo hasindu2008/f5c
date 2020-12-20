@@ -879,11 +879,12 @@ void output_db(core_t* core, db_t* db) {
                 int8_t print_read_names = (core->opt.flag & F5C_PRINT_RNAME) ? 1 : 0;
                 int8_t scale_events = (core->opt.flag & F5C_SCALE_EVENTS) ? 1 : 0;
                 int8_t write_samples = (core->opt.flag & F5C_PRINT_SAMPLES) ? 1 : 0;
+                int8_t write_signal_index = (core->opt.flag & F5C_PRINT_SIGNAL_INDEX) ? 1 : 0;
                 int8_t sam_output = (core->opt.flag & F5C_SAM) ? 1 : 0;
 
                 if(sam_output==0){
-                    emit_event_alignment_tsv(stdout,0,&(db->et[i]),core->model,db->scalings[i],*event_alignment_result, print_read_names, scale_events, write_samples,
-                              db->read_idx[i], qname, contig, db->f5[i]->sample_rate);
+                    emit_event_alignment_tsv(stdout,0,&(db->et[i]),core->model,db->scalings[i],*event_alignment_result, print_read_names, scale_events, write_samples, write_signal_index,
+                              db->read_idx[i], qname, contig, db->f5[i]->sample_rate, db->f5[i]->rawptr);
                 }
                 else{
                     emit_event_alignment_sam(core->sam_output , qname, core->m_hdr, db->bam_rec[i], *event_alignment_result);

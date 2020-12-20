@@ -16,8 +16,9 @@
 #include <string>
 
 #include <fstream>
-#include <string>
+#include <sstream>
 #include <iostream>
+#include <iterator>
 
 #include "f5c.h"
 #include "f5cmisc.h"
@@ -1656,12 +1657,16 @@ void emit_sam_header(samFile* fp, const bam_hdr_t* hdr)
 }
 
 
-void emit_event_alignment_tsv_header(FILE* fp, int8_t print_read_names, int8_t write_samples)
+void emit_event_alignment_tsv_header(FILE* fp, int8_t print_read_names, int8_t write_samples, int8_t write_signal_index)
 {
     fprintf(fp, "%s\t%s\t%s\t%s\t%s\t", "contig", "position", "reference_kmer",
             (print_read_names? "read_name" : "read_index"), "strand");
     fprintf(fp, "%s\t%s\t%s\t%s\t", "event_index", "event_level_mean", "event_stdv", "event_length");
     fprintf(fp, "%s\t%s\t%s\t%s", "model_kmer", "model_mean", "model_stdv", "standardized_level");
+
+    if(write_signal_index) {
+        fprintf(fp, "\t%s\t%s", "start_idx", "end_idx");
+    }
 
     if(write_samples) {
         fprintf(fp, "\t%s", "samples");
@@ -1834,36 +1839,45 @@ inline model_t get_scaled_gaussian_from_pore_model_state(const event_table* even
     return scaled_model;
 }
 
-//
-// std::vector<float> get_scaled_samples_for_event((const event_table* events,scalings_t scaling, uint32_t event_idx, float sample_rate) const
-// {
-//     double event_start_time = (events->event)[event_idx].start_time;
-//     double event_duration = (events->event)[event_idx].duration;
 
-//     size_t start_idx = this->get_sample_index_at_time(event_start_time * this->sample_rate);
-//     size_t end_idx = this->get_sample_index_at_time((event_start_time + event_duration) * this->sample_rate);
+std::vector<float> get_scaled_samples_for_event(const event_table* events,scalings_t scaling, uint32_t event_idx, float *samples)
+{
+    //double event_start_time = this->events[strand_idx][event_idx].start_time;
+    //double event_duration = this->events[strand_idx][event_idx].duration;
 
-//     std::vector<float> out;
-//     for(size_t i = start_idx; i < end_idx; ++i) {
-//         double curr_sample_time = (this->sample_start_time + i) / this->sample_rate;
-//         //fprintf(stderr, "event_start: %.5lf sample start: %.5lf curr: %.5lf rate: %.2lf\n", event_start_time, this->sample_start_time / this->sample_rate, curr_sample_time, this->sample_rate);
-//         double s = this->samples[i];
-//         // apply scaling corrections
-//         double scaled_s = s - this->scalings[strand_idx].shift;
-//         assert(curr_sample_time >= (this->sample_start_time / this->sample_rate));
-//         scaled_s -= (curr_sample_time - (this->sample_start_time / this->sample_rate)) * this->scalings[strand_idx].drift;
-//         scaled_s /= this->scalings[strand_idx].scale;
-//         out.push_back(scaled_s);
-//     }
-//     return out;
-// }
+    //size_t start_idx = this->get_sample_index_at_time(event_start_time * this->sample_rate);
+    //size_t end_idx = this->get_sample_index_at_time((event_start_time + event_duration) * this->sample_rate);
+    uint64_t start_idx = (events->event)[event_idx].start;
+    uint64_t end_idx = (events->event)[event_idx].start + (uint64_t)((events->event)[event_idx].length);
+    //assert(start_idx  < events->n && end_idx < events->n);
+    //fprintf(stderr, "start_idx: %ld end_idx: %ld\n", start_idx, end_idx);
+
+    std::vector<float> out;
+    for(uint64_t i = start_idx; i < end_idx; ++i) {
+        //double curr_sample_time = (this->sample_start_time + i) / this->sample_rate;
+        // fprintf(stderr, "event_start: %.5lf sample start: %.5lf curr: %.5lf rate: %.2lf\n", event_start_time, this->sample_start_time / this->sample_rate, curr_sample_time, this->sample_rate);
+        //fprintf(stderr, "start_idx: %ld end_idx: %ld curr: %ld\n", start_idx, end_idx, i);
+        //double s = this->samples[i];
+        double s = samples[i];
+        // apply scaling corrections
+        //double scaled_s = s - this->scalings[strand_idx].shift;
+        double scaled_s = s - scaling.shift;
+        //assert(curr_sample_time >= (this->sample_start_time / this->sample_rate));
+        //scaled_s -= (curr_sample_time - (this->sample_start_time / this->sample_rate)) * this->scalings[strand_idx].drift;
+        //scaled_s -= (i - start_idx) * scaling.drift; //drift is always 0
+        //scaled_s /= this->scalings[strand_idx].scale;
+        scaled_s /= scaling.scale;
+        out.push_back(scaled_s);
+    }
+    return out;
+}
 
 void emit_event_alignment_tsv(FILE* fp,
                               uint32_t strand_idx,
                               const event_table* et, model_t* model, scalings_t scalings,
                               const std::vector<event_alignment_t>& alignments,
-                              int8_t print_read_names, int8_t scale_events, int8_t write_samples,
-                              int64_t read_index, char* read_name, char *ref_name,float sample_rate)
+                              int8_t print_read_names, int8_t scale_events, int8_t write_samples, int8_t write_signal_index,
+                              int64_t read_index, char* read_name, char *ref_name,float sample_rate, float *rawptr)
 {
     //assert(params.alphabet == "");
     //const PoreModel* pore_model = params.get_model();
@@ -1929,17 +1943,22 @@ void emit_event_alignment_tsv(FILE* fp,
                                                model_stdv,
                                                standard_level);
 
-        if(write_samples) {
-            assert(0);
-            //todo : implement this
-            // std::vector<float> samples = get_scaled_samples_for_event(ea.strand_idx, ea.event_idx);
-            // std::stringstream sample_ss;
-            // std::copy(samples.begin(), samples.end(), std::ostream_iterator<float>(sample_ss, ","));
+        if(write_signal_index) {
+            uint64_t start_idx = (et->event)[ea.event_idx].start;
+            uint64_t end_idx = (et->event)[ea.event_idx].start + (uint64_t)((et->event)[ea.event_idx].length);
+            fprintf(fp, "\t%zu\t%zu", start_idx, end_idx);
+        }
 
-            // // remove training comma
-            // std::string sample_str = sample_ss.str();
-            // sample_str.resize(sample_str.size() - 1);
-            // fprintf(fp, "\t%s", sample_str.c_str());
+        if(write_samples) {
+            //std::vector<float> samples = get_scaled_samples_for_event(ea.strand_idx, ea.event_idx);
+            std::vector<float> samples = get_scaled_samples_for_event(et, scalings, ea.event_idx, rawptr);
+            std::stringstream sample_ss;
+            std::copy(samples.begin(), samples.end(), std::ostream_iterator<float>(sample_ss, ","));
+
+            // remove training comma
+            std::string sample_str = sample_ss.str();
+            sample_str.resize(sample_str.size() - 1);
+            fprintf(fp, "\t%s", sample_str.c_str());
         }
         fprintf(fp, "\n");
     }
