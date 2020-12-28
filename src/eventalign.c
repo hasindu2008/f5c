@@ -22,6 +22,7 @@
 
 #include "f5c.h"
 #include "f5cmisc.h"
+#include "str.h"
 
 /*
 Code is adapted from Nanopolish eventalign module
@@ -1882,6 +1883,11 @@ void emit_event_alignment_tsv(FILE* fp,
     //assert(params.alphabet == "");
     //const PoreModel* pore_model = params.get_model();
     //uint32_t k = pore_model->k;
+
+    kstring_t str;
+    kstring_t *sp = &str;
+    str_init(sp, sizeof(char)*alignments.size()*120);
+
     for(size_t i = 0; i < alignments.size(); ++i) {
 
         const event_alignment_t& ea = alignments[i];
@@ -1889,7 +1895,7 @@ void emit_event_alignment_tsv(FILE* fp,
         // basic information
         if (!print_read_names)
         {
-            fprintf(fp, "%s\t%d\t%s\t%ld\t%c\t",
+            sprintf_append(sp, "%s\t%d\t%s\t%ld\t%c\t",
                     ref_name, //ea.ref_name.c_str(),
                     ea.ref_position,
                     ea.ref_kmer,
@@ -1898,7 +1904,7 @@ void emit_event_alignment_tsv(FILE* fp,
         }
         else
         {
-            fprintf(fp, "%s\t%d\t%s\t%s\t%c\t",
+            sprintf_append(sp, "%s\t%d\t%s\t%s\t%c\t",
                     ref_name, //ea.ref_name.c_str(),
                     ea.ref_position,
                     ea.ref_kmer,
@@ -1937,8 +1943,8 @@ void emit_event_alignment_tsv(FILE* fp,
         }
 
         float standard_level = (event_mean - model_mean) / (sqrt(scalings.var) * model_stdv);
-        fprintf(fp, "%d\t%.2lf\t%.3lf\t%.5lf\t", ea.event_idx, event_mean, event_stdv, event_duration);
-        fprintf(fp, "%s\t%.2lf\t%.2lf\t%.2lf", ea.model_kmer,
+        sprintf_append(sp, "%d\t%.2lf\t%.3lf\t%.5lf\t", ea.event_idx, event_mean, event_stdv, event_duration);
+        sprintf_append(sp, "%s\t%.2lf\t%.2lf\t%.2lf", ea.model_kmer,
                                                model_mean,
                                                model_stdv,
                                                standard_level);
@@ -1946,7 +1952,7 @@ void emit_event_alignment_tsv(FILE* fp,
         if(write_signal_index) {
             uint64_t start_idx = (et->event)[ea.event_idx].start;
             uint64_t end_idx = (et->event)[ea.event_idx].start + (uint64_t)((et->event)[ea.event_idx].length);
-            fprintf(fp, "\t%zu\t%zu", start_idx, end_idx);
+            sprintf_append(sp, "\t%zu\t%zu", start_idx, end_idx);
         }
 
         if(write_samples) {
@@ -1958,10 +1964,14 @@ void emit_event_alignment_tsv(FILE* fp,
             // remove training comma
             std::string sample_str = sample_ss.str();
             sample_str.resize(sample_str.size() - 1);
-            fprintf(fp, "\t%s", sample_str.c_str());
+            sprintf_append(sp, "\t%s", sample_str.c_str());
         }
-        fprintf(fp, "\n");
+        sprintf_append(sp, "\n");
     }
+    uint64_t ret = fwrite(sp->s,sizeof(char),sp->l,fp);
+    assert(ret == sp->l);
+
+    str_free(sp);
 }
 
 
