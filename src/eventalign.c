@@ -1943,8 +1943,8 @@ void emit_event_alignment_tsv(FILE* fp,
         }
 
         float standard_level = (event_mean - model_mean) / (sqrt(scalings.var) * model_stdv);
-        sprintf_append(sp, "%d\t%.2lf\t%.3lf\t%.5lf\t", ea.event_idx, event_mean, event_stdv, event_duration);
-        sprintf_append(sp, "%s\t%.2lf\t%.2lf\t%.2lf", ea.model_kmer,
+        sprintf_append(sp, "%d\t%.2f\t%.3f\t%.5f\t", ea.event_idx, event_mean, event_stdv, event_duration);
+        sprintf_append(sp, "%s\t%.2f\t%.2f\t%.2f", ea.model_kmer,
                                                model_mean,
                                                model_stdv,
                                                standard_level);
@@ -1952,7 +1952,7 @@ void emit_event_alignment_tsv(FILE* fp,
         if(write_signal_index) {
             uint64_t start_idx = (et->event)[ea.event_idx].start;
             uint64_t end_idx = (et->event)[ea.event_idx].start + (uint64_t)((et->event)[ea.event_idx].length);
-            sprintf_append(sp, "\t%zu\t%zu", start_idx, end_idx);
+            sprintf_append(sp, "\t%lu\t%lu", start_idx, end_idx);
         }
 
         if(write_samples) {
