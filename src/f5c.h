@@ -397,6 +397,8 @@ typedef struct {
     double est_scale_time;
     double meth_time;
 
+    double output_time;
+
 
 #ifdef HAVE_CUDA
 

@@ -690,6 +690,7 @@ int meth_main(int argc, char* argv[], int8_t mode) {
                 __func__, core->meth_time);
 
     }
+    fprintf(stderr, "\n[%s] Data output time: %.3f sec", __func__,core->output_time);
 
     fprintf(stderr,"\n");
 

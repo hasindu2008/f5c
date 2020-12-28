@@ -135,6 +135,8 @@ core_t* init_core(const char* bamfilename, const char* fastafile,
     core->est_scale_time=0;
     core->meth_time=0;
 
+    core->output_time=0;
+
     //cuda stuff
 #ifdef HAVE_CUDA
     if (!(core->opt.flag & F5C_DISABLE_CUDA)) {
@@ -772,6 +774,9 @@ void process_db(core_t* core, db_t* db) {
 }
 
 void output_db(core_t* core, db_t* db) {
+
+    double output_start = realtime();
+
     if (core->opt.flag & F5C_PRINT_EVENTS) {
         int32_t i = 0;
         for (i = 0; i < db->n_bam_rec; i++) {
@@ -907,6 +912,8 @@ void output_db(core_t* core, db_t* db) {
         }
     }
     //core->read_index = core->read_index + db->n_bam_rec;
+    double output_end = realtime();
+    core->output_time += (output_end-output_start);
 
 }
 
