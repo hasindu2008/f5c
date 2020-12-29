@@ -1,4 +1,4 @@
-![#f03c15](https://placehold.it/15/f03c15/000000?text=+)  Various previous implementations (including inefficient ones) of ABEA for CUDA
+![#f03c15](https://placehold.it/15/f03c15/000000?text=+)  This branch contains various previous implementations (including inefficient ones) of ABEA for CUDA
 
 # f5c
 
