@@ -79,17 +79,16 @@ handle_tests2() {
 
 
 execute_test() {
-	echo "----------------comparing summaries---------------------------------------------"
+	echo "----------------comparing summaries-----------------"
 	tail -n +2 ${testdir}/eventalign.summary.exp | awk '{print $1"\t"$2"\t"$3"\tdna\t"$4"\t"$5"\t"$6"\t"$7"\t"$8"\t"$9"\t"$10"\t"$11"\t"$12"\t"$13}' > ${testdir}/nanopolish.summary.txt
 	tail -n +2 ${testdir}/f5c_event_align.summary.txt | awk '{print $1"\t"$2"\t"$3"\t"$4"\t"$5"\t"$6"\t"$7"\t"$8"\t"$9"\t"$10"\t"$11"\t"$12"\t"$13"\t"$14}' > ${testdir}/f5c.summary.txt
 	join ${testdir}/nanopolish.summary.txt ${testdir}/f5c.summary.txt > ${testdir}/joined_results.txt || echo "Join ran into an issue. Probably just a warning."
 	awk -f  scripts/test_eventalign_summary.awk ${testdir}/joined_results.txt > ${testdir}/joined_diff.txt || handle_tests "${file}"
 
-	echo "----------------summaries are good---------------------------------------------"
-	echo "----------------comparing full results-------------------------------------------"
 	if [ $testdir = test/chr22_meth_example ]; then
 		echo "event by event test not implemented not yet implemented!"
 	else
+		echo "----------------comparing full results--------------"
 		test -d ${testdir}_big_testresults || download_ecoli_2kb_region_big_testresults
 		tail -n +2 ${testdir}_big_testresults/eventalign.exp   > ${testdir}/nanopolish.txt
 		tail -n +2 ${testdir}/result.txt  > ${testdir}/f5c.txt
