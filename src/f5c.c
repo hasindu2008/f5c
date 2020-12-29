@@ -462,6 +462,12 @@ void event_single(core_t* core,db_t* db, int32_t i) {
     db->scalings[i] = estimate_scalings_using_mom(
         db->read[i], db->read_len[i], core->model, db->et[i]);
 
+
+    //allocate memory for the next alignment step
+    db->event_align_pairs[i] = (AlignedPair*)malloc(
+                sizeof(AlignedPair) * db->et[i].n * 2); //todo : find a good heuristic to save memory
+    MALLOC_CHK(db->event_align_pairs[i]);        
+
 }
 
 
@@ -536,11 +542,8 @@ void scaling_single(core_t* core, db_t* db, int32_t i){
 }
 
 /* align a single read specified by index i (perform ABEA for a single read) */
+//note that this is used in f5c.cu and thus modifications must be done with care
 void align_single(core_t* core, db_t* db, int32_t i) {
-
-    db->event_align_pairs[i] = (AlignedPair*)malloc(
-                sizeof(AlignedPair) * db->et[i].n * 2); //todo : find a good heuristic to save memory
-    MALLOC_CHK(db->event_align_pairs[i]);
 
     if ((db->et[i].n)/(float)(db->read_len[i]) < AVG_EVENTS_PER_KMER_MAX){
         db->n_event_align_pairs[i] = align(
