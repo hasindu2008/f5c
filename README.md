@@ -50,6 +50,8 @@ Building from the Github repository additionally requires `autoreconf` which can
 Other building options are detailed [here](https://hasindu2008.github.io/f5c/docs/building).
 Instructions to build a docker image and conda installation are detailed [here](https://hasindu2008.github.io/f5c/docs/misc-install).
 
+An SIMD accelerated version contributed by [@dkhyland](https://github.com/dkhyland) is available in the [*simd* branch](https://github.com/hasindu2008/f5c/tree/simd).
+
 ### NVIDIA CUDA support
 
 To build for the GPU, you need to have the CUDA toolkit installed. Make nvcc (NVIDIA C Compiler) is in your PATH.
