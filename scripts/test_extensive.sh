@@ -245,6 +245,7 @@ done
 shift $(($OPTIND - 1))
 mode=$1
 
+rm -rf *.log
 if [ "$mode" = "cpu" -o  "$mode" = "all" ]; then
 	test_suit1
 	test_suit2
