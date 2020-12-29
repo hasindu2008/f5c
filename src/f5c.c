@@ -287,13 +287,17 @@ db_t* init_db(core_t* core) {
 
         db->event_alignment_result = (std::vector<event_alignment_t> **)malloc(sizeof(std::vector<event_alignment_t> *) * db->capacity_bam_rec);
         MALLOC_CHK(db->event_alignment_result);
+
+        db->event_alignment_result_str = (char **)malloc(sizeof(char *) * db->capacity_bam_rec);
+        MALLOC_CHK(db->event_alignment_result_str);
+
         for (i = 0; i < db->capacity_bam_rec; ++i) {
             db->event_alignment_result[i] = new std::vector<event_alignment_t> ;
             NULL_CHK(db->event_alignment_result[i]);
             (db->eventalign_summary[i]).num_events=0; //done here in the same loop for efficiency
+            db->event_alignment_result_str[i] = NULL;
         }
-        db->event_alignment_result_str = (char **)malloc(sizeof(char *) * db->capacity_bam_rec);
-        MALLOC_CHK(db->event_alignment_result_str);
+
     }
     else{
         db->eventalign_summary = NULL;
@@ -846,6 +850,7 @@ void free_db_tmp(db_t* db) {
         }
         if(db->event_alignment_result_str){ //eventalign related
             free(db->event_alignment_result_str[i]);
+            db->event_alignment_result_str[i]=NULL;
         }
     }
 }
