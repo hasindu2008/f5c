@@ -1873,8 +1873,7 @@ std::vector<float> get_scaled_samples_for_event(const event_table* events,scalin
     return out;
 }
 
-void emit_event_alignment_tsv(FILE* fp,
-                              uint32_t strand_idx,
+char *emit_event_alignment_tsv(uint32_t strand_idx,
                               const event_table* et, model_t* model, scalings_t scalings,
                               const std::vector<event_alignment_t>& alignments,
                               int8_t print_read_names, int8_t scale_events, int8_t write_samples, int8_t write_signal_index,
@@ -1968,10 +1967,10 @@ void emit_event_alignment_tsv(FILE* fp,
         }
         sprintf_append(sp, "\n");
     }
-    uint64_t ret = fwrite(sp->s,sizeof(char),sp->l,fp);
-    assert(ret == sp->l);
 
-    str_free(sp);
+
+    //str_free(sp); //freeing is later done in free_db_tmp()
+    return sp->s;
 }
 
 

@@ -89,7 +89,7 @@ $(BUILD_DIR)/hmm.o: src/hmm.c src/f5c.h src/fast5lite.h src/f5cmisc.h src/matrix
 $(BUILD_DIR)/freq.o: src/freq.c src/khash.h
 	$(CXX) $(CFLAGS) $(CPPFLAGS) $(LANG) $< -c -o $@
 
-$(BUILD_DIR)/eventalign.o: src/eventalign.c
+$(BUILD_DIR)/eventalign.o: src/eventalign.c src/str.h src/f5c.h src/f5cmisc.h src/matrix.h
 	$(CXX) $(CFLAGS) $(CPPFLAGS) $(LANG) $< -c -o $@
 
 $(BUILD_DIR)/freq_merge.o: src/freq_merge.c

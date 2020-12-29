@@ -59,8 +59,7 @@ void calculate_methylation_for_read(std::map<int, ScoredSite>* site_score_map, c
                                     scalings_t scaling, model_t* cpgmodel,double events_per_base);
 
 /* event alignment */
-void emit_event_alignment_tsv(FILE* fp,
-                              uint32_t strand_idx,
+char *emit_event_alignment_tsv(uint32_t strand_idx,
                               const event_table* et, model_t* model, scalings_t scalings,
                               const std::vector<event_alignment_t>& alignments,
                               int8_t print_read_names, int8_t scale_events, int8_t write_samples, int8_t write_signal_index,

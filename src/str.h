@@ -61,10 +61,10 @@ static inline void sprintf_append(kstring_t *s, const char *fmt, ... ){
 	int len = vsnprintf(buffer,10000,fmt,ap);
 	va_end(ap);
 
-	// assert(len>=0);
-	// if(len>=10000){
-	// 	WARNING("Too long string got truncated: %s",buffer);
-	// }
+	assert(len>=0);
+	if(len>=10000){
+		WARNING("Too long string got truncated: %s",buffer);
+	}
 
 	str_cat(s,buffer,len);
 
