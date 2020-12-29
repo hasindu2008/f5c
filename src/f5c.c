@@ -990,7 +990,6 @@ void init_opt(opt_t* opt) {
     opt->flag |= F5C_DISABLE_CUDA;
     opt->batch_size_bases = 5*1000*1000;
 #endif
-    opt->flag |= F5C_DISABLE_SIMD; //by default simd is disabled by default
 
     opt->flag |= F5C_SKIP_UNREADABLE;
     opt->debug_break=-1;
