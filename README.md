@@ -1,5 +1,6 @@
 ![#f03c15](https://placehold.it/15/f03c15/000000?text=+)  *simd* branch: 
-- contains the SIMD implementation of Adaptive Banded Event Alignment by @dkhyland
+- contains the SIMD implementation of Adaptive Banded Event Alignment by [@dkhyland](https://github.com/dkhyland)
+- source code is at https://github.com/hasindu2008/f5c/blob/simd/src/align_simd.c
 - around 20% faster than the non-SIMD version
 - to compile on Intel: `make simd=1`
 - to compiler on ARMv7: `make simd=1 arm_neon=1`
