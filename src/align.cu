@@ -13,6 +13,8 @@
 //#define DEBUG_RECALIB_SCALING 1
 //#define DEBUG_ADAPTIVE 1
 
+//todo : performing __sync_threads inside the loops is not ideal. Works for today's CUDA architectures.
+// If kernels hang in a future CUDA architecture, this may be the culprit
 
 //todo : can make more efficient using bit encoding
 //todo : is inlining correct?

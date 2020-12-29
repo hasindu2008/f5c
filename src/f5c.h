@@ -309,6 +309,8 @@ typedef struct {
     //another extremely ugly hack till converted to C
     //TODO : convert this to a C array and get rid of include <vector>
     std::vector<event_alignment_t> **event_alignment_result;
+    char **event_alignment_result_str;
+
 
 } db_t;
 

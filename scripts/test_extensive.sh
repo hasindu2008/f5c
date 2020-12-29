@@ -58,7 +58,7 @@ test_suit1 () {
 
 	make clean
 	make -j8
-	echo "-----------------Doing ecoli based CPU tests-------------------------"
+	echo "***************Doing ecoli based CPU tests**************************"
 	echo "Methylation calling"
 	scripts/test.sh 2> ecoli_methcalling.log || die "failed"
 	echo "____________________________________________________________________"
@@ -73,13 +73,16 @@ test_suit1 () {
 	echo "____________________________________________________________________"
 	echo "index"
 	scripts/test_index.sh 2> ecoli_index.log || die "failed"
-	echo ""
+	echo "____________________________________________________________________"
+	echo "valgrind methcall"
+	scripts/test.sh valgrind 2> valgrind_methcall.log || die "failed"
+
 
 	echo ""
-	echo "--------------------------------------------------------------------"
+	echo "********************************************************************"
 	echo ""
 
-	echo "----------------Doing NA12878 based CPU tests-----------------------"
+	echo "***************Doing NA12878 based CPU tests************************"
 	echo "Methylation calling"
 	scripts/test.sh -c 2> na12878_methcalling.log || die "failed"
 	echo "____________________________________________________________________"
@@ -96,6 +99,9 @@ test_suit1 () {
 	scripts/test_index.sh -c 2> na12878_index.log || die "failed"
 	echo ""
 
+	echo ""
+	echo "*********************************************************************"
+	echo ""
 }
 
 
@@ -104,7 +110,7 @@ test_suit1_cuda () {
 	make clean
 	make cuda=1 -j8
 
-	echo "---------------Doing ecoli based CUDA tests-------------------------"
+	echo "***************Doing ecoli based CUDA tests*************************"
 	echo "Methylation calling"
 	scripts/test.sh 2> ecoli_methcalling_cuda.log || die "failed"
 	echo "____________________________________________________________________"
@@ -119,10 +125,10 @@ test_suit1_cuda () {
 	echo "____________________________________________________________________"
 
 	echo ""
-	echo "--------------------------------------------------------------------"
+	echo "*********************************************************************"
 	echo ""
 
-	echo "---------------Doing NA12878 based CUDA tests-----------------------"
+	echo "***************Doing NA12878 based CUDA tests************************"
 	echo "Methylation calling"
 	scripts/test.sh -c 2> na12878_methcalling_cuda.log || die "failed"
 	echo "____________________________________________________________________"
@@ -136,12 +142,16 @@ test_suit1_cuda () {
 	scripts/test_multifast5.sh -c 2> na12878_multifast5_cuda.log || die "failed"
 	echo "____________________________________________________________________"
 
+	echo ""
+	echo "*********************************************************************"
+	echo ""
+
 }
 
 
 test_suit2 () {
 
-	echo "---------------Doing NA12878 based CPU tests part 2-----------------------"
+	echo "***************Doing NA12878 based CPU tests part 2******************"
 	echo "Default test"
 	make clean && make
 	"${exepath}" call-methylation -b "${bamfile}" -g "${ref}" -r "${reads}" -t "${NCPU}"  -K1024 -v5 > ${testdir}/result.txt 2> default.log
@@ -179,11 +189,14 @@ test_suit2 () {
 	echo ""
 	echo "____________________________________________________________________"
 
+	echo ""
+	echo "*********************************************************************"
+	echo ""
 }
 
 test_suit2_cuda () {
 
-	echo "---------------Doing NA12878 based CUDA tests part 2 -----------------------"
+	echo "*****************Doing NA12878 based CUDA tests part 2**************"
 	echo "CUDA test"
 	make clean && make cuda=1
 	"${exepath}" call-methylation -b "${bamfile}" -g "${ref}" -r "${reads}" -t "${NCPU}"  -K256 -v5 > ${testdir}/result.txt 2> default_cuda.log
@@ -206,10 +219,15 @@ test_suit2_cuda () {
 	echo ""
 	echo "____________________________________________________________________"
 
+	echo ""
+	echo "*********************************************************************"
+	echo ""
 }
 
 #these are redundant for cuda
 test_suit_eventalign_extra () {
+
+	echo "************************event align extra tests**********************"
 	echo "valgrind test"
 	scripts/test_eventalign.sh valgrind 2> valgrind_event_align.txt || die "failed"
 	echo ""
@@ -220,6 +238,9 @@ test_suit_eventalign_extra () {
 	echo ""
 	echo "____________________________________________________________________"
 
+	echo ""
+	echo "*********************************************************************"
+	echo ""
 }
 
 
@@ -245,6 +266,7 @@ done
 shift $(($OPTIND - 1))
 mode=$1
 
+rm -rf *.log
 if [ "$mode" = "cpu" -o  "$mode" = "all" ]; then
 	test_suit1
 	test_suit2
