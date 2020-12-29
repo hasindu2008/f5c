@@ -1,4 +1,4 @@
-![#f03c15](https://placehold.it/15/f03c15/000000?text=+)  This branch contains various previous implementations (including inefficient ones) of ABEA for CUDA
+![#f03c15](https://placehold.it/15/f03c15/000000?text=+)  *cuda_test_implementations_phase1* branch: contains various previous implementations (including inefficient ones) of Adaptive Banded Event Alignment for CUDA
 
 # f5c
 
