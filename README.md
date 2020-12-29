@@ -1,3 +1,11 @@
+![#f03c15](https://placehold.it/15/f03c15/000000?text=+)  *simd* branch: 
+- contains the SIMD implementation of Adaptive Banded Event Alignment by @dkhyland
+- around 20% faster than the non-SIMD version
+- to compile on Intel: `make simd=1`
+- to compiler on ARMv7: `make simd=1 arm_neon=1`
+- to compile on ARMv8: `make simd=1 arm_neon=1 aarch64=1` 
+- if compiled as above, SIMD ABEA is enabled by default. Invoke *f5c* with `--disable-simd=yes` to execute using the non-SIMD version
+
 # f5c
 
 An optimised re-implementation of the *call-methylation* and *eventalign* modules in [Nanopolish](https://github.com/jts/nanopolish). Given a set of basecalled Nanopore reads and the raw signals, *f5c call-methylation* detects the methylated cytosine and *f5c eventalign* aligns raw nanopore DNA signals (events) to the base-called read. *f5c* can optionally utilise NVIDIA graphics cards for acceleration.
