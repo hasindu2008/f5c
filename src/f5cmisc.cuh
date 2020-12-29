@@ -10,11 +10,11 @@
 
 #include <stdint.h>
 
-#define CUDA_DEBUG 1 //whether perform CUDA_device_synchronise or not
-#define CUDA_PRE_MALLOC 1 //whether static cuda/cpu arrays are preallocated
-#define CPU_GPU_PROC 1 //CUDA_PRE_MALLOC should be always 1 if this is set
-//#define CUDA_DYNAMIC_MALLOC 1 //only effective with CPU_GPU_PROC (whether big dynamic loops are statically preallocated)
-#define WARP_HACK 1 //whether the kernels are  performed in 1D with a warp hack (effective only  if specific TWODIM_ALIGN is not defined)
+#define CUDA_DEBUG 1 // if defined, perform CUDA_device_synchronise
+#define CUDA_PRE_MALLOC 1 //if defined, static cuda/cpu arrays (model and arrays dependent on K) are preallocated
+#define CPU_GPU_PROC 1 //if defined, performs CPU-GPU heteregeneous processing. note: CUDA_PRE_MALLOC should be always 1 if this is defined
+//#define CUDA_DYNAMIC_MALLOC 1 //if defined, big dynamic arrays (arrays that sizes are determined at the runtime such as bands array) are preallocated. note: only effective if CPU_GPU_PROC is defined
+#define WARP_HACK 1 //if defined, the kernels are performed in 1D with a warp hack (effective only if specific TWODIM_ALIGN is not defined)
 
 /* align-core-kernel options */
 #define BLOCK_LEN_READS 1 //the block size along y axis (the number of reads) - never change this as you might end up with wrong answers
