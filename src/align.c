@@ -181,7 +181,7 @@ int32_t align(AlignedPair* out_2, char* sequence, int32_t sequence_len,
     //fprintf(stderr, "Scaling %f %f", scaling.scale, scaling.shift);
 
     size_t strand_idx = 0;
-    size_t k = 6;
+    size_t k = kmer_size;
 
     // size_t n_events = events[strand_idx].n;
     size_t n_events = events.n;
@@ -290,7 +290,7 @@ int32_t align(AlignedPair* out_2, char* sequence, int32_t sequence_len,
     int fills = 0;
 #ifdef DEBUG_ADAPTIVE
     fprintf(stderr, "[trim] bi: %d o: %d e: %d k: %d s: %.2lf\n", 1,
-            first_trim_offset, 0, -1, bands[1][first_trim_offset]);
+            first_trim_offset, 0, -1, bands(1,first_trim_offset));
 #endif
 
     // fill in remaining bands
