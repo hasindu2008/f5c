@@ -250,7 +250,7 @@ test_suit_compile_extra () {
 	echo "CUDA test : GPU only"
 	sed -i  's/\#define CPU\_GPU\_PROC.*//' src/f5cmisc.cuh
 	make clean && make cuda=1
-	scripts/test.sh -K10 2> compile_gpu_only.txt
+	scripts/test.sh -K10 2> compile_gpu_only.log
 	git checkout src/f5cmisc.cuh
 	echo ""
 	echo "____________________________________________________________________"
@@ -258,7 +258,7 @@ test_suit_compile_extra () {
 	echo "CUDA test : WARP HACK disabled"
 	sed -i  's/\#define WARP\_HACK.*//' src/f5cmisc.cuh
 	make clean && make cuda=1
-	scripts/test.sh 2> compile_warphack_disabled.txt
+	scripts/test.sh 2> compile_warphack_disabled.log
 	git checkout src/f5cmisc.cuh
 	echo ""
 	echo "____________________________________________________________________"
@@ -266,7 +266,7 @@ test_suit_compile_extra () {
 	echo "CUDA test : PRE MALLOC disabled"
 	sed -i  's/\#define CUDA\_PRE\_MALLOC.*//' src/f5cmisc.cuh
 	make clean && CUDA_CFLAGS+="-DCUDA_DYNAMIC_MALLOC=1" make cuda=1
-	scripts/test.sh 2> compile_premalloc_disabled.txt
+	scripts/test.sh 2> compile_premalloc_disabled.log
 	git checkout src/f5cmisc.cuh
 	echo ""
 	echo "____________________________________________________________________"
