@@ -58,8 +58,6 @@ void init_cuda(core_t* core){
     core->previous_load = -1;
     core->previous_count_load = 0;
 
-#ifdef CUDA_PRE_MALLOC
-
     int32_t n_bam_rec = core->opt.batch_size;
     //cpu arrays
     core->cuda->read_ptr_host = (ptr_t*)malloc(sizeof(ptr_t) * n_bam_rec);
@@ -103,7 +101,7 @@ void init_cuda(core_t* core){
     cudaMalloc((void**)&(core->cuda->n_event_align_pairs), n_bam_rec * sizeof(int32_t));
     CUDA_CHK();
 
-    //model : already linear //move to cuda_init
+    //model
     cudaMemcpy(core->cuda->model, core->model, MAX_NUM_KMER * sizeof(model_t),
     cudaMemcpyHostToDevice);
     CUDA_CHK();
@@ -197,9 +195,6 @@ void init_cuda(core_t* core){
         core->cuda->max_sum_read_len/(1000.0*1000.0), core->opt.batch_size_bases/((1000.0*1000.0)));
     }
 
-
-#endif
-
 #endif
 
     return;
@@ -207,7 +202,6 @@ void init_cuda(core_t* core){
 
 void free_cuda(core_t* core){
 
-#ifdef CUDA_PRE_MALLOC
     free(core->cuda->event_ptr_host);
     free(core->cuda->n_events_host);
     free(core->cuda->read_ptr_host);
@@ -232,7 +226,7 @@ void free_cuda(core_t* core){
     cudaFree(core->cuda->trace);
     cudaFree(core->cuda->band_lower_left);
 #endif
-#endif
+
 
     free(core->cuda);
     return;

@@ -264,10 +264,10 @@ test_suit_compile_extra () {
 	echo "____________________________________________________________________"
 
 	echo "CUDA test : PRE MALLOC disabled"
-	sed -i  's/\#define CUDA\_PRE\_MALLOC.*//' src/f5cmisc.cuh
+	sed -i  's/\#define CUDA\_PRE\_MALLOC.*//' src/f5c_gpuonly.cu
 	make clean && CUDA_CFLAGS+="-DCUDA_DYNAMIC_MALLOC=1" make cuda=1
 	scripts/test.sh 2> compile_premalloc_disabled.log
-	git checkout src/f5cmisc.cuh
+	git checkout src/f5c_gpuonly.cu
 	echo ""
 	echo "____________________________________________________________________"
 

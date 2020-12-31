@@ -19,9 +19,11 @@
 #include "f5cmisc.h"
 
 
-
-
 #ifndef CPU_GPU_PROC
+
+/* if defined, static cuda/cpu arrays (model and arrays dependent on K)
+   are preallocated at the beginning of the program, rather than repeatedly doing so inside a loop */
+#define CUDA_PRE_MALLOC 1
 
 void align_cuda(core_t* core, db_t* db) {
     int32_t i;
