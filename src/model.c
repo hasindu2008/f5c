@@ -123,11 +123,11 @@ uint32_t read_model(model_t* model, const char* file, uint32_t type) {
     }
 
 #ifdef DEBUG_MODEL_PRINT
-    i = 0;
+    uint32_t i = 0;
     fprintf(stderr, "level_mean\tlevel_stdv\tsd_mean\tsd_stdv\n");
     for (i = 0; i < num_kmer; i++) {
         fprintf(stderr, "%f\t%f\t%f\t%f\n", model[i].level_mean,
-                model[i].level_stdv, model[i].sd_mean, model[i].sd_stdv);
+                model[i].level_stdv, 0.0,0.0);
     }
 #endif
 
@@ -178,7 +178,7 @@ uint32_t set_model(model_t* model, uint32_t model_id) {
     fprintf(stderr, "level_mean\tlevel_stdv\tsd_mean\tsd_stdv\n");
     for (i = 0; i < num_kmer; i++) {
         fprintf(stderr, "%f\t%f\t%f\t%f\n", model[i].level_mean,
-                model[i].level_stdv, model[i].sd_mean, model[i].sd_stdv);
+                model[i].level_stdv, 0.0, 0.0);
     }
 #endif
 

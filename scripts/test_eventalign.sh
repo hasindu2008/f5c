@@ -101,7 +101,7 @@ execute_test() {
 }
 
 mode_test() {
-	cmd="${exepath} eventalign -b ${bamfile} -g ${ref} -r ${reads} -t ${threads} -K $batchsize -B $max_bases"
+	cmd="${exepath} eventalign -b ${bamfile} -g ${ref} -r ${reads} -t ${threads} -K $batchsize -B $max_bases --summary ${testdir}/f5c_event_align.summary.txt "
 	case $1 in
 		valgrind) valgrind --leak-check=full --error-exitcode=1 $cmd > /dev/null || die "valgrind failed" ;;
 		gdb) gdb --args "$cmd";;
@@ -172,7 +172,7 @@ if [ -z "$mode" ]; then
 	else
 		#test -e ${testdir}/f5c_event_align.summary.txt && rm ${testdir}/f5c_event_align.summary.txt
 		${exepath} index -d ${testdir}/fast5_files ${testdir}/reads.fasta
-		${exepath} eventalign -b ${bamfile} -g ${ref} -r ${reads} --secondary=yes --min-mapq=0 -B "$max_bases" --summary ${testdir}/f5c_event_align.summary.txt> ${testdir}/result.txt
+		${exepath} eventalign -b ${bamfile} -g ${ref} -r ${reads} --secondary=yes --min-mapq=0 -B "$max_bases" --summary ${testdir}/f5c_event_align.summary.txt > ${testdir}/result.txt
 	fi
 		execute_test
 else
