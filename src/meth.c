@@ -129,7 +129,7 @@ inline int32_t flip_k_strand(int32_t read_length,int32_t k_idx, uint32_t k)
     return read_length - k_idx - k;
 }
 
-int32_t get_event_alignment_record(const bam1_t* record,int32_t read_length, index_pair_t* base_to_event_map, AlignedPair **aligned_events_ptr)
+int32_t get_event_alignment_record(const bam1_t* record,int32_t read_length, index_pair_t* base_to_event_map, AlignedPair **aligned_events_ptr, uint32_t kmer_size)
 {
 
     uint8_t rc = bam_is_rev(record);
@@ -148,7 +148,7 @@ int32_t get_event_alignment_record(const bam1_t* record,int32_t read_length, ind
 
     int32_t aligned_events_size = 0;
     //this->sr = sr;
-    int32_t k = KMER_SIZE;
+    int32_t k = kmer_size;
     //size_t read_length = this->sr->read_sequence.length();
 
     for(int32_t i = 0; i < segments_size; ++i) {
@@ -163,7 +163,7 @@ int32_t get_event_alignment_record(const bam1_t* record,int32_t read_length, ind
 
         int32_t kmer_pos_ref_strand = seq_record[i].read_pos;
         int32_t kmer_pos_read_strand = rc ? flip_k_strand(read_length,kmer_pos_ref_strand, k) : kmer_pos_ref_strand;
-        int32_t event_idx = get_closest_event_to(kmer_pos_read_strand, base_to_event_map, read_length-KMER_SIZE + 1);
+        int32_t event_idx = get_closest_event_to(kmer_pos_read_strand, base_to_event_map, read_length-k + 1);
         AlignedPair p = {
             .ref_pos = seq_record[i].ref_pos,
 	    .read_pos = (int)event_idx
@@ -507,7 +507,7 @@ bool find_by_ref_bounds(const AlignedPair *pairs, size_t pairs_size, int ref_sta
 
 // Test CpG sites in this read for methylation
 void calculate_methylation_for_read(std::map<int, ScoredSite>* site_score_map, char* ref, bam1_t* record, int32_t read_length, event_t* event, index_pair_t* base_to_event_map,
-scalings_t scaling, model_t* cpgmodel,double events_per_base) {
+scalings_t scaling, model_t* cpgmodel, uint32_t kmer_size, double events_per_base) {
 
 
     //todo : have to check this, if required have to implement
@@ -516,7 +516,7 @@ scalings_t scaling, model_t* cpgmodel,double events_per_base) {
     // }
 
     //size_t k = sr.get_model_k(strand_idx);
-    uint32_t k = KMER_SIZE;
+    uint32_t k = kmer_size;
 
     //todo : this is required in a generic version of the tool
     // // check if there is a cpg model for this strand
@@ -590,7 +590,7 @@ scalings_t scaling, model_t* cpgmodel,double events_per_base) {
 
         // Build the event-to-reference map for this read from the bam record
         AlignedPair *event_align_record = NULL;
-        int32_t event_align_record_size = get_event_alignment_record(record, read_length, base_to_event_map, &event_align_record);
+        int32_t event_align_record_size = get_event_alignment_record(record, read_length, base_to_event_map, &event_align_record, kmer_size);
 
         // using the reference-to-event map, look up the event indices for this segment
         int e1, e2;
@@ -622,14 +622,14 @@ scalings_t scaling, model_t* cpgmodel,double events_per_base) {
         const char* m_seq = subseq.c_str();
         const char* m_rc_seq = rc_subseq.c_str();
 
-        double unmethylated_score=profile_hmm_score(m_seq,m_rc_seq, event, scaling, cpgmodel, event_start_idx, event_stop_idx,
+        double unmethylated_score=profile_hmm_score(m_seq,m_rc_seq, event, scaling, cpgmodel, kmer_size, event_start_idx, event_stop_idx,
         strand,event_stride,rc,events_per_base,hmm_flags);
 
         // Methylate all CpGs in the sequence and score again
         std::string mcpg_subseq = methylate(subseq);
         std::string rc_mcpg_subseq = reverse_complement_meth(mcpg_subseq);
 
-        double methylated_score=profile_hmm_score(mcpg_subseq.c_str(),rc_mcpg_subseq.c_str(), event, scaling, cpgmodel, event_start_idx, event_stop_idx,
+        double methylated_score=profile_hmm_score(mcpg_subseq.c_str(),rc_mcpg_subseq.c_str(), event, scaling, cpgmodel, kmer_size, event_start_idx, event_stop_idx,
         strand,event_stride,rc,events_per_base,hmm_flags);
         //fprintf(stderr,"meth score %f\n",methylated_score);
 

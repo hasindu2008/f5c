@@ -44,23 +44,23 @@ void set_cpgmodel(model_t* model);
 event_table getevents(size_t nsample, float* rawptr);
 
 /* alignment related */
-scalings_t estimate_scalings_using_mom(char* sequence, int32_t sequence_len, model_t* pore_model, event_table et);
+scalings_t estimate_scalings_using_mom(char* sequence, int32_t sequence_len, model_t* pore_model, uint32_t kmer_size, event_table et);
 int32_t align(AlignedPair* out_2, char* sequence, int32_t sequence_len,
-              event_table events, model_t* models, scalings_t scaling,
+              event_table events, model_t* models, uint32_t kmer_size, scalings_t scaling,
               float sample_rate);
 int32_t postalign(event_alignment_t* alignment, index_pair_t* base_to_event_map, double* events_per_base,
-                  char* sequence, int32_t n_kmers, AlignedPair* event_alignment, int32_t n_events);
-bool recalibrate_model(model_t* pore_model, event_table et, scalings_t* scallings,
+                  char* sequence, int32_t n_kmers, AlignedPair* event_alignment, int32_t n_events, uint32_t kmer_size);
+bool recalibrate_model(model_t* pore_model, uint32_t kmer_size, event_table et, scalings_t* scallings,
                        const event_alignment_t* alignment_output, int32_t num_alignments, bool scale_var);
 
 /* methylation call */
 void calculate_methylation_for_read(std::map<int, ScoredSite>* site_score_map, char* ref, bam1_t* record,
                                     int32_t read_length, event_t* event, index_pair_t* base_to_event_map,
-                                    scalings_t scaling, model_t* cpgmodel,double events_per_base);
+                                    scalings_t scaling, model_t* cpgmodel, uint32_t kmer_size, double events_per_base);
 
 /* event alignment */
 char *emit_event_alignment_tsv(uint32_t strand_idx,
-                              const event_table* et, model_t* model, scalings_t scalings,
+                              const event_table* et, model_t* model, uint32_t kmer_size,  scalings_t scalings,
                               const std::vector<event_alignment_t>& alignments,
                               int8_t print_read_names, int8_t scale_events, int8_t write_samples, int8_t write_signal_index,
                               int64_t read_index, char* read_name, char *ref_name, float sample_rate, float *samples);
@@ -71,20 +71,20 @@ void emit_event_alignment_sam(htsFile* fp, char* read_name, bam_hdr_t* base_hdr,
 void realign_read(std::vector<event_alignment_t>* event_alignment_result, EventalignSummary *summary, FILE *summary_fp,char* ref,
                   const bam_hdr_t* hdr, const bam1_t* record, int32_t read_length,
                   size_t read_idx, int region_start, int region_end,
-                  event_table* events, model_t* model,index_pair_t* base_to_event_map,
+                  event_table* events, model_t* model, uint32_t kmer_size, index_pair_t* base_to_event_map,
                   scalings_t scaling,double events_per_base, float sample_rate);
 
 
 /* hmm */
 float profile_hmm_score(const char *m_seq,const char *m_rc_seq, event_t* event, scalings_t scaling,
-                        model_t* cpgmodel, uint32_t event_start_idx,
+                        model_t* cpgmodel, uint32_t kmer_size, uint32_t event_start_idx,
                         uint32_t event_stop_idx, uint8_t strand, int8_t event_stride,
                         uint8_t rc,double events_per_base,uint32_t hmm_flags);
 float profile_hmm_score_r9(const char *m_seq,
                             const char *m_rc_seq,
                             event_t* event,
                             scalings_t scaling,
-                            model_t* cpgmodel,
+                            model_t* cpgmodel, uint32_t kmer_size,
                             uint32_t event_start_idx,
                             uint32_t event_stop_idx,
                             uint8_t strand,

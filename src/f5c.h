@@ -23,9 +23,9 @@
  * major hard coded parameters *
  *******************************/
 
-#define KMER_SIZE 6 //hard coded for now; todo : change to dynamic?
-#define NUM_KMER 4096   //num k-mers for 6-mers DNA
-#define NUM_KMER_METH 15625 //number k-mers for 6-mers with methylated C
+#define MAX_KMER_SIZE 6 //hard coded for now; todo : change to dynamic?
+#define MAX_NUM_KMER 4096   //num k-mers for 6-mers DNA
+#define MAX_NUM_KMER_METH 15625 //number k-mers for 6-mers with methylated C
 //#define HAVE_CUDA 1 //if compiled for CUDA or not
 #define ALN_BANDWIDTH 100 // the band size in adaptive_banded_dynamic_alignment
 
@@ -185,7 +185,7 @@ typedef struct {
 typedef struct {
     // ref data
     //char* ref_name;
-    char ref_kmer[KMER_SIZE + 1];
+    char ref_kmer[MAX_KMER_SIZE + 1];
     int32_t ref_position;
 
     // event data
@@ -195,7 +195,7 @@ typedef struct {
     bool rc;
 
     // hmm data
-    char model_kmer[KMER_SIZE + 1];
+    char model_kmer[MAX_KMER_SIZE + 1];
     char hmm_state;
 } event_alignment_t;
 
@@ -351,6 +351,7 @@ typedef struct {
 
 /* core data structure (mostly static data throughout the program lifetime) */
 typedef struct {
+
     // bam file related
     htsFile* m_bam_fh;
     hts_idx_t* m_bam_idx;
@@ -375,7 +376,8 @@ typedef struct {
 
     // models
     model_t* model; //dna model
-    model_t* cpgmodel;
+    model_t* cpgmodel; //cpg model
+    uint32_t kmer_size;
 
     // options
     opt_t opt;
