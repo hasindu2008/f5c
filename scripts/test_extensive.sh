@@ -243,6 +243,38 @@ test_suit_eventalign_extra () {
 	echo ""
 }
 
+test_suit_compile_extra () {
+
+	echo "**************************CUDA extra compilation tests**************"
+
+	echo "CUDA test : GPU only"
+	sed -i  's/\#define CPU\_GPU\_PROC.*//' src/f5cmisc.cuh
+	make clean && make cuda=1
+	scripts/test.sh -K10 2> compile_gpu_only.txt
+	git checkout src/f5cmisc.cuh
+	echo ""
+	echo "____________________________________________________________________"
+
+	echo "CUDA test : WARP HACK disabled"
+	sed -i  's/\#define WARP\_HACK.*//' src/f5cmisc.cuh
+	make clean && make cuda=1
+	scripts/test.sh 2> compile_warphack_disabled.txt
+	git checkout src/f5cmisc.cuh
+	echo ""
+	echo "____________________________________________________________________"
+
+	echo "CUDA test : PRE MALLOC disabled"
+	sed -i  's/\#define CUDA\_PRE\_MALLOC.*//' src/f5cmisc.cuh
+	make clean && CUDA_CFLAGS+="-DCUDA_DYNAMIC_MALLOC=1" make cuda=1
+	scripts/test.sh 2> compile_premalloc_disabled.txt
+	git checkout src/f5cmisc.cuh
+	echo ""
+	echo "____________________________________________________________________"
+
+	echo ""
+	echo "*********************************************************************"
+	echo ""
+}
 
 help_msg() {
 	echo "Extensive test script for f5c."
@@ -275,6 +307,7 @@ fi
 if [ "$mode" = "gpu" -o  "$mode" = "all" ]; then
 	test_suit1_cuda
 	test_suit2_cuda
+	test_suit_compile_extra
 fi
 if ! [ "$mode" = "cpu" -o "$mode" = "gpu" -o "$mode" = "all" ]; then
 	help_msg

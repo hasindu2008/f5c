@@ -663,10 +663,10 @@ int meth_main(int argc, char* argv[], int8_t mode) {
             if (!(core->opt.flag & F5C_DISABLE_CUDA)) {
                 fprintf(stderr, "\n[%s]           -cpu preprocess time: %.3f sec",
                     __func__, core->align_cuda_preprocess);
-            #ifdef CUDA_DYNAMIC_MALLOC
+                if(core->align_cuda_malloc>0){
                 fprintf(stderr, "\n[%s]           -cuda malloc time: %.3f sec",
                     __func__, core->align_cuda_malloc);
-            #endif
+                }
                 fprintf(stderr, "\n[%s]           -cuda data transfer time: %.3f sec",
                     __func__, core->align_cuda_memcpy);
                 fprintf(stderr, "\n[%s]           -cuda kernel time: %.3f sec",
