@@ -23,9 +23,9 @@
  * major hard coded parameters *
  *******************************/
 
-#define MAX_KMER_SIZE 6 //hard coded for now; todo : change to dynamic?
-#define MAX_NUM_KMER 4096   //num k-mers for 6-mers DNA
-#define MAX_NUM_KMER_METH 15625 //number k-mers for 6-mers with methylated C
+#define MAX_KMER_SIZE 6 //maximum k-mer size
+#define MAX_NUM_KMER 4096   //maximum number of k-mers in nucleotide model
+#define MAX_NUM_KMER_METH 15625 //maximum number of k-mers in methylated model
 //#define HAVE_CUDA 1 //if compiled for CUDA or not
 #define ALN_BANDWIDTH 100 // the band size in adaptive_banded_dynamic_alignment
 

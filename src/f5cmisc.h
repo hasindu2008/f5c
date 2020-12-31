@@ -17,6 +17,16 @@
 #define MAX_EVENT_TO_BP_RATIO 20
 #define AVG_EVENTS_PER_KMER_MAX 15.0f //if average events per base of a read >AVG_EVENTS_PER_KMER_MAX do not process
 
+//model types
+#define MODEL_TYPE_NUCLEOTIDE 1
+#define MODEL_TYPE_METH 2
+
+//default model IDs
+#define MODEL_ID_DNA_NUCLEOTIDE 1
+#define MODEL_ID_DNA_CPG 2
+#define MODEL_ID_RNA_NUCLEOTIDE 3
+
+
 // Flags to modify the behaviour of the HMM
 enum HMMAlignmentFlags
 {
@@ -36,9 +46,8 @@ ret_status_t load_db1(core_t* core, db_t* db);
 ret_status_t load_db2(core_t* core, db_t* db);
 
 /* models */
-void read_model(model_t* model, const char* file, uint32_t num_kmer);
-void set_model(model_t* model);
-void set_cpgmodel(model_t* model);
+uint32_t read_model(model_t* model, const char* file, uint32_t type);
+uint32_t set_model(model_t* model, uint32_t model_id);
 
 /* events */
 event_table getevents(size_t nsample, float* rawptr);

@@ -107,17 +107,23 @@ core_t* init_core(const char* bamfilename, const char* fastafile,
     MALLOC_CHK(core->cpgmodel);
 
     //load the model from files
+    uint32_t kmer_size=0;
+    uint32_t kmer_size_meth=0;
     if (opt.model_file) {
-        read_model(core->model, opt.model_file, MAX_NUM_KMER);
+        kmer_size=read_model(core->model, opt.model_file, MODEL_TYPE_NUCLEOTIDE);
     } else {
-        set_model(core->model);
+        kmer_size=set_model(core->model, MODEL_ID_DNA_NUCLEOTIDE);
     }
     if (opt.meth_model_file) {
-        read_model(core->cpgmodel, opt.meth_model_file, MAX_NUM_KMER_METH);
+        kmer_size_meth=read_model(core->cpgmodel, opt.meth_model_file, MODEL_TYPE_METH);
     } else {
-        set_cpgmodel(core->cpgmodel);
+        kmer_size_meth=set_model(core->cpgmodel, MODEL_ID_DNA_CPG);
     }
-    core->kmer_size = 6;
+    if( mode==0 && kmer_size != kmer_size_meth){
+        ERROR("The k-mer size of the nucleotide model (%d) and the methylation model (%d) should be the same.",kmer_size,kmer_size_meth);
+        exit(EXIT_FAILURE);
+    }
+    core->kmer_size = kmer_size;
 
     core->opt = opt;
 

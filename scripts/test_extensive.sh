@@ -76,6 +76,9 @@ test_suit1 () {
 	echo "____________________________________________________________________"
 	echo "valgrind methcall"
 	scripts/test.sh valgrind 2> valgrind_methcall.log || die "failed"
+	echo "____________________________________________________________________"
+	echo "custom 6-mer models"
+	scripts/test.sh custom --kmer-model test/r9-models/r9.4_450bps.nucleotide.6mer.template.model --meth-model test/r9-models/r9.4_450bps.cpg.6mer.template.model 2> custom_6mer_methcall.log || die "failed"
 
 
 	echo ""
