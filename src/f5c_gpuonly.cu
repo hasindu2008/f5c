@@ -143,7 +143,7 @@ realtime1 = realtime();
     //model : already linear
     model_t* model;
     cudaMalloc((void**)&model,
-            core->num_kmer * sizeof(model_t));
+            MAX_NUM_KMER * sizeof(model_t));
     CUDA_CHK();
 #endif
 
@@ -209,7 +209,7 @@ realtime1 =realtime();
 
 #ifndef CUDA_PRE_MALLOC
 //model : already linear //move to cuda_init
-    cudaMemcpy(model, core->model, core->num_kmer * sizeof(model_t),
+    cudaMemcpy(model, core->model, MAX_NUM_KMER * sizeof(model_t),
             cudaMemcpyHostToDevice);
     CUDA_CHK();
 #endif
