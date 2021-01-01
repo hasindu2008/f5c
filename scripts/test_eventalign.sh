@@ -24,6 +24,9 @@ mode=
 testset_url="https://f5c.page.link/f5c_ecoli_2kb_region_test"
 fallback_url="https://f5c.page.link/f5c_ecoli_2kb_region_test_fallback"
 
+
+#############################################################################################
+
 # download test set given url
 #
 # $1 - URL
@@ -106,7 +109,6 @@ execute_test() {
 }
 
 mode_test() {
-	cmd="${exepath} eventalign -b ${bamfile} -g ${ref} -r ${reads} -t ${threads} -K $batchsize -B $max_bases --summary ${testdir}/f5c_event_align.summary.txt --secondary=yes --min-mapq=0"
 	case $1 in
 		valgrind) valgrind --leak-check=full --error-exitcode=1 $cmd > /dev/null || die "valgrind failed" ;;
 		gdb) gdb --args "$cmd";;
@@ -137,7 +139,8 @@ help_msg() {
 	echo "-h                   Show this help message."
 }
 
-# parse options
+#############################################################################################
+# parse options and change defaults if necessary
 while getopts b:g:r:t:K:B:cdhe opt
 do
 	case $opt in
@@ -170,23 +173,30 @@ done
 shift $(($OPTIND - 1))
 mode=$1
 
+#download the dataset if necessary
 download_test_set $testset_url $fallback_url
 
-# validate files
+#validate files
 for file in ${bamfile} ${ref} ${reads}; do
 	[ -f ${file} ] || die "${file}: File does not exist"
 done
 
+#generate the command
+cmd="${exepath} eventalign -b ${bamfile} -g ${ref} -r ${reads} -t ${threads} -K $batchsize -B $max_bases --summary ${testdir}/f5c_event_align.summary.txt --secondary=yes --min-mapq=0"
+if [ $testdir = test/rna ]; then
+	cmd="${cmd}"" --rna"
+fi
+
+#run test accordingly
 if [ -z "$mode" ]; then
 	if [ $testdir = test/chr22_meth_example ]; then
 		${exepath} index -t12 --iop 12 -d ${testdir}/fast5_files/ ${reads}
-		${exepath} eventalign -b ${bamfile} -g ${ref} -r ${reads} -t "$threads" -K "$batchsize" -B "$max_bases" --secondary=yes --min-mapq=0 --summary ${testdir}/f5c_event_align.summary.txt > /dev/null
+		${cmd} > /dev/null
 	else
-		#test -e ${testdir}/f5c_event_align.summary.txt && rm ${testdir}/f5c_event_align.summary.txt
 		${exepath} index -d ${testdir}/fast5_files ${reads}
-		${exepath} eventalign -b ${bamfile} -g ${ref} -r ${reads} -t "$threads" -K "$batchsize" -B "$max_bases" --secondary=yes --min-mapq=0 --summary ${testdir}/f5c_event_align.summary.txt > ${testdir}/result.txt
+		${cmd} > ${testdir}/result.txt
 	fi
-		execute_test
+	execute_test
 else
 	mode_test "$@"
 fi

@@ -56,9 +56,9 @@ done
 
 test_suit1 () {
 
+	echo "***************Doing ecoli based CPU tests**************************"
 	make clean
 	make -j8
-	echo "***************Doing ecoli based CPU tests**************************"
 	echo "Methylation calling"
 	scripts/test.sh 2> ecoli_methcalling.log || die "failed"
 	echo "____________________________________________________________________"
@@ -102,6 +102,15 @@ test_suit1 () {
 	scripts/test_index.sh -c 2> na12878_index.log || die "failed"
 	echo ""
 
+	echo "************************Doing RNA tests*****************************"
+	echo "event alignment"
+	scripts/test_eventalign.sh -e 2> rna_eventalign.log || die "failed"
+	echo "____________________________________________________________________"
+	echo "valgrind eventalign"
+	scripts/test.sh valgrind -e 2> valgrind_rna_eventalign.log || die "failed"
+	echo "____________________________________________________________________"
+
+
 	echo ""
 	echo "*********************************************************************"
 	echo ""
@@ -110,10 +119,9 @@ test_suit1 () {
 
 test_suit1_cuda () {
 
+	echo "***************Doing ecoli based CUDA tests*************************"
 	make clean
 	make cuda=1 -j8
-
-	echo "***************Doing ecoli based CUDA tests*************************"
 	echo "Methylation calling"
 	scripts/test.sh 2> ecoli_methcalling_cuda.log || die "failed"
 	echo "____________________________________________________________________"
@@ -144,6 +152,12 @@ test_suit1_cuda () {
 	echo "multi-fast5"
 	scripts/test_multifast5.sh -c 2> na12878_multifast5_cuda.log || die "failed"
 	echo "____________________________________________________________________"
+
+	echo "************************Doing RNA tests*****************************"
+	echo "event alignment"
+	scripts/test_eventalign.sh -e 2> rna_eventalign.log || die "failed"
+	echo "____________________________________________________________________"
+
 
 	echo ""
 	echo "*********************************************************************"

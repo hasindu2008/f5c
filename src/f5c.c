@@ -466,7 +466,12 @@ void event_single(core_t* core,db_t* db, int32_t i) {
     for (int32_t j = 0; j < nsample; j++) {
         rawptr[j] = (rawptr[j] + offset) * raw_unit;
     }
-    db->et[i] = getevents(db->f5[i]->nsample, rawptr);
+
+    int8_t rna=0;
+    if (core->opt.flag & F5C_RNA){
+        rna=1;
+    }
+    db->et[i] = getevents(db->f5[i]->nsample, rawptr, rna);
 
     // if(db->et[i].n/(float)db->read_len[i] > 20){
     //     fprintf(stderr,"%s\tevents_per_base\t%f\tread_len\t%d\n",bam_get_qname(db->bam_rec[i]), db->et[i].n/(float)db->read_len[i],db->read_len[i]);
@@ -477,7 +482,7 @@ void event_single(core_t* core,db_t* db, int32_t i) {
         db->read[i], db->read_len[i], core->model, core->kmer_size, db->et[i]);
 
     //If sequencing RNA, reverse the events to be 3'->5'
-    if (core->opt.flag & F5C_RNA){
+    if (rna){
         event_t *events = db->et[i].event;
         size_t n_events = db->et[i].n;
         for (size_t i = 0; i < n_events/2; ++i) {
