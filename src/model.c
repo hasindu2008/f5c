@@ -63,6 +63,7 @@ uint32_t read_model(model_t* model, const char* file, uint32_t type) {
         if (buffer[0] == '#' ||
             strcmp(buffer, "kmer\tlevel_mean\tlevel_stdv\tsd_mean\tsd_stdv\tweight\n") ==0 ||
             strcmp(buffer, "kmer\tlevel_mean\tlevel_stdv\tsd_mean\tsd_stdv\n") ==0 ||
+            strcmp(buffer,"kmer\tlevel_mean\tlevel_stdv\tsd_mean\tsd_stdv\tig_lambda\tweight\n") == 0 ||
             buffer[0] == '\n' || buffer[0] == '\r') { //comments and header
             //todo : (make generic)
             //fprintf(stderr, "%s\n", buffer);
@@ -155,6 +156,12 @@ uint32_t set_model(model_t* model, uint32_t model_id) {
         num_kmer=15625;
         inbuilt_model=r9_4_450bps_cpg_6mer_template_model_builtin_data;
         assert(num_kmer == (uint32_t)pow(5,kmer_size)); //num_kmer should be 5^kmer_size
+    }
+    else if(model_id==MODEL_ID_RNA_NUCLEOTIDE){
+        kmer_size=5;
+        num_kmer=1024;
+        inbuilt_model=r9_4_70bps_u_to_t_rna_5mer_template_model_builtin_data;
+        assert(num_kmer == (uint32_t)(1 << 2*kmer_size)); //num_kmer should be 4^kmer_size
     }
     else{
         assert(0);

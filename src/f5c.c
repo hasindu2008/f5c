@@ -112,7 +112,13 @@ core_t* init_core(const char* bamfilename, const char* fastafile,
     if (opt.model_file) {
         kmer_size=read_model(core->model, opt.model_file, MODEL_TYPE_NUCLEOTIDE);
     } else {
-        kmer_size=set_model(core->model, MODEL_ID_DNA_NUCLEOTIDE);
+        if(opt.flag & F5C_RNA){
+            INFO("%s","builtin RNA nucleotide model loaded");
+            kmer_size=set_model(core->model, MODEL_ID_RNA_NUCLEOTIDE);
+        }
+        else{
+            kmer_size=set_model(core->model, MODEL_ID_DNA_NUCLEOTIDE);
+        }
     }
     if (opt.meth_model_file) {
         kmer_size_meth=read_model(core->cpgmodel, opt.meth_model_file, MODEL_TYPE_METH);
@@ -470,6 +476,16 @@ void event_single(core_t* core,db_t* db, int32_t i) {
     db->scalings[i] = estimate_scalings_using_mom(
         db->read[i], db->read_len[i], core->model, core->kmer_size, db->et[i]);
 
+    //If sequencing RNA, reverse the events to be 3'->5'
+    if (core->opt.flag & F5C_RNA){
+        event_t *events = db->et[i].event;
+        size_t n_events = db->et[i].n;
+        for (size_t i = 0; i < n_events/2; ++i) {
+            event_t tmp_event = events[i];
+            events[i]=events[n_events-1-i];
+            events[n_events-1-i]=tmp_event;
+        }
+    }
 
     //allocate memory for the next alignment step
     db->event_align_pairs[i] = (AlignedPair*)malloc(

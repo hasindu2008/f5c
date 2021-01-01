@@ -162,4 +162,14 @@ static inline void print_size(const char* name, uint64_t bytes)
         fprintf(stderr, "[%s] %s : %.1f %s\n", __func__, name, count, suffixes[s]);
 }
 
+//replace u with t in a string
+static inline void replace_char(char *str, char u, char t){
+    while(*str){
+        if(*str == u){
+            *str = t;
+        }
+        str++;
+    }
+}
+
 #endif
