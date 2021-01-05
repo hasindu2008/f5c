@@ -149,7 +149,7 @@ log_probability_match_r9(scalings_t scaling, model_t* models, event_t* event,
 __global__ void align_kernel_pre_2d(char* read,
     int32_t* read_len, ptr_t* read_ptr,
     int32_t* n_events,
-    ptr_t* event_ptr, model_t* models,
+    ptr_t* event_ptr, model_t* models, uint32_t kmer_size,
     int32_t n_bam_rec,model_t* model_kmer_caches,float *bands1,uint8_t *trace1, EventKmerPair* band_lower_left1) {
 
 
@@ -167,7 +167,7 @@ __global__ void align_kernel_pre_2d(char* read,
         EventKmerPair* band_lower_left = &band_lower_left1[read_ptr[i]+event_ptr[i]];
 
         //int32_t n_events = n_event;
-        int32_t n_kmers = sequence_len - KMER_SIZE + 1;
+        int32_t n_kmers = sequence_len - kmer_size + 1;
         //fprintf(stderr,"n_kmers : %d\n",n_kmers);
 
         // transition penalties
@@ -203,9 +203,9 @@ __global__ void align_kernel_pre_2d(char* read,
         if(tid==0){ //todo : can be optimised
             for (int32_t i = 0; i < n_kmers; ++i) {
                 char* substring = &sequence[i];
-                //kmer_ranks[i] = get_kmer_rank(substring, KMER_SIZE);
-                uint32_t kmer_ranks = get_kmer_rank(substring, KMER_SIZE);
-                model_kmer_cache[i] = models[kmer_ranks];            }
+                uint32_t kmer_ranks = get_kmer_rank(substring, kmer_size);
+                model_kmer_cache[i] = models[kmer_ranks];
+            }
         }
 
         if(tid<bandwidth){
@@ -256,9 +256,9 @@ __global__ void align_kernel_pre_2d(char* read,
 __global__ void
 //__launch_bounds__(MY_KERNEL_MAX_THREADS, MY_KERNEL_MIN_BLOCKS)
 align_kernel_core_2d_shm(int32_t* read_len, ptr_t* read_ptr,
-    event_t* event_table, int32_t* n_events1,
-    ptr_t* event_ptr,
-    scalings_t* scalings, int32_t n_bam_rec,model_t* model_kmer_caches,float *band,uint8_t *traces, EventKmerPair* band_lower_lefts) {
+    event_t* event_table, int32_t* n_events1, ptr_t* event_ptr,
+    scalings_t* scalings, int32_t n_bam_rec,model_t* model_kmer_caches, uint32_t kmer_size,
+    float *band,uint8_t *traces, EventKmerPair* band_lower_lefts) {
 
     int i = blockDim.y * blockIdx.y + threadIdx.y;
     int offset=blockIdx.x*blockDim.x+threadIdx.x;
@@ -279,7 +279,7 @@ align_kernel_core_2d_shm(int32_t* read_len, ptr_t* read_ptr,
 
         // size_t n_events = events[strand_idx].n;
         int32_t n_events = n_event;
-        int32_t n_kmers = sequence_len - KMER_SIZE + 1;
+        int32_t n_kmers = sequence_len - kmer_size + 1;
         //fprintf(stderr,"n_kmers : %d\n",n_kmers);
 
         // transition penalties
@@ -493,9 +493,9 @@ align_kernel_core_2d_shm(int32_t* read_len, ptr_t* read_ptr,
 __global__ void align_kernel_post(AlignedPair* event_align_pairs,
     int32_t* n_event_align_pairs,
     int32_t* read_len, ptr_t* read_ptr,
-    event_t* event_table, int32_t* n_events,
-    ptr_t* event_ptr,
-    scalings_t* scalings, int32_t n_bam_rec,model_t* model_kmer_caches,float *bands1,uint8_t *trace1, EventKmerPair* band_lower_left1) {
+    event_t* event_table, int32_t* n_events, ptr_t* event_ptr,
+    scalings_t* scalings, int32_t n_bam_rec,model_t* model_kmer_caches, uint32_t kmer_size,
+    float *bands1,uint8_t *trace1, EventKmerPair* band_lower_left1) {
 
     #ifndef WARP_HACK
         int i = blockDim.x * blockIdx.x + threadIdx.x;
@@ -523,7 +523,7 @@ __global__ void align_kernel_post(AlignedPair* event_align_pairs,
 
         // size_t n_events = events[strand_idx].n;
         int32_t n_events = n_event;
-        int32_t n_kmers = sequence_len - KMER_SIZE + 1;
+        int32_t n_kmers = sequence_len - kmer_size + 1;
         //fprintf(stderr,"n_kmers : %d\n",n_kmers);
         // backtrack markers
         //const uint8_t FROM_D = 0;
@@ -621,7 +621,7 @@ __global__ void align_kernel_post(AlignedPair* event_align_pairs,
             // qc stats
             //>>>>>>>>>>>>>>New Replacement begin
             // char* substring = &sequence[curr_kmer_idx];
-            // int32_t kmer_rank = get_kmer_rank(substring, KMER_SIZE);
+            // int32_t kmer_rank = get_kmer_rank(substring, kmer_size);
             // //<<<<<<<<<<<<<New Replacement over
             // float tempLogProb = log_probability_match_r9(
             //     scaling, models, events, curr_event_idx, kmer_rank);

@@ -511,18 +511,19 @@ ret_status_t load_db1(core_t* core, db_t* db) { //old method
         db->fasta_cache[i] = refseq;
         // printf("seq : %s\n",db->fasta_cache[i]);
 
-        // get the fast5
-
+        // get the read in ASCII
         std::string qname = bam_get_qname(db->bam_rec[i]);
+
         t = realtime();
         std::string read_seq = core->readbb->get_read_sequence(qname);
         core->db_fasta_time += realtime() - t;
 
-        //get the read in ascci
-        db->read[i] =
-            (char*)malloc(read_seq.size() + 1); // todo : is +1 needed? do errorcheck
+        db->read[i] = (char*)malloc(read_seq.size() + 1); // todo : is +1 needed? do errorcheck
         strcpy(db->read[i], read_seq.c_str());
         db->read_len[i] = strlen(db->read[i]);
+        if(core->opt.flag & F5C_RNA){
+            replace_char(db->read[i], 'U', 'T');
+        }
         db->sum_bases += db->read_len[i];
 
         db->read_stat_flag[i] = 0; //reset the flag
@@ -785,18 +786,18 @@ ret_status_t load_db2(core_t* core, db_t* db) { //separately load fast5 for mult
         db->fasta_cache[i] = refseq;
         // printf("seq : %s\n",db->fasta_cache[i]);
 
-        // get the fast5
-
+        // get the read in ASCII
         std::string qname = bam_get_qname(db->bam_rec[i]);
         t = realtime();
         std::string read_seq = core->readbb->get_read_sequence(qname);
         core->db_fasta_time += realtime() - t;
 
-        //get the read in ascci
-        db->read[i] =
-            (char*)malloc(read_seq.size() + 1); // todo : is +1 needed? do errorcheck
+        db->read[i] = (char*)malloc(read_seq.size() + 1); // todo : is +1 needed? do errorcheck
         strcpy(db->read[i], read_seq.c_str());
         db->read_len[i] = strlen(db->read[i]);
+        if(core->opt.flag & F5C_RNA){
+            replace_char(db->read[i], 'U', 'T');
+        }
         db->sum_bases += db->read_len[i];
 
         db->read_stat_flag[i] = 0; //reset the flag

@@ -55,10 +55,10 @@ static inline void kmer_cpy(char* dest, char* src, uint32_t k) {
 }
 
 scalings_t estimate_scalings_using_mom(char* sequence, int32_t sequence_len,
-                                       model_t* pore_model, event_table et) {
+                                       model_t* pore_model, uint32_t kmer_size, event_table et) {
     scalings_t out;
     int32_t n_kmers =
-        sequence_len - KMER_SIZE + 1; //todo :strlen can be pre-calculated
+        sequence_len - kmer_size + 1; //todo :strlen can be pre-calculated
 
     //const Alphabet* alphabet = pore_model.pmalphabet;
 
@@ -72,7 +72,7 @@ scalings_t estimate_scalings_using_mom(char* sequence, int32_t sequence_len,
     double kmer_level_sum = 0.0f;
     double kmer_level_sq_sum = 0.0f;
     for (int32_t i = 0; i < n_kmers; ++i) {
-        int32_t kr = get_kmer_rank(&sequence[i], KMER_SIZE);
+        int32_t kr = get_kmer_rank(&sequence[i], kmer_size);
         double l = pore_model[kr].level_mean;
         //fprintf(stderr,"Kmer : %c%c%c%c%c%c, kmer_rank : %d , kmer_mean : %f \n",sequence[i],sequence[i+1],sequence[i+2],sequence[i+3],sequence[i+4],sequence[i+5],kr,l);
         kmer_level_sum += l;
@@ -120,7 +120,9 @@ static inline float log_probability_match_r9(scalings_t scaling,
                                              float sample_rate) {
     // event level mean, scaled with the drift value
     strand = 0;
-    assert(kmer_rank < 4096);
+#ifdef DEBUG_ADAPTIVE
+    assert(kmer_rank < MAX_NUM_KMER);
+#endif
     //float level = read.get_drift_scaled_level(event_idx, strand);
 
     //float time =
@@ -175,13 +177,13 @@ static inline float log_probability_match_r9(scalings_t scaling,
 #endif
 
 int32_t align(AlignedPair* out_2, char* sequence, int32_t sequence_len,
-              event_table events, model_t* models, scalings_t scaling,
+              event_table events, model_t* models, uint32_t kmer_size, scalings_t scaling,
               float sample_rate) {
     //fprintf(stderr, "%s\n", sequence);
     //fprintf(stderr, "Scaling %f %f", scaling.scale, scaling.shift);
 
     size_t strand_idx = 0;
-    size_t k = 6;
+    size_t k = kmer_size;
 
     // size_t n_events = events[strand_idx].n;
     size_t n_events = events.n;
@@ -290,7 +292,7 @@ int32_t align(AlignedPair* out_2, char* sequence, int32_t sequence_len,
     int fills = 0;
 #ifdef DEBUG_ADAPTIVE
     fprintf(stderr, "[trim] bi: %d o: %d e: %d k: %d s: %.2lf\n", 1,
-            first_trim_offset, 0, -1, bands[1][first_trim_offset]);
+            first_trim_offset, 0, -1, bands(1,first_trim_offset));
 #endif
 
     // fill in remaining bands
@@ -557,7 +559,7 @@ int32_t align(AlignedPair* out_2, char* sequence, int32_t sequence_len,
 
 int32_t postalign(event_alignment_t* alignment, index_pair_t* base_to_event_map,double* events_per_base,
                   char* sequence, int32_t n_kmers, AlignedPair* event_alignment,
-                  int32_t n_events) {
+                  int32_t n_events, uint32_t kmer_size) {
     /* transform alignment into the base-to-event map*/
     // create base-to-event map
     // index_pair_t* base_to_event_map =
@@ -626,18 +628,18 @@ int32_t postalign(event_alignment_t* alignment, index_pair_t* base_to_event_map,
             // assert(event_idx < n_events);
 
             // since we use the 1D read seqence here we never have to reverse complement
-            int32_t kmer_rank = get_kmer_rank(&sequence[ki], KMER_SIZE);
+            int32_t kmer_rank = get_kmer_rank(&sequence[ki], kmer_size);
 
             event_alignment_t ea;
             // ref data
             //ea.ref_name = "read";
             ea.read_idx = -1; // not needed
-            kmer_cpy(ea.ref_kmer, &sequence[ki], KMER_SIZE);
+            kmer_cpy(ea.ref_kmer, &sequence[ki], kmer_size);
             ea.ref_position = ki;
             //ea.strand_idx = strand_idx;
             ea.event_idx = event_idx;
             ea.rc = false;
-            kmer_cpy(ea.model_kmer, &sequence[ki], KMER_SIZE);
+            kmer_cpy(ea.model_kmer, &sequence[ki], kmer_size);
             ea.hmm_state = prev_kmer_rank != kmer_rank ? 'M' : 'E';
             if (alignment_index >
                 n_events) { //todo : this is ugly. check and fix.
@@ -660,7 +662,7 @@ int32_t postalign(event_alignment_t* alignment, index_pair_t* base_to_event_map,
 // recalculate shift, scale, drift, scale_sd from an alignment and the read
 // returns true if the recalibration was performed
 // in either case, sets residual to the L1 norm of the residual
-bool recalibrate_model(model_t* pore_model, event_table et,
+bool recalibrate_model(model_t* pore_model, uint32_t kmer_size, event_table et,
                        scalings_t* scallings,
                        const event_alignment_t* alignment_output,
                        int32_t num_alignments, bool scale_var) {
@@ -700,7 +702,7 @@ bool recalibrate_model(model_t* pore_model, event_table et,
             event_alignment_t ea = alignment_output[ei];
             if (ea.hmm_state == 'M') {
                 //std::string model_kmer = ea.rc ? pore_model.pmalphabet->reverse_complement(ea.ref_kmer) : ea.ref_kmer;
-                uint32_t rank = get_kmer_rank(ea.ref_kmer, KMER_SIZE);
+                uint32_t rank = get_kmer_rank(ea.ref_kmer, kmer_size);
 
                 double raw_event = et.event[ea.event_idx].mean;
                 double level_mean = pore_model[rank].level_mean;
@@ -737,7 +739,7 @@ bool recalibrate_model(model_t* pore_model, event_table et,
             for (int32_t ei = 0; ei < num_alignments; ++ei) {
                 event_alignment_t ea = alignment_output[ei];
                 if (ea.hmm_state == 'M') {
-                    uint32_t rank = get_kmer_rank(ea.ref_kmer, KMER_SIZE);
+                    uint32_t rank = get_kmer_rank(ea.ref_kmer, kmer_size);
                     double raw_event = et.event[ea.event_idx].mean;
                     double level_mean = pore_model[rank].level_mean;
                     double level_stdv = pore_model[rank].level_stdv;

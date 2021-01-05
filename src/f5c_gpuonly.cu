@@ -19,9 +19,11 @@
 #include "f5cmisc.h"
 
 
-
-
 #ifndef CPU_GPU_PROC
+
+/* if defined, static cuda/cpu arrays (model and arrays dependent on K)
+   are preallocated at the beginning of the program, rather than repeatedly doing so inside a loop */
+#define CUDA_PRE_MALLOC 1
 
 void align_cuda(core_t* core, db_t* db) {
     int32_t i;
@@ -143,7 +145,7 @@ realtime1 = realtime();
     //model : already linear
     model_t* model;
     cudaMalloc((void**)&model,
-            NUM_KMER * sizeof(model_t));
+            MAX_NUM_KMER * sizeof(model_t));
     CUDA_CHK();
 #endif
 
@@ -209,7 +211,7 @@ realtime1 =realtime();
 
 #ifndef CUDA_PRE_MALLOC
 //model : already linear //move to cuda_init
-    cudaMemcpy(model, core->model, NUM_KMER * sizeof(model_t),
+    cudaMemcpy(model, core->model, MAX_NUM_KMER * sizeof(model_t),
             cudaMemcpyHostToDevice);
     CUDA_CHK();
 #endif
@@ -219,7 +221,7 @@ realtime1 =realtime();
     CUDA_CHK();
 core->align_cuda_memcpy += (realtime() - realtime1);
 
-
+    uint32_t kmer_size = core->kmer_size;
 
 realtime1 = realtime();
 
@@ -231,7 +233,7 @@ realtime1 = realtime();
 
     align_kernel_pre_2d<<<gridpre, blockpre>>>( read,
         read_len, read_ptr, n_events,
-        event_ptr, model, n_bam_rec, model_kmer_cache,bands,trace,band_lower_left);
+        event_ptr, model, kmer_size, n_bam_rec, model_kmer_cache,bands,trace,band_lower_left);
 
     cudaDeviceSynchronize();CUDA_CHK();
     if(core->opt.verbosity>1) fprintf(stderr, "[%s::%.3f*%.2f] align-pre kernel done\n", __func__,
@@ -246,7 +248,7 @@ realtime1 = realtime();
     dim3 grid1(1,(db->n_bam_rec + BLOCK_LEN_READS - 1) / BLOCK_LEN_READS);
     dim3 block1(BLOCK_LEN_BANDWIDTH,BLOCK_LEN_READS);
     align_kernel_core_2d_shm<<<grid1, block1>>>(read_len, read_ptr, event_table, n_events,
-            event_ptr, scalings, n_bam_rec, model_kmer_cache,bands,trace,band_lower_left );
+            event_ptr, scalings, n_bam_rec, model_kmer_cache, kmer_size, bands,trace,band_lower_left );
 
     cudaDeviceSynchronize();CUDA_CHK();
     if(core->opt.verbosity>1) fprintf(stderr, "[%s::%.3f*%.2f] align-core kernel done\n", __func__,
@@ -263,7 +265,7 @@ realtime1 = realtime();
     #ifndef WARP_HACK
         align_kernel_post<<<gridpost, blockpost>>>(event_align_pairs, n_event_align_pairs,
             read_len, read_ptr, event_table, n_events,
-            event_ptr,scalings, n_bam_rec, model_kmer_cache,bands,trace,band_lower_left );
+            event_ptr,scalings, n_bam_rec, model_kmer_cache, kmer_size, bands,trace,band_lower_left );
 
     #else
         assert(BLOCK_LEN>=32);
@@ -271,7 +273,7 @@ realtime1 = realtime();
         if(core->opt.verbosity>1) fprintf(stderr,"grid new %d\n",grid1post.x);
         align_kernel_post<<<grid1post, blockpost>>>(event_align_pairs, n_event_align_pairs,
             read_len, read_ptr, event_table, n_events,
-            event_ptr, scalings, n_bam_rec, model_kmer_cache,bands,trace,band_lower_left );
+            event_ptr, scalings, n_bam_rec, model_kmer_cache, kmer_size, bands,trace,band_lower_left );
     #endif
     cudaDeviceSynchronize();CUDA_CHK();
     if(core->opt.verbosity>1) fprintf(stderr, "[%s::%.3f*%.2f] align-post kernel done\n", __func__,

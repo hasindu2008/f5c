@@ -315,7 +315,7 @@ inline float profile_hmm_fill_generic_r9(const char *m_seq,
                                          const char *m_rc_seq,
                                         event_t* event,
                                         scalings_t scaling,
-                                        model_t* cpgmodel,
+                                        model_t* cpgmodel, uint32_t kmer_size,
                                         uint32_t event_start_idx,
                                         uint32_t event_stop_idx,
                                         uint8_t strand,
@@ -374,7 +374,6 @@ inline float profile_hmm_fill_generic_r9(const char *m_seq,
 
     // Precompute kmer ranks
     // const uint32_t k = data.pore_model->k;
-    //const uint32_t k = KMER_SIZE;
     // Make sure the HMMInputSequence's alphabet matches the state space of the read
 
 
@@ -394,11 +393,11 @@ inline float profile_hmm_fill_generic_r9(const char *m_seq,
             substring=m_seq+ki;
         }
         else{
-            substring=m_rc_seq+seq_len-ki-KMER_SIZE;
+            substring=m_rc_seq+seq_len-ki-kmer_size;
         }
 
         // kmer_ranks[ki] = sequence.get_kmer_rank(ki, k, data.rc);
-        kmer_ranks[ki] = get_kmer_rank(substring,KMER_SIZE);
+        kmer_ranks[ki] = get_kmer_rank(substring,kmer_size);
     }
 
 
@@ -630,7 +629,7 @@ float profile_hmm_score_r9(const char *m_seq,
                                 const char *m_rc_seq,
                                 event_t* event,
                                 scalings_t scaling,
-                                model_t* cpgmodel,
+                                model_t* cpgmodel,  uint32_t kmer_size,
                                 uint32_t event_start_idx,
                                 uint32_t event_stop_idx,
                                 uint8_t strand,
@@ -639,7 +638,7 @@ float profile_hmm_score_r9(const char *m_seq,
                                 double events_per_base,
                                 uint32_t hmm_flags)
 {
-    const uint32_t k = KMER_SIZE; //hardcoded had this const uint32_t k = data.pore_model->k;
+    const uint32_t k = kmer_size; //hardcoded had this const uint32_t k = data.pore_model->k;
     uint32_t n_kmers = strlen(m_seq) - k + 1;
 
     uint32_t n_states = PSR9_NUM_STATES * (n_kmers + 2); // + 2 for explicit terminal states
@@ -666,7 +665,7 @@ float profile_hmm_score_r9(const char *m_seq,
                                                 m_rc_seq,
                                                 event,
                                                 scaling,
-                                                cpgmodel,
+                                                cpgmodel, kmer_size,
                                                 event_start_idx,
                                                 event_stop_idx,
                                                 strand,
@@ -695,7 +694,7 @@ float profile_hmm_score(
 	const char *m_rc_seq,
 	event_t* event,
 	scalings_t scaling,
-	model_t* cpgmodel,
+	model_t* cpgmodel, uint32_t kmer_size,
 	uint32_t event_start_idx,
     uint32_t event_stop_idx,
     uint8_t strand,
@@ -717,7 +716,7 @@ float profile_hmm_score(
 								m_rc_seq,
 								event,
 								scaling,
-								cpgmodel,
+								cpgmodel,kmer_size,
 								event_start_idx,
 							    event_stop_idx,
 							    strand,

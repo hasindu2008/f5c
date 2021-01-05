@@ -27,6 +27,7 @@ not all the memory allocations are needed for eventalign mode
 /* initialise the core data structure */
 core_t* init_core(const char* bamfilename, const char* fastafile,
                   const char* fastqfile, const char* tmpfile, opt_t opt,double realtime0, int8_t mode, char *eventalignsummary) {
+
     core_t* core = (core_t*)malloc(sizeof(core_t));
     MALLOC_CHK(core);
 
@@ -100,22 +101,35 @@ core_t* init_core(const char* bamfilename, const char* fastafile,
     core->readbb->load(fastqfile);
 
     //model
-    core->model = (model_t*)malloc(sizeof(model_t) * NUM_KMER); //4096 is 4^6 which is hardcoded now
+    core->model = (model_t*)malloc(sizeof(model_t) * MAX_NUM_KMER); //4096 is 4^6 which is hardcoded now
     MALLOC_CHK(core->model);
-    core->cpgmodel = (model_t*)malloc(sizeof(model_t) * NUM_KMER_METH); //15625 is 4^6 which os hardcoded now
+    core->cpgmodel = (model_t*)malloc(sizeof(model_t) * MAX_NUM_KMER_METH); //15625 is 4^6 which os hardcoded now
     MALLOC_CHK(core->cpgmodel);
 
     //load the model from files
+    uint32_t kmer_size=0;
+    uint32_t kmer_size_meth=0;
     if (opt.model_file) {
-        read_model(core->model, opt.model_file, NUM_KMER);
+        kmer_size=read_model(core->model, opt.model_file, MODEL_TYPE_NUCLEOTIDE);
     } else {
-        set_model(core->model);
+        if(opt.flag & F5C_RNA){
+            INFO("%s","builtin RNA nucleotide model loaded");
+            kmer_size=set_model(core->model, MODEL_ID_RNA_NUCLEOTIDE);
+        }
+        else{
+            kmer_size=set_model(core->model, MODEL_ID_DNA_NUCLEOTIDE);
+        }
     }
     if (opt.meth_model_file) {
-        read_model(core->cpgmodel, opt.meth_model_file, NUM_KMER_METH);
+        kmer_size_meth=read_model(core->cpgmodel, opt.meth_model_file, MODEL_TYPE_METH);
     } else {
-        set_cpgmodel(core->cpgmodel);
+        kmer_size_meth=set_model(core->cpgmodel, MODEL_ID_DNA_CPG);
     }
+    if( mode==0 && kmer_size != kmer_size_meth){
+        ERROR("The k-mer size of the nucleotide model (%d) and the methylation model (%d) should be the same.",kmer_size,kmer_size_meth);
+        exit(EXIT_FAILURE);
+    }
+    core->kmer_size = kmer_size;
 
     core->opt = opt;
 
@@ -452,7 +466,12 @@ void event_single(core_t* core,db_t* db, int32_t i) {
     for (int32_t j = 0; j < nsample; j++) {
         rawptr[j] = (rawptr[j] + offset) * raw_unit;
     }
-    db->et[i] = getevents(db->f5[i]->nsample, rawptr);
+
+    int8_t rna=0;
+    if (core->opt.flag & F5C_RNA){
+        rna=1;
+    }
+    db->et[i] = getevents(db->f5[i]->nsample, rawptr, rna);
 
     // if(db->et[i].n/(float)db->read_len[i] > 20){
     //     fprintf(stderr,"%s\tevents_per_base\t%f\tread_len\t%d\n",bam_get_qname(db->bam_rec[i]), db->et[i].n/(float)db->read_len[i],db->read_len[i]);
@@ -460,13 +479,23 @@ void event_single(core_t* core,db_t* db, int32_t i) {
 
     //get the scalings
     db->scalings[i] = estimate_scalings_using_mom(
-        db->read[i], db->read_len[i], core->model, db->et[i]);
+        db->read[i], db->read_len[i], core->model, core->kmer_size, db->et[i]);
 
+    //If sequencing RNA, reverse the events to be 3'->5'
+    if (rna){
+        event_t *events = db->et[i].event;
+        size_t n_events = db->et[i].n;
+        for (size_t i = 0; i < n_events/2; ++i) {
+            event_t tmp_event = events[i];
+            events[i]=events[n_events-1-i];
+            events[n_events-1-i]=tmp_event;
+        }
+    }
 
     //allocate memory for the next alignment step
     db->event_align_pairs[i] = (AlignedPair*)malloc(
                 sizeof(AlignedPair) * db->et[i].n * 2); //todo : find a good heuristic to save memory
-    MALLOC_CHK(db->event_align_pairs[i]);        
+    MALLOC_CHK(db->event_align_pairs[i]);
 
 }
 
@@ -477,7 +506,7 @@ void scaling_single(core_t* core, db_t* db, int32_t i){
     db->n_event_alignment[i] = 0;
     db->events_per_base[i] = 0; //todo : is double needed? not just int8?
 
-    int32_t n_kmers = db->read_len[i] - KMER_SIZE + 1;
+    int32_t n_kmers = db->read_len[i] - core->kmer_size + 1;
     db->base_to_event_map[i]=(index_pair_t*)(malloc(sizeof(index_pair_t) * n_kmers));
     MALLOC_CHK(db->base_to_event_map[i]);
 
@@ -496,7 +525,7 @@ void scaling_single(core_t* core, db_t* db, int32_t i){
         //todo : verify if this n is needed is needed
         db->n_event_alignment[i] = postalign(
             db->event_alignment[i],db->base_to_event_map[i], &db->events_per_base[i], db->read[i],
-            n_kmers, db->event_align_pairs[i], db->n_event_align_pairs[i]);
+            n_kmers, db->event_align_pairs[i], db->n_event_align_pairs[i], core->kmer_size);
 
         //fprintf(stderr,"n_event_alignment %d\n",n_events);
 
@@ -505,7 +534,7 @@ void scaling_single(core_t* core, db_t* db, int32_t i){
 
         // internally this function will set shift/scale/etc of the pore model
         bool calibrated = recalibrate_model(
-            core->model, db->et[i], &db->scalings[i],
+            core->model, core->kmer_size, db->et[i], &db->scalings[i],
             db->event_alignment[i], db->n_event_alignment[i], 1);
 
         // QC calibration
@@ -548,7 +577,7 @@ void align_single(core_t* core, db_t* db, int32_t i) {
     if ((db->et[i].n)/(float)(db->read_len[i]) < AVG_EVENTS_PER_KMER_MAX){
         db->n_event_align_pairs[i] = align(
                 db->event_align_pairs[i], db->read[i], db->read_len[i], db->et[i],
-                core->model, db->scalings[i], db->f5[i]->sample_rate);
+                core->model, core->kmer_size, db->scalings[i], db->f5[i]->sample_rate);
             //fprintf(stderr,"readlen %d,n_events %d\n",db->read_len[i],n_event_align_pairs);
     }
     else{//todo : too many avg events per base - oversegmented
@@ -581,7 +610,7 @@ void eventalign_single(core_t* core, db_t* db, int32_t i){
                   i,
                   core->clip_start,
                   core->clip_end,
-                  &(db->et[i]), core->model,db->base_to_event_map[i],db->scalings[i],db->events_per_base[i],db->f5[i]->sample_rate);
+                  &(db->et[i]), core->model,core->kmer_size, db->base_to_event_map[i],db->scalings[i],db->events_per_base[i],db->f5[i]->sample_rate);
 
     char* qname = bam_get_qname(db->bam_rec[i]);
     char* contig = core->m_hdr->target_name[db->bam_rec[i]->core.tid];
@@ -593,7 +622,7 @@ void eventalign_single(core_t* core, db_t* db, int32_t i){
     int8_t sam_output = (core->opt.flag & F5C_SAM) ? 1 : 0;
 
     if(sam_output==0){
-        db->event_alignment_result_str[i] = emit_event_alignment_tsv(0,&(db->et[i]),core->model,db->scalings[i],*event_alignment_result, print_read_names, scale_events, write_samples, write_signal_index,
+        db->event_alignment_result_str[i] = emit_event_alignment_tsv(0,&(db->et[i]),core->model,core->kmer_size, db->scalings[i],*event_alignment_result, print_read_names, scale_events, write_samples, write_signal_index,
                    db->read_idx[i], qname, contig, db->f5[i]->sample_rate, db->f5[i]->rawptr);
 
     }
@@ -603,7 +632,7 @@ void meth_single(core_t* core, db_t* db, int32_t i){
     if(!db->read_stat_flag[i]){
         if(core->mode==0){
             calculate_methylation_for_read(db->site_score_map[i], db->fasta_cache[i], db->bam_rec[i], db->read_len[i], db->et[i].event, db->base_to_event_map[i],
-            db->scalings[i], core->cpgmodel,db->events_per_base[i]);
+            db->scalings[i], core->cpgmodel, core->kmer_size, db->events_per_base[i]);
         }
         else if (core->mode==1){
             eventalign_single(core,db,i);

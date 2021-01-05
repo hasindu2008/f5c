@@ -55,13 +55,13 @@ static detector_param const event_detection_defaults = {.window_length1 = 3,
                                                         .threshold2 = 9.0f,
                                                         .peak_height = 0.2f};
 
-/**
+
 static detector_param const event_detection_rna = {.window_length1 = 7,
                                                    .window_length2 = 14,
                                                    .threshold1 = 2.5f,
                                                    .threshold2 = 9.0f,
                                                    .peak_height = 1.0f};
-*/
+
 
 // From scrappie
 typedef struct {
@@ -559,7 +559,7 @@ event_table detect_events(raw_table const rt, detector_param const edparam) {
 }
 
 // interface to scrappie functions
-event_table getevents(size_t nsample, float* rawptr) {
+event_table getevents(size_t nsample, float* rawptr, int8_t rna) {
     event_table et;
     raw_table rt = (raw_table){nsample, 0, nsample, rawptr};
 
@@ -571,7 +571,11 @@ event_table getevents(size_t nsample, float* rawptr) {
     float varseg_thresh = 0.0;
     trim_and_segment_raw(rt, trim_start, trim_end, varseg_chunk, varseg_thresh);
 
-    const detector_param* ed_params = &event_detection_defaults; // for dna only
+    const detector_param* ed_params = &event_detection_defaults; // for dna
+    if(rna){
+        ed_params = &event_detection_rna; //rna
+    }
+
     et = detect_events(rt, *ed_params);
 
     return et;
