@@ -16,11 +16,13 @@
 #include <string>
 
 #include <fstream>
-#include <string>
+#include <sstream>
 #include <iostream>
+#include <iterator>
 
 #include "f5c.h"
 #include "f5cmisc.h"
+#include "str.h"
 
 /*
 Code is adapted from Nanopolish eventalign module
@@ -354,7 +356,7 @@ inline float profile_hmm_fill_generic_r9(const char *m_seq,
                                          const char *m_rc_seq,
                                         event_t* event,
                                         scalings_t scaling,
-                                        model_t* cpgmodel,
+                                        model_t* cpgmodel, uint32_t kmer_size,
                                         uint32_t event_start_idx,
                                         uint32_t event_stop_idx,
                                         uint8_t strand,
@@ -424,7 +426,6 @@ inline float profile_hmm_fill_generic_r9(const char *m_seq,
     // }
     // Precompute kmer ranks
     // const uint32_t k = data.pore_model->k;
-    //const uint32_t k = KMER_SIZE;
     // Make sure the HMMInputSequence's alphabet matches the state space of the read
 
 
@@ -445,11 +446,11 @@ inline float profile_hmm_fill_generic_r9(const char *m_seq,
             substring=m_seq+ki;
         }
         else{
-            substring=m_rc_seq+seq_len-ki-KMER_SIZE;
+            substring=m_rc_seq+seq_len-ki-kmer_size;
         }
 
         // kmer_ranks[ki] = sequence.get_kmer_rank(ki, k, data.rc);
-        kmer_ranks[ki] = get_kmer_rank(substring,KMER_SIZE);
+        kmer_ranks[ki] = get_kmer_rank(substring,kmer_size);
         // wkmer_ranks << kmer_ranks[ki] << " ";
     }
 
@@ -717,7 +718,7 @@ static inline std::vector<HMMAlignmentState> profile_hmm_align(
     double events_per_base,
     uint8_t strand,
     uint8_t rc,
-    uint32_t k, //KMER_SIZE
+    uint32_t k, //kmer size
     uint32_t e_start, //curr_start_event;
     uint32_t e_end, //input_event_stop_idx
     int8_t event_stride) // event_stride )
@@ -776,7 +777,7 @@ static inline std::vector<HMMAlignmentState> profile_hmm_align(
                                 rc_subseq.c_str(),
                                 event,
                                 scaling,
-                                cpgmodel,
+                                cpgmodel, k,
                                 e_start,
                                 e_end,
                                 strand,
@@ -1230,6 +1231,7 @@ struct EventAlignmentParameters
         //hdr = NULL;
         record = NULL;
         model = NULL;
+        kmer_size = 6;
         //strand_idx = NUM_STRANDS;
 
         alphabet = "";
@@ -1255,6 +1257,7 @@ struct EventAlignmentParameters
     //const bam_hdr_t* hdr;
     const bam1_t* record;
     model_t* model;
+    uint32_t kmer_size;
     //size_t strand_idx;
 
     double events_per_base;
@@ -1279,6 +1282,7 @@ struct EventAlignmentParameters
     //assert(params.hdr != NULL);
     assert(params.record != NULL);
     assert(params.model != NULL);
+    assert(params.kmer_size <= MAX_KMER_SIZE);
     //assert(params.strand_idx < NUM_STRANDS);
     assert( (params.region_start == -1 && params.region_end == -1) || (params.region_start <= params.region_end));
     //const PoreModel* pore_model = params.get_model(); // --hasindu this is model now
@@ -1302,7 +1306,7 @@ struct EventAlignmentParameters
     std::transform(ref_seq.begin(), ref_seq.end(), ref_seq.begin(), ::toupper);
 
     // k from read pore model
-    const uint32_t k = KMER_SIZE;
+    const uint32_t k = params.kmer_size;
     // If the reference sequence contains ambiguity codes
     // switch them to the lexicographically lowest base
     ref_seq =disambiguate(ref_seq);
@@ -1361,8 +1365,8 @@ struct EventAlignmentParameters
         assert(read_kidx_start >= 0);
         assert(read_kidx_end >= 0);
 
-        int first_event = get_closest_event_to(read_kidx_start, params.base_to_event_map, params.read_length-KMER_SIZE + 1);
-        int last_event = get_closest_event_to(read_kidx_end,params.base_to_event_map, params.read_length-KMER_SIZE + 1);
+        int first_event = get_closest_event_to(read_kidx_start, params.base_to_event_map, params.read_length-k + 1);
+        int last_event = get_closest_event_to(read_kidx_end,params.base_to_event_map, params.read_length-k + 1);
         bool forward = first_event < last_event;
 
         int curr_start_event = first_event;
@@ -1419,7 +1423,7 @@ struct EventAlignmentParameters
             // over very large deletions wrt to the reference. The effect of this
             // is that we can get segments that have very few alignable events. We
             // just stop processing them for now
-            int input_event_stop_idx = get_closest_event_to(curr_end_read, params.base_to_event_map, params.read_length-KMER_SIZE + 1);
+            int input_event_stop_idx = get_closest_event_to(curr_end_read, params.base_to_event_map, params.read_length-k + 1);
 
             // fprintf(stderr, "input_event_stop_idx = %d curr_start_event = %d\n",input_event_stop_idx, curr_start_event);
             if(abs((int)curr_start_event - input_event_stop_idx) < 2)
@@ -1440,7 +1444,7 @@ struct EventAlignmentParameters
                 params.events_per_base, // double events_per_base
                 input_strand,  //uint8_t strand,
                 input_rc,   //uint8_t rc,
-                k,  //uint32_t k, //KMER_SIZE
+                k,  //uint32_t k, //kmer_size
                 curr_start_event,   //uint32_t e_start, //curr_start_event;
                 input_event_stop_idx,   //uint32_t e_end, //input_event_stop_idx
                 event_stride);  //int8_t event_stride) // event_stride
@@ -1480,7 +1484,7 @@ struct EventAlignmentParameters
 
                     ea.ref_position = curr_start_ref + as.kmer_idx;
                     std::string ref__kmer = ref_seq.substr(ea.ref_position - ref_offset, k);
-                    kmer_cpy(ea.ref_kmer, ref__kmer.c_str(),KMER_SIZE);
+                    kmer_cpy(ea.ref_kmer, ref__kmer.c_str(),k);
 
                     // event
                     ea.read_idx = params.read_idx;
@@ -1499,14 +1503,14 @@ struct EventAlignmentParameters
                         //hasindu : strcpy is wrong, use kmer_cpy instead
                         if(rc_flags[0]){
                             std::string kmer_one = rc_subseq.substr(rc_subseq.length() - as.kmer_idx - k, k);
-                            kmer_cpy(ea.model_kmer, kmer_one.c_str(), KMER_SIZE);
+                            kmer_cpy(ea.model_kmer, kmer_one.c_str(), k);
                         }
                         else{
                             std::string kmer_one = fwd_subseq.substr(as.kmer_idx, k);
-                            kmer_cpy(ea.model_kmer, kmer_one.c_str(), KMER_SIZE);
+                            kmer_cpy(ea.model_kmer, kmer_one.c_str(), k);
                         }
                     } else {
-                        kmer_cpy(ea.model_kmer, std::string(k, 'N').c_str(), KMER_SIZE);
+                        kmer_cpy(ea.model_kmer, std::string(k, 'N').c_str(), k);
                         // ea.model_kmer = std::string(k, 'N');
                     }
 
@@ -1603,7 +1607,7 @@ EventalignSummary summarize_alignment(uint32_t strand_idx,
     //assert(params.alphabet == "");
     //const PoreModel* pore_model = params.get_model();
     //uint32_t k = pore_model->k;
-    uint32_t k = KMER_SIZE;
+    uint32_t k = params.kmer_size;
 
     size_t prev_ref_pos = std::string::npos;
 
@@ -1656,12 +1660,16 @@ void emit_sam_header(samFile* fp, const bam_hdr_t* hdr)
 }
 
 
-void emit_event_alignment_tsv_header(FILE* fp, int8_t print_read_names, int8_t write_samples)
+void emit_event_alignment_tsv_header(FILE* fp, int8_t print_read_names, int8_t write_samples, int8_t write_signal_index)
 {
     fprintf(fp, "%s\t%s\t%s\t%s\t%s\t", "contig", "position", "reference_kmer",
             (print_read_names? "read_name" : "read_index"), "strand");
     fprintf(fp, "%s\t%s\t%s\t%s\t", "event_index", "event_level_mean", "event_stdv", "event_length");
     fprintf(fp, "%s\t%s\t%s\t%s", "model_kmer", "model_mean", "model_stdv", "standardized_level");
+
+    if(write_signal_index) {
+        fprintf(fp, "\t%s\t%s", "start_idx", "end_idx");
+    }
 
     if(write_samples) {
         fprintf(fp, "\t%s", "samples");
@@ -1834,40 +1842,53 @@ inline model_t get_scaled_gaussian_from_pore_model_state(const event_table* even
     return scaled_model;
 }
 
-//
-// std::vector<float> get_scaled_samples_for_event((const event_table* events,scalings_t scaling, uint32_t event_idx, float sample_rate) const
-// {
-//     double event_start_time = (events->event)[event_idx].start_time;
-//     double event_duration = (events->event)[event_idx].duration;
 
-//     size_t start_idx = this->get_sample_index_at_time(event_start_time * this->sample_rate);
-//     size_t end_idx = this->get_sample_index_at_time((event_start_time + event_duration) * this->sample_rate);
+std::vector<float> get_scaled_samples_for_event(const event_table* events,scalings_t scaling, uint32_t event_idx, float *samples)
+{
+    //double event_start_time = this->events[strand_idx][event_idx].start_time;
+    //double event_duration = this->events[strand_idx][event_idx].duration;
 
-//     std::vector<float> out;
-//     for(size_t i = start_idx; i < end_idx; ++i) {
-//         double curr_sample_time = (this->sample_start_time + i) / this->sample_rate;
-//         //fprintf(stderr, "event_start: %.5lf sample start: %.5lf curr: %.5lf rate: %.2lf\n", event_start_time, this->sample_start_time / this->sample_rate, curr_sample_time, this->sample_rate);
-//         double s = this->samples[i];
-//         // apply scaling corrections
-//         double scaled_s = s - this->scalings[strand_idx].shift;
-//         assert(curr_sample_time >= (this->sample_start_time / this->sample_rate));
-//         scaled_s -= (curr_sample_time - (this->sample_start_time / this->sample_rate)) * this->scalings[strand_idx].drift;
-//         scaled_s /= this->scalings[strand_idx].scale;
-//         out.push_back(scaled_s);
-//     }
-//     return out;
-// }
+    //size_t start_idx = this->get_sample_index_at_time(event_start_time * this->sample_rate);
+    //size_t end_idx = this->get_sample_index_at_time((event_start_time + event_duration) * this->sample_rate);
+    uint64_t start_idx = (events->event)[event_idx].start;
+    uint64_t end_idx = (events->event)[event_idx].start + (uint64_t)((events->event)[event_idx].length);
+    //assert(start_idx  < events->n && end_idx < events->n);
+    //fprintf(stderr, "start_idx: %ld end_idx: %ld\n", start_idx, end_idx);
 
-void emit_event_alignment_tsv(FILE* fp,
-                              uint32_t strand_idx,
-                              const event_table* et, model_t* model, scalings_t scalings,
+    std::vector<float> out;
+    for(uint64_t i = start_idx; i < end_idx; ++i) {
+        //double curr_sample_time = (this->sample_start_time + i) / this->sample_rate;
+        // fprintf(stderr, "event_start: %.5lf sample start: %.5lf curr: %.5lf rate: %.2lf\n", event_start_time, this->sample_start_time / this->sample_rate, curr_sample_time, this->sample_rate);
+        //fprintf(stderr, "start_idx: %ld end_idx: %ld curr: %ld\n", start_idx, end_idx, i);
+        //double s = this->samples[i];
+        double s = samples[i];
+        // apply scaling corrections
+        //double scaled_s = s - this->scalings[strand_idx].shift;
+        double scaled_s = s - scaling.shift;
+        //assert(curr_sample_time >= (this->sample_start_time / this->sample_rate));
+        //scaled_s -= (curr_sample_time - (this->sample_start_time / this->sample_rate)) * this->scalings[strand_idx].drift;
+        //scaled_s -= (i - start_idx) * scaling.drift; //drift is always 0
+        //scaled_s /= this->scalings[strand_idx].scale;
+        scaled_s /= scaling.scale;
+        out.push_back(scaled_s);
+    }
+    return out;
+}
+
+char *emit_event_alignment_tsv(uint32_t strand_idx,
+                              const event_table* et, model_t* model, uint32_t kmer_size, scalings_t scalings,
                               const std::vector<event_alignment_t>& alignments,
-                              int8_t print_read_names, int8_t scale_events, int8_t write_samples,
-                              int64_t read_index, char* read_name, char *ref_name,float sample_rate)
+                              int8_t print_read_names, int8_t scale_events, int8_t write_samples, int8_t write_signal_index,
+                              int64_t read_index, char* read_name, char *ref_name,float sample_rate, float *rawptr)
 {
     //assert(params.alphabet == "");
     //const PoreModel* pore_model = params.get_model();
     //uint32_t k = pore_model->k;
+
+    kstring_t str;
+    kstring_t *sp = &str;
+    str_init(sp, sizeof(char)*alignments.size()*120);
+
     for(size_t i = 0; i < alignments.size(); ++i) {
 
         const event_alignment_t& ea = alignments[i];
@@ -1875,7 +1896,7 @@ void emit_event_alignment_tsv(FILE* fp,
         // basic information
         if (!print_read_names)
         {
-            fprintf(fp, "%s\t%d\t%s\t%ld\t%c\t",
+            sprintf_append(sp, "%s\t%d\t%s\t%ld\t%c\t",
                     ref_name, //ea.ref_name.c_str(),
                     ea.ref_position,
                     ea.ref_kmer,
@@ -1884,7 +1905,7 @@ void emit_event_alignment_tsv(FILE* fp,
         }
         else
         {
-            fprintf(fp, "%s\t%d\t%s\t%s\t%c\t",
+            sprintf_append(sp, "%s\t%d\t%s\t%s\t%c\t",
                     ref_name, //ea.ref_name.c_str(),
                     ea.ref_position,
                     ea.ref_kmer,
@@ -1896,7 +1917,7 @@ void emit_event_alignment_tsv(FILE* fp,
         float event_mean = (et->event)[ea.event_idx].mean;
         float event_stdv = (et->event)[ea.event_idx].stdv;
         float event_duration = get_duration_seconds(et, ea.event_idx, sample_rate);
-        uint32_t rank = get_kmer_rank(ea.model_kmer, KMER_SIZE);
+        uint32_t rank = get_kmer_rank(ea.model_kmer, kmer_size);
         float model_mean = 0.0;
         float model_stdv = 0.0;
 
@@ -1923,26 +1944,35 @@ void emit_event_alignment_tsv(FILE* fp,
         }
 
         float standard_level = (event_mean - model_mean) / (sqrt(scalings.var) * model_stdv);
-        fprintf(fp, "%d\t%.2lf\t%.3lf\t%.5lf\t", ea.event_idx, event_mean, event_stdv, event_duration);
-        fprintf(fp, "%s\t%.2lf\t%.2lf\t%.2lf", ea.model_kmer,
+        sprintf_append(sp, "%d\t%.2f\t%.3f\t%.5f\t", ea.event_idx, event_mean, event_stdv, event_duration);
+        sprintf_append(sp, "%s\t%.2f\t%.2f\t%.2f", ea.model_kmer,
                                                model_mean,
                                                model_stdv,
                                                standard_level);
 
-        if(write_samples) {
-            assert(0);
-            //todo : implement this
-            // std::vector<float> samples = get_scaled_samples_for_event(ea.strand_idx, ea.event_idx);
-            // std::stringstream sample_ss;
-            // std::copy(samples.begin(), samples.end(), std::ostream_iterator<float>(sample_ss, ","));
-
-            // // remove training comma
-            // std::string sample_str = sample_ss.str();
-            // sample_str.resize(sample_str.size() - 1);
-            // fprintf(fp, "\t%s", sample_str.c_str());
+        if(write_signal_index) {
+            uint64_t start_idx = (et->event)[ea.event_idx].start;
+            uint64_t end_idx = (et->event)[ea.event_idx].start + (uint64_t)((et->event)[ea.event_idx].length);
+            sprintf_append(sp, "\t%lu\t%lu", start_idx, end_idx);
         }
-        fprintf(fp, "\n");
+
+        if(write_samples) {
+            //std::vector<float> samples = get_scaled_samples_for_event(ea.strand_idx, ea.event_idx);
+            std::vector<float> samples = get_scaled_samples_for_event(et, scalings, ea.event_idx, rawptr);
+            std::stringstream sample_ss;
+            std::copy(samples.begin(), samples.end(), std::ostream_iterator<float>(sample_ss, ","));
+
+            // remove training comma
+            std::string sample_str = sample_ss.str();
+            sample_str.resize(sample_str.size() - 1);
+            sprintf_append(sp, "\t%s", sample_str.c_str());
+        }
+        sprintf_append(sp, "\n");
     }
+
+
+    //str_free(sp); //freeing is later done in free_db_tmp()
+    return sp->s;
 }
 
 
@@ -1953,7 +1983,7 @@ void realign_read(std::vector<event_alignment_t>* event_alignment_result,Evental
                   size_t read_idx,
                   int region_start,
                   int region_end,
-                  event_table* events, model_t* model, index_pair_t* base_to_event_map, scalings_t scalings,
+                  event_table* events, model_t* model, uint32_t kmer_size, index_pair_t* base_to_event_map, scalings_t scalings,
                   double events_per_base, float sample_rate)
 {
     // Load a squiggle read for the mapped read
@@ -1980,6 +2010,7 @@ void realign_read(std::vector<event_alignment_t>* event_alignment_result,Evental
         //params.sr = &sr; -- hasindu : we have to get rid of this sr
         params.et = events; // hasindu : what is required inside the sr is to be added like this
         params.model = model; // hasindu : what is required inside the sr is to be added like this
+        params.kmer_size = kmer_size;
         //params.fai = fai;
         //params.hdr = hdr;
         params.record = record;

@@ -56,9 +56,9 @@ done
 
 test_suit1 () {
 
+	echo "***************Doing ecoli based CPU tests**************************"
 	make clean
 	make -j8
-	echo "-----------------Doing ecoli based CPU tests-------------------------"
 	echo "Methylation calling"
 	scripts/test.sh 2> ecoli_methcalling.log || die "failed"
 	echo "____________________________________________________________________"
@@ -73,19 +73,24 @@ test_suit1 () {
 	echo "____________________________________________________________________"
 	echo "index"
 	scripts/test_index.sh 2> ecoli_index.log || die "failed"
-	echo ""
+	echo "____________________________________________________________________"
+	echo "valgrind methcall"
+	scripts/test.sh valgrind 2> valgrind_methcall.log || die "failed"
+	echo "____________________________________________________________________"
+	echo "custom 6-mer models"
+	scripts/test.sh custom --kmer-model test/r9-models/r9.4_450bps.nucleotide.6mer.template.model --meth-model test/r9-models/r9.4_450bps.cpg.6mer.template.model 2> custom_6mer_methcall.log || die "failed"
+
 
 	echo ""
-	echo "--------------------------------------------------------------------"
+	echo "********************************************************************"
 	echo ""
 
-	echo "----------------Doing NA12878 based CPU tests-----------------------"
+	echo "***************Doing NA12878 based CPU tests************************"
 	echo "Methylation calling"
 	scripts/test.sh -c 2> na12878_methcalling.log || die "failed"
 	echo "____________________________________________________________________"
 	echo "event alignment"
-	scripts/test_eventalign.sh -c 2> na12878_eventalign.log || echo "failed"
-	#todo set this to die when the event align test script is fixed to accomodate missing entries
+	scripts/test_eventalign.sh -c 2> na12878_eventalign.log || die "failed"
 	echo "____________________________________________________________________"
 	echo "methylation frequency"
 	scripts/test_methfreq.sh -c 2> na12878_methfreq.log || die "failed"
@@ -97,15 +102,26 @@ test_suit1 () {
 	scripts/test_index.sh -c 2> na12878_index.log || die "failed"
 	echo ""
 
+	echo "************************Doing RNA tests*****************************"
+	echo "event alignment"
+	scripts/test_eventalign.sh -e 2> rna_eventalign.log || die "failed"
+	echo "____________________________________________________________________"
+	echo "valgrind eventalign"
+	scripts/test.sh valgrind -e 2> valgrind_rna_eventalign.log || die "failed"
+	echo "____________________________________________________________________"
+
+
+	echo ""
+	echo "*********************************************************************"
+	echo ""
 }
 
 
 test_suit1_cuda () {
 
+	echo "***************Doing ecoli based CUDA tests*************************"
 	make clean
 	make cuda=1 -j8
-
-	echo "---------------Doing ecoli based CUDA tests-------------------------"
 	echo "Methylation calling"
 	scripts/test.sh 2> ecoli_methcalling_cuda.log || die "failed"
 	echo "____________________________________________________________________"
@@ -120,16 +136,15 @@ test_suit1_cuda () {
 	echo "____________________________________________________________________"
 
 	echo ""
-	echo "--------------------------------------------------------------------"
+	echo "*********************************************************************"
 	echo ""
 
-	echo "---------------Doing NA12878 based CUDA tests-----------------------"
+	echo "***************Doing NA12878 based CUDA tests************************"
 	echo "Methylation calling"
 	scripts/test.sh -c 2> na12878_methcalling_cuda.log || die "failed"
 	echo "____________________________________________________________________"
 	echo "event alignment"
-	scripts/test_eventalign.sh -c 2> na12878_eventalign_cuda.log || echo "failed"
-	#todo set this to die when the event align test script is fixed to accomodate missing entries
+	scripts/test_eventalign.sh -c 2> na12878_eventalign_cuda.log || die "failed"
 	echo "____________________________________________________________________"
 	echo "methylation frequency"
 	scripts/test_methfreq.sh -c 2> na12878_methfreq_cuda.log || die "failed"
@@ -138,12 +153,22 @@ test_suit1_cuda () {
 	scripts/test_multifast5.sh -c 2> na12878_multifast5_cuda.log || die "failed"
 	echo "____________________________________________________________________"
 
+	echo "************************Doing RNA tests*****************************"
+	echo "event alignment"
+	scripts/test_eventalign.sh -e 2> rna_eventalign.log || echo "failure ignored until paste is implemented with join in full event align output"
+	echo "____________________________________________________________________"
+
+
+	echo ""
+	echo "*********************************************************************"
+	echo ""
+
 }
 
 
 test_suit2 () {
 
-	echo "---------------Doing NA12878 based CPU tests part 2-----------------------"
+	echo "***************Doing NA12878 based CPU tests part 2******************"
 	echo "Default test"
 	make clean && make
 	"${exepath}" call-methylation -b "${bamfile}" -g "${ref}" -r "${reads}" -t "${NCPU}"  -K1024 -v5 > ${testdir}/result.txt 2> default.log
@@ -181,11 +206,14 @@ test_suit2 () {
 	echo ""
 	echo "____________________________________________________________________"
 
+	echo ""
+	echo "*********************************************************************"
+	echo ""
 }
 
 test_suit2_cuda () {
 
-	echo "---------------Doing NA12878 based CUDA tests part 2 -----------------------"
+	echo "*****************Doing NA12878 based CUDA tests part 2**************"
 	echo "CUDA test"
 	make clean && make cuda=1
 	"${exepath}" call-methylation -b "${bamfile}" -g "${ref}" -r "${reads}" -t "${NCPU}"  -K256 -v5 > ${testdir}/result.txt 2> default_cuda.log
@@ -208,22 +236,62 @@ test_suit2_cuda () {
 	echo ""
 	echo "____________________________________________________________________"
 
+	echo ""
+	echo "*********************************************************************"
+	echo ""
 }
 
 #these are redundant for cuda
 test_suit_eventalign_extra () {
+
+	echo "************************event align extra tests**********************"
 	echo "valgrind test"
-	scripts/test_eventalign.sh valgrind 2> valgrind_event_align.txt
+	scripts/test_eventalign.sh valgrind 2> valgrind_event_align.txt || die "failed"
 	echo ""
 	echo "____________________________________________________________________"
 
 	echo "Event align parameter tests"
-	scripts/test_eventalign_parameters.sh 2> event_align_parameters.txt
+	scripts/test_eventalign_parameters.sh 2> event_align_parameters.txt || die "failed"
 	echo ""
 	echo "____________________________________________________________________"
 
+	echo ""
+	echo "*********************************************************************"
+	echo ""
 }
 
+test_suit_compile_extra () {
+
+	echo "**************************CUDA extra compilation tests**************"
+
+	echo "CUDA test : GPU only"
+	sed -i  's/\#define CPU\_GPU\_PROC.*//' src/f5cmisc.cuh
+	make clean && make cuda=1
+	scripts/test.sh -K10 2> compile_gpu_only.log
+	git checkout src/f5cmisc.cuh
+	echo ""
+	echo "____________________________________________________________________"
+
+	echo "CUDA test : WARP HACK disabled"
+	sed -i  's/\#define WARP\_HACK.*//' src/f5cmisc.cuh
+	make clean && make cuda=1
+	scripts/test.sh 2> compile_warphack_disabled.log
+	git checkout src/f5cmisc.cuh
+	echo ""
+	echo "____________________________________________________________________"
+
+	echo "CUDA test : PRE MALLOC disabled"
+	sed -i  's/\#define CUDA\_PRE\_MALLOC.*//' src/f5c_gpuonly.cu
+	make clean && CUDA_CFLAGS+="-DCUDA_DYNAMIC_MALLOC=1" make cuda=1
+	scripts/test.sh 2> compile_premalloc_disabled.log
+	git checkout src/f5c_gpuonly.cu
+	echo ""
+	echo "____________________________________________________________________"
+
+	echo ""
+	echo "*********************************************************************"
+	echo ""
+}
 
 help_msg() {
 	echo "Extensive test script for f5c."
@@ -247,6 +315,7 @@ done
 shift $(($OPTIND - 1))
 mode=$1
 
+rm -rf *.log
 if [ "$mode" = "cpu" -o  "$mode" = "all" ]; then
 	test_suit1
 	test_suit2
@@ -255,10 +324,12 @@ fi
 if [ "$mode" = "gpu" -o  "$mode" = "all" ]; then
 	test_suit1_cuda
 	test_suit2_cuda
+	test_suit_compile_extra
 fi
 if ! [ "$mode" = "cpu" -o "$mode" = "gpu" -o "$mode" = "all" ]; then
 	help_msg
 	exit 2;
 fi
 
+echo "all done"
 exit 0

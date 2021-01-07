@@ -84,11 +84,11 @@ mode_test() {
 	fi
 
 	case $1 in
-		valgrind) valgrind $cmd > /dev/null;;
+		valgrind) valgrind --leak-check=full --error-exitcode=1 $cmd > /dev/null || die "valgrind failed" ;;
 		gdb) gdb --args "$cmd";;
 		cpu) $cmd --disable-cuda=yes > ${testdir}/result.txt; execute_test;;
 		cuda) $cmd --disable-cuda=no > ${testdir}/result.txt; execute_test;;
-		echo) echo "$cmd -t $threads > ${testdir}/result.txt";;
+		echo) echo "$cmd  > ${testdir}/result.txt";;
 		nvprof) nvprof  -f --analysis-metrics -o profile.nvprof "$cmd" --disable-cuda=no --debug-break=5 > /dev/null;;
 		custom) shift; $cmd "$@" > ${testdir}/result.txt; execute_test;;
 		*) die "Unknown mode: $1";;

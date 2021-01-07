@@ -24,8 +24,10 @@ Error counter for consecutive failures in the skip unreadable mode
 not all the memory allocations are needed for eventalign mode
 */
 
+/* initialise the core data structure */
 core_t* init_core(const char* bamfilename, const char* fastafile,
                   const char* fastqfile, const char* tmpfile, opt_t opt,double realtime0, int8_t mode, char *eventalignsummary) {
+
     core_t* core = (core_t*)malloc(sizeof(core_t));
     MALLOC_CHK(core);
 
@@ -99,22 +101,35 @@ core_t* init_core(const char* bamfilename, const char* fastafile,
     core->readbb->load(fastqfile);
 
     //model
-    core->model = (model_t*)malloc(sizeof(model_t) * NUM_KMER); //4096 is 4^6 which is hardcoded now
+    core->model = (model_t*)malloc(sizeof(model_t) * MAX_NUM_KMER); //4096 is 4^6 which is hardcoded now
     MALLOC_CHK(core->model);
-    core->cpgmodel = (model_t*)malloc(sizeof(model_t) * NUM_KMER_METH); //15625 is 4^6 which os hardcoded now
+    core->cpgmodel = (model_t*)malloc(sizeof(model_t) * MAX_NUM_KMER_METH); //15625 is 4^6 which os hardcoded now
     MALLOC_CHK(core->cpgmodel);
 
     //load the model from files
+    uint32_t kmer_size=0;
+    uint32_t kmer_size_meth=0;
     if (opt.model_file) {
-        read_model(core->model, opt.model_file, NUM_KMER);
+        kmer_size=read_model(core->model, opt.model_file, MODEL_TYPE_NUCLEOTIDE);
     } else {
-        set_model(core->model);
+        if(opt.flag & F5C_RNA){
+            INFO("%s","builtin RNA nucleotide model loaded");
+            kmer_size=set_model(core->model, MODEL_ID_RNA_NUCLEOTIDE);
+        }
+        else{
+            kmer_size=set_model(core->model, MODEL_ID_DNA_NUCLEOTIDE);
+        }
     }
     if (opt.meth_model_file) {
-        read_model(core->cpgmodel, opt.meth_model_file, NUM_KMER_METH);
+        kmer_size_meth=read_model(core->cpgmodel, opt.meth_model_file, MODEL_TYPE_METH);
     } else {
-        set_cpgmodel(core->cpgmodel);
+        kmer_size_meth=set_model(core->cpgmodel, MODEL_ID_DNA_CPG);
     }
+    if( mode==0 && kmer_size != kmer_size_meth){
+        ERROR("The k-mer size of the nucleotide model (%d) and the methylation model (%d) should be the same.",kmer_size,kmer_size_meth);
+        exit(EXIT_FAILURE);
+    }
+    core->kmer_size = kmer_size;
 
     core->opt = opt;
 
@@ -134,6 +149,8 @@ core_t* init_core(const char* bamfilename, const char* fastafile,
     core->align_time=0;
     core->est_scale_time=0;
     core->meth_time=0;
+
+    core->output_time=0;
 
     //cuda stuff
 #ifdef HAVE_CUDA
@@ -170,6 +187,7 @@ core_t* init_core(const char* bamfilename, const char* fastafile,
     return core;
 }
 
+/* free the core data structure */
 void free_core(core_t* core,opt_t opt) {
     free(core->model);
     free(core->cpgmodel);
@@ -203,6 +221,7 @@ void free_core(core_t* core,opt_t opt) {
     free(core);
 }
 
+/* initialise a data batch */
 db_t* init_db(core_t* core) {
     db_t* db = (db_t*)(malloc(sizeof(db_t)));
     MALLOC_CHK(db);
@@ -282,20 +301,28 @@ db_t* init_db(core_t* core) {
 
         db->event_alignment_result = (std::vector<event_alignment_t> **)malloc(sizeof(std::vector<event_alignment_t> *) * db->capacity_bam_rec);
         MALLOC_CHK(db->event_alignment_result);
+
+        db->event_alignment_result_str = (char **)malloc(sizeof(char *) * db->capacity_bam_rec);
+        MALLOC_CHK(db->event_alignment_result_str);
+
         for (i = 0; i < db->capacity_bam_rec; ++i) {
             db->event_alignment_result[i] = new std::vector<event_alignment_t> ;
             NULL_CHK(db->event_alignment_result[i]);
             (db->eventalign_summary[i]).num_events=0; //done here in the same loop for efficiency
+            db->event_alignment_result_str[i] = NULL;
         }
+
     }
     else{
         db->eventalign_summary = NULL;
         db->event_alignment_result = NULL;
+        db->event_alignment_result_str = NULL;
     }
 
     return db;
 }
 
+/* load a data batch from disk */
 ret_status_t load_db(core_t* core, db_t* db) {
     if(core->opt.num_iop == 1){
         return load_db1(core,db);
@@ -373,46 +400,55 @@ void* pthread_single(void* voidargs) {
 
 
 void pthread_db(core_t* core, db_t* db, void (*func)(core_t*,db_t*,int)){
-    //create threads
-    pthread_t tids[core->opt.num_thread];
-    pthread_arg_t pt_args[core->opt.num_thread];
-    int32_t t, ret;
-    int32_t i = 0;
-    int32_t num_thread = core->opt.num_thread;
-    int32_t step = (db->n_bam_rec + num_thread - 1) / num_thread;
-    //todo : check for higher num of threads than the data
-    //current works but many threads are created despite
 
-    //set the data structures
-    for (t = 0; t < num_thread; t++) {
-        pt_args[t].core = core;
-        pt_args[t].db = db;
-        pt_args[t].starti = i;
-        i += step;
-        if (i > db->n_bam_rec) {
-            pt_args[t].endi = db->n_bam_rec;
-        } else {
-            pt_args[t].endi = i;
+    if (core->opt.num_thread == 1) {
+        int i;
+        for (i = 0; i < db->n_bam_rec; i++) {
+            func(core,db,i);
         }
-        pt_args[t].func=func;
-    #ifdef WORK_STEAL
-        pt_args[t].all_pthread_args =  (void *)pt_args;
-    #endif
-        //fprintf(stderr,"t%d : %d-%d\n",t,pt_args[t].starti,pt_args[t].endi);
-
     }
+    else{
+        //create threads
+        pthread_t tids[core->opt.num_thread];
+        pthread_arg_t pt_args[core->opt.num_thread];
+        int32_t t, ret;
+        int32_t i = 0;
+        int32_t num_thread = core->opt.num_thread;
+        int32_t step = (db->n_bam_rec + num_thread - 1) / num_thread;
+        //todo : check for higher num of threads than the data
+        //current works but many threads are created despite
 
-    //create threads
-    for(t = 0; t < core->opt.num_thread; t++){
-        ret = pthread_create(&tids[t], NULL, pthread_single,
-                                (void*)(&pt_args[t]));
-        NEG_CHK(ret);
-    }
+        //set the data structures
+        for (t = 0; t < num_thread; t++) {
+            pt_args[t].core = core;
+            pt_args[t].db = db;
+            pt_args[t].starti = i;
+            i += step;
+            if (i > db->n_bam_rec) {
+                pt_args[t].endi = db->n_bam_rec;
+            } else {
+                pt_args[t].endi = i;
+            }
+            pt_args[t].func=func;
+        #ifdef WORK_STEAL
+            pt_args[t].all_pthread_args =  (void *)pt_args;
+        #endif
+            //fprintf(stderr,"t%d : %d-%d\n",t,pt_args[t].starti,pt_args[t].endi);
 
-    //pthread joining
-    for (t = 0; t < core->opt.num_thread; t++) {
-        int ret = pthread_join(tids[t], NULL);
-        NEG_CHK(ret);
+        }
+
+        //create threads
+        for(t = 0; t < core->opt.num_thread; t++){
+            ret = pthread_create(&tids[t], NULL, pthread_single,
+                                    (void*)(&pt_args[t]));
+            NEG_CHK(ret);
+        }
+
+        //pthread joining
+        for (t = 0; t < core->opt.num_thread; t++) {
+            int ret = pthread_join(tids[t], NULL);
+            NEG_CHK(ret);
+        }
     }
 }
 
@@ -430,7 +466,12 @@ void event_single(core_t* core,db_t* db, int32_t i) {
     for (int32_t j = 0; j < nsample; j++) {
         rawptr[j] = (rawptr[j] + offset) * raw_unit;
     }
-    db->et[i] = getevents(db->f5[i]->nsample, rawptr);
+
+    int8_t rna=0;
+    if (core->opt.flag & F5C_RNA){
+        rna=1;
+    }
+    db->et[i] = getevents(db->f5[i]->nsample, rawptr, rna);
 
     // if(db->et[i].n/(float)db->read_len[i] > 20){
     //     fprintf(stderr,"%s\tevents_per_base\t%f\tread_len\t%d\n",bam_get_qname(db->bam_rec[i]), db->et[i].n/(float)db->read_len[i],db->read_len[i]);
@@ -438,25 +479,26 @@ void event_single(core_t* core,db_t* db, int32_t i) {
 
     //get the scalings
     db->scalings[i] = estimate_scalings_using_mom(
-        db->read[i], db->read_len[i], core->model, db->et[i]);
+        db->read[i], db->read_len[i], core->model, core->kmer_size, db->et[i]);
 
-}
-
-void event_db(core_t* core, db_t* db){
-
-    if (core->opt.num_thread == 1) {
-        int32_t i=0;
-        for (i = 0; i < db->n_bam_rec; i++) {
-            event_single(core,db,i);
+    //If sequencing RNA, reverse the events to be 3'->5'
+    if (rna){
+        event_t *events = db->et[i].event;
+        size_t n_events = db->et[i].n;
+        for (size_t i = 0; i < n_events/2; ++i) {
+            event_t tmp_event = events[i];
+            events[i]=events[n_events-1-i];
+            events[n_events-1-i]=tmp_event;
         }
-
     }
 
-    else {
-        pthread_db(core,db,event_single);
-    }
+    //allocate memory for the next alignment step
+    db->event_align_pairs[i] = (AlignedPair*)malloc(
+                sizeof(AlignedPair) * db->et[i].n * 2); //todo : find a good heuristic to save memory
+    MALLOC_CHK(db->event_align_pairs[i]);
 
 }
+
 
 void scaling_single(core_t* core, db_t* db, int32_t i){
 
@@ -464,7 +506,7 @@ void scaling_single(core_t* core, db_t* db, int32_t i){
     db->n_event_alignment[i] = 0;
     db->events_per_base[i] = 0; //todo : is double needed? not just int8?
 
-    int32_t n_kmers = db->read_len[i] - KMER_SIZE + 1;
+    int32_t n_kmers = db->read_len[i] - core->kmer_size + 1;
     db->base_to_event_map[i]=(index_pair_t*)(malloc(sizeof(index_pair_t) * n_kmers));
     MALLOC_CHK(db->base_to_event_map[i]);
 
@@ -483,7 +525,7 @@ void scaling_single(core_t* core, db_t* db, int32_t i){
         //todo : verify if this n is needed is needed
         db->n_event_alignment[i] = postalign(
             db->event_alignment[i],db->base_to_event_map[i], &db->events_per_base[i], db->read[i],
-            n_kmers, db->event_align_pairs[i], db->n_event_align_pairs[i]);
+            n_kmers, db->event_align_pairs[i], db->n_event_align_pairs[i], core->kmer_size);
 
         //fprintf(stderr,"n_event_alignment %d\n",n_events);
 
@@ -492,7 +534,7 @@ void scaling_single(core_t* core, db_t* db, int32_t i){
 
         // internally this function will set shift/scale/etc of the pore model
         bool calibrated = recalibrate_model(
-            core->model, db->et[i], &db->scalings[i],
+            core->model, core->kmer_size, db->et[i], &db->scalings[i],
             db->event_alignment[i], db->n_event_alignment[i], 1);
 
         // QC calibration
@@ -528,25 +570,14 @@ void scaling_single(core_t* core, db_t* db, int32_t i){
 
 }
 
-void scaling_db(core_t* core, db_t* db){
-    if (core->opt.num_thread == 1) {
-        int32_t i=0;
-        for (i = 0; i < db->n_bam_rec; i++) {
-            scaling_single(core,db,i);
-        }
-
-    }
-    else {
-        pthread_db(core,db,scaling_single);
-    }
-}
-
+/* align a single read specified by index i (perform ABEA for a single read) */
+//note that this is used in f5c.cu and thus modifications must be done with care
 void align_single(core_t* core, db_t* db, int32_t i) {
 
     if ((db->et[i].n)/(float)(db->read_len[i]) < AVG_EVENTS_PER_KMER_MAX){
         db->n_event_align_pairs[i] = align(
                 db->event_align_pairs[i], db->read[i], db->read_len[i], db->et[i],
-                core->model, db->scalings[i], db->f5[i]->sample_rate);
+                core->model, core->kmer_size, db->scalings[i], db->f5[i]->sample_rate);
             //fprintf(stderr,"readlen %d,n_events %d\n",db->read_len[i],n_event_align_pairs);
     }
     else{//todo : too many avg events per base - oversegmented
@@ -557,7 +588,7 @@ void align_single(core_t* core, db_t* db, int32_t i) {
     }
 }
 
-
+/* align a data batch (perform ABEA for a data batch) */
 void align_db(core_t* core, db_t* db) {
 #ifdef HAVE_CUDA
     if (!(core->opt.flag & F5C_DISABLE_CUDA)) {
@@ -568,140 +599,57 @@ void align_db(core_t* core, db_t* db) {
 
     if (core->opt.flag & F5C_DISABLE_CUDA) {
         //fprintf(stderr, "cpu\n");
-        if (core->opt.num_thread == 1) {
-            int i;
-            for (i = 0; i < db->n_bam_rec; i++) {
-                align_single(core, db, i);
-            }
-        } else {
-            pthread_db(core, db, align_single);
-        }
+        pthread_db(core, db, align_single);
     }
 }
 
+
+void eventalign_single(core_t* core, db_t* db, int32_t i){
+    realign_read(db->event_alignment_result[i], &(db->eventalign_summary[i]),core->event_summary_fp, db->fasta_cache[i],core->m_hdr,
+                  db->bam_rec[i],db->read_len[i],
+                  i,
+                  core->clip_start,
+                  core->clip_end,
+                  &(db->et[i]), core->model,core->kmer_size, db->base_to_event_map[i],db->scalings[i],db->events_per_base[i],db->f5[i]->sample_rate);
+
+    char* qname = bam_get_qname(db->bam_rec[i]);
+    char* contig = core->m_hdr->target_name[db->bam_rec[i]->core.tid];
+    std::vector<event_alignment_t> *event_alignment_result = db->event_alignment_result[i];
+    int8_t print_read_names = (core->opt.flag & F5C_PRINT_RNAME) ? 1 : 0;
+    int8_t scale_events = (core->opt.flag & F5C_SCALE_EVENTS) ? 1 : 0;
+    int8_t write_samples = (core->opt.flag & F5C_PRINT_SAMPLES) ? 1 : 0;
+    int8_t write_signal_index = (core->opt.flag & F5C_PRINT_SIGNAL_INDEX) ? 1 : 0;
+    int8_t sam_output = (core->opt.flag & F5C_SAM) ? 1 : 0;
+
+    if(sam_output==0){
+        db->event_alignment_result_str[i] = emit_event_alignment_tsv(0,&(db->et[i]),core->model,core->kmer_size, db->scalings[i],*event_alignment_result, print_read_names, scale_events, write_samples, write_signal_index,
+                   db->read_idx[i], qname, contig, db->f5[i]->sample_rate, db->f5[i]->rawptr);
+
+    }
+}
 
 void meth_single(core_t* core, db_t* db, int32_t i){
     if(!db->read_stat_flag[i]){
         if(core->mode==0){
             calculate_methylation_for_read(db->site_score_map[i], db->fasta_cache[i], db->bam_rec[i], db->read_len[i], db->et[i].event, db->base_to_event_map[i],
-            db->scalings[i], core->cpgmodel,db->events_per_base[i]);
+            db->scalings[i], core->cpgmodel, core->kmer_size, db->events_per_base[i]);
         }
         else if (core->mode==1){
-            realign_read(db->event_alignment_result[i], &(db->eventalign_summary[i]),core->event_summary_fp, db->fasta_cache[i],core->m_hdr,
-                  db->bam_rec[i],db->read_len[i],
-                  i,
-                  core->clip_start,
-                  core->clip_end,
-                  &(db->et[i]), core->model,db->base_to_event_map[i],db->scalings[i],db->events_per_base[i], db->f5[i]->sample_rate);
+            eventalign_single(core,db,i);
         }
     }
 }
-
-void meth_db(core_t* core, db_t* db) {
-    if (core->opt.num_thread == 1) {
-        int i;
-        for (i = 0; i < db->n_bam_rec; i++) {
-            meth_single(core, db, i);
-        }
-    }
-    else {
-        pthread_db(core, db, meth_single);
-    }
-}
-
 
 
 void process_single(core_t* core, db_t* db,int32_t i) {
-
     event_single(core,db,i);
-
-    db->event_align_pairs[i] = (AlignedPair*)malloc(
-        sizeof(AlignedPair) * db->et[i].n * 2); //todo : find a good heuristic to save memory //todo : save memory by freeing here itself
-    MALLOC_CHK(db->event_align_pairs[i]);
-
     align_single(core, db,i);
-
-    db->event_alignment[i] = NULL;
-    db->n_event_alignment[i] = 0;
-    db->events_per_base[i] = 0; //todo : is double needed? not just float?
-
-    int32_t n_kmers = db->read_len[i] - KMER_SIZE + 1;
-    db->base_to_event_map[i]=(index_pair_t*)(malloc(sizeof(index_pair_t) * n_kmers));
-    MALLOC_CHK(db->base_to_event_map[i]);
-
-    if (db->n_event_align_pairs[i] > 0) {
-        // prepare data structures for the final calibration
-
-        db->event_alignment[i] = (event_alignment_t*)malloc(
-            sizeof(event_alignment_t) * db->n_event_align_pairs[i]);
-        MALLOC_CHK(db->event_alignment[i]);
-
-        // for (int j = 0; j < n_event_align_pairs; ++j) {
-        //     fprintf(stderr, "%d-%d\n",event_align_pairs[j].ref_pos,event_align_pairs[j].read_pos);
-        // }
-
-
-        //todo : verify if this n is needed is needed
-        db->n_event_alignment[i] = postalign(
-            db->event_alignment[i],db->base_to_event_map[i], &db->events_per_base[i], db->read[i],
-            n_kmers, db->event_align_pairs[i], db->n_event_align_pairs[i]);
-
-        //fprintf(stderr,"n_event_alignment %d\n",n_events);
-
-        // run recalibration to get the best set of scaling parameters and the residual
-        // between the (scaled) event levels and the model.
-
-        // internally this function will set shift/scale/etc of the pore model
-        bool calibrated = recalibrate_model(
-            core->model, db->et[i], &db->scalings[i],
-            db->event_alignment[i], db->n_event_alignment[i], 1);
-
-        // QC calibration
-        if (!calibrated || db->scalings[i].var > MIN_CALIBRATION_VAR) {
-            //     events[strand_idx].clear();
-            free(db->event_alignment[i]);
-            //free(db->event_align_pairs[i]);
-            db->read_stat_flag[i] |= FAILED_CALIBRATION;
-            return;
-        }
-
-        free(db->event_alignment[i]);
-
-    } else {
-        // Could not align, fail this read
-        // this->events[strand_idx].clear();
-        // this->events_per_base[strand_idx] = 0.0f;
-        //free(db->event_align_pairs[i]);
-        db->read_stat_flag[i] |= FAILED_ALIGNMENT;
-        return;
-    }
-
-    // Filter poor quality reads that have too many "stays"
-
-    if (db->events_per_base[i] > 5.0) {
-        //     events[0].clear();
-        //     events[1].clear();
-        //free(db->event_align_pairs[i]);
-        db->read_stat_flag[i] |= FAILED_QUALITY_CHK;
-        return;
-    }
-
-    if(core->mode==0){
-        calculate_methylation_for_read(db->site_score_map[i], db->fasta_cache[i], db->bam_rec[i], db->read_len[i], db->et[i].event, db->base_to_event_map[i],
-            db->scalings[i], core->cpgmodel,db->events_per_base[i]);
-    }
-
-    else if(core->mode==1){
-        //hack
-        realign_read(db->event_alignment_result[i], &(db->eventalign_summary[i]),core->event_summary_fp,db->fasta_cache[i],core->m_hdr,
-                  db->bam_rec[i],db->read_len[i],
-                  i,
-                  core->clip_start,
-                  core->clip_end,
-                  &(db->et[i]), core->model,db->base_to_event_map[i],db->scalings[i],db->events_per_base[i],db->f5[i]->sample_rate);
-    }
+    scaling_single(core,db,i);
+    meth_single(core,db,i);
 }
 
+/* completely process a data batch
+   (all steps: event detection, adaptive banded event alignment, ...., HMM) */
 void process_db(core_t* core, db_t* db) {
 
     double process_start = realtime();
@@ -709,21 +657,14 @@ void process_db(core_t* core, db_t* db) {
     if((core->opt.flag&F5C_SEC_PROF) || (!(core->opt.flag & F5C_DISABLE_CUDA))){
 
         double realtime0=core->realtime0;
-        int32_t i;
 
         double event_start = realtime();
-        event_db(core,db);
+        pthread_db(core,db,event_single);
         double event_end = realtime();
         core->event_time += (event_end-event_start);
 
         fprintf(stderr, "[%s::%.3f*%.2f] Events computed\n", __func__,
                 realtime() - realtime0, cputime() / (realtime() - realtime0));
-
-        for (i = 0; i < db->n_bam_rec; i++) {
-            db->event_align_pairs[i] = (AlignedPair*)malloc(
-                sizeof(AlignedPair) * db->et[i].n * 2); //todo : find a good heuristic to save memory
-            MALLOC_CHK(db->event_align_pairs[i]);
-        }
 
         double align_start = realtime();
         align_db(core, db);
@@ -734,7 +675,7 @@ void process_db(core_t* core, db_t* db) {
                 realtime() - realtime0, cputime() / (realtime() - realtime0));
 
         double est_scale_start = realtime();
-        scaling_db(core,db);
+        pthread_db(core,db,scaling_single);
         double est_scale_end = realtime();
         core->est_scale_time += (est_scale_end-est_scale_start);
 
@@ -742,7 +683,7 @@ void process_db(core_t* core, db_t* db) {
                 realtime() - realtime0, cputime() / (realtime() - realtime0));
 
         double meth_start = realtime();
-        meth_db(core,db);
+        pthread_db(core, db, meth_single);
         double meth_end = realtime();
         core->meth_time += (meth_end-meth_start);
 
@@ -771,7 +712,11 @@ void process_db(core_t* core, db_t* db) {
     return;
 }
 
+/* write the output for a processed data batch */
 void output_db(core_t* core, db_t* db) {
+
+    double output_start = realtime();
+
     if (core->opt.flag & F5C_PRINT_EVENTS) {
         int32_t i = 0;
         for (i = 0; i < db->n_bam_rec; i++) {
@@ -876,14 +821,18 @@ void output_db(core_t* core, db_t* db) {
                     fprintf(summary_fp, "%.2lf\t%.3lf\t%.3lf\t%.3lf\t%.3lf\n", summary.sum_duration/(db->f5[i]->sample_rate), scalings.shift, scalings.scale, 0.0, scalings.var);
                 }
                 std::vector<event_alignment_t> *event_alignment_result = db->event_alignment_result[i];
-                int8_t print_read_names = (core->opt.flag & F5C_PRINT_RNAME) ? 1 : 0;
-                int8_t scale_events = (core->opt.flag & F5C_SCALE_EVENTS) ? 1 : 0;
-                int8_t write_samples = (core->opt.flag & F5C_PRINT_SAMPLES) ? 1 : 0;
+                char *event_alignment_result_str = db->event_alignment_result_str[i];
+
+                // int8_t print_read_names = (core->opt.flag & F5C_PRINT_RNAME) ? 1 : 0;
+                // int8_t scale_events = (core->opt.flag & F5C_SCALE_EVENTS) ? 1 : 0;
+                // int8_t write_samples = (core->opt.flag & F5C_PRINT_SAMPLES) ? 1 : 0;
+                // int8_t write_signal_index = (core->opt.flag & F5C_PRINT_SIGNAL_INDEX) ? 1 : 0;
                 int8_t sam_output = (core->opt.flag & F5C_SAM) ? 1 : 0;
 
                 if(sam_output==0){
-                    emit_event_alignment_tsv(stdout,0,&(db->et[i]),core->model,db->scalings[i],*event_alignment_result, print_read_names, scale_events, write_samples,
-                              db->read_idx[i], qname, contig, db->f5[i]->sample_rate);
+                    // emit_event_alignment_tsv(stdout,0,&(db->et[i]),core->model,db->scalings[i],*event_alignment_result, print_read_names, scale_events, write_samples, write_signal_index,
+                    //           db->read_idx[i], qname, contig, db->f5[i]->sample_rate, db->f5[i]->rawptr);
+                    fputs(event_alignment_result_str,stdout);
                 }
                 else{
                     emit_event_alignment_sam(core->sam_output , qname, core->m_hdr, db->bam_rec[i], *event_alignment_result);
@@ -906,9 +855,12 @@ void output_db(core_t* core, db_t* db) {
         }
     }
     //core->read_index = core->read_index + db->n_bam_rec;
+    double output_end = realtime();
+    core->output_time += (output_end-output_start);
 
 }
 
+/* partially free a data batch - only the read dependent allocations are freed */
 void free_db_tmp(db_t* db) {
     int32_t i = 0;
     for (i = 0; i < db->n_bam_rec; ++i) {
@@ -928,9 +880,14 @@ void free_db_tmp(db_t* db) {
             delete db->event_alignment_result[i];
             db->event_alignment_result[i] = new std::vector<event_alignment_t>;
         }
+        if(db->event_alignment_result_str){ //eventalign related
+            free(db->event_alignment_result_str[i]);
+            db->event_alignment_result_str[i]=NULL;
+        }
     }
 }
 
+/* completely free a data batch */
 void free_db(db_t* db) {
     int32_t i = 0;
     for (i = 0; i < db->capacity_bam_rec; ++i) {
@@ -965,10 +922,14 @@ void free_db(db_t* db) {
         }
         free(db->event_alignment_result);
     }
+    if(db->event_alignment_result_str){
+        free(db->event_alignment_result_str);
+    }
 
     free(db);
 }
 
+/* initialise user specified options */
 void init_opt(opt_t* opt) {
     memset(opt, 0, sizeof(opt_t));
     opt->min_mapq = 20;

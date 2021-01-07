@@ -17,15 +17,15 @@
 
 #include <vector> //required for eventalign
 
-#define F5C_VERSION "0.5"
+#define F5C_VERSION "0.5-dirty"
 
 /*******************************
  * major hard coded parameters *
  *******************************/
 
-#define KMER_SIZE 6 //hard coded for now; todo : change to dynamic?
-#define NUM_KMER 4096   //num k-mers for 6-mers DNA
-#define NUM_KMER_METH 15625 //number k-mers for 6-mers with methylated C
+#define MAX_KMER_SIZE 6 //maximum k-mer size
+#define MAX_NUM_KMER 4096   //maximum number of k-mers in nucleotide model
+#define MAX_NUM_KMER_METH 15625 //maximum number of k-mers in methylated model
 //#define HAVE_CUDA 1 //if compiled for CUDA or not
 #define ALN_BANDWIDTH 100 // the band size in adaptive_banded_dynamic_alignment
 
@@ -40,7 +40,7 @@
 #define F5C_PRINT_BANDED_ALN 0x010 //print the event alignment
 #define F5C_PRINT_SCALING 0x020 //print the estimated scalings
 #define F5C_DISABLE_CUDA 0x040 //disable cuda (only when compile for cuda)
-//#define F5C_DEBUG_BRK 0x080 //break after the first batch //removed can be reused
+#define F5C_RNA 0x080 //if RNA or not
 #define F5C_SEC_PROF 0x100 //profile section by section (only effective on the CPU mode)
 #define F5C_WR_RAW_DUMP 0x200 //to say if we should write the raw dump of the fast5
 #define F5C_RD_RAW_DUMP 0x400 //to say if we should read the raw dump fof the fast5
@@ -48,7 +48,7 @@
 #define F5C_SCALE_EVENTS 0x1000 // scale events to the model, rather than vice-versa (eventalign only)
 #define F5C_PRINT_RNAME 0x2000 // print read names instead of indexes (eventalign only)
 #define F5C_PRINT_SAMPLES 0x4000 //write the raw samples for the event to the tsv output (eventalign only)
-
+#define F5C_PRINT_SIGNAL_INDEX 0x8000 //write the raw signal start and end index values for the event to the tsv output (eventalign only)
 /*************************************************************
  * flags for a read status (related to db_t->read_stat_flag) *
  *************************************************************/
@@ -185,7 +185,7 @@ typedef struct {
 typedef struct {
     // ref data
     //char* ref_name;
-    char ref_kmer[KMER_SIZE + 1];
+    char ref_kmer[MAX_KMER_SIZE + 1];
     int32_t ref_position;
 
     // event data
@@ -195,7 +195,7 @@ typedef struct {
     bool rc;
 
     // hmm data
-    char model_kmer[KMER_SIZE + 1];
+    char model_kmer[MAX_KMER_SIZE + 1];
     char hmm_state;
 } event_alignment_t;
 
@@ -309,6 +309,8 @@ typedef struct {
     //another extremely ugly hack till converted to C
     //TODO : convert this to a C array and get rid of include <vector>
     std::vector<event_alignment_t> **event_alignment_result;
+    char **event_alignment_result_str;
+
 
 } db_t;
 
@@ -349,6 +351,7 @@ typedef struct {
 
 /* core data structure (mostly static data throughout the program lifetime) */
 typedef struct {
+
     // bam file related
     htsFile* m_bam_fh;
     hts_idx_t* m_bam_idx;
@@ -373,7 +376,8 @@ typedef struct {
 
     // models
     model_t* model; //dna model
-    model_t* cpgmodel;
+    model_t* cpgmodel; //cpg model
+    uint32_t kmer_size;
 
     // options
     opt_t opt;
@@ -396,6 +400,8 @@ typedef struct {
     double align_time;
     double est_scale_time;
     double meth_time;
+
+    double output_time;
 
 
 #ifdef HAVE_CUDA

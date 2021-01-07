@@ -647,7 +647,7 @@ int index_main(int argc, char** argv)
         read_db.print_stats();
         read_db.save();
         if (num_with_path < num_reads * 0.99 ) {
-            WARNING("fast5 files could not be located for %ld reads",num_with_path);
+            WARNING("fast5 files could not be located for %ld reads",num_reads-num_with_path);
         }
     }
     if(opt::verbose > 0) fprintf(stderr, "[%s] Readdb saved - took %.3fs\n", __func__, realtime() - realtime0);
