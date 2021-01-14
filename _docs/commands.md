@@ -20,7 +20,7 @@ f5c(1) - Ultra-fast methylation calling and event alignment tool for nanopore se
   ```
 * event alignment:
   ```
-  f5c eventalign -b [reads.sorted.bam] -g [ref.fa] -r [reads.fastq|fasta] > [events.tsv]
+  f5c eventalign -b [reads.sorted.bam] -g [ref.fa] -r [reads.fastq|fasta] > [events.tsv]	# specify --rna for direct RNA data
   ```
 
 
