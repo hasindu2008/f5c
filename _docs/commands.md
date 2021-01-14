@@ -26,7 +26,7 @@ f5c(1) - Ultra-fast methylation calling and event alignment tool for nanopore se
 
 ## DESCRIPTION
 
-Given a set of base-called nanopore reads and associated raw signals, f5c call-methylation detects the methylated cytosine at genomic CpG cites and f5c eventalign aligns raw nanopore DNA signals (events) to the base-called read. f5c can optionally utilise CUDA enabled NVIDIA graphics cards for acceleration. f5c is a heavily re-engineered and optimised implementation of the call-methylation and eventalign modules in Nanopolish.
+Given a set of base-called nanopore reads and associated raw signals, f5c call-methylation detects the methylated cytosine at genomic CpG cites and f5c eventalign aligns raw nanopore signals (events) to the reference k-mers. f5c can optionally utilise CUDA enabled NVIDIA graphics cards for acceleration. f5c is a heavily re-engineered and optimised implementation of the call-methylation and eventalign modules in Nanopolish.
 
 ## COMMANDS 
 
@@ -126,9 +126,9 @@ Classify nucleotides as methylated or not at genomic CpG cites (optimised nanopo
 * `--skip-unreadable=yes|no`:         
   Whether to skip any unreadable fast5 files or to terminate the program [default value: yes]. If `yes`, the programme will continue to run while skipping unreadable fast5 files. If `no`, the programme will terminate with an error when an unreadable fast5 file is found.
 * `--kmer-model FILE`:         
-  Custom nucleotide 6-mer model file. The file should adhere to the format in [r9.4_450bps.nucleotide.6mer.template.model](https://github.com/hasindu2008/f5c/blob/master/test/r9-models/r9.4_450bps.nucleotide.6mer.template.model). 
+  Custom nucleotide k-mer model file. The file should adhere to the format in [r9.4_450bps.nucleotide.6mer.template.model](https://github.com/hasindu2008/f5c/blob/master/test/r9-models/r9.4_450bps.nucleotide.6mer.template.model). The maximum supported k-mer size is 6.
 * `--meth-model FILE`:         
-  custom methylation 6-mer model file. The file should adhere to the format in [r9.4_450bps.cpg.6mer.template.model](https://github.com/hasindu2008/f5c/blob/master/test/r9-models/r9.4_450bps.cpg.6mer.template.model).
+  custom methylation k-mer model file. The file should adhere to the format in [r9.4_450bps.cpg.6mer.template.model](https://github.com/hasindu2008/f5c/blob/master/test/r9-models/r9.4_450bps.cpg.6mer.template.model). The maximum supported k-mer size is 6.
 * `--meth-out-version INT`:         
   Format version of the output Methylation tsv file. If set to 1, the columns printed adhere to the output format of Nanopolish early versions. If set to 2, adhere to the latest nanopolish output format that additionally includes the strand column and the header num_cpgs renamed to *num_motifs*) [default value: 1]
 * `--cuda-mem-frac FLOAT`:         
@@ -219,6 +219,8 @@ Align nanopore events to reference k-mers (optimised nanopolish eventalign). Not
    Scale events to the model, rather than vice-versa.
 * `--samples`:      
    Write the raw samples for the event to the tsv output.
+* `--rna`:
+   Specify this if the dataset is direct RNA.		
 * `--cuda-mem-frac FLOAT`:           
    Same as for call-methylation.
 
