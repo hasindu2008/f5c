@@ -1,7 +1,7 @@
 .\" generated with Ronn/v0.7.3
 .\" http://github.com/rtomayko/ronn/tree/0.7.3
 .
-.TH "F5C" "1" "October 2020" "" ""
+.TH "F5C" "1" "January 2021" "" ""
 .
 .SH "NAME"
 \fBf5c\fR \- Ultra\-fast methylation calling and event alignment tool for nanopore sequencing data with optional CUDA acceleration
@@ -18,10 +18,10 @@ methylation calling
 .
 .TP
 event alignment
-\fBf5c eventalign \-b [reads\.sorted\.bam] \-g [ref\.fa] \-r [reads\.fastq|fasta] > [events\.tsv]\fR
+\fBf5c eventalign \-b [reads\.sorted\.bam] \-g [ref\.fa] \-r [reads\.fastq|fasta] > [events\.tsv] #specify \-\-rna for direct RNA data\fR
 .
 .SH "DESCRIPTION"
-Given a set of base\-called nanopore reads and associated raw signals, f5c call\-methylation detects the methylated cytosine at genomic CpG cites and f5c eventalign aligns raw nanopore DNA signals (events) to the base\-called read\. f5c can optionally utilise CUDA enabled NVIDIA graphics cards for acceleration\. f5c is a heavily re\-engineered and optimised implementation of the call\-methylation and eventalign modules in Nanopolish\.
+Given a set of base\-called nanopore reads and associated raw signals, f5c call\-methylation detects the methylated cytosine at genomic CpG cites and f5c eventalign aligns raw nanopore signals (events) to the reference k\-mers\. f5c can optionally utilise CUDA enabled NVIDIA graphics cards for acceleration\. f5c is a heavily re\-engineered and optimised implementation of the call\-methylation and eventalign modules in Nanopolish\.
 .
 .SH "COMMANDS"
 .
@@ -259,13 +259,13 @@ Whether to skip any unreadable fast5 files or to terminate the program [default 
 \fB\-\-kmer\-model FILE\fR:
 .
 .br
-Custom nucleotide 6\-mer model file\. The file should adhere to the format in r9\.4_450bps\.nucleotide\.6mer\.template\.model \fIhttps://github\.com/hasindu2008/f5c/blob/master/test/r9\-models/r9\.4_450bps\.nucleotide\.6mer\.template\.model\fR\.
+Custom nucleotide k\-mer model file\. The file should adhere to the format in r9\.4_450bps\.nucleotide\.6mer\.template\.model \fIhttps://github\.com/hasindu2008/f5c/blob/master/test/r9\-models/r9\.4_450bps\.nucleotide\.6mer\.template\.model\fR\. The maximum supported k\-mer size is 6\.
 .
 .IP "\(bu" 4
 \fB\-\-meth\-model FILE\fR:
 .
 .br
-custom methylation 6\-mer model file\. The file should adhere to the format in r9\.4_450bps\.cpg\.6mer\.template\.model \fIhttps://github\.com/hasindu2008/f5c/blob/master/test/r9\-models/r9\.4_450bps\.cpg\.6mer\.template\.model\fR\.
+custom methylation k\-mer model file\. The file should adhere to the format in r9\.4_450bps\.cpg\.6mer\.template\.model \fIhttps://github\.com/hasindu2008/f5c/blob/master/test/r9\-models/r9\.4_450bps\.cpg\.6mer\.template\.model\fR\. The maximum supported k\-mer size is 6\.
 .
 .IP "\(bu" 4
 \fB\-\-meth\-out\-version INT\fR:
@@ -482,6 +482,12 @@ Scale events to the model, rather than vice\-versa\.
 .
 .br
 Write the raw samples for the event to the tsv output\.
+.
+.IP "\(bu" 4
+\fB\-\-rna\fR:
+.
+.br
+Specify this if the dataset is direct RNA\.
 .
 .IP "\(bu" 4
 \fB\-\-cuda\-mem\-frac FLOAT\fR:

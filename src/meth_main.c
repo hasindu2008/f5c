@@ -439,9 +439,9 @@ int meth_main(int argc, char* argv[], int8_t mode) {
         fprintf(fp_help,"   --skip-ultra FILE          skip ultra long reads and write those entries to the bam file provided as the argument\n");
         fprintf(fp_help,"   --ultra-thresh INT         threshold to skip ultra long reads [%ld]\n",(long)opt.ultra_thresh);
         fprintf(fp_help,"   --skip-unreadable=yes|no   skip any unreadable fast5 or terminate program [%s]\n",(opt.flag&F5C_SKIP_UNREADABLE?"yes":"no"));
-        fprintf(fp_help,"   --kmer-model FILE          custom nucleotide 6-mer model file (format similar to test/r9-models/r9.4_450bps.nucleotide.6mer.template.model)\n");
+        fprintf(fp_help,"   --kmer-model FILE          custom nucleotide k-mer model file (format similar to test/r9-models/r9.4_450bps.nucleotide.6mer.template.model)\n");
     if(mode==0){
-        fprintf(fp_help,"   --meth-model FILE          custom methylation 6-mer model file (format similar to test/r9-models/r9.4_450bps.cpg.6mer.template.model)\n");
+        fprintf(fp_help,"   --meth-model FILE          custom methylation k-mer model file (format similar to test/r9-models/r9.4_450bps.cpg.6mer.template.model)\n");
         fprintf(fp_help,"   --meth-out-version INT     methylation tsv output version (set 2 to print the strand column) [%d]\n",opt.meth_out_version);
     }
     if(mode==1){
@@ -451,7 +451,7 @@ int meth_main(int argc, char* argv[], int8_t mode) {
         fprintf(fp_help,"   --scale-events             scale events to the model, rather than vice-versa\n");
         fprintf(fp_help,"   --samples                  write the raw samples for the event to the tsv output\n");
         fprintf(fp_help,"   --signal-index             write the raw signal start and end index values for the event to the tsv output\n");
-        fprintf(fp_help,"   --rna                      if the dataset is direct RNA\n");
+        fprintf(fp_help,"   --rna                      the dataset is direct RNA\n");
     }
 #ifdef HAVE_CUDA
         fprintf(fp_help,"   --cuda-mem-frac FLOAT      Fraction of free GPU memory to allocate [0.9 (0.7 for tegra)]\n");
