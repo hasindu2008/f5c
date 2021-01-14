@@ -3,7 +3,7 @@ title: F5C performance hints
 chart: true
 ---
 
-Due to the vast differences among Nanopore datasets and the computing systems, having a universal set of parameters that gives the best runtime performance (execution time) in each case is impossible. If the default parameters are causing a significant impact on execution time, *f5c* will suggest user to tune the parameters. If pereferred, users can terminate and relaunch *f5c* with better parameters. However, note that there may be false positives and false negatives.
+Due to the vast differences among Nanopore datasets and the computing systems, having a universal set of parameters that gives the best runtime performance (execution time) in each case is impossible. If the default parameters are causing a significant impact on execution time, *f5c* will suggest user to tune the parameters. If preferred, users can terminate and relaunch *f5c* with better parameters. However, note that there may be false positives and false negatives.
 
 ## Table of Contents
 - [Improving I/O performance](#io)
