@@ -219,7 +219,7 @@ Align nanopore events to reference k-mers (optimised nanopolish eventalign). Not
    Scale events to the model, rather than vice-versa.
 * `--samples`:      
    Write the raw samples for the event to the tsv output.
-* `--rna`:
+* `--rna`:      
    Specify this if the dataset is direct RNA.		
 * `--cuda-mem-frac FLOAT`:           
    Same as for call-methylation.
