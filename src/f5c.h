@@ -17,7 +17,7 @@
 
 #include <vector> //required for eventalign
 
-#define F5C_VERSION "0.5-dirty"
+#define F5C_VERSION "0.6"
 
 /*******************************
  * major hard coded parameters *
