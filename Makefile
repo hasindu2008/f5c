@@ -187,3 +187,11 @@ test: $(BINARY)
 
 test_eventalign: $(BINARY)
 	./scripts/test_eventalign.sh
+
+pyf5c:
+	make clean
+	rm -rf *.so
+	rm -rf build/lib.* build/temp.*
+	CC=g++ python3 setup.py build
+	cp build/lib.*/*.so  ./
+	LD_LIBRARY_PATH=htslib/ python3 < python/example.py
