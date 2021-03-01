@@ -1,3 +1,32 @@
+![#f03c15](https://placehold.it/15/f03c15/000000?text=+)  *fastt-ioprof* branch: 
+- SLOW5 prototype implementation (thesis version)
+  -  Used for converting FAST5 to SLOW5 prototype format `f5c fastt fast5_dir > a.fastt`
+  -  Used for indexing SLOW5 prototype format `f5c fastt -i a.fastt`
+- Used for I/O profiling of 
+  -  SLOW5 prototype implementation (thesis version) over multiple I/O threads (uses POSIX AIO)
+      - in `src/ftidx.c`: comment out `#define BGFS_HFILE 1` and uncomment `#define UN_BUFFERED 1`
+      - in `ftidx.h`: uncomment `#define ASYNC 1`
+      ```
+      git clone https://github.com/hasindu2008/f5c -b fastt-ioprof
+      mv f5c/ f5c-fastt-async
+      cd f5c-fastt-async/
+      autoreconf
+      ./configure
+      make -j8
+      ```
+  -  FAST5 over multiple I/O threads
+      - HDF5 thread safe: in `scripts/install-hdf5.sh` change to `./configure  --prefix=`pwd` --enable-threadsafe --disable-hl`
+      - HDF5 close bug fix: in src/fast5lite.h comment out H5Fclose(fh.hdf5_file)
+      ```
+      git clone https://github.com/hasindu2008/f5c -b fastt-ioprof
+      mv f5c/ f5c-fastt
+      cd f5c-fastt/
+      autoreconf
+      scripts/install-hdf5.sh
+      ./configure --enable-localhdf5=yes
+      make -j8   
+      ```
+
 # f5c
 
 An optimised re-implementation of the call-methylation module in [Nanopolish](https://github.com/jts/nanopolish). Given a set of basecalled Nanopore reads and the raw signals, f5c detects the methylated cytosine bases. f5c can optionally utilise NVIDIA graphics cards for acceleration.
