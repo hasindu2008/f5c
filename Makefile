@@ -3,7 +3,7 @@
 
 CC       = gcc
 CXX      = g++
-CFLAGS   += -g -rdynamic -Wall -O2 -std=c++11 
+CFLAGS   += -g -rdynamic -Wall -O2 -std=c++11
 LDFLAGS  += $(LIBS) -lpthread -lz -lrt
 BUILD_DIR = build
 
@@ -14,15 +14,14 @@ OBJ = $(BUILD_DIR)/main.o \
       $(BUILD_DIR)/events.o \
       $(BUILD_DIR)/nanopolish_read_db.o \
       $(BUILD_DIR)/nanopolish_index.o \
-      $(BUILD_DIR)/fastt_main.o \
-	  $(BUILD_DIR)/ftidx.o \
       $(BUILD_DIR)/nanopolish_fast5_io.o \
       $(BUILD_DIR)/model.o \
       $(BUILD_DIR)/align.o \
       $(BUILD_DIR)/meth.o \
       $(BUILD_DIR)/hmm.o \
       $(BUILD_DIR)/freq.o \
-      $(BUILD_DIR)/eventalign.o
+      $(BUILD_DIR)/eventalign.o \
+
 
 PREFIX = /usr/local
 VERSION = `git describe --tags`
@@ -41,7 +40,7 @@ endif
 .PHONY: clean distclean format test install uninstall
 
 $(BINARY): src/config.h $(HTS_LIB) $(HDF5_LIB) $(OBJ)
-	$(CXX) $(CFLAGS) $(OBJ) $(LDFLAGS) $(CUDA_LDFLAGS) -o $@
+	$(CXX) $(CFLAGS) $(OBJ) $(LDFLAGS) $(CUDA_LDFLAGS) src/slow5lib/build/libslow5.a -o $@
 
 $(BUILD_DIR)/main.o: src/main.c src/f5cmisc.h src/error.h
 	$(CXX) $(CFLAGS) $(CPPFLAGS) $< -c -o $@
@@ -49,7 +48,7 @@ $(BUILD_DIR)/main.o: src/main.c src/f5cmisc.h src/error.h
 $(BUILD_DIR)/meth_main.o: src/meth_main.c src/f5c.h src/fast5lite.h src/f5cmisc.h src/logsum.h
 	$(CXX) $(CFLAGS) $(CPPFLAGS) $< -c -o $@
 
-$(BUILD_DIR)/f5c.o: src/f5c.c src/f5c.h src/fast5lite.h src/f5cmisc.h src/ftidx.h
+$(BUILD_DIR)/f5c.o: src/f5c.c src/f5c.h src/fast5lite.h src/f5cmisc.h
 	$(CXX) $(CFLAGS) $(CPPFLAGS) $< -c -o $@
 
 $(BUILD_DIR)/events.o: src/events.c src/f5c.h src/fast5lite.h src/f5cmisc.h src/fast5lite.h src/nanopolish_read_db.h src/ksort.h
@@ -61,11 +60,11 @@ $(BUILD_DIR)/nanopolish_read_db.o: src/nanopolish_read_db.c src/nanopolish_read_
 $(BUILD_DIR)/nanopolish_index.o: src/nanopolish_index.c src/nanopolish_read_db.h src/fast5lite.h
 	$(CXX) $(CFLAGS) $(CPPFLAGS) $< -c -o $@
 
-$(BUILD_DIR)/fastt_main.o: src/fastt_main.c src/f5c.h src/fast5lite.h src/f5cmisc.h src/error.h
-	$(CXX) $(CFLAGS) $(CPPFLAGS) $< -c -o $@
+# $(BUILD_DIR)/fastt_main.o: src/fastt_main.c src/f5c.h src/fast5lite.h src/f5cmisc.h src/error.h
+# 	$(CXX) $(CFLAGS) $(CPPFLAGS) $< -c -o $@
 
-$(BUILD_DIR)/ftidx.o: src/ftidx.c src/ftidx.h
-	$(CXX) $(CFLAGS) $(CPPFLAGS) $< -c -o $@	
+# $(BUILD_DIR)/ftidx.o: src/ftidx.c src/ftidx.h
+# 	$(CXX) $(CFLAGS) $(CPPFLAGS) $< -c -o $@
 
 $(BUILD_DIR)/nanopolish_fast5_io.o: src/nanopolish_fast5_io.c src/fast5lite.h
 	$(CXX) $(CFLAGS) $(CPPFLAGS) $< -c -o $@
@@ -83,14 +82,14 @@ $(BUILD_DIR)/hmm.o: src/hmm.c src/f5c.h src/fast5lite.h src/f5cmisc.h src/matrix
 	$(CXX) $(CFLAGS) $(CPPFLAGS) $< -c -o $@
 
 $(BUILD_DIR)/freq.o: src/freq.c src/khash.h
-	$(CXX) $(CFLAGS) $(CPPFLAGS) $< -c -o $@	
+	$(CXX) $(CFLAGS) $(CPPFLAGS) $< -c -o $@
 
 $(BUILD_DIR)/eventalign.o: src/eventalign.c
 	$(CXX) $(CFLAGS) $(CPPFLAGS) $< -c -o $@
-	
+
 # cuda stuff
 $(BUILD_DIR)/gpucode.o: $(CUDA_OBJ)
-	$(NVCC) $(CUDA_CFLAGS) -dlink $^ -o $@ 
+	$(NVCC) $(CUDA_CFLAGS) -dlink $^ -o $@
 
 $(BUILD_DIR)/f5c_cuda.o: src/f5c.cu src/error.h src/f5c.h src/fast5lite.h src/f5cmisc.cuh src/f5cmisc.h
 	$(NVCC) -x cu $(CUDA_CFLAGS) $(CPPFLAGS) -rdc=true -c $< -o $@
@@ -130,12 +129,12 @@ $(BUILD_DIR)/lib/libhdf5.a:
 	make -j8 && \
 	make install
 
-clean: 
+clean:
 	rm -rf $(BINARY) $(BUILD_DIR)/*.o
 
 # Delete all gitignored files (but not directories)
 distclean: clean
-	git clean -f -X 
+	git clean -f -X
 	rm -rf $(BUILD_DIR)/* autom4te.cache
 
 dist: distclean
@@ -148,7 +147,7 @@ dist: distclean
 	tar -zcf f5c-$(VERSION)-release.tar.gz f5c-$(VERSION)
 	rm -rf f5c-$(VERSION)
 
-binary: 
+binary:
 	mkdir -p f5c-$(VERSION)
 	make clean
 	make cuda=1 && mv f5c f5c-$(VERSION)/f5c_x86_64_linux_cuda && make clean

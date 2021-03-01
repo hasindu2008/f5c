@@ -1,6 +1,6 @@
 /* @f5c
 **
-** f5c interface 
+** f5c interface
 ** @author: Hasindu Gamaarachchi (hasindu@unsw.edu.au)
 ** @@
 ******************************************************************************/
@@ -13,8 +13,9 @@
 #include <htslib/sam.h>
 
 #include "fast5lite.h"
-#include "ftidx.h"
 #include "nanopolish_read_db.h"
+
+#include "slow5lib/src/slow5.h"
 
 //required for eventalign
 #include <vector>
@@ -215,9 +216,9 @@ struct ScoredSite
 
 //eventalign related
 // Summarize the event alignment for a read strand
-typedef struct 
+typedef struct
 {
-    // //cleanup this part    
+    // //cleanup this part
     // EventalignSummary() {
     //     num_events = 0;
     //     num_steps = 0;
@@ -358,7 +359,7 @@ typedef struct {
     ReadDB* readbb;
 
     //fastt
-    ftidx_t *ftidx;
+    slow5_file_t *sf;
 
     // models
     model_t* model; //dna model

@@ -1,6 +1,6 @@
 /* @f5c
 **
-** main 
+** main
 ** @author: Hasindu Gamaarachchi (hasindu@unsw.edu.au)
 ** @@
 ******************************************************************************/
@@ -41,7 +41,6 @@ void sig_handler(int sig) {
 
 int meth_main(int argc, char* argv[], int8_t mode);
 int index_main(int argc, char** argv);
-int fastt_main(int argc, char** argv);
 int freq_main(int argc, char **argv);
 
 int print_usage(FILE *fp_help){
@@ -52,7 +51,6 @@ int print_usage(FILE *fp_help){
     fprintf(fp_help,"         call-methylation    Classify nucleotides as methylated or not (optimised nanopolish call-methylation)\n");
     fprintf(fp_help,"         meth-freq           Calculate methylation frequency at genomic CpG sites (optimised nanopolish calculate_methylation_frequency.py)\n");
     fprintf(fp_help,"         eventalign          Align nanopore events to reference k-mers (optimised nanopolish eventalign)\n");
-    fprintf(fp_help,"         fastt               Convert fast5 files in given directories recursively to fastt (tsv format)\n\n");
 
     if(fp_help==stderr){
         exit(EXIT_FAILURE);
@@ -64,7 +62,7 @@ int print_usage(FILE *fp_help){
         assert(0);
     }
 
-    
+
 }
 
 
@@ -86,13 +84,10 @@ int main(int argc, char* argv[]){
     }
     else if(strcmp(argv[1],"eventalign")==0){
         ret=meth_main(argc-1, argv+1,1);
-    }    
+    }
     else if(strcmp(argv[1],"meth-freq")==0){
         ret=freq_main(argc-1, argv+1);
     }
-    else if(strcmp(argv[1],"fastt")==0){
-        ret=fastt_main(argc-1, argv+1);
-	}    
     else if(strcmp(argv[1],"--version")==0 || strcmp(argv[1],"-V")==0){
         fprintf(stdout,"F5C %s\n",F5C_VERSION);
         exit(EXIT_SUCCESS);
