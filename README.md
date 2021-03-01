@@ -1,3 +1,6 @@
+![#f03c15](https://placehold.it/15/f03c15/000000?text=+)  *fast52tsv* branch: 
+- the very first fast5 to prototypical slow5 conversion
+
 # f5c
 
 An optimised re-implementation of the call-methylation module in [Nanopolish](https://github.com/jts/nanopolish). Given a set of basecalled Nanopore reads and the raw signals, f5c detects the methylated cytosine bases. f5c can optionally utilise NVIDIA graphics cards for acceleration.
