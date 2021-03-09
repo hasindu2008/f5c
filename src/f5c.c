@@ -207,13 +207,13 @@ db_t* init_db(core_t* core) {
     db->f5 = (fast5_t**)malloc(sizeof(fast5_t*) * db->capacity_bam_rec);
     MALLOC_CHK(db->f5);
 
-    if(core->opt.flag & F5C_RD_FASTT){
-        db->f5_cache = (char**)(malloc(sizeof(char*) * db->capacity_bam_rec));
-        MALLOC_CHK(db->f5_cache);
-    }
-    else{
-        db->f5_cache=NULL;
-    }
+    // if(core->opt.flag & F5C_RD_FASTT){
+    //     db->f5_cache = (char**)(malloc(sizeof(char*) * db->capacity_bam_rec));
+    //     MALLOC_CHK(db->f5_cache);
+    // }
+    // else{
+    //     db->f5_cache=NULL;
+    // }
 
     db->et = (event_table*)malloc(sizeof(event_table) * db->capacity_bam_rec);
     MALLOC_CHK(db->et);
@@ -316,21 +316,20 @@ static inline int read_from_fastt_files2(core_t *core, db_t *db, std::string qna
         ret=0;
     }
     else{
+        assert(strcmp(qname.c_str(),record->read_id)==0);
+        db->f5[i]->nsample = record->len_raw_signal;  //n_samples
+        assert(db->f5[i]->nsample>0);
+        db->f5[i]->rawptr = (float*)calloc(db->f5[i]->nsample, sizeof(float));
+        MALLOC_CHK( db->f5[i]->rawptr);
 
+        db->f5[i]->digitisation = (float)record->digitisation;
+        db->f5[i]->offset = (float)record->offset;
+        db->f5[i]->range = (float)record->range;
+        db->f5[i]->sample_rate = (float)record->sampling_rate;
 
-        db->f5_cache[i] = (char *) record;
-        //printf("#read_id\tn_samples\tdigitisation\toffset\trange\tsample_rate\traw_signal\tnum_bases\tsequence\tfast5_path\n");
-        //fprintf(stderr,"%s\n",record);
-
-        // if (core->opt.flag & F5C_PRINT_RAW) {
-        //     printf(">%s\tPATH:%s\tLN:%llu\tDG:%.1f\tOF:%.1f\tRN:%.1f\tSR:%.1f\n", qname.c_str(), fast5_path_str.c_str(),
-        //         db->f5[i]->nsample,db->f5[i]->digitisation,db->f5[i]->offset,db->f5[i]->range,db->f5[i]->sample_rate);
-        //     uint32_t j = 0;
-        //     for (j = 0; j < db->f5[i]->nsample; j++) {
-        //         printf("%d\t", (int)db->f5[i]->rawptr[j]);
-        //     }
-        //     printf("\n");
-        // }
+        for (int j = 0; j < (int)db->f5[i]->nsample; j++) { //check for int overflow
+            db->f5[i]->rawptr[j] = (float)record->raw_signal[j];
+        }
 
         ret=1;
         slow5_rec_free(record);
@@ -407,7 +406,7 @@ void pthread_db2(core_t* core, db_t* db, void (*func)(core_t*,db_t*,int)){
 
 
 
-//just a wrapper : read a single read/fast5 in the I/O profiling mode
+//just a wrapper : read a single read in the I/O profiling mode
 void read_fastt_single(core_t* core, db_t* db, int i){
 
     int8_t read_status = 0;
@@ -457,12 +456,14 @@ void read_fast5_db(core_t* core, db_t* db){
             if(core->opt.flag & F5C_RD_FASTT){
                 pthread_db2(core, db, read_fastt_single);
             }
-            ERROR("%s","Reading from FAST5 not supported in this branch");
-            exit(EXIT_FAILURE);
+            else{
+                ERROR("%s","Reading from FAST5 not supported in this branch");
+                exit(EXIT_FAILURE);
+            }
         }
     }
     else{
-        ERROR("%s","Reading from FAST5 not supported in this branch");
+        ERROR("%s","Reading from FAST5 using --iop not supported in this branch");
         exit(EXIT_FAILURE);
     }
 }
@@ -690,31 +691,6 @@ void pthread_db(core_t* core, db_t* db, void (*func)(core_t*,db_t*,int)){
 
 
 void event_single(core_t* core,db_t* db, int32_t i) {
-
-    if(core->opt.flag & F5C_RD_FASTT){
-
-        char *tmp_record = db->f5_cache[i];
-        char *read_id = strtok_r(tmp_record,"\t",&tmp_record);
-        assert(read_id!=NULL);
-        //fprintf(stderr,"%s\t%s\n",qname.c_str(),read_id);
-        assert(strcmp(read_id,bam_get_qname(db->bam_rec[i]))==0);
-        db->f5[i]->nsample = atoll(strtok_r(tmp_record,"\t",&tmp_record));  //n_samples
-        assert(db->f5[i]->nsample>0);
-        db->f5[i]->rawptr = (float*)calloc(db->f5[i]->nsample, sizeof(float));
-        MALLOC_CHK( db->f5[i]->rawptr);
-
-        db->f5[i]->digitisation = atof(strtok_r(tmp_record,"\t",&tmp_record));
-        db->f5[i]->offset = atof(strtok_r(tmp_record,"\t",&tmp_record));
-        db->f5[i]->range = atof(strtok_r(tmp_record,"\t",&tmp_record));
-        db->f5[i]->sample_rate = atof(strtok_r(tmp_record,"\t",&tmp_record));
-
-        for (int j = 0; j < (int)db->f5[i]->nsample; j++) { //check for int overflow
-            char *raw = strtok_r(tmp_record,"\t,",&tmp_record);
-            assert(raw);
-            db->f5[i]->rawptr[j] = atoi(raw);
-        }
-        free(db->f5_cache[i]);
-    }
 
     float* rawptr = db->f5[i]->rawptr;
     float range = db->f5[i]->range;
@@ -1207,9 +1183,9 @@ void free_db(db_t* db) {
     free(db->read_len);
     free(db->et);
     free(db->f5);
-    if(db->f5_cache){
-        free(db->f5_cache);
-    }
+    // if(db->f5_cache){
+    //     free(db->f5_cache);
+    // }
     free(db->scalings);
     free(db->event_align_pairs);
     free(db->n_event_align_pairs);

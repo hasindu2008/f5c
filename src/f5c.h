@@ -263,7 +263,7 @@ typedef struct {
 
     // fast5 file //should flatten this to reduce mallocs
     fast5_t** f5;
-    char** f5_cache; //used for tsv
+    //char** f5_cache; //used for tsv
 
     //event table
     event_table* et;
