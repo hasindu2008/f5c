@@ -1,0 +1,4 @@
+[submodule "src/slow5"]
+	path = src/slow5
+	url = https://github.com/hasindu2008/slow5
+	branch = master

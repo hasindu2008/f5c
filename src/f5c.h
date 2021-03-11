@@ -15,7 +15,8 @@
 #include "fast5lite.h"
 #include "nanopolish_read_db.h"
 
-#include "slow5lib/src/slow5.h"
+#include "slow5/src/slow5.h"
+#include "slow5/src/slow5idx.h"
 
 //required for eventalign
 #include <vector>

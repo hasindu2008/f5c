@@ -72,13 +72,14 @@ core_t* init_core(const char* bamfilename, const char* fastafile,
     if(opt.flag & F5C_RD_FASTT){
         assert((opt.flag & F5C_RD_RAW_DUMP) == 0);
         assert((opt.flag & F5C_WR_RAW_DUMP) == 0);
-        core->sf = slow5_open(fasttfilename,"r");
+        core->sf = slow5_open(fasttfilename,"rb");
         if (core->sf == NULL) {
             fprintf(stderr, "Error loading SLOW5 file %s\n",
                     fasttfilename);
             exit(EXIT_FAILURE);
         }
         slow5_idx_t *s5i=slow5_idx_init(core->sf);
+        core->sf->index = s5i;
         assert(s5i!=NULL);
     }
 
@@ -305,14 +306,14 @@ static inline int read_from_fastt_files2(core_t *core, db_t *db, std::string qna
     int len=0;
     double t = realtime();
 
-    slow5_rec_t *record;
+    slow5_rec_t *record=NULL;
     len = slow5_get(qname.c_str(), &record, core->sf);
 
 
     int ret;
 
     if(record==NULL || len <0){ //todo : should we free if len<0
-        handle_bad_fast5(core, db, "" , qname);
+        fprintf(stderr,"Record [%s] not found. Error %d\n", qname.c_str(), len);
         ret=0;
     }
     else{
