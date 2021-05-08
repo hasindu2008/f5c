@@ -50,7 +50,6 @@ a step controller if one requires to perform only upto a certain step such as al
 /*
 LIMITATIONS :
 Does not support multi strand reads (2D and 1D^2 reads) at the moment
-Only works for DNA at the moment
 */
 
 //fast logsum data structure
@@ -214,7 +213,7 @@ int meth_main(int argc, char* argv[], int8_t mode) {
 
     //signal(SIGSEGV, sig_handler);
 
-    const char* optstring = "r:b:g:t:B:K:v:o:x:hV";
+    const char* optstring = "r:b:g:t:B:K:v:o:x:w:hV";
 
     int longindex = 0;
     int32_t c = -1;

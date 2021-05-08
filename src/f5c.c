@@ -816,7 +816,7 @@ void output_db(core_t* core, db_t* db) {
                     size_t strand_idx = 0;
                     std::string fast5_path_str = core->readbb->get_signal_path(qname);
                     fprintf(summary_fp, "%ld\t%s\t", (long)(db->read_idx[i]), qname);
-                    fprintf(summary_fp, "%s\t%s\t%s\t",fast5_path_str.c_str(), "dna", strand_idx == 0 ? "template" : "complement");
+                    fprintf(summary_fp, "%s\t%s\t%s\t",fast5_path_str.c_str(), (core->opt.flag & F5C_RNA) ? "rna" : "dna", strand_idx == 0 ? "template" : "complement" );
                     fprintf(summary_fp, "%d\t%d\t%d\t%d\t", summary.num_events, summary.num_steps, summary.num_skips, summary.num_stays);
                     fprintf(summary_fp, "%.2lf\t%.3lf\t%.3lf\t%.3lf\t%.3lf\n", summary.sum_duration/(db->f5[i]->sample_rate), scalings.shift, scalings.scale, 0.0, scalings.var);
                 }
