@@ -14,10 +14,23 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: install packages
-      run: sudo apt-get update && sudo apt-get install -y zlib1g-dev libhdf5-dev gcc g++ autoconf automake make
+      run: sudo apt-get update && sudo apt-get install -y zlib1g-dev libhdf5-dev gcc g++ autoconf automake make wget
     - name: env
       run: lsb_release -a &&  ldd --version && gcc --version && g++ --version
     - name: build
       run: autoreconf && ./scripts/install-hts.sh && ./configure && make -j8
     - name: test
       run: make test
+  ubuntu_16_install_scripts:
+    name: Ubuntu 16 install scripts
+    runs-on: ubuntu-16.04
+    steps:
+    - uses: actions/checkout@v2
+    - name: install packages
+      run: sudo apt-get update && sudo apt-get install -y zlib1g-dev valgrind
+    - name: build
+      run: autoreconf && ./scripts/install-hdf5.sh 2> /dev/null &&./scripts/install-hts.sh && ./configure --enable-localhdf5 && make -j8
+    - name: test
+      run: make test
+    - name: test valgrind
+      run: valgrind --leak-check=full --error-exitcode=1 ./f5c call-methylation -b test/ecoli_2kb_region/reads.sorted.bam -g test/ecoli_2kb_region/draft.fa -r test/ecoli_2kb_region/reads.fasta -t 8 -K 256 -B 2M > /dev/null
