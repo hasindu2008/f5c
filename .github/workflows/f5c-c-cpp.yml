@@ -34,3 +34,35 @@ jobs:
       run: make test
     - name: test valgrind
       run: valgrind --leak-check=full --error-exitcode=1 ./f5c call-methylation -b test/ecoli_2kb_region/reads.sorted.bam -g test/ecoli_2kb_region/draft.fa -r test/ecoli_2kb_region/reads.fasta -t 8 -K 256 -B 2M > /dev/null
+  ubuntu_16_pure_make:
+    name: Ubuntu 16 pure make
+    runs-on: ubuntu-16.04
+    steps:
+    - uses: actions/checkout@v2
+    - name: install packages
+      run: sudo apt-get update && sudo apt-get install -y zlib1g-dev
+    - name: build
+      run: make
+    - name: test
+      run: make test
+  ubuntu_18:
+    name: Ubuntu 18
+    runs-on: ubuntu-18.04
+    steps:
+    - uses: actions/checkout@v2
+    - name: install packages
+      run: sudo apt-get update && sudo apt-get install -y zlib1g-dev libhdf5-dev
+    - name: build
+      run: autoreconf && ./scripts/install-hts.sh && ./configure && make -j8
+    - name: test
+      run: make test
+  ubuntu_20:
+    name: Ubuntu 20
+    runs-on: ubuntu-20.04
+    steps:
+    - uses: actions/checkout@v2
+    - name: install packages
+      run: sudo apt-get update && sudo apt-get install -y zlib1g-dev libhdf5-dev
+    - name: build
+      run: autoreconf && ./scripts/install-hts.sh && ./configure && make -j8
+    - name: test
