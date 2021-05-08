@@ -1,0 +1,32 @@
+name: f5c C/C++ CI MacOS x86_64 Github
+
+on:
+  push:
+    branches: '**'
+  pull_request:
+    branches: '**'
+
+jobs:
+  os_x_10_15:
+    name: OSX 10.15
+    runs-on: macos-10.15
+    steps:
+    - uses: actions/checkout@v2
+    - name: install packages
+      run: brew install hdf5 autoconf automake
+    - name: build
+      run: autoreconf --install && ./scripts/install-hts.sh && ./configure && make -j8
+    - name: test
+      run: make test
+  os_x_11:
+    name: OSX 10.15 hdf5 install script
+    runs-on: macos-10.15
+    steps:
+    - uses: actions/checkout@v2
+    - name: install packages
+      run: brew install hdf5 autoconf automake
+    - name: build
+      run: autoreconf --install && CC=gcc CXX=g++ CFLAGS="-Wno-implicit-function-declaration" ./scripts/install-hdf5.sh  && ./scripts/install-hts.sh && ./configure --enable-localhdf5  && make -j8
+    - name: test
+      run: make test      
+
