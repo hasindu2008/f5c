@@ -74,11 +74,12 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: install packages
-      run: sudo apt-get update && sudo apt-get install -y zlib1g-dev  gcc g++ autoconf automake make wget
+      run: sudo apt-get update && sudo apt-get install -y zlib1g-dev  libhdf5-dev gcc g++ autoconf automake make wget 
     - name: env
       run: lsb_release -a &&  ldd --version && gcc --version && g++ --version
     - name: cuda
       run: wget http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1404/x86_64/cuda-repo-ubuntu1404_7.0-28_amd64.deb && sudo dpkg -i cuda-repo-ubuntu1404_7.0-28_amd64.deb && sudo apt-get update -qq && sudo apt-get install -y cuda-core-6-5 cuda-cudart-dev-6-5 && sudo apt-get clean && sudo ln -s /usr/local/cuda-6.5/ /usr/local/cuda && PATH=/usr/local/cuda/bin:${PATH} && export PATH
     - name: build
       run: autoreconf && ./scripts/install-hts.sh && ./configure && make cuda=1 -j8
-  
+    - name: test
+      run: make test  
