@@ -15,7 +15,7 @@ jobs:
     - name: install packages
       run: brew install hdf5 autoconf automake
     - name: build
-      run: autoreconf --install && ./configure && make -j8
+      run: autoreconf --install && ./scripts/install-hts.sh && ./configure && make -j8
     - name: test
       run: make test
   os_x_11:
@@ -26,17 +26,7 @@ jobs:
     - name: install packages
       run: brew install hdf5 autoconf automake
     - name: build
-      run: autoreconf --install  && ./configure && make -j8
+      run: autoreconf --install && ./scripts/install-hts.sh && ./configure && make -j8
     - name: test
       run: make test      
-  os_x_10_15_make:
-    name: OSX make
-    runs-on: macos-10.15 
-    steps:
-    - uses: actions/checkout@v2
-    - name: install packages
-      run: brew install gcc autoconf automake
-    - name: build
-      run: make
-    - name: test
-      run: make test
+
