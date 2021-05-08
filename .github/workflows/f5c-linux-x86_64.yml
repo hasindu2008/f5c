@@ -1,4 +1,4 @@
-name: f5c C/C++ CI Github
+name: f5c C/C++ CI Linux x86_64 Github
 
 on:
   push:
