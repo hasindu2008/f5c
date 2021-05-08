@@ -82,7 +82,7 @@ jobs:
     - name: cuda install
       run: sudo apt-get install -y cuda-core-6-5 cuda-cudart-dev-6-5
     - name: cuda env setup
-      run: ls /usr/local/ && sudo ln -s /usr/local/cuda-6.5/ /usr/local/cuda && export PATH=/usr/local/cuda/bin:${PATH}
+      run: ls /usr/local/cuda-6.5/bin && sudo ln -s /usr/local/cuda-6.5/ /usr/local/cuda && ls /usr/local/cuda/bin && export PATH=/usr/local/cuda/bin:${PATH}
     - name: build
       run: autoreconf && ./scripts/install-hts.sh && ./configure && make cuda=1 -j8
     - name: test
