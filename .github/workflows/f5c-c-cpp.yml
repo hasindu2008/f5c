@@ -40,7 +40,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: install packages
-      run: sudo apt-get update && sudo apt-get install -y zlib1g-dev 
+      run: sudo apt-get update && sudo apt-get install -y zlib1g-dev
     - name: build
       run: make
     - name: test
@@ -87,7 +87,7 @@ jobs:
     - name: build
       run: make
     - name: test
-      run: make test 
+      run: make test
   ubuntu_14_cuda_6.5:
     name: Ubuntu 14 cuda 6.5
     runs-on: ubuntu-16.04
@@ -103,5 +103,4 @@ jobs:
     - name: build
       run: autoreconf && ./scripts/install-hts.sh && ./configure && make -j8
     - name: test
-      run: make test            
-
+      run: make test
