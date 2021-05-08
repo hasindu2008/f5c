@@ -86,4 +86,4 @@ jobs:
     - name: build
       run: export PATH=/usr/local/cuda/bin:${PATH} && autoreconf && ./scripts/install-hts.sh && ./configure && make cuda=1 -j8
     - name: test
-      run: scripts/test.sh --custom --disable-cuda=yes 
+      run: scripts/test.sh custom --disable-cuda=yes 
