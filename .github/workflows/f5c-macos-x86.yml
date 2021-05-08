@@ -18,7 +18,7 @@ jobs:
       run: autoreconf && ./configure && make -j8
     - name: test
       run: make test
-  os_x_10_15:
+  os_x_11:
     name: OSX 11
     runs-on: macos-11
     steps:
