@@ -1,4 +1,4 @@
-name: f5c C/C++ CI Linux x86_64 Github
+name: Linux x86_64
 
 on:
   push:
@@ -74,7 +74,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: install packages
-      run: sudo apt-get update && sudo apt-get install -y zlib1g-dev  libhdf5-dev gcc g++ autoconf automake make wget 
+      run: sudo apt-get update && sudo apt-get install -y zlib1g-dev  libhdf5-dev gcc g++ autoconf automake make wget
     - name: env
       run: lsb_release -a &&  ldd --version && gcc --version && g++ --version
     - name: cuda repo setup
@@ -86,4 +86,4 @@ jobs:
     - name: build
       run: export PATH=/usr/local/cuda/bin:${PATH} && autoreconf && ./scripts/install-hts.sh && ./configure && make cuda=1 -j8
     - name: test
-      run: make test || scripts/test.sh custom --disable-cuda=yes 
+      run: make test || scripts/test.sh custom --disable-cuda=yes
