@@ -67,8 +67,7 @@ jobs:
       run: autoreconf && ./scripts/install-hts.sh && ./configure && make -j8
     - name: test
       run: make test
-      
-  ubuntu_14_cuda_6.5:
+  ubuntu_14_cuda_6_5:
     name: Ubuntu 14 cuda 6.5
     runs-on: ubuntu-16.04
     container: ubuntu:14.04
