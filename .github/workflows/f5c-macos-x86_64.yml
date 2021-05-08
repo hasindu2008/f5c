@@ -1,4 +1,4 @@
-name: f5c C/C++ CI MACOSX Github
+name: f5c C/C++ CI MacOS x86_64 Github
 
 on:
   push:
