@@ -358,6 +358,11 @@ typedef struct {
     bam_hdr_t* m_hdr;
     hts_itr_t* itr;
 
+    //multi region related
+    char **reg_list; //the list of regions
+    int64_t reg_n;   //number of regions in list
+    int64_t reg_i;   //current region being processed
+
     //clipping coordinates
     int32_t clip_start;
     int32_t clip_end;

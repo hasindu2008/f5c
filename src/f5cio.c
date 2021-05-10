@@ -411,6 +411,47 @@ static inline int read_from_fast5_files(core_t *core, db_t *db, std::string qnam
     return 1;
 }
 
+int f5c_sam_itr_next(core_t* core, bam1_t* record){
+
+    if(core->reg_list==NULL){
+        return(sam_itr_next(core->m_bam_fh, core->itr, record));
+    }
+    else{
+        while(1){
+            if(core->itr==NULL){ //if the iterator for the current region is NULL, go to the next region
+                if(core->reg_i<core->reg_n){
+                    if(core->opt.verbosity > 0){
+                        STDERR("Iterating over region: %s", core->reg_list[core->reg_i]);
+                    }
+                    core->itr = sam_itr_querys(core->m_bam_idx, core->m_hdr, core->reg_list[core->reg_i]);
+                    if(core->itr==NULL){
+                        ERROR("sam_itr_querys failed. Please check if the region string in bed file [%s] is valid",core->reg_list[core->reg_i]);
+                        exit(EXIT_FAILURE);
+                    }
+                    core->reg_i++;
+                }
+                else{
+                    return -1; //no more regions left
+                }
+            }
+            else{ //the current region still left
+                int ret = sam_itr_next(core->m_bam_fh, core->itr, record);
+                if(ret>=0){
+                    return ret;
+                }
+                else{ //the region is done
+                    sam_itr_destroy(core->itr);
+                    core->itr=NULL;
+                }
+            }
+        }
+    }
+
+    assert(0);
+
+}
+
+
 ret_status_t load_db1(core_t* core, db_t* db) { //old method
 
     double load_start = realtime();
@@ -431,7 +472,7 @@ ret_status_t load_db1(core_t* core, db_t* db) { //old method
         i=db->n_bam_rec;
         record = db->bam_rec[i];
         t = realtime();
-        result = sam_itr_next(core->m_bam_fh, core->itr, record);
+        result = f5c_sam_itr_next(core, record);
         core->db_bam_time += realtime() - t;
 
         //set read index
@@ -719,7 +760,7 @@ ret_status_t load_db2(core_t* core, db_t* db) { //separately load fast5 for mult
         i=db->n_bam_rec;
         record = db->bam_rec[i];
         t = realtime();
-        result = sam_itr_next(core->m_bam_fh, core->itr, record);
+        result = f5c_sam_itr_next(core, record);
         core->db_bam_time += realtime() - t;
 
         //set read index
