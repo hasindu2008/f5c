@@ -14,6 +14,10 @@ jobs:
     - run: docker run --rm --privileged multiarch/qemu-user-static:register --reset
     - uses: docker://multiarch/ubuntu-core:arm64-bionic
       with:
+        args: 'uname -a'
+    - uses: actions/checkout@v1
+    - uses: docker://multiarch/ubuntu-core:arm64-bionic
+      with:
         args: >
           bash -c "apt-get update &&
           apt-get install -y zlib1g-dev libhdf5-dev gcc g++ autoconf automake make wget &&
