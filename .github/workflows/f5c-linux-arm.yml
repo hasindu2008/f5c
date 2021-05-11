@@ -1,0 +1,26 @@
+name: Linux ARM
+
+on:
+  push:
+    branches: '**'
+  pull_request:
+    branches: '**'
+
+jobs:
+  ubuntu_arm:
+    name: ubuntu arm
+    runs-on: ubuntu-latest
+    steps:
+    - run: |
+      docker run --rm --privileged multiarch/qemu-user-static:register --reset
+    - uses: docker://multiarch/ubuntu-core:arm64-bionic
+      with:
+        args: >
+          bash -c "sudo apt-get update &&
+          sudo apt-get install -y zlib1g-dev libhdf5-dev gcc g++ autoconf automake make wget &&
+          lsb_release -a &&  ldd --version && gcc --version && g++ --version &&
+          autoreconf &&
+          ./scripts/install-hts.sh &&
+          ./configure &&
+          make -j8 &&
+          make test"
