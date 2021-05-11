@@ -11,8 +11,7 @@ jobs:
     name: ubuntu arm
     runs-on: ubuntu-latest
     steps:
-    - run: |
-      docker run --rm --privileged multiarch/qemu-user-static:register --reset
+    - run: docker run --rm --privileged multiarch/qemu-user-static:register --reset
     - uses: docker://multiarch/ubuntu-core:arm64-bionic
       with:
         args: >
