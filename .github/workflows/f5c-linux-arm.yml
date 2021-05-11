@@ -17,7 +17,7 @@ jobs:
         args: >
           bash -c "apt-get update &&
           apt-get install -y zlib1g-dev libhdf5-dev gcc g++ autoconf automake make wget &&
-          lsb_release -a &&  ldd --version && gcc --version && g++ --version &&
+          ldd --version && gcc --version && g++ --version &&
           autoreconf &&
           ./scripts/install-hts.sh &&
           ./configure &&
