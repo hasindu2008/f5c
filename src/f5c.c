@@ -54,6 +54,12 @@ core_t* init_core(const char* bamfilename, const char* fastafile,
     // If processing a region of the genome, get clipping coordinates
     core->clip_start = -1;
     core->clip_end = -1;
+
+    core->reg_list=NULL; //region list is NULL by default
+    core->reg_i=0;
+    core->reg_n=0;
+    core->itr = NULL;
+
     if(opt.region_str == NULL){
         core->itr = sam_itr_queryi(core->m_bam_idx, HTS_IDX_START, 0, 0);
         if(core->itr==NULL){
@@ -62,13 +68,27 @@ core_t* init_core(const char* bamfilename, const char* fastafile,
         }
     }
     else{
-        STDERR("Iterating over region: %s\n", opt.region_str);
-        core->itr = sam_itr_querys(core->m_bam_idx, core->m_hdr, opt.region_str);
-        if(core->itr==NULL){
-            ERROR("sam_itr_querys failed. Please check if the region string you entered [%s] is valid",opt.region_str);
-            exit(EXIT_FAILURE);
+        //determine if .bed
+        int region_str_len = strlen(opt.region_str);
+        if(region_str_len>=4 && strcmp(&(opt.region_str[region_str_len-4]),".bed")==0 ){
+            STDERR("Fetching the list of regions from file: %s", opt.region_str);
+            WARNING("%s", "Loading region windows from a bed file is an experimental option and not yet throughly tested.");
+            WARNING("%s", "When loading windows from a bed file, output is based on reads that are unclipped. Also, there may be repeated entries when regions overlap.");
+            int64_t count=0;
+            char **reg_l = read_bed_regions(opt.region_str, &count);
+            core->reg_list = reg_l;
+            core->reg_i = 0;
+            core->reg_n = count;
         }
-        hts_parse_reg(opt.region_str, &(core->clip_start) , &(core->clip_end));
+        else{
+            STDERR("Iterating over region: %s\n", opt.region_str);
+            core->itr = sam_itr_querys(core->m_bam_idx, core->m_hdr, opt.region_str);
+            if(core->itr==NULL){
+                ERROR("sam_itr_querys failed. Please check if the region string you entered [%s] is valid",opt.region_str);
+                exit(EXIT_FAILURE);
+            }
+            hts_parse_reg(opt.region_str, &(core->clip_start) , &(core->clip_end));
+        }
     }
 
 
@@ -193,10 +213,21 @@ void free_core(core_t* core,opt_t opt) {
     free(core->cpgmodel);
     delete core->readbb;
     fai_destroy(core->fai);
-    sam_itr_destroy(core->itr);
+
+    if(core->itr){
+        sam_itr_destroy(core->itr);
+    }
+    if(core->reg_list){
+        for(int64_t i=0;i<core->reg_n;i++){
+            free(core->reg_list[i]);
+        }
+        free(core->reg_list);
+    }
+
     bam_hdr_destroy(core->m_hdr);
     hts_idx_destroy(core->m_bam_idx);
     sam_close(core->m_bam_fh);
+
     if(core->ultra_long_tmp!=NULL){
         sam_close(core->ultra_long_tmp);
     }
