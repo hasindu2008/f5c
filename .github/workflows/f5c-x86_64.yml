@@ -29,7 +29,7 @@ jobs:
     - name: install packages
       run: sudo apt-get update && sudo apt-get install -y zlib1g-dev valgrind
     - name: build
-      run: autoreconf && ./scripts/install-hdf5.sh 2> /dev/null &&./scripts/install-hts.sh && ./configure --enable-localhdf5 && make -j8
+      run: autoreconf && ./scripts/install-hdf5.sh &&./scripts/install-hts.sh && ./configure --enable-localhdf5 && make -j8
     - name: test
       run: make test
     - name: test valgrind
@@ -87,3 +87,45 @@ jobs:
       run: export PATH=/usr/local/cuda/bin:${PATH} && autoreconf && ./scripts/install-hts.sh && ./configure && make cuda=1 -j8
     - name: test
       run: make test || scripts/test.sh custom --disable-cuda=yes
+  os_x_10_15:
+    name: OSX 10.15
+    runs-on: macos-10.15
+    steps:
+    - uses: actions/checkout@v2
+    - name: install packages
+      run: brew install hdf5 autoconf automake
+    - name: build
+      run: autoreconf --install && ./scripts/install-hts.sh && ./configure && make -j8
+    - name: test
+      run: make test
+  os_x_11:
+    name: OSX 10.15 hdf5 install script
+    runs-on: macos-10.15
+    steps:
+    - uses: actions/checkout@v2
+    - name: install packages
+      run: brew install hdf5 autoconf automake
+    - name: build
+      run: autoreconf --install && CC=gcc CXX=g++ CFLAGS="-Wno-implicit-function-declaration" ./scripts/install-hdf5.sh  && ./scripts/install-hts.sh && ./configure --enable-localhdf5  && make -j8
+    - name: test
+      run: make test
+  ubuntu_arm:
+    name: ubuntu arm
+    runs-on: ubuntu-latest
+    steps:
+    - run: docker run --rm --privileged multiarch/qemu-user-static:register --reset
+    - uses: docker://multiarch/ubuntu-core:arm64-bionic
+      with:
+        args: 'uname -a'
+    - uses: actions/checkout@v1
+    - uses: docker://multiarch/ubuntu-core:arm64-bionic
+      with:
+        args: >
+          bash -c "apt-get update &&
+          apt-get install -y zlib1g-dev libhdf5-dev gcc g++ autoconf automake make wget &&
+          ldd --version && gcc --version && g++ --version &&
+          autoreconf &&
+          ./scripts/install-hts.sh &&
+          ./configure &&
+          make -j8 &&
+          make test"
