@@ -180,7 +180,7 @@ release: distclean
 	cp scripts/install-hdf5.sh scripts/install-hts.sh scripts/test.sh scripts/common.sh scripts/test.awk f5c-$(VERSION)/scripts
 	tar -zcf f5c-$(VERSION)-release.tar.gz f5c-$(VERSION)
 	rm -rf f5c-$(VERSION) && mkdir -p f5c-$(VERSION) && make clean
-	scripts/install-hdf5.sh && ./configure --enable-localhdf5
+	scripts/install-hdf5.sh && ./scripts/install-hts.sh && ./configure --enable-localhdf5
 	make cuda=1 && mv f5c f5c-$(VERSION)/f5c_x86_64_linux_cuda && make clean
 	make && mv f5c f5c-$(VERSION)/f5c_x86_64_linux
 	cp -r README.md LICENSE docs f5c-$(VERSION)/
