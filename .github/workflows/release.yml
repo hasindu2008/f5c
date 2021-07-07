@@ -23,7 +23,7 @@ jobs:
     - name: env
       run: export PATH=/usr/local/cuda/bin:${PATH} && lsb_release -a &&  ldd --version && gcc --version && g++ --version && nvcc --version
     - name: build
-      run: make release
+      run: export PATH=/usr/local/cuda/bin:${PATH} && make release
     - uses: "marvinpinto/action-automatic-releases@latest"
       with:
         repo_token: "${{ secrets.GITHUB_TOKEN }}"
