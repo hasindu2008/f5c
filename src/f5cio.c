@@ -411,6 +411,145 @@ static inline int read_from_fast5_files(core_t *core, db_t *db, std::string qnam
     return 1;
 }
 
+
+/*************** Start of multiple I/O thread based SLOW5 reading *****************************/
+
+
+//todo use pthread_single in f5c.c instead
+//I/O thread handler
+static void* pthread_slow5_single(void* voidargs) {
+    int32_t i;
+    pthread_arg_t* args = (pthread_arg_t*)voidargs;
+    db_t* db = args->db;
+    core_t* core = args->core;
+
+
+    for (i = args->starti; i < args->endi; i++) {
+        args->func(core,db,i);
+    }
+
+    //fprintf(stderr,"Thread %d done\n",(myargs->position)/THREADS);
+    pthread_exit(0);
+}
+
+
+//divide I/O work and spawn I/O threads - can ca;; pthread_db in f5c.c instead
+static void pthread_slow5_db(core_t* core, db_t* db, void (*func)(core_t*,db_t*,int)){
+
+    INFO("Running with %d IO threads",core->opt.num_thread);
+
+    //create threads
+    pthread_t tids[core->opt.num_thread];
+    pthread_arg_t pt_args[core->opt.num_thread];
+    int32_t t, ret;
+    int32_t i = 0;
+    int32_t num_thread = core->opt.num_thread;
+    int32_t step = (db->n_bam_rec + num_thread - 1) / num_thread;
+    //todo : check for higher num of threads than the data
+    //current works but many threads are created despite
+
+    //set the data structures
+    for (t = 0; t < num_thread; t++) {
+        pt_args[t].core = core;
+        pt_args[t].db = db;
+        pt_args[t].starti = i;
+        i += step;
+        if (i > db->n_bam_rec) {
+            pt_args[t].endi = db->n_bam_rec;
+        } else {
+            pt_args[t].endi = i;
+        }
+        pt_args[t].func=func;
+        //fprintf(stderr,"t%d : %d-%d\n",t,pt_args[t].starti,pt_args[t].endi);
+
+    }
+
+    //create threads
+    for(t = 0; t < core->opt.num_thread; t++){
+        ret = pthread_create(&tids[t], NULL, pthread_slow5_single,
+                                (void*)(&pt_args[t]));
+        NEG_CHK(ret);
+    }
+
+    //pthread joining
+    for (t = 0; t < core->opt.num_thread; t++) {
+        int ret = pthread_join(tids[t], NULL);
+        NEG_CHK(ret);
+    }
+}
+
+
+
+//read a single read
+static inline int read_from_slow5_single2(core_t *core, db_t *db, std::string qname,  int32_t i){
+     //return 1 if success, 0 if failed
+    db->f5[i] = (fast5_t*)calloc(1, sizeof(fast5_t));
+    MALLOC_CHK(db->f5[i]);
+
+    int len=0;
+
+    slow5_rec_t *record=NULL;
+    len = slow5_get(qname.c_str(), &record, core->sf);
+
+
+    int ret;
+
+    if(record==NULL || len <0){ //todo : should we free if len<0
+        fprintf(stderr,"Record [%s] not found. Error %d\n", qname.c_str(), len);
+        ret=0;
+    }
+    else{
+        assert(strcmp(qname.c_str(),record->read_id)==0);
+        db->f5[i]->nsample = record->len_raw_signal;  //n_samples
+        assert(db->f5[i]->nsample>0);
+        db->f5[i]->rawptr = (float*)calloc(db->f5[i]->nsample, sizeof(float));
+        MALLOC_CHK( db->f5[i]->rawptr);
+
+        db->f5[i]->digitisation = (float)record->digitisation;
+        db->f5[i]->offset = (float)record->offset;
+        db->f5[i]->range = (float)record->range;
+        db->f5[i]->sample_rate = (float)record->sampling_rate;
+
+        for (int j = 0; j < (int)db->f5[i]->nsample; j++) { //check for int overflow
+            db->f5[i]->rawptr[j] = (float)record->raw_signal[j];
+        }
+
+        ret=1;
+        slow5_rec_free(record);
+    }
+
+    return ret;
+}
+
+//just a wrapper : read a single read from a SLOW5 file
+static void read_slow5_single(core_t* core, db_t* db, int i){
+
+    int8_t read_status = 0;
+    std::string qname = bam_get_qname(db->bam_rec[i]);
+    read_status=read_from_slow5_single2(core, db, qname,i);
+
+    if(read_status!=1){
+        assert(0);
+    }
+}
+
+
+static void read_slow5_db(core_t* core, db_t* db){
+
+    int i;
+    if (core->opt.num_thread == 1) {
+        for (i = 0; i < db->n_bam_rec; i++) {
+            read_slow5_single(core, db, i);
+        }
+    }
+    else {
+        pthread_slow5_db(core, db, read_slow5_single);
+    }
+
+}
+
+/******************************* SLOW5 end ************************************/
+
 int f5c_sam_itr_next(core_t* core, bam1_t* record){
 
     if(core->reg_list==NULL){
@@ -522,6 +661,9 @@ ret_status_t load_db1(core_t* core, db_t* db) { //old method
                     core->db_fast5_read_time += rt;
                     core->db_fast5_time += rt;
                 }
+                else if (core->opt.flag & F5C_RD_SLOW5){
+                    read_status = 1; //we do this later with multiple threaded
+                }
                 else{
                    read_status=read_from_fast5_files(core, db, qname,fast5_path_str,i);
                 }
@@ -575,6 +717,13 @@ ret_status_t load_db1(core_t* core, db_t* db) { //old method
     }
     status.num_reads=db->n_bam_rec;
     assert(status.num_bases==db->sum_bases);
+
+    //read the slow5 batch
+    if(core->opt.flag & F5C_RD_SLOW5){
+        t=realtime();
+        read_slow5_db(core,db);
+        core->db_fast5_time += realtime() - t;
+    }
 
     double load_end = realtime();
     core->load_db_time += (load_end-load_start);

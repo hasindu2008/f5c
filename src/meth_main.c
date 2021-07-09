@@ -99,6 +99,7 @@ static struct option long_options[] = {
     {"meth-model",required_argument,0,0},          //40 custom methylation k-mer model file
     {"signal-index", no_argument,0,0},             //41 write the raw signal start and end index values for the event to the tsv output (eventalign only)
     {"rna",no_argument,0,0},                       //42 if RNA (eventalign only)
+    {"slow5",required_argument,0,0},               //43 read from a slow5 file
     {0, 0, 0, 0}};
 
 
@@ -224,6 +225,7 @@ int meth_main(int argc, char* argv[], int8_t mode) {
     char *tmpfile = NULL;
     char* profilename = NULL; //Create variable to store profile arg
     char *eventalignsummary = NULL;
+    char *slow5file = NULL;
 
     int8_t is_ultra_thresh_set = 0;
 
@@ -400,6 +402,10 @@ int meth_main(int argc, char* argv[], int8_t mode) {
                 exit(EXIT_FAILURE);
             }
             yes_or_no(&opt, F5C_RNA, longindex, "yes", 1);
+        } else if(c == 0 && longindex == 43){ //read from a slow5
+            slow5file=optarg;
+            assert(slow5file!=NULL);
+            yes_or_no(&opt, F5C_RD_SLOW5, longindex, "yes", 1);
         }
     }
 
@@ -421,6 +427,7 @@ int meth_main(int argc, char* argv[], int8_t mode) {
         fprintf(fp_help,"   -o FILE                    output to file [stdout]\n");
         fprintf(fp_help,"   -x STR                     parameter profile to be used for better performance (always applied before other options)\n"); //Added option in help
         fprintf(fp_help,"                              e.g., laptop, desktop, hpc; see https://f5c.page.link/profiles for the full list\n");
+        fprintf(fp_help,"   --slow5 FILE               read from a slow5 file\n");
         fprintf(fp_help,"   --iop INT                  number of I/O processes to read fast5 files [%d]\n",opt.num_iop);
         fprintf(fp_help,"   --min-mapq INT             minimum mapping quality [%d]\n",opt.min_mapq);
         fprintf(fp_help,"   --secondary=yes|no         consider secondary mappings or not [%s]\n",(opt.flag&F5C_SECONDARY_YES)?"yes":"no");
@@ -473,7 +480,7 @@ int meth_main(int argc, char* argv[], int8_t mode) {
     }
 
     //initialise the core data structure
-    core_t* core = init_core(bamfilename, fastafile, fastqfile, tmpfile, opt,realtime0,mode,eventalignsummary);
+    core_t* core = init_core(bamfilename, fastafile, fastqfile, tmpfile, opt,realtime0,mode,eventalignsummary, slow5file);
 
     #ifdef ESL_LOG_SUM
         p7_FLogsumInit();
@@ -653,9 +660,13 @@ int meth_main(int argc, char* argv[], int8_t mode) {
     fprintf(stderr, "\n[%s] Data loading time: %.3f sec", __func__,core->load_db_time);
     fprintf(stderr, "\n[%s]     - bam load time: %.3f sec", __func__, core->db_bam_time);
     fprintf(stderr, "\n[%s]     - fasta load time: %.3f sec", __func__, core->db_fasta_time);
-    fprintf(stderr, "\n[%s]     - fast5 load time: %.3f sec", __func__, core->db_fast5_time);
-    fprintf(stderr, "\n[%s]         - fast5 open time: %.3f sec", __func__, core->db_fast5_open_time);
-    fprintf(stderr, "\n[%s]         - fast5 read time: %.3f sec", __func__, core->db_fast5_read_time);
+    if(core->opt.flag&F5C_RD_SLOW5){
+        fprintf(stderr, "\n[%s]     - slow5 load time: %.3f sec", __func__, core->db_fast5_time);
+    } else{
+        fprintf(stderr, "\n[%s]     - fast5 load time: %.3f sec", __func__, core->db_fast5_time);
+        fprintf(stderr, "\n[%s]         - fast5 open time: %.3f sec", __func__, core->db_fast5_open_time);
+        fprintf(stderr, "\n[%s]         - fast5 read time: %.3f sec", __func__, core->db_fast5_read_time);
+    }
 
     fprintf(stderr, "\n[%s] Data processing time: %.3f sec", __func__,core->process_db_time);
 

@@ -26,7 +26,7 @@ not all the memory allocations are needed for eventalign mode
 
 /* initialise the core data structure */
 core_t* init_core(const char* bamfilename, const char* fastafile,
-                  const char* fastqfile, const char* tmpfile, opt_t opt,double realtime0, int8_t mode, char *eventalignsummary) {
+                  const char* fastqfile, const char* tmpfile, opt_t opt,double realtime0, int8_t mode, char *eventalignsummary, char *slow5file) {
 
     core_t* core = (core_t*)malloc(sizeof(core_t));
     MALLOC_CHK(core);
@@ -110,6 +110,26 @@ core_t* init_core(const char* bamfilename, const char* fastafile,
     if(opt.flag & F5C_RD_RAW_DUMP){
         core->raw_dump = fopen("f5c.tmp.bin","rb");
         F_CHK(core->raw_dump,"f5c.tmp.bin");
+    }
+    if(opt.flag & F5C_RD_SLOW5){
+        if(opt.flag & F5C_RD_RAW_DUMP){
+            STDERR("%s","Option --slow5 is incompatible with --read-dump");
+            exit(EXIT_FAILURE);
+        }
+       if(opt.flag & F5C_WR_RAW_DUMP){
+            STDERR("%s","Option --slow5 is incompatible with --write-dump");
+            exit(EXIT_FAILURE);
+       }
+        core->sf = slow5_open(slow5file,"r");
+        if (core->sf == NULL) {
+            STDERR("Error opening SLOW5 file %s\n",slow5file);
+            exit(EXIT_FAILURE);
+        }
+        int ret=slow5_idx_load(core->sf);
+        if(ret<0){
+            STDERR("Error in loading SLOW5 index for %s\n",slow5file);
+            exit(EXIT_FAILURE);
+        }
     }
 
     // reference file
@@ -233,6 +253,10 @@ void free_core(core_t* core,opt_t opt) {
     }
     if(core->opt.flag&F5C_WR_RAW_DUMP || core->opt.flag&F5C_RD_RAW_DUMP){
         fclose(core->raw_dump);
+    }
+    if(core->opt.flag & F5C_RD_SLOW5){
+        slow5_idx_unload(core->sf);
+        slow5_close(core->sf);
     }
 #ifdef HAVE_CUDA
     if (!(core->opt.flag & F5C_DISABLE_CUDA)) {
