@@ -138,7 +138,7 @@ core_t* init_core(const char* bamfilename, const char* fastafile,
 
     // readbb
     core->readbb = new ReadDB;
-    core->readbb->load(fastqfile);
+    core->readbb->load(fastqfile, (opt.flag & F5C_RD_SLOW5)? 1 : 0);
 
     //model
     core->model = (model_t*)malloc(sizeof(model_t) * MAX_NUM_KMER); //4096 is 4^6 which is hardcoded now
@@ -510,47 +510,55 @@ void pthread_db(core_t* core, db_t* db, void (*func)(core_t*,db_t*,int)){
 
 void event_single(core_t* core,db_t* db, int32_t i) {
 
-    float* rawptr = db->f5[i]->rawptr;
-    float range = db->f5[i]->range;
-    float digitisation = db->f5[i]->digitisation;
-    float offset = db->f5[i]->offset;
-    int32_t nsample = db->f5[i]->nsample;
+    if(db->f5[i]->nsample>0){
 
-    // convert to pA
-    float raw_unit = range / digitisation;
-    for (int32_t j = 0; j < nsample; j++) {
-        rawptr[j] = (rawptr[j] + offset) * raw_unit;
-    }
+        float* rawptr = db->f5[i]->rawptr;
+        float range = db->f5[i]->range;
+        float digitisation = db->f5[i]->digitisation;
+        float offset = db->f5[i]->offset;
+        int32_t nsample = db->f5[i]->nsample;
 
-    int8_t rna=0;
-    if (core->opt.flag & F5C_RNA){
-        rna=1;
-    }
-    db->et[i] = getevents(db->f5[i]->nsample, rawptr, rna);
-
-    // if(db->et[i].n/(float)db->read_len[i] > 20){
-    //     fprintf(stderr,"%s\tevents_per_base\t%f\tread_len\t%d\n",bam_get_qname(db->bam_rec[i]), db->et[i].n/(float)db->read_len[i],db->read_len[i]);
-    // }
-
-    //get the scalings
-    db->scalings[i] = estimate_scalings_using_mom(
-        db->read[i], db->read_len[i], core->model, core->kmer_size, db->et[i]);
-
-    //If sequencing RNA, reverse the events to be 3'->5'
-    if (rna){
-        event_t *events = db->et[i].event;
-        size_t n_events = db->et[i].n;
-        for (size_t i = 0; i < n_events/2; ++i) {
-            event_t tmp_event = events[i];
-            events[i]=events[n_events-1-i];
-            events[n_events-1-i]=tmp_event;
+        // convert to pA
+        float raw_unit = range / digitisation;
+        for (int32_t j = 0; j < nsample; j++) {
+            rawptr[j] = (rawptr[j] + offset) * raw_unit;
         }
-    }
 
-    //allocate memory for the next alignment step
-    db->event_align_pairs[i] = (AlignedPair*)malloc(
-                sizeof(AlignedPair) * db->et[i].n * 2); //todo : find a good heuristic to save memory
-    MALLOC_CHK(db->event_align_pairs[i]);
+        int8_t rna=0;
+        if (core->opt.flag & F5C_RNA){
+            rna=1;
+        }
+        db->et[i] = getevents(db->f5[i]->nsample, rawptr, rna);
+
+        // if(db->et[i].n/(float)db->read_len[i] > 20){
+        //     fprintf(stderr,"%s\tevents_per_base\t%f\tread_len\t%d\n",bam_get_qname(db->bam_rec[i]), db->et[i].n/(float)db->read_len[i],db->read_len[i]);
+        // }
+
+        //get the scalings
+        db->scalings[i] = estimate_scalings_using_mom(
+            db->read[i], db->read_len[i], core->model, core->kmer_size, db->et[i]);
+
+        //If sequencing RNA, reverse the events to be 3'->5'
+        if (rna){
+            event_t *events = db->et[i].event;
+            size_t n_events = db->et[i].n;
+            for (size_t i = 0; i < n_events/2; ++i) {
+                event_t tmp_event = events[i];
+                events[i]=events[n_events-1-i];
+                events[n_events-1-i]=tmp_event;
+            }
+        }
+
+        //allocate memory for the next alignment step
+        db->event_align_pairs[i] = (AlignedPair*)malloc(
+                    sizeof(AlignedPair) * db->et[i].n * 2); //todo : find a good heuristic to save memory
+        MALLOC_CHK(db->event_align_pairs[i]);
+    }
+    else{
+        db->et[i].n = 0;
+        db->et[i].event = NULL;
+        db->event_align_pairs[i] = NULL;
+    }
 
 }
 
@@ -629,17 +637,22 @@ void scaling_single(core_t* core, db_t* db, int32_t i){
 //note that this is used in f5c.cu and thus modifications must be done with care
 void align_single(core_t* core, db_t* db, int32_t i) {
 
-    if ((db->et[i].n)/(float)(db->read_len[i]) < AVG_EVENTS_PER_KMER_MAX){
-        db->n_event_align_pairs[i] = align(
-                db->event_align_pairs[i], db->read[i], db->read_len[i], db->et[i],
-                core->model, core->kmer_size, db->scalings[i], db->f5[i]->sample_rate);
-            //fprintf(stderr,"readlen %d,n_events %d\n",db->read_len[i],n_event_align_pairs);
-    }
-    else{//todo : too many avg events per base - oversegmented
-        db->n_event_align_pairs[i]=0;
-        if(core->opt.verbosity > 0){
-            STDERR("Skipping over-segmented read %s with %f events per base",bam_get_qname(db->bam_rec[i]), (db->et[i].n)/(float)(db->read_len[i]));
+    if(db->f5[i]->nsample>0){ //if a good read
+        if (db->f5[i]->nsample && (db->et[i].n)/(float)(db->read_len[i]) < AVG_EVENTS_PER_KMER_MAX){
+            db->n_event_align_pairs[i] = align(
+                    db->event_align_pairs[i], db->read[i], db->read_len[i], db->et[i],
+                    core->model, core->kmer_size, db->scalings[i], db->f5[i]->sample_rate);
+                //fprintf(stderr,"readlen %d,n_events %d\n",db->read_len[i],n_event_align_pairs);
         }
+        else{//todo : too many avg events per base - oversegmented
+            db->n_event_align_pairs[i]=0;
+            if(core->opt.verbosity > 0){
+                STDERR("Skipping over-segmented read %s with %f events per base",bam_get_qname(db->bam_rec[i]), (db->et[i].n)/(float)(db->read_len[i]));
+            }
+        }
+    }
+    else{ //if a bad read (corrupted/missing slow5 record)
+       db->n_event_align_pairs[i]=0;
     }
 }
 

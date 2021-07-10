@@ -437,6 +437,11 @@ static inline int8_t if_gpu_mem_free(core_t* core, db_t* db, int32_t i,int64_t s
 //ultra-long reads as well as the reads with too many average events per base
 //are done of CPU
 static inline int8_t if_on_gpu(core_t* core, db_t* db, int32_t i){
+
+    if(db->f5[i]->nsample<=0){ //bad reads
+        return 0;
+    }
+
     if(db->read_len[i]<(core->opt.cuda_max_readlen * db->sum_bases/(float)db->n_bam_rec) && (db->et[i].n)/(float)(db->read_len[i]) < AVG_EVENTS_PER_KMER_GPU_THRESH ){
         return 1;
     }
@@ -700,7 +705,7 @@ realtime1 = realtime();
             j++;
         }
         else{
-            if ((db->et[i].n)/(float)(db->read_len[i]) < AVG_EVENTS_PER_KMER_MAX){
+            if (db->f5[i]->nsample>0 && (db->et[i].n)/(float)(db->read_len[i]) < AVG_EVENTS_PER_KMER_MAX){
                 ultra_long_reads[n_ultra_long_reads]=i;
                 n_ultra_long_reads++;
                 sum_bases_cpu += db->read_len[i];
@@ -715,7 +720,7 @@ realtime1 = realtime();
                     stat_n_gpu_mem_out++;
                 }
             }
-            else{//todo : too many avg events per base, even for the CPU
+            else{ //either bad read or too many avg events per base, even for the CPU
                 db->n_event_align_pairs[i]=0;
             }
 

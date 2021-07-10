@@ -68,30 +68,41 @@ void ReadDB::build(const std::string& input_reads_filename, int threads)
 }
 
 //
-void ReadDB::load(const std::string& input_reads_filename)
+void ReadDB::load(const std::string& input_reads_filename, int8_t slow5_mode)
 {
     // generate input filenames
     m_indexed_reads_filename = input_reads_filename + GZIPPED_READS_SUFFIX;
-    std::string in_filename = m_indexed_reads_filename + READ_DB_SUFFIX;
-
-    //
-    std::ifstream in_file(in_filename.c_str());
     bool success = false;
-    if(in_file.good()) {
-        // read the database
-        std::string line;
-        while(getline(in_file, line)) {
-            std::vector<std::string> fields = split(line, '\t');
 
-            std::string name = "";
-            std::string path = "";
-            if(fields.size() == 2) {
-                name = fields[0];
-                path = fields[1];
-                m_data[name].signal_data_path = path;
+    if(slow5_mode == 0){
+        std::string in_filename = m_indexed_reads_filename + READ_DB_SUFFIX;
+
+        //
+        std::ifstream in_file(in_filename.c_str());
+        if(in_file.good()) {
+            // read the database
+            std::string line;
+            while(getline(in_file, line)) {
+                std::vector<std::string> fields = split(line, '\t');
+
+                std::string name = "";
+                std::string path = "";
+                if(fields.size() == 2) {
+                    name = fields[0];
+                    path = fields[1];
+                    m_data[name].signal_data_path = path;
+                }
+            }
+
+            // load faidx
+            m_fai = fai_load3(m_indexed_reads_filename.c_str(), NULL, NULL, 0);
+            if(m_fai != NULL) {
+                success = true;
             }
         }
 
+    }
+    else {
         // load faidx
         m_fai = fai_load3(m_indexed_reads_filename.c_str(), NULL, NULL, 0);
         if(m_fai != NULL) {
@@ -101,7 +112,7 @@ void ReadDB::load(const std::string& input_reads_filename)
 
     if(!success) {
         fprintf(stderr, "error: could not load the index files for input file %s\n",input_reads_filename.c_str());
-        fprintf(stderr,"Please run f5c (or nanopolish) index on your reads (see documentation)\n");
+        fprintf(stderr,"Please run f5c index on your reads (see documentation)\n");
         exit(EXIT_FAILURE);
     }
 }
@@ -265,6 +276,14 @@ void ReadDB::save() const
         const ReadDBData& entry = iter.second;
         out_file << iter.first << "\t" << entry.signal_data_path << "\n";
     }
+}
+
+void ReadDB::clean() const
+{
+    std::string out_filename = m_indexed_reads_filename + READ_DB_SUFFIX;
+
+    remove(out_filename.c_str());
+
 }
 
 

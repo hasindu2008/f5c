@@ -18,6 +18,8 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
+//in f5c.c
+void pthread_db(core_t* core, db_t* db, void (*func)(core_t*,db_t*,int));
 
 //make this inline for performance reasons
 void f5write(FILE* fp, void *buf, size_t element_size, size_t num_elements){
@@ -414,75 +416,12 @@ static inline int read_from_fast5_files(core_t *core, db_t *db, std::string qnam
 
 /*************** Start of multiple I/O thread based SLOW5 reading *****************************/
 
+//read a single read from a SLOW5 file
+static void read_slow5_single(core_t* core, db_t* db, int i){
 
-//todo use pthread_single in f5c.c instead
-//I/O thread handler
-static void* pthread_slow5_single(void* voidargs) {
-    int32_t i;
-    pthread_arg_t* args = (pthread_arg_t*)voidargs;
-    db_t* db = args->db;
-    core_t* core = args->core;
+    // int ret = 0;
+    std::string qname = bam_get_qname(db->bam_rec[i]);
 
-
-    for (i = args->starti; i < args->endi; i++) {
-        args->func(core,db,i);
-    }
-
-    //fprintf(stderr,"Thread %d done\n",(myargs->position)/THREADS);
-    pthread_exit(0);
-}
-
-
-//divide I/O work and spawn I/O threads - can ca;; pthread_db in f5c.c instead
-static void pthread_slow5_db(core_t* core, db_t* db, void (*func)(core_t*,db_t*,int)){
-
-    INFO("Running with %d IO threads",core->opt.num_thread);
-
-    //create threads
-    pthread_t tids[core->opt.num_thread];
-    pthread_arg_t pt_args[core->opt.num_thread];
-    int32_t t, ret;
-    int32_t i = 0;
-    int32_t num_thread = core->opt.num_thread;
-    int32_t step = (db->n_bam_rec + num_thread - 1) / num_thread;
-    //todo : check for higher num of threads than the data
-    //current works but many threads are created despite
-
-    //set the data structures
-    for (t = 0; t < num_thread; t++) {
-        pt_args[t].core = core;
-        pt_args[t].db = db;
-        pt_args[t].starti = i;
-        i += step;
-        if (i > db->n_bam_rec) {
-            pt_args[t].endi = db->n_bam_rec;
-        } else {
-            pt_args[t].endi = i;
-        }
-        pt_args[t].func=func;
-        //fprintf(stderr,"t%d : %d-%d\n",t,pt_args[t].starti,pt_args[t].endi);
-
-    }
-
-    //create threads
-    for(t = 0; t < core->opt.num_thread; t++){
-        ret = pthread_create(&tids[t], NULL, pthread_slow5_single,
-                                (void*)(&pt_args[t]));
-        NEG_CHK(ret);
-    }
-
-    //pthread joining
-    for (t = 0; t < core->opt.num_thread; t++) {
-        int ret = pthread_join(tids[t], NULL);
-        NEG_CHK(ret);
-    }
-}
-
-
-
-//read a single read
-static inline int read_from_slow5_single2(core_t *core, db_t *db, std::string qname,  int32_t i){
-     //return 1 if success, 0 if failed
     db->f5[i] = (fast5_t*)calloc(1, sizeof(fast5_t));
     MALLOC_CHK(db->f5[i]);
 
@@ -492,11 +431,17 @@ static inline int read_from_slow5_single2(core_t *core, db_t *db, std::string qn
     len = slow5_get(qname.c_str(), &record, core->sf);
 
 
-    int ret;
-
     if(record==NULL || len <0){ //todo : should we free if len<0
-        fprintf(stderr,"Record [%s] not found. Error %d\n", qname.c_str(), len);
-        ret=0;
+        db->bad_fast5_file++;
+        if (core->opt.flag & F5C_SKIP_UNREADABLE) {
+            WARNING("Slow5 record for read [%s] is unreadable and will be skipped", qname.c_str());
+            db->f5[i]->nsample = 0;
+            db->f5[i]->rawptr = NULL;
+        } else {
+            ERROR("Slow5 record for read [%s] is unreadable", qname.c_str());
+            exit(EXIT_FAILURE);
+        }
+        // ret=0;
     }
     else{
         assert(strcmp(qname.c_str(),record->read_id)==0);
@@ -514,39 +459,15 @@ static inline int read_from_slow5_single2(core_t *core, db_t *db, std::string qn
             db->f5[i]->rawptr[j] = (float)record->raw_signal[j];
         }
 
-        ret=1;
+        // ret=1;
         slow5_rec_free(record);
     }
 
-    return ret;
+    // if(ret!=1){
+    //     assert(0);
+    // }
 }
 
-//just a wrapper : read a single read from a SLOW5 file
-static void read_slow5_single(core_t* core, db_t* db, int i){
-
-    int8_t read_status = 0;
-    std::string qname = bam_get_qname(db->bam_rec[i]);
-    read_status=read_from_slow5_single2(core, db, qname,i);
-
-    if(read_status!=1){
-        assert(0);
-    }
-}
-
-
-static void read_slow5_db(core_t* core, db_t* db){
-
-    int i;
-    if (core->opt.num_thread == 1) {
-        for (i = 0; i < db->n_bam_rec; i++) {
-            read_slow5_single(core, db, i);
-        }
-    }
-    else {
-        pthread_slow5_db(core, db, read_slow5_single);
-    }
-
-}
 
 /******************************* SLOW5 end ************************************/
 
@@ -591,7 +512,7 @@ int f5c_sam_itr_next(core_t* core, bam1_t* record){
 }
 
 
-ret_status_t load_db1(core_t* core, db_t* db) { //old method
+ret_status_t load_db1(core_t* core, db_t* db) { //no iop - used for slow5
 
     double load_start = realtime();
 
@@ -634,10 +555,13 @@ ret_status_t load_db1(core_t* core, db_t* db) { //old method
                 db->total_reads++; // candidate read
 
                 std::string qname = bam_get_qname(record);
+                std::string fast5_path_str;
                 t = realtime();
                 //todo : make efficient (redudantly accessed below, can be combined with it?)
                 int64_t read_length=core->readbb->get_read_sequence(qname).size();
-                std::string fast5_path_str = core->readbb->get_signal_path(qname);
+                if(!(core->opt.flag & F5C_RD_SLOW5)){ //if not slow5
+                    fast5_path_str = core->readbb->get_signal_path(qname);
+                }
                 core->db_fasta_time += realtime() - t;
 
                 //skipping ultra-long-reads
@@ -648,7 +572,7 @@ ret_status_t load_db1(core_t* core, db_t* db) { //old method
                     continue;
                 }
 
-                if(fast5_path_str==""){
+                if(!(core->opt.flag & F5C_RD_SLOW5) && fast5_path_str==""){
                     handle_bad_fast5(core, db,fast5_path_str,qname);
                     continue;
                 }
@@ -721,7 +645,7 @@ ret_status_t load_db1(core_t* core, db_t* db) { //old method
     //read the slow5 batch
     if(core->opt.flag & F5C_RD_SLOW5){
         t=realtime();
-        read_slow5_db(core,db);
+        pthread_db(core, db, read_slow5_single);
         core->db_fast5_time += realtime() - t;
     }
 

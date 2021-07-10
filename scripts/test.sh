@@ -148,10 +148,11 @@ done
 
 if [ -z "$mode" ]; then
 	if [ $testdir = test/chr22_meth_example ]; then
+		${exepath} index -d ${testdir}/fast5_files ${reads} --iop "$threads" -t "$threads"
 		${exepath} call-methylation -b ${bamfile} -g ${ref} -r ${reads} -t "$threads" -K "$batchsize" -B "$max_bases" > ${testdir}/result.txt
 		execute_test
 	else
-		${exepath} index -d ${testdir}/fast5_files ${testdir}/reads.fasta
+		${exepath} index -d ${testdir}/fast5_files ${reads}
 		${exepath} call-methylation -b ${bamfile} -g ${ref} -r ${reads} -t "$threads" -K "$batchsize" -B "$max_bases" --secondary=yes --min-mapq=0 > ${testdir}/result.txt
 		execute_test
 	fi
