@@ -434,11 +434,11 @@ static void read_slow5_single(core_t* core, db_t* db, int i){
     if(record==NULL || len <0){ //todo : should we free if len<0
         db->bad_fast5_file++;
         if (core->opt.flag & F5C_SKIP_UNREADABLE) {
-            WARNING("Slow5 record for read [%s] is unreadable and will be skipped", qname.c_str());
+            WARNING("Slow5 record for read [%s] is unavailable/unreadable and will be skipped", qname.c_str());
             db->f5[i]->nsample = 0;
             db->f5[i]->rawptr = NULL;
         } else {
-            ERROR("Slow5 record for read [%s] is unreadable", qname.c_str());
+            ERROR("Slow5 record for read [%s] is unavailable/unreadable", qname.c_str());
             exit(EXIT_FAILURE);
         }
         // ret=0;

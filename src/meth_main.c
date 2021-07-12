@@ -228,6 +228,7 @@ int meth_main(int argc, char* argv[], int8_t mode) {
     char *slow5file = NULL;
 
     int8_t is_ultra_thresh_set = 0;
+    int8_t is_meth_out_version_set = 0;
 
     FILE *fp_help = stderr;
 
@@ -384,6 +385,7 @@ int meth_main(int argc, char* argv[], int8_t mode) {
                 ERROR("--meth-out-version accepts only 1 or 2. You entered %d",opt.meth_out_version);
                 exit(EXIT_FAILURE);
             }
+            is_meth_out_version_set = 1;
         } else if (c == 0 && longindex == 40){ //custom methylation k-mer model
             if(mode!=0){
                 ERROR("%s","Option --meth-model is available only in call-methylation");
@@ -413,6 +415,10 @@ int meth_main(int argc, char* argv[], int8_t mode) {
         WARNING("%s", "--ultra-thresh has no effect without --skip-ultra");
     }
 
+    if(mode==0 && is_meth_out_version_set==0){
+        INFO("%s","Default methylation tsv output format is changed from f5c v0.7 onwards to match latest nanopolish output. Set --meth-out-version=1 to fall back to the old format.");
+    }
+
     if (fastqfile == NULL || bamfilename == NULL || fastafile == NULL || fp_help == stdout) {
         fprintf(fp_help,"Usage: f5c %s [OPTIONS] -r reads.fa -b alignments.bam -g genome.fa\n",mode==1 ? "eventalign" : "call-methylation");
         fprintf(fp_help,"\nbasic options:\n");
@@ -427,8 +433,8 @@ int meth_main(int argc, char* argv[], int8_t mode) {
         fprintf(fp_help,"   -o FILE                    output to file [stdout]\n");
         fprintf(fp_help,"   -x STR                     parameter profile to be used for better performance (always applied before other options)\n"); //Added option in help
         fprintf(fp_help,"                              e.g., laptop, desktop, hpc; see https://f5c.page.link/profiles for the full list\n");
-        fprintf(fp_help,"   --slow5 FILE               read from a slow5 file\n");
         fprintf(fp_help,"   --iop INT                  number of I/O processes to read fast5 files [%d]\n",opt.num_iop);
+        fprintf(fp_help,"   --slow5 FILE               read from a slow5 file\n");
         fprintf(fp_help,"   --min-mapq INT             minimum mapping quality [%d]\n",opt.min_mapq);
         fprintf(fp_help,"   --secondary=yes|no         consider secondary mappings or not [%s]\n",(opt.flag&F5C_SECONDARY_YES)?"yes":"no");
         fprintf(fp_help,"   --verbose INT              verbosity level [%d]\n",opt.verbosity);

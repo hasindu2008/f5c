@@ -46,7 +46,7 @@ On OS X : brew install hdf5
 ```
 If you skip `scripts/install-hts.sh` and `./configure`, hdf5 will be compiled locally. It is a good option if you cannot install hdf5 library system wide. However, building hdf5 takes ages.
 
-Building from the Github repository additionally requires `autoreconf` which can be installed on Ubuntu using `sudo apt-get install autoconf automake`.
+Building from the Github repository additionally requires invoking `autoreconf --install` to generate the *configure* script. `autoreconf` can be installed on Ubuntu using `sudo apt-get install autoconf automake`.
 
 Other building options are detailed [here](https://hasindu2008.github.io/f5c/docs/building).
 Instructions to build a docker image and conda installation are detailed [here](https://hasindu2008.github.io/f5c/docs/misc-install).

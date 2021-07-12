@@ -379,7 +379,7 @@ db_t* init_db(core_t* core) {
 
 /* load a data batch from disk */
 ret_status_t load_db(core_t* core, db_t* db) {
-    if(core->opt.num_iop == 1){
+    if(core->opt.num_iop == 1 || (core->opt.flag & F5C_RD_SLOW5) ){
         return load_db1(core,db);
     }
     else{
@@ -1015,7 +1015,7 @@ void init_opt(opt_t* opt) {
     opt->debug_break=-1;
     opt->ultra_thresh=100000;
 
-    opt->meth_out_version=1;
+    opt->meth_out_version=2;
 
     opt->cuda_block_size=64;
     opt->cuda_dev_id=0;

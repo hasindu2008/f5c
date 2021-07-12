@@ -78,9 +78,9 @@ execute_test() {
 mode_test() {
 
 	if [ $testdir = test/chr22_meth_example ]; then
-		cmd="${exepath} call-methylation -b ${bamfile} -g ${ref} -r ${reads} -t ${threads} -K $batchsize -B $max_bases"
+		cmd="${exepath} call-methylation -b ${bamfile} -g ${ref} -r ${reads} -t ${threads} -K $batchsize -B $max_bases --meth-out-version=1"
 	else
-		cmd="${exepath} call-methylation -b ${bamfile} -g ${ref} -r ${reads} -t ${threads} -K $batchsize -B $max_bases --secondary=yes --min-mapq=0"
+		cmd="${exepath} call-methylation -b ${bamfile} -g ${ref} -r ${reads} -t ${threads} -K $batchsize -B $max_bases --secondary=yes --min-mapq=0 --meth-out-version=1"
 	fi
 
 	case $1 in
@@ -149,11 +149,11 @@ done
 if [ -z "$mode" ]; then
 	if [ $testdir = test/chr22_meth_example ]; then
 		${exepath} index -d ${testdir}/fast5_files ${reads} --iop "$threads" -t "$threads"
-		${exepath} call-methylation -b ${bamfile} -g ${ref} -r ${reads} -t "$threads" -K "$batchsize" -B "$max_bases" > ${testdir}/result.txt
+		${exepath} call-methylation -b ${bamfile} -g ${ref} -r ${reads} -t "$threads" -K "$batchsize" -B "$max_bases" --meth-out-version=1 > ${testdir}/result.txt
 		execute_test
 	else
 		${exepath} index -d ${testdir}/fast5_files ${reads}
-		${exepath} call-methylation -b ${bamfile} -g ${ref} -r ${reads} -t "$threads" -K "$batchsize" -B "$max_bases" --secondary=yes --min-mapq=0 > ${testdir}/result.txt
+		${exepath} call-methylation -b ${bamfile} -g ${ref} -r ${reads} -t "$threads" -K "$batchsize" -B "$max_bases" --secondary=yes --min-mapq=0 --meth-out-version=1 > ${testdir}/result.txt
 		execute_test
 	fi
 else

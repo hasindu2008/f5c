@@ -79,7 +79,12 @@ test_suit1 () {
 	echo "____________________________________________________________________"
 	echo "custom 6-mer models"
 	scripts/test.sh custom --kmer-model test/r9-models/r9.4_450bps.nucleotide.6mer.template.model --meth-model test/r9-models/r9.4_450bps.cpg.6mer.template.model 2> custom_6mer_methcall.log || die "failed"
-
+	echo "____________________________________________________________________"
+	echo "slow5"
+	scripts/test_slow5.sh 2> ecoli_slow5.log || die "failed"
+	echo "____________________________________________________________________"
+	echo "valgrind slow5"
+	scripts/test_slow5.sh valgrind 2> valgrind_slow5.log || die "failed"
 
 	echo ""
 	echo "********************************************************************"
@@ -101,6 +106,9 @@ test_suit1 () {
 	echo "index"
 	scripts/test_index.sh -c 2> na12878_index.log || die "failed"
 	echo ""
+	echo "____________________________________________________________________"
+	echo "slow5"
+	scripts/test_slow5.sh -c 2> na12878_slow5.log || die "failed"
 
 	echo "************************Doing RNA tests*****************************"
 	echo "event alignment"
@@ -134,6 +142,9 @@ test_suit1_cuda () {
 	echo "multi-fast5"
 	scripts/test_multifast5.sh 2> ecoli_multifast5_cuda.log  || die "failed"
 	echo "____________________________________________________________________"
+	echo "slow5"
+	scripts/test_slow5.sh 2> ecoli_slow5_cuda.log || die "failed"
+	echo "____________________________________________________________________"
 
 	echo ""
 	echo "*********************************************************************"
@@ -152,6 +163,8 @@ test_suit1_cuda () {
 	echo "multi-fast5"
 	scripts/test_multifast5.sh -c 2> na12878_multifast5_cuda.log || die "failed"
 	echo "____________________________________________________________________"
+	echo "slow5"
+	scripts/test_slow5.sh -c 2> na12878_slow5_cuda.log || die "failed"
 
 	echo "************************Doing RNA tests*****************************"
 	echo "event alignment"

@@ -62,6 +62,7 @@ std::vector< std::string > list_directory(const std::string& file_name)
 
 static const char *INDEX_USAGE_MESSAGE =
 "Usage: f5c index [OPTIONS] -d fast5_directory reads.fastq\n"
+"       f5c index [OPTIONS] --slow5 reads.blow5 reads.fastq"
 "Build an index that maps read IDs to the corresponding fast5 files. f5c index is an extended version of nanopolish index by Jared Simpson\n"
 "\n"
 "  -h                display this help and exit\n"
@@ -70,7 +71,7 @@ static const char *INDEX_USAGE_MESSAGE =
 "  -f STR            file containing the paths to the sequencing summary files (one per line)\n"
 "  -t INT            number of threads used for bgzf compression (makes indexing faster)\n"
 "  --iop INT         number of I/O processes to read fast5 files (makes indexing faster)\n"
-"  --slow5 FILE      slow5 file\n"
+"  --slow5 FILE      use the slow5 file\n"
 "  --verbose INT     verbosity level\n"
 "  --version         print version\n"
 "\nSee the manual page for details (`man ./docs/f5c.1' or https://f5c.page.link/man)."
@@ -84,8 +85,8 @@ namespace opt
     static std::string reads_file;
     static std::vector<std::string> sequencing_summary_files;
     static std::string sequencing_summary_fofn;
-    int iop = 1;
-    int threads = 1;
+    int iop = 4;
+    int threads = 4;
     char *slow5file = NULL;
 }
 //static std::ostream* os_p;
