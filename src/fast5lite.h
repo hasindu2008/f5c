@@ -320,7 +320,7 @@ static inline int32_t fast5_read_multi_fast5(fast5_file_t fh, fast5_t* f5, std::
     if (status < 0) {
         free(f5->rawptr);
         if(fast5_is_vbz_compressed(fh, read_id) == 1) {
-            fprintf(stderr, "The fast5 file is compressed with VBZ but the required plugin is not loaded. Please read the instructions here: https://github.com/nanoporetech/vbz_compression/issues/5\n");
+            ERROR("%s","The fast5 file is compressed with VBZ but the required plugin is not loaded. Please read the instructions here: https://github.com/nanoporetech/vbz_compression/issues/5\n");
         }
         WARNING("Failed to read raw data from dataset %s.", signal_path);
         H5Sclose(space);

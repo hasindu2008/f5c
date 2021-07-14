@@ -115,7 +115,7 @@ test_suit1 () {
 	scripts/test_eventalign.sh -e 2> rna_eventalign.log || die "failed"
 	echo "____________________________________________________________________"
 	echo "valgrind eventalign"
-	scripts/test.sh valgrind -e 2> valgrind_rna_eventalign.log || die "failed"
+	scripts/test.sh -e valgrind 2> valgrind_rna_eventalign.log || die "failed"
 	echo "____________________________________________________________________"
 
 
