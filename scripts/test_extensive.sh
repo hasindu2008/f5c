@@ -260,13 +260,14 @@ test_suit2_cuda () {
 test_suit_eventalign_extra () {
 
 	echo "************************event align extra tests**********************"
-	echo "valgrind test"
-	scripts/test_eventalign.sh valgrind 2> valgrind_event_align.txt || die "failed"
-	echo ""
-	echo "____________________________________________________________________"
 
 	echo "Event align parameter tests"
 	scripts/test_eventalign_parameters.sh 2> event_align_parameters.txt || die "failed"
+	echo ""
+	echo "____________________________________________________________________"
+
+	echo "valgrind test"
+	scripts/test_eventalign.sh valgrind 2> valgrind_event_align.txt || die "failed"
 	echo ""
 	echo "____________________________________________________________________"
 
