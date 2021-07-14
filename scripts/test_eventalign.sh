@@ -185,6 +185,7 @@ done
 #generate the command
 cmd="${exepath} eventalign -b ${bamfile} -g ${ref} -r ${reads} -t ${threads} -K $batchsize -B $max_bases --summary ${testdir}/f5c_event_align.summary.txt --secondary=yes --min-mapq=0"
 if [ $testdir = test/rna ]; then
+	${exepath} index -d ${testdir}/fast5_files ${reads}
 	cmd="${cmd}"" --rna"
 fi
 
