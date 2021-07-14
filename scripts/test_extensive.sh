@@ -184,6 +184,7 @@ test_suit2 () {
 	echo "***************Doing NA12878 based CPU tests part 2******************"
 	echo "Default test"
 	make clean && make
+	"${exepath}" index --iop "${NCPU}" -t "${NCPU}" "${reads}" ${testdir}/fast5_files
 	"${exepath}" call-methylation -b "${bamfile}" -g "${ref}" -r "${reads}" -t "${NCPU}"  -K1024 -v5 > ${testdir}/result.txt 2> default.log
 	evaluate
 	echo ""
@@ -229,6 +230,7 @@ test_suit2_cuda () {
 	echo "*****************Doing NA12878 based CUDA tests part 2**************"
 	echo "CUDA test"
 	make clean && make cuda=1
+	"${exepath}" index --iop "${NCPU}" -t "${NCPU}" "${reads}" ${testdir}/fast5_files
 	"${exepath}" call-methylation -b "${bamfile}" -g "${ref}" -r "${reads}" -t "${NCPU}"  -K256 -v5 > ${testdir}/result.txt 2> default_cuda.log
 	evaluate
 	echo ""
