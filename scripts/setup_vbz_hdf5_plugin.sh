@@ -4,6 +4,7 @@
 # Check https://github.com/nanoporetech/vbz_compression/releases
 # User may have to change the $ONT_VBZ_VERSION and $ONT_VBZ_FILE. 
 # User may have to change the $PLUGIN_PATH
+# Make sure to export the $PLUGIN_PATH using export HDF5_PLUGIN_PATH=$PLUGIN_PATH before using it
 
 NC='\033[0m' # No Color
 RED='\033[0;31m'
