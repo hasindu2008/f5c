@@ -14,6 +14,7 @@ Linux allows memory overcommitment, i.e., programs are allowed to allocate more 
 
 ### The fast5 file is compressed with VBZ but the required plugin is not loaded
 
-This is due to the *vbz* compression used in the latest fast5 files. Currently, you need to setup the *vbz* plugin for HDF5. We have provided a helper script in *f5c* which you can invoke as `scripts/install_vbz.sh`. 
+This is due to the *vbz* compression used in the latest fast5 files. You need to setup the *vbz* plugin for HDF5. We have provided a helper script in *f5c* which you can invoke as `scripts/install-vbz.sh`. This script attempts to determine your operating system and the arcihtecture, downloads and extract the plugin (.so file) to *$HOME/.local/hdf5/lib/plugin*. You must export the path to the plugin by invoking `export HDF5_PLUGIN_PATH=$HOME/.local/hdf5/lib/plugin` . Note that the exported environmental variable will not persist accross different shells. For persistence, you must add `export HDF5_PLUGIN_PATH=$HOME/.local/hdf5/lib/plugin` to your *~/.bashrc* or */etc/environment*.
 
-The script currently supports Linux on x86_64 and aarch64 architectures only. If your system is of a different operating system and/or architecture, or if this script fails, you have to download and manually install the plugin from https://github.com/nanoporetech/vbz_compression/releases. See the instructions at https://github.com/nanoporetech/vbz_compression/issues/5.
+Our helper script currently supports Linux on x86_64 and aarch64 architectures only. If your system is of a different operating system and/or architecture (or if this helper script fails) you have to download and manually install the plugin from [here](https://github.com/nanoporetech/vbz_compression/releases). 
+See [this post](https://github.com/nanoporetech/vbz_compression/issues/5) for troubleshooting a manual installation.
