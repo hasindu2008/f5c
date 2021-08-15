@@ -7,3 +7,7 @@ chr22_meth_example_big_testresults
 ecoli_2kb_region2/
 f5cdebug/
 rna/
+test/
+ecoli_2kb_region/reads.blow5.idx
+ecoli_2kb_region_vbz/
+rna-spliced/
