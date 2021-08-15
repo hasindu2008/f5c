@@ -2,7 +2,7 @@
 title: Building f5c
 ---
 
-Note : Building from the Github repository requires `autoreconf` which can be installed on Ubuntu using `sudo apt-get install autoconf automake`.
+Note : Building from the Github repository additionally requires invoking `autoreconf --install` to generate the *configure* script. `autoreconf` can be installed on Ubuntu using `sudo apt-get install autoconf automake`.
 
 Clone the git repository.
 ```sh
