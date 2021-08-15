@@ -62,7 +62,7 @@ std::vector< std::string > list_directory(const std::string& file_name)
 
 static const char *INDEX_USAGE_MESSAGE =
 "Usage: f5c index [OPTIONS] -d fast5_directory reads.fastq\n"
-"       f5c index [OPTIONS] --slow5 reads.blow5 reads.fastq"
+"       f5c index [OPTIONS] --slow5 reads.blow5 reads.fastq\n"
 "Build an index that maps read IDs to the corresponding fast5 files. f5c index is an extended version of nanopolish index by Jared Simpson\n"
 "\n"
 "  -h                display this help and exit\n"

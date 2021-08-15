@@ -430,7 +430,7 @@ int meth_main(int argc, char* argv[], int8_t mode) {
         fprintf(fp_help,"   -r FILE                    fastq/fasta read file\n");
         fprintf(fp_help,"   -b FILE                    sorted bam file\n");
         fprintf(fp_help,"   -g FILE                    reference genome\n");
-        fprintf(fp_help,"   -w STR                     limit processing to genomic region string of format chr:start-end\n");
+        fprintf(fp_help,"   -w STR                     limit processing to a genomic region specified as chr:start-end or a list of regions in a .bed file\n");
         fprintf(fp_help,"   -t INT                     number of processing threads [%d]\n",opt.num_thread);
         fprintf(fp_help,"   -K INT                     batch size (max number of reads loaded at once) [%d]\n",opt.batch_size);
         fprintf(fp_help,"   -B FLOAT[K/M/G]            max number of bases loaded at once [%.1fM]\n",opt.batch_size_bases/(float)(1000*1000));
