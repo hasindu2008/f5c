@@ -419,6 +419,11 @@ int meth_main(int argc, char* argv[], int8_t mode) {
         INFO("%s","Default methylation tsv output format is changed from f5c v0.7 onwards to match latest nanopolish output. Set --meth-out-version=1 to fall back to the old format.");
     }
 
+    if(slow5file!=NULL && opt.num_iop > 1){
+        ERROR("%s","--iop option is only meant to be used for fast5 files, not slow5.");
+        exit(EXIT_FAILURE);
+    }
+
     if (fastqfile == NULL || bamfilename == NULL || fastafile == NULL || fp_help == stdout) {
         fprintf(fp_help,"Usage: f5c %s [OPTIONS] -r reads.fa -b alignments.bam -g genome.fa\n",mode==1 ? "eventalign" : "call-methylation");
         fprintf(fp_help,"\nbasic options:\n");

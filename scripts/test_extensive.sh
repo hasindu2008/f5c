@@ -85,6 +85,8 @@ test_suit1 () {
 	echo "____________________________________________________________________"
 	echo "valgrind slow5"
 	scripts/test_slow5.sh valgrind 2> valgrind_slow5.log || die "failed"
+	echo "vbz"
+	scripts/test_vbz.sh 2> ecoli_vbz.log || die "failed"
 
 	echo ""
 	echo "********************************************************************"

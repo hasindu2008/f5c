@@ -148,6 +148,9 @@ for file in ${bamfile} ${ref} ${reads}; do
 	[ -f ${file} ] || die "${file}: File does not exist"
 done
 
+test -d $HOME/.local/hdf5/lib/plugin || scripts/install-vbz.sh
+export HDF5_PLUGIN_PATH=$HOME/.local/hdf5/lib/plugin
+
 if [ -z "$mode" ]; then
 	if [ $testdir = test/chr22_meth_example_vbz ]; then
 		${exepath} call-methylation -b ${bamfile} -g ${ref} -r ${reads} -t "$threads" -K "$batchsize" -B "$max_bases" --meth-out-version=1 > ${testdir}/result.txt

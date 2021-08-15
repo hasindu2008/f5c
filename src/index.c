@@ -85,7 +85,7 @@ namespace opt
     static std::string reads_file;
     static std::vector<std::string> sequencing_summary_files;
     static std::string sequencing_summary_fofn;
-    int iop = 4;
+    int iop = 1;
     int threads = 4;
     char *slow5file = NULL;
 }

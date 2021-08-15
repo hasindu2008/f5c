@@ -1004,7 +1004,7 @@ void init_opt(opt_t* opt) {
     opt->batch_size = 512;
     opt->batch_size_bases = 2*1000*1000;
     opt->num_thread = 8;
-    opt->num_iop = 1;
+    opt->num_iop = 1;       //if changed, the SLOW5 mode must be handled by default in the arg parsing
     opt->region_str = NULL; //whole genome processing if null
 #ifndef HAVE_CUDA
     opt->flag |= F5C_DISABLE_CUDA;
