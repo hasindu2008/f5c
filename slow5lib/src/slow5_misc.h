@@ -14,6 +14,7 @@ extern "C" {
 
 //#define MIN(A,B) ( ( (A) < (B) ) ? (A) : (B) )
 //#define MAX(A,B) ( ( (A) > (B) ) ? (A) : (B) )
+#define SLOW5_LENGTH(X) (sizeof X / sizeof X[0])
 
 // Types to sizes
 
@@ -129,6 +130,8 @@ float slow5_strtof_check(const char *str, int *err);
 char *slow5_double_to_str(double x, size_t *len);
 // Convert float to decimal string without trailing 0s
 char *slow5_float_to_str(float x, size_t *len);
+
+double slow5_filestamps_cmp(const char *a, const char *b, int *err);
 
 #ifdef __cplusplus
 }

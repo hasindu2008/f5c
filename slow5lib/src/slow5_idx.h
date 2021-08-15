@@ -11,7 +11,7 @@ extern "C" {
 #endif
 
 #define SLOW5_INDEX_EXTENSION             "." "idx"
-#define SLOW5_INDEX_VERSION               { 0, 1, 0 }
+#define SLOW5_INDEX_VERSION               SLOW5_VERSION_ARRAY
 #define SLOW5_INDEX_MAGIC_NUMBER          { 'S', 'L', 'O', 'W', '5', 'I', 'D', 'X', '\1' }
 #define SLOW5_INDEX_EOF                   { 'X', 'D', 'I', '5', 'W', 'O', 'L', 'S' }
 #define SLOW5_INDEX_HEADER_SIZE_OFFSET    (64L)
@@ -49,8 +49,8 @@ struct slow5_idx *slow5_idx_init(struct slow5_file *s5p);
 int slow5_idx_to(struct slow5_file *s5p, const char *pathname);
 void slow5_idx_free(struct slow5_idx *index);
 int slow5_idx_get(struct slow5_idx *index, const char *read_id, struct slow5_rec_idx *read_index);
-void slow5_idx_insert(struct slow5_idx *index, char *read_id, uint64_t offset, uint64_t size);
-void slow5_idx_write(struct slow5_idx *index);
+int slow5_idx_insert(struct slow5_idx *index, char *read_id, uint64_t offset, uint64_t size);
+int slow5_idx_write(struct slow5_idx *index, struct slow5_version version);
 void slow5_rec_idx_print(struct slow5_rec_idx read_index);
 
 #ifdef __cplusplus

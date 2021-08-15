@@ -40,7 +40,6 @@ SOFTWARE.
 // TODO structure pack to min size
 // TODO fix and add function descriptions
 // TODO remove unnessary header inclusions
-// TODO move klib to src/
 
 #ifndef SLOW5_H
 #define SLOW5_H
@@ -48,6 +47,7 @@ SOFTWARE.
 #include <stdio.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <math.h>
 #include "klib/khash.h"
 #include "klib/kvec.h"
 #include "slow5_press.h"
@@ -98,9 +98,7 @@ struct slow5_version {
     uint8_t patch;  ///< patch version
 };
 
-// TODO is this ok or put somewhere else or get rid of?
-static const struct slow5_version SLOW5_ASCII_VERSION_STRUCT = { .major = 0, .minor = 1, .patch = 0 };
-static const struct slow5_version SLOW5_BINARY_VERSION_STRUCT = { .major = 0, .minor = 1, .patch = 0 };
+static const struct slow5_version SLOW5_VERSION_STRUCT = SLOW5_VERSION_ARRAY;
 
 // SLOW5 auxiliary types
 // DO NOT rearrange! See subtracting SLOW5_INT8_T_ARRAY in SLOW5_TO_PRIM_TYPE
@@ -135,7 +133,7 @@ enum slow5_aux_type {
 #define SLOW5_IS_PTR(type)        (type >= SLOW5_INT8_T_ARRAY)
 #define SLOW5_TO_PRIM_TYPE(type)  ((enum slow5_aux_type) (type - SLOW5_INT8_T_ARRAY))
 
-//NULL (missing value) representation
+/* NULL (missing value) representation */
 #define SLOW5_INT8_T_NULL     INT8_MAX
 #define SLOW5_INT16_T_NULL    INT16_MAX
 #define SLOW5_INT32_T_NULL    INT32_MAX
@@ -156,33 +154,36 @@ struct slow5_aux_type_meta {
     const char *type_str;
 };
 
+#define SLOW5_TO_STR(x) #x
+#define SLOW5_AUX_TYPE_META_PRIM(aux_type, raw_type) { aux_type, sizeof (raw_type), SLOW5_TO_STR(raw_type) }
+#define SLOW5_AUX_TYPE_META_ARRAY(aux_type, raw_type) { aux_type, sizeof (raw_type), SLOW5_TO_STR(raw_type) "*" }
 //any modifications to slow5_aux_type should follow by appropriate modifications to this.
 //the order should be identical to that in slow5_aux_type
 static const struct slow5_aux_type_meta SLOW5_AUX_TYPE_META[] = {
     // Needs to be the same order as the enum definition
-    { SLOW5_INT8_T,           sizeof (int8_t),        "int8_t"    },
-    { SLOW5_INT16_T,          sizeof (int16_t),       "int16_t"   },
-    { SLOW5_INT32_T,          sizeof (int32_t),       "int32_t"   },
-    { SLOW5_INT64_T,          sizeof (int64_t),       "int64_t"   },
-    { SLOW5_UINT8_T,          sizeof (uint8_t),       "uint8_t"   },
-    { SLOW5_UINT16_T,         sizeof (uint16_t),      "uint16_t"  },
-    { SLOW5_UINT32_T,         sizeof (uint32_t),      "uint32_t"  },
-    { SLOW5_UINT64_T,         sizeof (uint64_t),      "uint64_t"  },
-    { SLOW5_FLOAT,            sizeof (float),         "float"     },
-    { SLOW5_DOUBLE,           sizeof (double),        "double"    },
-    { SLOW5_CHAR,             sizeof (char),          "char"      },
+    SLOW5_AUX_TYPE_META_PRIM(   SLOW5_INT8_T,           int8_t      ),
+    SLOW5_AUX_TYPE_META_PRIM(   SLOW5_INT16_T,          int16_t     ),
+    SLOW5_AUX_TYPE_META_PRIM(   SLOW5_INT32_T,          int32_t     ),
+    SLOW5_AUX_TYPE_META_PRIM(   SLOW5_INT64_T,          int64_t     ),
+    SLOW5_AUX_TYPE_META_PRIM(   SLOW5_UINT8_T,          uint8_t     ),
+    SLOW5_AUX_TYPE_META_PRIM(   SLOW5_UINT16_T,         uint16_t    ),
+    SLOW5_AUX_TYPE_META_PRIM(   SLOW5_UINT32_T,         uint32_t    ),
+    SLOW5_AUX_TYPE_META_PRIM(   SLOW5_UINT64_T,         uint64_t    ),
+    SLOW5_AUX_TYPE_META_PRIM(   SLOW5_FLOAT,            float       ),
+    SLOW5_AUX_TYPE_META_PRIM(   SLOW5_DOUBLE,           double      ),
+    SLOW5_AUX_TYPE_META_PRIM(   SLOW5_CHAR,             char        ),
 
-    { SLOW5_INT8_T_ARRAY,     sizeof (int8_t),        "int8_t*"   },
-    { SLOW5_INT16_T_ARRAY,    sizeof (int16_t),       "int16_t*"  },
-    { SLOW5_INT32_T_ARRAY,    sizeof (int32_t),       "int32_t*"  },
-    { SLOW5_INT64_T_ARRAY,    sizeof (int64_t),       "int64_t*"  },
-    { SLOW5_UINT8_T_ARRAY,    sizeof (uint8_t),       "uint8_t*"  },
-    { SLOW5_UINT16_T_ARRAY,   sizeof (uint16_t),      "uint16_t*" },
-    { SLOW5_UINT32_T_ARRAY,   sizeof (uint32_t),      "uint32_t*" },
-    { SLOW5_UINT64_T_ARRAY,   sizeof (uint64_t),      "uint64_t*" },
-    { SLOW5_FLOAT_ARRAY,      sizeof (float),         "float*"    },
-    { SLOW5_DOUBLE_ARRAY,     sizeof (double),        "double*"   },
-    { SLOW5_STRING,           sizeof (char),          "char*"     }
+    SLOW5_AUX_TYPE_META_ARRAY(  SLOW5_INT8_T_ARRAY,     int8_t      ),
+    SLOW5_AUX_TYPE_META_ARRAY(  SLOW5_INT16_T_ARRAY,    int16_t     ),
+    SLOW5_AUX_TYPE_META_ARRAY(  SLOW5_INT32_T_ARRAY,    int32_t     ),
+    SLOW5_AUX_TYPE_META_ARRAY(  SLOW5_INT64_T_ARRAY,    int64_t     ),
+    SLOW5_AUX_TYPE_META_ARRAY(  SLOW5_UINT8_T_ARRAY,    uint8_t     ),
+    SLOW5_AUX_TYPE_META_ARRAY(  SLOW5_UINT16_T_ARRAY,   uint16_t    ),
+    SLOW5_AUX_TYPE_META_ARRAY(  SLOW5_UINT32_T_ARRAY,   uint32_t    ),
+    SLOW5_AUX_TYPE_META_ARRAY(  SLOW5_UINT64_T_ARRAY,   uint64_t    ),
+    SLOW5_AUX_TYPE_META_ARRAY(  SLOW5_FLOAT_ARRAY,      float       ),
+    SLOW5_AUX_TYPE_META_ARRAY(  SLOW5_DOUBLE_ARRAY,     double      ),
+    SLOW5_AUX_TYPE_META_ARRAY(  SLOW5_STRING,           char        ),
 };
 
 // Auxiliary attribute to position map: attribute string -> index position
@@ -213,7 +214,7 @@ KHASH_SET_INIT_STR(slow5_s)
 * SLOW5 header data (constant attributes in FAST5 files)
 */
 struct slow5_hdr_data {
-    uint32_t num_attrs;	            ///< Number of data attributes
+    uint32_t num_attrs;                   ///< Number of data attributes
     khash_t(slow5_s) *attrs;              ///< Set of the data attribute keys for internal access(incase of multiple read groups, the union of keys from all read groups)
     kvec_t(khash_t(slow5_s2s) *) maps;    ///< Dynamic vector of hash maps (attribute key string -> attribute value string). Length of the vector is requal to  num_read_groups. Index in the vector corresponds to the read group number. The keys that are not relevant to a particular read group are not stored in this hash map.
 };
@@ -448,9 +449,12 @@ void slow5_rec_free(slow5_rec_t *read);
  * Get an auxiliary field in a SLOW5 record as an 8-bit signed integer.
  *
  * @param   read    address of a slow5_rec_t pointer
- * @param   field    auxiliary field name
- * @param   err     error code (non zero error code if failed)
- * @return  field data value
+ * @param   field   auxiliary field name
+ * @param   err     error code, 0 on success, <0 on failure and slow5_errno is set
+ *                  SLOW5_ERR_ARG   if read or field is NULL
+ *                  SLOW5_ERR_NOAUX if no auxiliary hash map for the record
+ *                  SLOW5_ERR_NOFLD if the field was not found
+ * @return  field data value or SLOW5_INT8_T_NULL on failure
  */
 int8_t slow5_aux_get_int8(const slow5_rec_t *read, const char *field, int *err);
 int16_t slow5_aux_get_int16(const slow5_rec_t *read, const char *field, int *err);
@@ -468,8 +472,12 @@ char slow5_aux_get_char(const slow5_rec_t *read, const char *field, int *err);
  * Get an auxiliary field in a SLOW5 record as an 8-bit signed integer array.
  *
  * @param   read    address of a slow5_rec_t pointer
- * @param   field    auxiliary field name
- * @param   err     error code
+ * @param   field   auxiliary field name
+ * @param   len     number of data values in the returned array
+ * @param   err     error code, 0 on success, <0 on failure and slow5_errno is set
+ *                  SLOW5_ERR_ARG   if read or field is NULL
+ *                  SLOW5_ERR_NOAUX if no auxiliary hash map for the record
+ *                  SLOW5_ERR_NOFLD if the field was not found
  * @return  pointer to the array of data values
  */
 int8_t *slow5_aux_get_int8_array(const slow5_rec_t *read, const char *field, uint64_t *len, int *err);

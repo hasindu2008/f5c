@@ -2,7 +2,7 @@ CC			= gcc
 AR			= ar
 CPPFLAGS	+= -I include/
 CFLAGS		+= -g -Wall -O2 -std=c99
-LDFLAGS		+=  -lz
+LDFLAGS		+=  -lm -lz
 BUILD_DIR	= lib
 
 OBJ_LIB = $(BUILD_DIR)/slow5.o \
@@ -46,35 +46,6 @@ distclean: clean
 	git clean -f -X
 	rm -rf $(BUILD_DIR)/* autom4te.cache
 
-dist: distclean
-	mkdir -p slow5lib-$(VERSION)
-	cp -r README.md LICENSE Makefile configure.ac config.mk.in \
-		installdeps.mk src docs build configure slow5tools-$(VERSION)
-	#mkdir -p slow5lib-$(VERSION)/scripts
-	#cp scripts/install-hdf5.sh slow5lib-$(VERSION)/scripts
-	tar -zcf slow5lib-$(VERSION)-release.tar.gz slow5lib-$(VERSION)
-	rm -rf slow5lib-$(VERSION)
-
-binary:
-	mkdir -p slow5lib-$(VERSION)
-	make clean
-	make && mv slow5lib slow5lib-$(VERSION)/slow5lib_x86_64_linux
-	cp -r README.md LICENSE docs slow5lib-$(VERSION)/
-	#mkdir -p slow5lib-$(VERSION)/scripts
-	#cp scripts/test.sh slow5lib-$(VERSION)/scripts
-	tar -zcf slow5lib-$(VERSION)-binaries.tar.gz slow5lib-$(VERSION)
-	rm -rf slow5lib-$(VERSION)
-
-install: slow5lib
-	mkdir -p $(DESTDIR)$(PREFIX)/bin
-	mkdir -p $(DESTDIR)$(PREFIX)/share/man/man1
-	cp -f $(BINARY) $(DESTDIR)$(PREFIX)/bin
-	gzip < docs/slow5lib.1 > $(DESTDIR)$(PREFIX)/share/man/man1/slow5lib.1.gz
-
-uninstall:
-	rm -f $(DESTDIR)$(PREFIX)/bin/$(BINARY) \
-		$(DESTDIR)$(PREFIX)/share/man/man1/slow5lib.1.gz
-
 test: slow5lib
 	./test/test.sh
 
@@ -86,7 +57,7 @@ pyslow5:
 	python3 < python/example.py
 
 test-prep: slow5lib
-	gcc test/make_blow5.c -Isrc src/slow5.c src/slow5_press.c -lz src/slow5_idx.c src/slow5_misc.c -o test/bin/make_blow5 -g
+	gcc test/make_blow5.c -Isrc src/slow5.c src/slow5_press.c -lm -lz src/slow5_idx.c src/slow5_misc.c -o test/bin/make_blow5 -g
 	./test/bin/make_blow5
 
 valgrind: slow5lib

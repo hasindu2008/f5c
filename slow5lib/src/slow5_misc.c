@@ -13,6 +13,14 @@
 #include <limits.h>
 #include "slow5_misc.h"
 #include <slow5/slow5_error.h>
+#include <slow5/slow5_defs.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <time.h>
+
+extern enum slow5_log_level_opt  slow5_log_level;
+extern enum slow5_exit_condition_opt  slow5_exit_condition;
 
 #define DBL_STRING_BUF_FIXED_CAP (64) // 2^6
 #define FLT_STRING_BUF_FIXED_CAP (64) // 2^6
@@ -21,7 +29,12 @@ int slow5_uint_check(const char *str);
 int slow5_int_check(const char *str);
 int slow5_float_check(const char *str);
 
-// From https://stackoverflow.com/questions/3774417/sprintf-with-automatic-memory-allocation
+/*
+ * From https://stackoverflow.com/questions/3774417/sprintf-with-automatic-memory-allocation
+ * sprintf with automatic memory allocation and variable list argument
+ * returns -1 on calloc error, which may be a result of vsnprintf returning a negative size from an invalid fmt ap combination
+ * returns negative value if the 2nd vsnprintf fails
+ */
 int slow5_vasprintf(char **strp, const char *fmt, va_list ap) {
     va_list ap1;
     size_t size;
@@ -31,6 +44,7 @@ int slow5_vasprintf(char **strp, const char *fmt, va_list ap) {
     size = vsnprintf(NULL, 0, fmt, ap1) + 1;
     va_end(ap1);
     buffer = (char *) calloc(1, size);
+    SLOW5_MALLOC_CHK(buffer);
 
     if (!buffer)
         return -1;
@@ -40,7 +54,12 @@ int slow5_vasprintf(char **strp, const char *fmt, va_list ap) {
     return vsnprintf(buffer, size, fmt, ap);
 }
 
-// From https://stackoverflow.com/questions/3774417/sprintf-with-automatic-memory-allocation
+/*
+ * From https://stackoverflow.com/questions/3774417/sprintf-with-automatic-memory-allocation
+ * sprintf with automatic memory allocation
+ * returns -1 on calloc/fmt error
+ * returns negative value on other vsnprintf error
+ */
 int slow5_asprintf(char **strp, const char *fmt, ...) {
     int error;
     va_list ap;
@@ -53,7 +72,13 @@ int slow5_asprintf(char **strp, const char *fmt, ...) {
 }
 
 
-// From https://code.woboq.org/userspace/glibc/string/strsep.c.html
+/*
+ * from https://code.woboq.org/userspace/glibc/string/strsep.c.html
+ * strsep source code
+ * updates *stringp to after delim, sets *stringp to NULL if delim isn't found
+ * returns pointer to where *stringp was before, NULL if *stringp is NULL
+ * DONE
+ */
 char *
 slow5_strsep (char **stringp, const char *delim)
 {
@@ -420,3 +445,36 @@ static uint8_t get_type_size(const char *name) {
     return size;
 }
 */
+
+/*
+ * given filepaths a and b get the difference between their last modification times
+ * return <a_time> - <b_time>
+ * =0 both are created at the same time
+ * >0 a is newer than b
+ * <0 a is older than b
+ * *err=-1 return 0 if failed
+ * *err=0 return diff if success
+ */
+double slow5_filestamps_cmp(const char *a, const char *b, int *err) {
+    struct stat a_stat;
+    struct stat b_stat;
+    if (stat(a, &a_stat) == -1) {
+        SLOW5_ERROR("Failed to retrieve stats about file '%s'.", a);
+        if (err) {
+            *err = -1;
+        }
+        return 0;
+    }
+    if (stat(b, &b_stat) == -1) {
+        SLOW5_ERROR("Failed to retrieve stats about file '%s'.", b);
+        if (err) {
+            *err = -1;
+        }
+        return 0;
+    }
+
+    if (err) {
+        *err = 0;
+    }
+    return difftime(a_stat.st_mtime, b_stat.st_mtime);
+}
