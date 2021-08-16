@@ -34,8 +34,11 @@ class ReadDB {
     // save the database to disk
     void save() const;
 
+    // clean the database on disk for slow5 mode
+    void clean() const;
+
     // restore the database from disk
-    void load(const std::string& reads_filename);
+    void load(const std::string& reads_filename, int8_t slow_mode);
 
     //
     // Data Access

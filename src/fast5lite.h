@@ -86,6 +86,8 @@ std::vector<std::string> fast5_get_multi_read_groups(fast5_file_t fh);
 //
 std::string fast5_get_string_attribute(fast5_file_t fh, const std::string& group_name, const std::string& attribute_name);
 std::string fast5_get_raw_read_group(fast5_file_t fh, const std::string& read_id);
+uint8_t fast5_is_vbz_compressed(fast5_file_t fh, const std::string& read_id);
+
 #endif
 
 
@@ -317,6 +319,9 @@ static inline int32_t fast5_read_multi_fast5(fast5_file_t fh, fast5_t* f5, std::
 
     if (status < 0) {
         free(f5->rawptr);
+        if(fast5_is_vbz_compressed(fh, read_id) == 1) {
+            ERROR("%s","The fast5 file is compressed with VBZ but the required plugin is not loaded. See https://f5c.page.link/troubleshoot for instructions.\n");
+        }
         WARNING("Failed to read raw data from dataset %s.", signal_path);
         H5Sclose(space);
         H5Dclose(dset);

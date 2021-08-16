@@ -79,7 +79,14 @@ test_suit1 () {
 	echo "____________________________________________________________________"
 	echo "custom 6-mer models"
 	scripts/test.sh custom --kmer-model test/r9-models/r9.4_450bps.nucleotide.6mer.template.model --meth-model test/r9-models/r9.4_450bps.cpg.6mer.template.model 2> custom_6mer_methcall.log || die "failed"
-
+	echo "____________________________________________________________________"
+	echo "slow5"
+	scripts/test_slow5.sh 2> ecoli_slow5.log || die "failed"
+	echo "____________________________________________________________________"
+	echo "valgrind slow5"
+	scripts/test_slow5.sh valgrind 2> valgrind_slow5.log || die "failed"
+	echo "vbz"
+	scripts/test_vbz.sh 2> ecoli_vbz.log || die "failed"
 
 	echo ""
 	echo "********************************************************************"
@@ -101,13 +108,16 @@ test_suit1 () {
 	echo "index"
 	scripts/test_index.sh -c 2> na12878_index.log || die "failed"
 	echo ""
+	echo "____________________________________________________________________"
+	echo "slow5"
+	scripts/test_slow5.sh -c 2> na12878_slow5.log || die "failed"
 
 	echo "************************Doing RNA tests*****************************"
 	echo "event alignment"
 	scripts/test_eventalign.sh -e 2> rna_eventalign.log || die "failed"
 	echo "____________________________________________________________________"
 	echo "valgrind eventalign"
-	scripts/test.sh valgrind -e 2> valgrind_rna_eventalign.log || die "failed"
+	scripts/test_eventalign.sh -e valgrind 2> valgrind_rna_eventalign.log || die "failed"
 	echo "____________________________________________________________________"
 
 
@@ -134,6 +144,9 @@ test_suit1_cuda () {
 	echo "multi-fast5"
 	scripts/test_multifast5.sh 2> ecoli_multifast5_cuda.log  || die "failed"
 	echo "____________________________________________________________________"
+	echo "slow5"
+	scripts/test_slow5.sh 2> ecoli_slow5_cuda.log || die "failed"
+	echo "____________________________________________________________________"
 
 	echo ""
 	echo "*********************************************************************"
@@ -152,6 +165,8 @@ test_suit1_cuda () {
 	echo "multi-fast5"
 	scripts/test_multifast5.sh -c 2> na12878_multifast5_cuda.log || die "failed"
 	echo "____________________________________________________________________"
+	echo "slow5"
+	scripts/test_slow5.sh -c 2> na12878_slow5_cuda.log || die "failed"
 
 	echo "************************Doing RNA tests*****************************"
 	echo "event alignment"
@@ -171,20 +186,21 @@ test_suit2 () {
 	echo "***************Doing NA12878 based CPU tests part 2******************"
 	echo "Default test"
 	make clean && make
-	"${exepath}" call-methylation -b "${bamfile}" -g "${ref}" -r "${reads}" -t "${NCPU}"  -K1024 -v5 > ${testdir}/result.txt 2> default.log
+	"${exepath}" index --iop "${NCPU}" -t "${NCPU}" "${reads}" -d ${testdir}/fast5_files
+	"${exepath}" call-methylation -b "${bamfile}" -g "${ref}" -r "${reads}" -t "${NCPU}"  -K1024 -v5 > ${testdir}/result.txt --meth-out-version=1 2> default.log
 	evaluate
 	echo ""
 	echo "____________________________________________________________________"
 
 	echo "sectional benchmark"
-	"${exepath}" call-methylation -b "${bamfile}" -g "${ref}" -r "${reads}" -t "${NCPU}"  -K1024 -v5 --profile-cpu=yes > ${testdir}/result.txt 2> profile.log
+	"${exepath}" call-methylation -b "${bamfile}" -g "${ref}" -r "${reads}" -t "${NCPU}"  -K1024 -v5 --profile-cpu=yes --meth-out-version=1 > ${testdir}/result.txt 2> profile.log
 	evaluate
 	echo ""
 	echo "____________________________________________________________________"
 
 	echo "NO IO PROC INTERLEAVE test"
 	make clean &&  CFLAGS+="-DIO_PROC_NO_INTERLEAVE=1" make
-	"${exepath}" call-methylation -b "${bamfile}" -g "${ref}" -r "${reads}" -t "${NCPU}"  -K1024 -v5 > ${testdir}/result.txt 2> no_io_proc.log
+	"${exepath}" call-methylation -b "${bamfile}" -g "${ref}" -r "${reads}" -t "${NCPU}"  -K1024 -v5 --meth-out-version=1 > ${testdir}/result.txt 2> no_io_proc.log
 	evaluate
 	echo ""
 	echo "____________________________________________________________________"
@@ -193,7 +209,7 @@ test_suit2 () {
 	echo "bad fast5 file"
 	mv test/chr22_meth_example/fast5_files/DEAMERNANOPORE_20161117_FNFAB43577_MN16450_sequencing_run_MA_821_R9_4_NA12878_11_17_16_88738_ch1_read445_strand.fast5 test/chr22_meth_example/fast5_files/a.fast5
 	make clean && make
-	"${exepath}" call-methylation -b "${bamfile}" -g "${ref}" -r "${reads}" -t "${NCPU}"  -K1024 -v5 > ${testdir}/result.txt 2> badfast5.log
+	"${exepath}" call-methylation -b "${bamfile}" -g "${ref}" -r "${reads}" -t "${NCPU}"  -K1024 -v5 --meth-out-version=1 > ${testdir}/result.txt 2> badfast5.log
 	mv test/chr22_meth_example/fast5_files/a.fast5 test/chr22_meth_example/fast5_files/DEAMERNANOPORE_20161117_FNFAB43577_MN16450_sequencing_run_MA_821_R9_4_NA12878_11_17_16_88738_ch1_read445_strand.fast5
 	evaluate
 	echo ""
@@ -201,7 +217,7 @@ test_suit2 () {
 
 	echo "IOP test : I/O processes"
 	make clean && make
-	"${exepath}" call-methylation -b "${bamfile}" -g "${ref}" -r "${reads}" -t "${NCPU}"  -K256 -v5 --iop8 > ${testdir}/result.txt 2> cuda_malloc.log
+	"${exepath}" call-methylation -b "${bamfile}" -g "${ref}" -r "${reads}" -t "${NCPU}"  -K256 -v5 --iop 8 --meth-out-version=1 > ${testdir}/result.txt 2> cuda_malloc.log
 	evaluate
 	echo ""
 	echo "____________________________________________________________________"
@@ -216,7 +232,8 @@ test_suit2_cuda () {
 	echo "*****************Doing NA12878 based CUDA tests part 2**************"
 	echo "CUDA test"
 	make clean && make cuda=1
-	"${exepath}" call-methylation -b "${bamfile}" -g "${ref}" -r "${reads}" -t "${NCPU}"  -K256 -v5 > ${testdir}/result.txt 2> default_cuda.log
+	"${exepath}" index --iop "${NCPU}" -t "${NCPU}" "${reads}" -d ${testdir}/fast5_files
+	"${exepath}" call-methylation -b "${bamfile}" -g "${ref}" -r "${reads}" -t "${NCPU}"  -K256 -v5 --meth-out-version=1 > ${testdir}/result.txt 2> default_cuda.log
 	evaluate
 	echo ""
 	echo "____________________________________________________________________"
@@ -224,14 +241,14 @@ test_suit2_cuda () {
 
 	echo "CUDA test : cuda disabled"
 	make clean && make cuda=1
-	"${exepath}" call-methylation -b "${bamfile}" -g "${ref}" -r "${reads}" -t "${NCPU}"  -K256 -v5 --disable-cuda=yes > ${testdir}/result.txt 2> cuda_disabled.log
+	"${exepath}" call-methylation -b "${bamfile}" -g "${ref}" -r "${reads}" -t "${NCPU}"  -K256 -v5 --disable-cuda=yes --meth-out-version=1 > ${testdir}/result.txt 2> cuda_disabled.log
 	evaluate
 	echo ""
 	echo "____________________________________________________________________"
 
 	echo "CUDA test : dynamic malloc"
 	make clean && CUDA_CFLAGS+="-DCUDA_DYNAMIC_MALLOC=1" make cuda=1
-	"${exepath}" call-methylation -b "${bamfile}" -g "${ref}" -r "${reads}" -t "${NCPU}"  -K256 -v5 > ${testdir}/result.txt 2> cuda_malloc.log
+	"${exepath}" call-methylation -b "${bamfile}" -g "${ref}" -r "${reads}" -t "${NCPU}"  -K256 -v5 --meth-out-version=1 > ${testdir}/result.txt 2> cuda_malloc.log
 	evaluate
 	echo ""
 	echo "____________________________________________________________________"
@@ -245,13 +262,14 @@ test_suit2_cuda () {
 test_suit_eventalign_extra () {
 
 	echo "************************event align extra tests**********************"
-	echo "valgrind test"
-	scripts/test_eventalign.sh valgrind 2> valgrind_event_align.txt || die "failed"
-	echo ""
-	echo "____________________________________________________________________"
 
 	echo "Event align parameter tests"
 	scripts/test_eventalign_parameters.sh 2> event_align_parameters.txt || die "failed"
+	echo ""
+	echo "____________________________________________________________________"
+
+	echo "valgrind test"
+	scripts/test_eventalign.sh valgrind 2> valgrind_event_align.txt || die "failed"
 	echo ""
 	echo "____________________________________________________________________"
 

@@ -18,6 +18,8 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
+//in f5c.c
+void pthread_db(core_t* core, db_t* db, void (*func)(core_t*,db_t*,int));
 
 //make this inline for performance reasons
 void f5write(FILE* fp, void *buf, size_t element_size, size_t num_elements){
@@ -411,7 +413,106 @@ static inline int read_from_fast5_files(core_t *core, db_t *db, std::string qnam
     return 1;
 }
 
-ret_status_t load_db1(core_t* core, db_t* db) { //old method
+
+/*************** Start of multiple I/O thread based SLOW5 reading *****************************/
+
+//read a single read from a SLOW5 file
+static void read_slow5_single(core_t* core, db_t* db, int i){
+
+    // int ret = 0;
+    std::string qname = bam_get_qname(db->bam_rec[i]);
+
+    db->f5[i] = (fast5_t*)calloc(1, sizeof(fast5_t));
+    MALLOC_CHK(db->f5[i]);
+
+    int len=0;
+
+    slow5_rec_t *record=NULL;
+    len = slow5_get(qname.c_str(), &record, core->sf);
+
+
+    if(record==NULL || len <0){ //todo : should we free if len<0
+        db->bad_fast5_file++;
+        if (core->opt.flag & F5C_SKIP_UNREADABLE) {
+            WARNING("Slow5 record for read [%s] is unavailable/unreadable and will be skipped", qname.c_str());
+            db->f5[i]->nsample = 0;
+            db->f5[i]->rawptr = NULL;
+        } else {
+            ERROR("Slow5 record for read [%s] is unavailable/unreadable", qname.c_str());
+            exit(EXIT_FAILURE);
+        }
+        // ret=0;
+    }
+    else{
+        assert(strcmp(qname.c_str(),record->read_id)==0);
+        db->f5[i]->nsample = record->len_raw_signal;  //n_samples
+        assert(db->f5[i]->nsample>0);
+        db->f5[i]->rawptr = (float*)calloc(db->f5[i]->nsample, sizeof(float));
+        MALLOC_CHK( db->f5[i]->rawptr);
+
+        db->f5[i]->digitisation = (float)record->digitisation;
+        db->f5[i]->offset = (float)record->offset;
+        db->f5[i]->range = (float)record->range;
+        db->f5[i]->sample_rate = (float)record->sampling_rate;
+
+        for (int j = 0; j < (int)db->f5[i]->nsample; j++) { //check for int overflow
+            db->f5[i]->rawptr[j] = (float)record->raw_signal[j];
+        }
+
+        // ret=1;
+        slow5_rec_free(record);
+    }
+
+    // if(ret!=1){
+    //     assert(0);
+    // }
+}
+
+
+/******************************* SLOW5 end ************************************/
+
+int f5c_sam_itr_next(core_t* core, bam1_t* record){
+
+    if(core->reg_list==NULL){
+        return(sam_itr_next(core->m_bam_fh, core->itr, record));
+    }
+    else{
+        while(1){
+            if(core->itr==NULL){ //if the iterator for the current region is NULL, go to the next region
+                if(core->reg_i<core->reg_n){
+                    if(core->opt.verbosity > 0){
+                        STDERR("Iterating over region: %s", core->reg_list[core->reg_i]);
+                    }
+                    core->itr = sam_itr_querys(core->m_bam_idx, core->m_hdr, core->reg_list[core->reg_i]);
+                    if(core->itr==NULL){
+                        ERROR("sam_itr_querys failed. Please check if the region string in bed file [%s] is valid",core->reg_list[core->reg_i]);
+                        exit(EXIT_FAILURE);
+                    }
+                    core->reg_i++;
+                }
+                else{
+                    return -1; //no more regions left
+                }
+            }
+            else{ //the current region still left
+                int ret = sam_itr_next(core->m_bam_fh, core->itr, record);
+                if(ret>=0){
+                    return ret;
+                }
+                else{ //the region is done
+                    sam_itr_destroy(core->itr);
+                    core->itr=NULL;
+                }
+            }
+        }
+    }
+
+    assert(0);
+
+}
+
+
+ret_status_t load_db1(core_t* core, db_t* db) { //no iop - used for slow5
 
     double load_start = realtime();
 
@@ -431,7 +532,7 @@ ret_status_t load_db1(core_t* core, db_t* db) { //old method
         i=db->n_bam_rec;
         record = db->bam_rec[i];
         t = realtime();
-        result = sam_itr_next(core->m_bam_fh, core->itr, record);
+        result = f5c_sam_itr_next(core, record);
         core->db_bam_time += realtime() - t;
 
         //set read index
@@ -454,10 +555,13 @@ ret_status_t load_db1(core_t* core, db_t* db) { //old method
                 db->total_reads++; // candidate read
 
                 std::string qname = bam_get_qname(record);
+                std::string fast5_path_str;
                 t = realtime();
                 //todo : make efficient (redudantly accessed below, can be combined with it?)
                 int64_t read_length=core->readbb->get_read_sequence(qname).size();
-                std::string fast5_path_str = core->readbb->get_signal_path(qname);
+                if(!(core->opt.flag & F5C_RD_SLOW5)){ //if not slow5
+                    fast5_path_str = core->readbb->get_signal_path(qname);
+                }
                 core->db_fasta_time += realtime() - t;
 
                 //skipping ultra-long-reads
@@ -468,7 +572,7 @@ ret_status_t load_db1(core_t* core, db_t* db) { //old method
                     continue;
                 }
 
-                if(fast5_path_str==""){
+                if(!(core->opt.flag & F5C_RD_SLOW5) && fast5_path_str==""){
                     handle_bad_fast5(core, db,fast5_path_str,qname);
                     continue;
                 }
@@ -480,6 +584,9 @@ ret_status_t load_db1(core_t* core, db_t* db) { //old method
                     double rt = realtime() - t;
                     core->db_fast5_read_time += rt;
                     core->db_fast5_time += rt;
+                }
+                else if (core->opt.flag & F5C_RD_SLOW5){
+                    read_status = 1; //we do this later with multiple threaded
                 }
                 else{
                    read_status=read_from_fast5_files(core, db, qname,fast5_path_str,i);
@@ -534,6 +641,13 @@ ret_status_t load_db1(core_t* core, db_t* db) { //old method
     }
     status.num_reads=db->n_bam_rec;
     assert(status.num_bases==db->sum_bases);
+
+    //read the slow5 batch
+    if(core->opt.flag & F5C_RD_SLOW5){
+        t=realtime();
+        pthread_db(core, db, read_slow5_single);
+        core->db_fast5_time += realtime() - t;
+    }
 
     double load_end = realtime();
     core->load_db_time += (load_end-load_start);
@@ -719,7 +833,7 @@ ret_status_t load_db2(core_t* core, db_t* db) { //separately load fast5 for mult
         i=db->n_bam_rec;
         record = db->bam_rec[i];
         t = realtime();
-        result = sam_itr_next(core->m_bam_fh, core->itr, record);
+        result = f5c_sam_itr_next(core, record);
         core->db_bam_time += realtime() - t;
 
         //set read index

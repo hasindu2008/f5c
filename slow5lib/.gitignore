@@ -1,0 +1,86 @@
+# Compiled source #
+###################
+*.com
+*.class
+*.dll
+*.exe
+*.o
+*.so
+
+# Packages #
+############
+# it's better to unpack these files and commit the raw source
+# git has its own built in compression methods *.7z *.dmg
+*.gz
+*.iso
+*.jar
+*.rar
+*.tar
+*.zip
+
+# Logs and databases #
+######################
+*.log
+*.sql
+*.sqlite
+
+# OS generated files #
+######################
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# autotools #
+/aclocal.m4
+/src/config.h.in~
+/Makefile.in
+/config.status
+/stamp-h1
+/missing
+/install-sh
+/compile
+/depcomp
+.deps
+autom4te.cache
+/configure
+/config.h
+/src/config.h.in
+/config.mk
+
+#my
+/main
+/slow5tools
+/slow5tools_static
+/*.fast5
+*.fig
+/*.fa
+/*.fasta
+.png
+/*.tsv
+*.swp
+/tmp/
+/hdf5
+/.vscode
+src/config.h
+/profile.nvprof
+/*.slow5
+/*.txt
+/*.blow5
+python/pyslow5.c
+build/
+dist/
+pyslow5.egg-info/
+docs/doxygen
+examples/xample.slow5.idx
+
+# testing output
+*actual*
+*.h5dump
+
+# R output
+*Rplots.pdf
+*.Rhistory

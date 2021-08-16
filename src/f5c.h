@@ -11,9 +11,12 @@
 #include <htslib/faidx.h>
 #include <htslib/hts.h>
 #include <htslib/sam.h>
+#include <slow5/slow5.h>
 
 #include "fast5lite.h"
 #include "nanopolish_read_db.h"
+
+
 
 #include <vector> //required for eventalign
 
@@ -49,6 +52,8 @@
 #define F5C_PRINT_RNAME 0x2000 // print read names instead of indexes (eventalign only)
 #define F5C_PRINT_SAMPLES 0x4000 //write the raw samples for the event to the tsv output (eventalign only)
 #define F5C_PRINT_SIGNAL_INDEX 0x8000 //write the raw signal start and end index values for the event to the tsv output (eventalign only)
+#define F5C_RD_SLOW5 0x10000 //read from a slow5 file
+
 /*************************************************************
  * flags for a read status (related to db_t->read_stat_flag) *
  *************************************************************/
@@ -358,6 +363,11 @@ typedef struct {
     bam_hdr_t* m_hdr;
     hts_itr_t* itr;
 
+    //multi region related
+    char **reg_list; //the list of regions
+    int64_t reg_n;   //number of regions in list
+    int64_t reg_i;   //current region being processed
+
     //clipping coordinates
     int32_t clip_start;
     int32_t clip_end;
@@ -373,6 +383,9 @@ typedef struct {
 
     // readbb
     ReadDB* readbb;
+
+    //slow5
+    slow5_file_t *sf;
 
     // models
     model_t* model; //dna model
@@ -494,7 +507,7 @@ void init_opt(opt_t* opt);
 
 /* initialise the core data structure */
 core_t* init_core(const char* bamfilename, const char* fastafile,
-                  const char* fastqfile, const char* tmpfile, opt_t opt,double realtime0, int8_t mode, char *eventalignsummary);
+                  const char* fastqfile, const char* tmpfile, opt_t opt,double realtime0, int8_t mode, char *eventalignsummary, char *slow5file);
 
 /* initialise a data batch */
 db_t* init_db(core_t* core);

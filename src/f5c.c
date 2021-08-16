@@ -26,7 +26,7 @@ not all the memory allocations are needed for eventalign mode
 
 /* initialise the core data structure */
 core_t* init_core(const char* bamfilename, const char* fastafile,
-                  const char* fastqfile, const char* tmpfile, opt_t opt,double realtime0, int8_t mode, char *eventalignsummary) {
+                  const char* fastqfile, const char* tmpfile, opt_t opt,double realtime0, int8_t mode, char *eventalignsummary, char *slow5file) {
 
     core_t* core = (core_t*)malloc(sizeof(core_t));
     MALLOC_CHK(core);
@@ -54,6 +54,12 @@ core_t* init_core(const char* bamfilename, const char* fastafile,
     // If processing a region of the genome, get clipping coordinates
     core->clip_start = -1;
     core->clip_end = -1;
+
+    core->reg_list=NULL; //region list is NULL by default
+    core->reg_i=0;
+    core->reg_n=0;
+    core->itr = NULL;
+
     if(opt.region_str == NULL){
         core->itr = sam_itr_queryi(core->m_bam_idx, HTS_IDX_START, 0, 0);
         if(core->itr==NULL){
@@ -62,13 +68,27 @@ core_t* init_core(const char* bamfilename, const char* fastafile,
         }
     }
     else{
-        STDERR("Iterating over region: %s\n", opt.region_str);
-        core->itr = sam_itr_querys(core->m_bam_idx, core->m_hdr, opt.region_str);
-        if(core->itr==NULL){
-            ERROR("sam_itr_querys failed. Please check if the region string you entered [%s] is valid",opt.region_str);
-            exit(EXIT_FAILURE);
+        //determine if .bed
+        int region_str_len = strlen(opt.region_str);
+        if(region_str_len>=4 && strcmp(&(opt.region_str[region_str_len-4]),".bed")==0 ){
+            STDERR("Fetching the list of regions from file: %s", opt.region_str);
+            WARNING("%s", "Loading region windows from a bed file is an experimental option and not yet throughly tested.");
+            WARNING("%s", "When loading windows from a bed file, output is based on reads that are unclipped. Also, there may be repeated entries when regions overlap.");
+            int64_t count=0;
+            char **reg_l = read_bed_regions(opt.region_str, &count);
+            core->reg_list = reg_l;
+            core->reg_i = 0;
+            core->reg_n = count;
         }
-        hts_parse_reg(opt.region_str, &(core->clip_start) , &(core->clip_end));
+        else{
+            STDERR("Iterating over region: %s\n", opt.region_str);
+            core->itr = sam_itr_querys(core->m_bam_idx, core->m_hdr, opt.region_str);
+            if(core->itr==NULL){
+                ERROR("sam_itr_querys failed. Please check if the region string you entered [%s] is valid",opt.region_str);
+                exit(EXIT_FAILURE);
+            }
+            hts_parse_reg(opt.region_str, &(core->clip_start) , &(core->clip_end));
+        }
     }
 
 
@@ -91,6 +111,26 @@ core_t* init_core(const char* bamfilename, const char* fastafile,
         core->raw_dump = fopen("f5c.tmp.bin","rb");
         F_CHK(core->raw_dump,"f5c.tmp.bin");
     }
+    if(opt.flag & F5C_RD_SLOW5){
+        if(opt.flag & F5C_RD_RAW_DUMP){
+            STDERR("%s","Option --slow5 is incompatible with --read-dump");
+            exit(EXIT_FAILURE);
+        }
+       if(opt.flag & F5C_WR_RAW_DUMP){
+            STDERR("%s","Option --slow5 is incompatible with --write-dump");
+            exit(EXIT_FAILURE);
+       }
+        core->sf = slow5_open(slow5file,"r");
+        if (core->sf == NULL) {
+            STDERR("Error opening SLOW5 file %s\n",slow5file);
+            exit(EXIT_FAILURE);
+        }
+        int ret=slow5_idx_load(core->sf);
+        if(ret<0){
+            STDERR("Error in loading SLOW5 index for %s\n",slow5file);
+            exit(EXIT_FAILURE);
+        }
+    }
 
     // reference file
     core->fai = fai_load(fastafile);
@@ -98,7 +138,7 @@ core_t* init_core(const char* bamfilename, const char* fastafile,
 
     // readbb
     core->readbb = new ReadDB;
-    core->readbb->load(fastqfile);
+    core->readbb->load(fastqfile, (opt.flag & F5C_RD_SLOW5)? 1 : 0);
 
     //model
     core->model = (model_t*)malloc(sizeof(model_t) * MAX_NUM_KMER); //4096 is 4^6 which is hardcoded now
@@ -193,15 +233,30 @@ void free_core(core_t* core,opt_t opt) {
     free(core->cpgmodel);
     delete core->readbb;
     fai_destroy(core->fai);
-    sam_itr_destroy(core->itr);
+
+    if(core->itr){
+        sam_itr_destroy(core->itr);
+    }
+    if(core->reg_list){
+        for(int64_t i=0;i<core->reg_n;i++){
+            free(core->reg_list[i]);
+        }
+        free(core->reg_list);
+    }
+
     bam_hdr_destroy(core->m_hdr);
     hts_idx_destroy(core->m_bam_idx);
     sam_close(core->m_bam_fh);
+
     if(core->ultra_long_tmp!=NULL){
         sam_close(core->ultra_long_tmp);
     }
     if(core->opt.flag&F5C_WR_RAW_DUMP || core->opt.flag&F5C_RD_RAW_DUMP){
         fclose(core->raw_dump);
+    }
+    if(core->opt.flag & F5C_RD_SLOW5){
+        slow5_idx_unload(core->sf);
+        slow5_close(core->sf);
     }
 #ifdef HAVE_CUDA
     if (!(core->opt.flag & F5C_DISABLE_CUDA)) {
@@ -324,7 +379,7 @@ db_t* init_db(core_t* core) {
 
 /* load a data batch from disk */
 ret_status_t load_db(core_t* core, db_t* db) {
-    if(core->opt.num_iop == 1){
+    if(core->opt.num_iop == 1 || (core->opt.flag & F5C_RD_SLOW5) ){
         return load_db1(core,db);
     }
     else{
@@ -455,47 +510,55 @@ void pthread_db(core_t* core, db_t* db, void (*func)(core_t*,db_t*,int)){
 
 void event_single(core_t* core,db_t* db, int32_t i) {
 
-    float* rawptr = db->f5[i]->rawptr;
-    float range = db->f5[i]->range;
-    float digitisation = db->f5[i]->digitisation;
-    float offset = db->f5[i]->offset;
-    int32_t nsample = db->f5[i]->nsample;
+    if(db->f5[i]->nsample>0){
 
-    // convert to pA
-    float raw_unit = range / digitisation;
-    for (int32_t j = 0; j < nsample; j++) {
-        rawptr[j] = (rawptr[j] + offset) * raw_unit;
-    }
+        float* rawptr = db->f5[i]->rawptr;
+        float range = db->f5[i]->range;
+        float digitisation = db->f5[i]->digitisation;
+        float offset = db->f5[i]->offset;
+        int32_t nsample = db->f5[i]->nsample;
 
-    int8_t rna=0;
-    if (core->opt.flag & F5C_RNA){
-        rna=1;
-    }
-    db->et[i] = getevents(db->f5[i]->nsample, rawptr, rna);
-
-    // if(db->et[i].n/(float)db->read_len[i] > 20){
-    //     fprintf(stderr,"%s\tevents_per_base\t%f\tread_len\t%d\n",bam_get_qname(db->bam_rec[i]), db->et[i].n/(float)db->read_len[i],db->read_len[i]);
-    // }
-
-    //get the scalings
-    db->scalings[i] = estimate_scalings_using_mom(
-        db->read[i], db->read_len[i], core->model, core->kmer_size, db->et[i]);
-
-    //If sequencing RNA, reverse the events to be 3'->5'
-    if (rna){
-        event_t *events = db->et[i].event;
-        size_t n_events = db->et[i].n;
-        for (size_t i = 0; i < n_events/2; ++i) {
-            event_t tmp_event = events[i];
-            events[i]=events[n_events-1-i];
-            events[n_events-1-i]=tmp_event;
+        // convert to pA
+        float raw_unit = range / digitisation;
+        for (int32_t j = 0; j < nsample; j++) {
+            rawptr[j] = (rawptr[j] + offset) * raw_unit;
         }
-    }
 
-    //allocate memory for the next alignment step
-    db->event_align_pairs[i] = (AlignedPair*)malloc(
-                sizeof(AlignedPair) * db->et[i].n * 2); //todo : find a good heuristic to save memory
-    MALLOC_CHK(db->event_align_pairs[i]);
+        int8_t rna=0;
+        if (core->opt.flag & F5C_RNA){
+            rna=1;
+        }
+        db->et[i] = getevents(db->f5[i]->nsample, rawptr, rna);
+
+        // if(db->et[i].n/(float)db->read_len[i] > 20){
+        //     fprintf(stderr,"%s\tevents_per_base\t%f\tread_len\t%d\n",bam_get_qname(db->bam_rec[i]), db->et[i].n/(float)db->read_len[i],db->read_len[i]);
+        // }
+
+        //get the scalings
+        db->scalings[i] = estimate_scalings_using_mom(
+            db->read[i], db->read_len[i], core->model, core->kmer_size, db->et[i]);
+
+        //If sequencing RNA, reverse the events to be 3'->5'
+        if (rna){
+            event_t *events = db->et[i].event;
+            size_t n_events = db->et[i].n;
+            for (size_t i = 0; i < n_events/2; ++i) {
+                event_t tmp_event = events[i];
+                events[i]=events[n_events-1-i];
+                events[n_events-1-i]=tmp_event;
+            }
+        }
+
+        //allocate memory for the next alignment step
+        db->event_align_pairs[i] = (AlignedPair*)malloc(
+                    sizeof(AlignedPair) * db->et[i].n * 2); //todo : find a good heuristic to save memory
+        MALLOC_CHK(db->event_align_pairs[i]);
+    }
+    else{
+        db->et[i].n = 0;
+        db->et[i].event = NULL;
+        db->event_align_pairs[i] = NULL;
+    }
 
 }
 
@@ -574,17 +637,22 @@ void scaling_single(core_t* core, db_t* db, int32_t i){
 //note that this is used in f5c.cu and thus modifications must be done with care
 void align_single(core_t* core, db_t* db, int32_t i) {
 
-    if ((db->et[i].n)/(float)(db->read_len[i]) < AVG_EVENTS_PER_KMER_MAX){
-        db->n_event_align_pairs[i] = align(
-                db->event_align_pairs[i], db->read[i], db->read_len[i], db->et[i],
-                core->model, core->kmer_size, db->scalings[i], db->f5[i]->sample_rate);
-            //fprintf(stderr,"readlen %d,n_events %d\n",db->read_len[i],n_event_align_pairs);
-    }
-    else{//todo : too many avg events per base - oversegmented
-        db->n_event_align_pairs[i]=0;
-        if(core->opt.verbosity > 0){
-            STDERR("Skipping over-segmented read %s with %f events per base",bam_get_qname(db->bam_rec[i]), (db->et[i].n)/(float)(db->read_len[i]));
+    if(db->f5[i]->nsample>0){ //if a good read
+        if (db->f5[i]->nsample && (db->et[i].n)/(float)(db->read_len[i]) < AVG_EVENTS_PER_KMER_MAX){
+            db->n_event_align_pairs[i] = align(
+                    db->event_align_pairs[i], db->read[i], db->read_len[i], db->et[i],
+                    core->model, core->kmer_size, db->scalings[i], db->f5[i]->sample_rate);
+                //fprintf(stderr,"readlen %d,n_events %d\n",db->read_len[i],n_event_align_pairs);
         }
+        else{//todo : too many avg events per base - oversegmented
+            db->n_event_align_pairs[i]=0;
+            if(core->opt.verbosity > 0){
+                STDERR("Skipping over-segmented read %s with %f events per base",bam_get_qname(db->bam_rec[i]), (db->et[i].n)/(float)(db->read_len[i]));
+            }
+        }
+    }
+    else{ //if a bad read (corrupted/missing slow5 record)
+       db->n_event_align_pairs[i]=0;
     }
 }
 
@@ -816,7 +884,7 @@ void output_db(core_t* core, db_t* db) {
                     size_t strand_idx = 0;
                     std::string fast5_path_str = core->readbb->get_signal_path(qname);
                     fprintf(summary_fp, "%ld\t%s\t", (long)(db->read_idx[i]), qname);
-                    fprintf(summary_fp, "%s\t%s\t%s\t",fast5_path_str.c_str(), "dna", strand_idx == 0 ? "template" : "complement");
+                    fprintf(summary_fp, "%s\t%s\t%s\t",fast5_path_str.c_str(), (core->opt.flag & F5C_RNA) ? "rna" : "dna", strand_idx == 0 ? "template" : "complement" );
                     fprintf(summary_fp, "%d\t%d\t%d\t%d\t", summary.num_events, summary.num_steps, summary.num_skips, summary.num_stays);
                     fprintf(summary_fp, "%.2lf\t%.3lf\t%.3lf\t%.3lf\t%.3lf\n", summary.sum_duration/(db->f5[i]->sample_rate), scalings.shift, scalings.scale, 0.0, scalings.var);
                 }
@@ -936,7 +1004,7 @@ void init_opt(opt_t* opt) {
     opt->batch_size = 512;
     opt->batch_size_bases = 2*1000*1000;
     opt->num_thread = 8;
-    opt->num_iop = 1;
+    opt->num_iop = 1;       //if changed, the SLOW5 mode must be handled by default in the arg parsing
     opt->region_str = NULL; //whole genome processing if null
 #ifndef HAVE_CUDA
     opt->flag |= F5C_DISABLE_CUDA;
@@ -947,7 +1015,7 @@ void init_opt(opt_t* opt) {
     opt->debug_break=-1;
     opt->ultra_thresh=100000;
 
-    opt->meth_out_version=1;
+    opt->meth_out_version=2;
 
     opt->cuda_block_size=64;
     opt->cuda_dev_id=0;

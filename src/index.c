@@ -16,6 +16,8 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
+#include <slow5/slow5.h>
+
 #include "nanopolish_read_db.h"
 #include "error.h"
 #include <vector>
@@ -60,6 +62,7 @@ std::vector< std::string > list_directory(const std::string& file_name)
 
 static const char *INDEX_USAGE_MESSAGE =
 "Usage: f5c index [OPTIONS] -d fast5_directory reads.fastq\n"
+"       f5c index [OPTIONS] --slow5 reads.blow5 reads.fastq\n"
 "Build an index that maps read IDs to the corresponding fast5 files. f5c index is an extended version of nanopolish index by Jared Simpson\n"
 "\n"
 "  -h                display this help and exit\n"
@@ -68,6 +71,7 @@ static const char *INDEX_USAGE_MESSAGE =
 "  -f STR            file containing the paths to the sequencing summary files (one per line)\n"
 "  -t INT            number of threads used for bgzf compression (makes indexing faster)\n"
 "  --iop INT         number of I/O processes to read fast5 files (makes indexing faster)\n"
+"  --slow5 FILE      use the slow5 file\n"
 "  --verbose INT     verbosity level\n"
 "  --version         print version\n"
 "\nSee the manual page for details (`man ./docs/f5c.1' or https://f5c.page.link/man)."
@@ -76,13 +80,14 @@ static const char *INDEX_USAGE_MESSAGE =
 
 namespace opt
 {
-    static unsigned int verbose = 0;
+    static unsigned int verbose = 1;
     static std::vector<std::string> raw_file_directories;
     static std::string reads_file;
     static std::vector<std::string> sequencing_summary_files;
     static std::string sequencing_summary_fofn;
     int iop = 1;
-    int threads = 1;
+    int threads = 4;
+    char *slow5file = NULL;
 }
 //static std::ostream* os_p;
 
@@ -256,6 +261,7 @@ static const struct option longopts[] = {
     { "summary-fofn",              required_argument, NULL, 'f' },          //5
     { "iop",                       required_argument, NULL, 0},             //6
     { "threads",                   required_argument, NULL, 't'},           //7
+    { "slow5",                   required_argument, NULL, 0},           //8
     { NULL, 0, NULL, 0 }
 };
 
@@ -293,6 +299,9 @@ void parse_index_options(int argc, char** argv)
                         exit(EXIT_FAILURE);
                     }
                 }
+                if (longindex == 8) {
+                    opt::slow5file = optarg;
+                }
                 break;
         }
     }
@@ -313,17 +322,32 @@ void parse_index_options(int argc, char** argv)
         exit(EXIT_FAILURE);
     }
 
-    if(opt::iop > 1){
+    if(opt::slow5file == NULL){
+        if(opt::iop > 1){
+            if(!opt::sequencing_summary_fofn.empty()){
+                WARNING("%s","--iop is incompatible with sequencing summary files. Option --summary-fofn will be ignored");
+            }
+            if(!opt::sequencing_summary_files.empty()){
+                WARNING("%s","--iop is incompatible with sequencing summary files. Option --sequencing-summary-file will be ignored");
+            }
+        }
+        else {
+            if(opt::sequencing_summary_fofn.empty() && opt::sequencing_summary_files.empty()){
+                INFO("%s","Consider using --iop option for fast parallel indexing");
+            }
+        }
+    } else{
+        if(opt::iop > 1){
+            WARNING("%s","Option --iop has no effect in slow5 mode");
+        }
         if(!opt::sequencing_summary_fofn.empty()){
-            WARNING("%s","--iop is incompatible with sequencing summary files. Option --summary-fofn will be ignored");
+            WARNING("%s","Option --summary-fofn will be ignored in slow5 mode");
         }
         if(!opt::sequencing_summary_files.empty()){
-            WARNING("%s","--iop is incompatible with sequencing summary files. Option --sequencing-summary-file will be ignored");
+            WARNING("%s","Option --sequencing-summary-file will be ignored in slow5 mode");
         }
-    }
-    else {
-        if(opt::sequencing_summary_fofn.empty() && opt::sequencing_summary_files.empty()){
-            INFO("%s","Consider using --iop option for fast parallel indexing");
+        if(!opt::raw_file_directories.empty()){
+            WARNING("%s","Option -d will be ignored in slow5 mode");
         }
     }
 
@@ -342,10 +366,32 @@ void clean_fast5_map(std::multimap<std::string, std::string>& mmap)
         fast5_read_count[iter.first]++;
     }
 
+    // calculate the mode of the read counts per fast5
+    std::map<size_t, size_t> read_count_distribution;
+    for(const auto& iter : fast5_read_count) {
+        read_count_distribution[iter.second]++;
+    }
+
+    size_t mode = 0;
+    size_t mode_count = 0;
+    for(const auto& iter : read_count_distribution) {
+        if(iter.second > mode_count) {
+            mode = iter.first;
+            mode_count = iter.second;
+        }
+    }
+
+    // this is the default number of reads per fast5 and we expect the summary file to support that
+    // this code is to detect whether the user selected a different number of reads (ARTIC recommends 1000)
+    // so the summary file still works
     int EXPECTED_ENTRIES_PER_FAST5 = 4000;
+    if(mode_count > 20) {
+        EXPECTED_ENTRIES_PER_FAST5 = mode;
+    }
+
     std::vector<std::string> invalid_entries;
     for(const auto& iter : fast5_read_count) {
-        if(iter.second != EXPECTED_ENTRIES_PER_FAST5) {
+        if(iter.second > EXPECTED_ENTRIES_PER_FAST5) {
             //fprintf(stderr, "warning: %s has %d entries in the summary and will be indexed the slow way\n", iter.first.c_str(), iter.second);
             invalid_entries.push_back(iter.first);
         }
@@ -360,6 +406,7 @@ void clean_fast5_map(std::multimap<std::string, std::string>& mmap)
         mmap.erase(fast5_name);
     }
 }
+
 
 
 // given a directory path, recursively find all fast5 files
@@ -589,68 +636,95 @@ int index_main(int argc, char** argv)
 {
     parse_index_options(argc, argv);
 
-    std::multimap<std::string, std::string> fast5_to_read_name_map;
+    if(opt::slow5file == NULL){
 
-    if(opt::iop == 1){
+        std::multimap<std::string, std::string> fast5_to_read_name_map;
 
-        // Read a map from fast5 files to read name from the sequencing summary files (if any)
-        process_summary_fofn();
-        for(const auto& ss_filename : opt::sequencing_summary_files) {
-            if(opt::verbose > 2) {
-                fprintf(stderr, "summary: %s\n", ss_filename.c_str());
+        if(opt::iop == 1){
+
+            // Read a map from fast5 files to read name from the sequencing summary files (if any)
+            process_summary_fofn();
+            for(const auto& ss_filename : opt::sequencing_summary_files) {
+                if(opt::verbose > 2) {
+                    fprintf(stderr, "summary: %s\n", ss_filename.c_str());
+                }
+                parse_sequencing_summary(ss_filename, fast5_to_read_name_map);
             }
-            parse_sequencing_summary(ss_filename, fast5_to_read_name_map);
+
+            // Detect non-unique fast5 file names in the summary file
+            // This occurs when a file with the same name (abc_0.fast5) appears in both fast5_pass
+            // and fast5_fail. This will be fixed by ONT but in the meantime we check for
+            // fast5 files that have a non-standard number of reads (>4000) and remove them
+            // from the map. These fast5s will be indexed the slow way.
+            clean_fast5_map(fast5_to_read_name_map);
+
         }
 
-        // Detect non-unique fast5 file names in the summary file
-        // This occurs when a file with the same name (abc_0.fast5) appears in both fast5_pass
-        // and fast5_fail. This will be fixed by ONT but in the meantime we check for
-        // fast5 files that have a non-standard number of reads (>4000) and remove them
-        // from the map. These fast5s will be indexed the slow way.
-        clean_fast5_map(fast5_to_read_name_map);
+        if(opt::iop>1){ //forking is better before doing big memory allocations
+            f5c_index_iop(opt::iop, opt::reads_file, opt::raw_file_directories, opt::verbose);
+        }
 
-    }
+        // import read names, and possibly fast5 paths, from the fasta/fastq file
+        double realtime0 = realtime();
+        ReadDB read_db;
+        read_db.build(opt::reads_file, opt::threads);
+        bool all_reads_have_paths = read_db.check_signal_paths();
+        if(opt::verbose > 1) fprintf(stderr, "[%s] Readdb built - took %.3fs\n", __func__, realtime() - realtime0);
 
-    if(opt::iop>1){ //forking is better before doing big memory allocations
-        f5c_index_iop(opt::iop, opt::reads_file, opt::raw_file_directories, opt::verbose);
-    }
+        // if the input fastq did not contain a complete set of paths
+        // use the fofn/directory provided to augment the index
+        if(opt::iop==1){
+            realtime0 = realtime();
+            if(!all_reads_have_paths) {
+                for(const auto& dir_name : opt::raw_file_directories) {
+                    index_path(read_db, dir_name, fast5_to_read_name_map);
+                }
+            }
+            if(opt::verbose > 1) fprintf(stderr, "[%s] Indexing done - took %.3fs\n", __func__, realtime() - realtime0);
+        }
+        else{
+            f5c_index_merge(read_db, opt::iop, opt::reads_file);
+        }
 
-    // import read names, and possibly fast5 paths, from the fasta/fastq file
-    double realtime0 = realtime();
-    ReadDB read_db;
-    read_db.build(opt::reads_file, opt::threads);
-    bool all_reads_have_paths = read_db.check_signal_paths();
-    if(opt::verbose > 0) fprintf(stderr, "[%s] Readdb built - took %.3fs\n", __func__, realtime() - realtime0);
-
-    // if the input fastq did not contain a complete set of paths
-    // use the fofn/directory provided to augment the index
-    if(opt::iop==1){
         realtime0 = realtime();
-        if(!all_reads_have_paths) {
-            for(const auto& dir_name : opt::raw_file_directories) {
-                index_path(read_db, dir_name, fast5_to_read_name_map);
+        size_t num_with_path = read_db.get_num_reads_with_path();
+        size_t num_reads = read_db.get_num_reads();
+        if(num_with_path == 0) {
+            ERROR("%s","No fast5 files found");
+            exit(EXIT_FAILURE);
+        } else {
+            read_db.print_stats();
+            read_db.save();
+            if (num_with_path < num_reads * 0.99 ) {
+                WARNING("fast5 files could not be located for %ld reads",num_reads-num_with_path);
             }
         }
-        if(opt::verbose > 0) fprintf(stderr, "[%s] Indexing done - took %.3fs\n", __func__, realtime() - realtime0);
+        if(opt::verbose > 1) fprintf(stderr, "[%s] Readdb saved - took %.3fs\n", __func__, realtime() - realtime0);
     }
     else{
-        f5c_index_merge(read_db, opt::iop, opt::reads_file);
-    }
 
-    realtime0 = realtime();
-    size_t num_with_path = read_db.get_num_reads_with_path();
-    size_t num_reads = read_db.get_num_reads();
-    if(num_with_path == 0) {
-        ERROR("%s","No fast5 files found");
-        exit(EXIT_FAILURE);
-    } else {
-        read_db.print_stats();
-        read_db.save();
-        if (num_with_path < num_reads * 0.99 ) {
-            WARNING("fast5 files could not be located for %ld reads",num_reads-num_with_path);
+        double realtime0 = realtime();
+        slow5_file_t *sp = slow5_open(opt::slow5file,"r");
+        if(sp==NULL){
+            ERROR("Error in opening slowfile %s",opt::slow5file);
+            exit(EXIT_FAILURE);
         }
+        int ret=0;
+        ret = slow5_idx_create(sp);
+        if(ret<0){
+            ERROR("Error in creating index for slow5 file %s\n",opt::slow5file);
+            exit(EXIT_FAILURE);
+        }
+        slow5_close(sp);
+        if(opt::verbose > 0) fprintf(stderr, "[%s] Slow5 index built - took %.3fs\n", __func__, realtime() - realtime0);
+
+        realtime0 = realtime();
+        ReadDB read_db;
+        read_db.build(opt::reads_file, opt::threads);
+        read_db.clean();
+        if(opt::verbose > 0) fprintf(stderr, "[%s] Fasta index built - took %.3fs\n", __func__, realtime() - realtime0);
+
     }
-    if(opt::verbose > 0) fprintf(stderr, "[%s] Readdb saved - took %.3fs\n", __func__, realtime() - realtime0);
 
     return 0;
 }

@@ -50,7 +50,6 @@ a step controller if one requires to perform only upto a certain step such as al
 /*
 LIMITATIONS :
 Does not support multi strand reads (2D and 1D^2 reads) at the moment
-Only works for DNA at the moment
 */
 
 //fast logsum data structure
@@ -100,6 +99,7 @@ static struct option long_options[] = {
     {"meth-model",required_argument,0,0},          //40 custom methylation k-mer model file
     {"signal-index", no_argument,0,0},             //41 write the raw signal start and end index values for the event to the tsv output (eventalign only)
     {"rna",no_argument,0,0},                       //42 if RNA (eventalign only)
+    {"slow5",required_argument,0,0},               //43 read from a slow5 file
     {0, 0, 0, 0}};
 
 
@@ -214,7 +214,7 @@ int meth_main(int argc, char* argv[], int8_t mode) {
 
     //signal(SIGSEGV, sig_handler);
 
-    const char* optstring = "r:b:g:t:B:K:v:o:x:hV";
+    const char* optstring = "r:b:g:t:B:K:v:o:x:w:hV";
 
     int longindex = 0;
     int32_t c = -1;
@@ -225,8 +225,10 @@ int meth_main(int argc, char* argv[], int8_t mode) {
     char *tmpfile = NULL;
     char* profilename = NULL; //Create variable to store profile arg
     char *eventalignsummary = NULL;
+    char *slow5file = NULL;
 
     int8_t is_ultra_thresh_set = 0;
+    int8_t is_meth_out_version_set = 0;
 
     FILE *fp_help = stderr;
 
@@ -383,6 +385,7 @@ int meth_main(int argc, char* argv[], int8_t mode) {
                 ERROR("--meth-out-version accepts only 1 or 2. You entered %d",opt.meth_out_version);
                 exit(EXIT_FAILURE);
             }
+            is_meth_out_version_set = 1;
         } else if (c == 0 && longindex == 40){ //custom methylation k-mer model
             if(mode!=0){
                 ERROR("%s","Option --meth-model is available only in call-methylation");
@@ -401,11 +404,24 @@ int meth_main(int argc, char* argv[], int8_t mode) {
                 exit(EXIT_FAILURE);
             }
             yes_or_no(&opt, F5C_RNA, longindex, "yes", 1);
+        } else if(c == 0 && longindex == 43){ //read from a slow5
+            slow5file=optarg;
+            assert(slow5file!=NULL);
+            yes_or_no(&opt, F5C_RD_SLOW5, longindex, "yes", 1);
         }
     }
 
     if(is_ultra_thresh_set ==1 && tmpfile==NULL){
         WARNING("%s", "--ultra-thresh has no effect without --skip-ultra");
+    }
+
+    if(mode==0 && is_meth_out_version_set==0){
+        INFO("%s","Default methylation tsv output format is changed from f5c v0.7 onwards to match latest nanopolish output. Set --meth-out-version=1 to fall back to the old format.");
+    }
+
+    if(slow5file!=NULL && opt.num_iop > 1){
+        ERROR("%s","--iop option is only meant to be used for fast5 files, not slow5.");
+        exit(EXIT_FAILURE);
     }
 
     if (fastqfile == NULL || bamfilename == NULL || fastafile == NULL || fp_help == stdout) {
@@ -414,7 +430,7 @@ int meth_main(int argc, char* argv[], int8_t mode) {
         fprintf(fp_help,"   -r FILE                    fastq/fasta read file\n");
         fprintf(fp_help,"   -b FILE                    sorted bam file\n");
         fprintf(fp_help,"   -g FILE                    reference genome\n");
-        fprintf(fp_help,"   -w STR                     limit processing to genomic region string of format chr:start-end\n");
+        fprintf(fp_help,"   -w STR                     limit processing to a genomic region specified as chr:start-end or a list of regions in a .bed file\n");
         fprintf(fp_help,"   -t INT                     number of processing threads [%d]\n",opt.num_thread);
         fprintf(fp_help,"   -K INT                     batch size (max number of reads loaded at once) [%d]\n",opt.batch_size);
         fprintf(fp_help,"   -B FLOAT[K/M/G]            max number of bases loaded at once [%.1fM]\n",opt.batch_size_bases/(float)(1000*1000));
@@ -423,6 +439,7 @@ int meth_main(int argc, char* argv[], int8_t mode) {
         fprintf(fp_help,"   -x STR                     parameter profile to be used for better performance (always applied before other options)\n"); //Added option in help
         fprintf(fp_help,"                              e.g., laptop, desktop, hpc; see https://f5c.page.link/profiles for the full list\n");
         fprintf(fp_help,"   --iop INT                  number of I/O processes to read fast5 files [%d]\n",opt.num_iop);
+        fprintf(fp_help,"   --slow5 FILE               read from a slow5 file\n");
         fprintf(fp_help,"   --min-mapq INT             minimum mapping quality [%d]\n",opt.min_mapq);
         fprintf(fp_help,"   --secondary=yes|no         consider secondary mappings or not [%s]\n",(opt.flag&F5C_SECONDARY_YES)?"yes":"no");
         fprintf(fp_help,"   --verbose INT              verbosity level [%d]\n",opt.verbosity);
@@ -474,7 +491,7 @@ int meth_main(int argc, char* argv[], int8_t mode) {
     }
 
     //initialise the core data structure
-    core_t* core = init_core(bamfilename, fastafile, fastqfile, tmpfile, opt,realtime0,mode,eventalignsummary);
+    core_t* core = init_core(bamfilename, fastafile, fastqfile, tmpfile, opt,realtime0,mode,eventalignsummary, slow5file);
 
     #ifdef ESL_LOG_SUM
         p7_FLogsumInit();
@@ -654,9 +671,13 @@ int meth_main(int argc, char* argv[], int8_t mode) {
     fprintf(stderr, "\n[%s] Data loading time: %.3f sec", __func__,core->load_db_time);
     fprintf(stderr, "\n[%s]     - bam load time: %.3f sec", __func__, core->db_bam_time);
     fprintf(stderr, "\n[%s]     - fasta load time: %.3f sec", __func__, core->db_fasta_time);
-    fprintf(stderr, "\n[%s]     - fast5 load time: %.3f sec", __func__, core->db_fast5_time);
-    fprintf(stderr, "\n[%s]         - fast5 open time: %.3f sec", __func__, core->db_fast5_open_time);
-    fprintf(stderr, "\n[%s]         - fast5 read time: %.3f sec", __func__, core->db_fast5_read_time);
+    if(core->opt.flag&F5C_RD_SLOW5){
+        fprintf(stderr, "\n[%s]     - slow5 load time: %.3f sec", __func__, core->db_fast5_time);
+    } else{
+        fprintf(stderr, "\n[%s]     - fast5 load time: %.3f sec", __func__, core->db_fast5_time);
+        fprintf(stderr, "\n[%s]         - fast5 open time: %.3f sec", __func__, core->db_fast5_open_time);
+        fprintf(stderr, "\n[%s]         - fast5 read time: %.3f sec", __func__, core->db_fast5_read_time);
+    }
 
     fprintf(stderr, "\n[%s] Data processing time: %.3f sec", __func__,core->process_db_time);
 
