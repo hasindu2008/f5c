@@ -13,13 +13,12 @@ from Cython.Build import build_ext
 module_src = 'python/pyf5c.pyx'
 cmdclass['build_ext'] = build_ext
 
-
 sources=[module_src, 'src/align.c', 'src/eventalign.c', 'src/events.c', 'src/f5c.c', 'src/f5cio.c', 'src/freq.c', 'src/freq_merge.c', 'src/hmm.c', 'src/index.c', 'src/meth.c', 'src/meth_main.c', 'src/model.c', 'src/nanopolish_fast5_io.c', 'src/nanopolish_read_db.c', 'src/profiles.c']
 depends=['python/pyf5c.pxd', 'python/pyf5c.h', 'src/config.h', 'src/error.h', 'src/f5c.h', 'src/f5cmisc.h', 'src/fast5lite.h', 'src/khash.h', 'src/ksort.h', 'src/logsum.h', 'src/matrix.h', 'src/model.h', 'src/nanopolish_read_db.h', 'src/profiles.h', 'src/str.h']
-extra_compile_args = ['-g', '-Wall', '-O2', '-std=c++11', '-Wno-strict-prototypes']
-libraries = ['z','m','pthread', 'hdf5_serial', 'hts']
-include_dirs = ['htslib']
-library_dirs = ['htslib']
+extra_compile_args = ['-g', '-Wall', '-O2', '-std=c++11']
+libraries = ['z','m','pthread', 'hdf5_serial', 'hts', 'slow5']
+include_dirs = ['htslib','slow5lib/include']
+library_dirs = ['htslib','slow5lib/lib']
 
 #py_inc = [get_python_inc()]
 

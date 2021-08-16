@@ -192,6 +192,7 @@ test_eventalign: $(BINARY)
 pyf5c:
 	make clean
 	rm -rf *.so python/pyf5c.cpp build/lib.* build/temp.*
+	make -C slow5lib
 	CC=g++ python3 setup.py build
 	cp build/lib.*/*.so  ./
-	LD_LIBRARY_PATH=htslib/ python3 < python/example.py
+	LD_LIBRARY_PATH=htslib/:slow5lib/lib/ python3 < python/example.py
