@@ -235,7 +235,7 @@ Align nanopore events to reference k-mers (optimised nanopolish eventalign). Not
    Write the raw samples for the event to the tsv output.
 * `--rna`:      
    Specify that this dataset is direct RNA.		
-* `--signal-index`:
+* `--signal-index`:  
    Write the raw signal start and end index values for the event to the tsv output.
 * `--cuda-mem-frac FLOAT`:           
    Same as for call-methylation.
