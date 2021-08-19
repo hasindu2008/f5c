@@ -92,7 +92,7 @@ Classify nucleotides as methylated or not at genomic CpG cites (optimised nanopo
 * `-g FILE`:                    
   The file containing the reference genome in FASTA format.
 * `-w STR`:      
-  Only process the specified genomic region STR. STR should be in the format *chr:start-end*. Currently, multiple region strings are not supported. If this option is not specified, the whole genome will be processed.
+  Only process the specified genomic region STR. STR should be in the format *chr:start-end*. From v0.7 onwards, STR can be a bed file (.bed extension) containing multiple regions. If this option is not specified, the whole genome will be processed.
 * `-t INT`:                     
   Number of processing threads [default value: 8]. Ideally, this should be the number of CPU cores.
 * `-K INT`:                     
