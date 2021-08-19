@@ -454,6 +454,7 @@ void slow5_rec_free(slow5_rec_t *read);
  *                  SLOW5_ERR_ARG   if read or field is NULL
  *                  SLOW5_ERR_NOAUX if no auxiliary hash map for the record
  *                  SLOW5_ERR_NOFLD if the field was not found
+ *                  SLOW5_ERR_TYPE if the desired return type does not match the field's type
  * @return  field data value or SLOW5_INT8_T_NULL on failure
  */
 int8_t slow5_aux_get_int8(const slow5_rec_t *read, const char *field, int *err);
@@ -478,7 +479,8 @@ char slow5_aux_get_char(const slow5_rec_t *read, const char *field, int *err);
  *                  SLOW5_ERR_ARG   if read or field is NULL
  *                  SLOW5_ERR_NOAUX if no auxiliary hash map for the record
  *                  SLOW5_ERR_NOFLD if the field was not found
- * @return  pointer to the array of data values
+ *                  SLOW5_ERR_TYPE if the desired return type does not match the field's type
+ * @return  pointer to the array of data values or NULL on error
  */
 int8_t *slow5_aux_get_int8_array(const slow5_rec_t *read, const char *field, uint64_t *len, int *err);
 int16_t *slow5_aux_get_int16_array(const slow5_rec_t *read, const char *field, uint64_t *len, int *err);

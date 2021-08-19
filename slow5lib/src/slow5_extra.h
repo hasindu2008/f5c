@@ -47,8 +47,8 @@ void *slow5_get_mem(const char *read_id, size_t *n, const struct slow5_file *s5p
 void *slow5_get_next_mem(size_t *n, const struct slow5_file *s5p);
 int slow5_rec_set(struct slow5_rec *read, struct slow5_aux_meta *aux_meta, const char *attr, const void *data);
 int slow5_rec_set_array(struct slow5_rec *read, struct slow5_aux_meta *aux_meta, const char *attr, const void *data, size_t len);
-static inline int slow5_rec_set_string(struct slow5_rec *read, struct slow5_aux_meta *aux_meta, const char *attr, const void *data) {
-    return slow5_rec_set_array(read, aux_meta, attr, data, strlen((const char *) data) + 1);
+static inline int slow5_rec_set_string(struct slow5_rec *read, struct slow5_aux_meta *aux_meta, const char *attr, const char *data) {
+    return slow5_rec_set_array(read, aux_meta, attr, data, strlen(data));
 }
 int slow5_rec_parse(char *read_mem, size_t read_size, const char *read_id, struct slow5_rec **read, enum slow5_fmt format, struct slow5_aux_meta *aux_meta);
 int slow5_rec_depress_parse(char **mem, size_t *bytes, const char *read_id, struct slow5_rec **read, struct slow5_file *s5p);

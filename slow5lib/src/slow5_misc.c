@@ -378,49 +378,28 @@ double slow5_strtod_check(const char *str, int *err) {
 // Convert double to decimal string without trailing 0s
 char *slow5_double_to_str(double x, size_t *len) {
     char *str = NULL;
-    int max_len = slow5_asprintf(&str, "%f", x); // TODO Should be lf?
+    int n = slow5_asprintf(&str, "%f", x);
 
-    char *ptr = str + max_len;
-    for (int i = max_len - 1; i >= 1; -- i) {
-        if (str[i] == '0') {
-            ptr = str + i;
-        } else if (str[i] == '.') {
-            // Set pointer on decimal point if it was just after it
-            if (ptr == str + i + 1) {
-                ptr = str + i;
+    for (int i = n - 1; i >= 1; -- i) {
+        if (str[i] == '.') {
+            n = i;
+            str[n] = '\0';
+            if (strcmp(str, "-0") == 0) {
+                strcpy(str, "0"); /* remove minus sign */
+                -- n;
             }
-            *ptr = '\0';
             break;
-        }
-    }
-    if (len != NULL) {
-        *len = strlen(str);
-    }
-
-    return str;
-}
-
-// Convert float to decimal string without trailing 0s
-char *slow5_float_to_str(float x, size_t *len) {
-    char *str = NULL;
-    int max_len = slow5_asprintf(&str, "%f", x);
-
-    char *ptr = str + max_len;
-    for (int i = max_len - 1; i >= 1; -- i) {
-        if (str[i] == '0') {
-            ptr = str + i;
-        } else if (str[i] == '.') {
-            // Set pointer on decimal point if it was just after it
-            if (ptr == str + i + 1) {
-                ptr = str + i;
+        } else if (str[i] != '0') {
+            if (i != n - 1) {
+                n = i + 1;
+                str[n] = '\0';
             }
-            *ptr = '\0';
             break;
         }
     }
 
-    if (len != NULL) {
-        *len = strlen(str);
+    if (len) {
+        *len = n;
     }
 
     return str;
