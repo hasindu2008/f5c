@@ -426,6 +426,7 @@ int meth_main(int argc, char* argv[], int8_t mode) {
 
     if (fastqfile == NULL || bamfilename == NULL || fastafile == NULL || fp_help == stdout) {
         fprintf(fp_help,"Usage: f5c %s [OPTIONS] -r reads.fa -b alignments.bam -g genome.fa\n",mode==1 ? "eventalign" : "call-methylation");
+        fprintf(fp_help,"       f5c %s [OPTIONS] -r reads.fa -b alignments.bam -g genome.fa --slow5 signals.blow5\n",mode==1 ? "eventalign" : "call-methylation");
         fprintf(fp_help,"\nbasic options:\n");
         fprintf(fp_help,"   -r FILE                    fastq/fasta read file\n");
         fprintf(fp_help,"   -b FILE                    sorted bam file\n");

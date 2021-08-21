@@ -126,10 +126,13 @@ uint64_t slow5_ato_uint64(const char *str, int *err);
 double slow5_strtod_check(const char *str, int *err);
 float slow5_strtof_check(const char *str, int *err);
 
-// Convert double to decimal string without trailing 0s
+// Convert double to decimal string without trailing 0s or trailing '.' and no -0
+// Uses the default precision the %f format specifier (6 decimal places)
 char *slow5_double_to_str(double x, size_t *len);
-// Convert float to decimal string without trailing 0s
-char *slow5_float_to_str(float x, size_t *len);
+static inline char *slow5_float_to_str(float x, size_t *len) {
+    /* cast to double occurs anyway when using %f format specifier */
+    return slow5_double_to_str(x, len);
+}
 
 double slow5_filestamps_cmp(const char *a, const char *b, int *err);
 

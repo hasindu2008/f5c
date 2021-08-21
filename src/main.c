@@ -48,7 +48,7 @@ int print_usage(FILE *fp_help){
 
     fprintf(fp_help,"Usage: f5c <command> [options]\n\n");
     fprintf(fp_help,"command:\n");
-    fprintf(fp_help,"         index               Build an index that maps read IDs to the corresponding fast5 files (extended nanopolish index)\n");
+    fprintf(fp_help,"         index               Build an index for accessing the base sequence and raw signal for a given read ID (optimised nanopolish index)\n");
     fprintf(fp_help,"         call-methylation    Classify nucleotides as methylated or not (optimised nanopolish call-methylation)\n");
     fprintf(fp_help,"         meth-freq           Calculate methylation frequency at genomic CpG sites (optimised nanopolish calculate_methylation_frequency.py)\n");
     fprintf(fp_help,"         eventalign          Align nanopore events to reference k-mers (optimised nanopolish eventalign)\n");
