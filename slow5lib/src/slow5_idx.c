@@ -193,13 +193,16 @@ static int slow5_idx_build(struct slow5_idx *index, struct slow5_file *s5p) {
                 return -1;
             }
 
-            uint8_t *read_decomp = (uint8_t *) slow5_ptr_depress(s5p->compress, read_comp, record_size, NULL);
-            if (read_decomp == NULL) {
+            uint8_t *read_decomp = read_comp;
+            if (s5p->compress) {
+                read_decomp = (uint8_t *) slow5_ptr_depress(s5p->compress->record_press, read_comp, record_size, NULL);
+                if (read_decomp == NULL) {
+                    free(read_comp);
+                    free(read_decomp);
+                    return -1;
+                }
                 free(read_comp);
-                free(read_decomp);
-                return -1;
             }
-            free(read_comp);
 
             // Get read id length
             uint64_t cur_len = 0;

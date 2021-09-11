@@ -28,6 +28,10 @@ AC_ARG_ENABLE([localhdf5],
                   [Use local HDF5. Default is disabled.])],
   [enable_localhdf5=$enableval], [enable_localhdf5=no])
 
+AC_ARG_ENABLE([localzstd],
+  [AS_HELP_STRING([--enable-localzstd],
+                  [Use local zstd. Default is disabled.])],
+  [enable_localzstd=$enableval], [enable_localzstd=no])
 
 # Checks for programs.
 AC_PROG_CC([gcc])
@@ -137,14 +141,24 @@ else
 	  On RPM based systems such as Fedora you may use sudo dnf install hdf5-devel.
 	  ])
 	fi
-
-
-
 fi
 
+locallibzstd=no
+if test "$enable_localzstd" = yes; then
+	libzstd=yes
+	AC_CHECK_FILES([./zstd/lib/zstd.h], [], [libzstd=no])
+	AC_CHECK_FILE([./zstd/lib/libzstd.a], [], [libzstd=no])
+	if test $libzstd != yes; then
+	  MSG_ERROR([local zstd library development files not found!
+		Make sure you run ./scripts/install-zstd.sh
+	  ])
+	fi
+	locallibzstd=yes
+fi
 
 AC_SUBST([locallibhts])
 AC_SUBST([locallibhdf5])
+AC_SUBST([locallibzstd])
 AC_SUBST([hdf_tar_install])
 AC_SUBST([hts_tar_install])
 

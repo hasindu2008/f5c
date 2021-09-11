@@ -135,6 +135,7 @@ static inline char *slow5_float_to_str(float x, size_t *len) {
 }
 
 double slow5_filestamps_cmp(const char *a, const char *b, int *err);
+int slow5_is_c_label(const char *label);
 
 #ifdef __cplusplus
 }

@@ -457,3 +457,32 @@ double slow5_filestamps_cmp(const char *a, const char *b, int *err) {
     }
     return difftime(a_stat.st_mtime, b_stat.st_mtime);
 }
+
+/**
+ * check if label is a valid c label
+ * doesn't check if it is a reserved key word
+ * label cannot be NULL
+ * return 0 if valid
+ * -1 if empty
+ * -2 if contains a character that's not alphanumeric or a _
+ * -3 if first character is a number
+ */
+int slow5_is_c_label(const char *label) {
+    size_t len = strlen(label);
+
+    if (len == 0) {
+        return -1;
+    }
+
+    for (size_t i = 0; i < len; ++ i) {
+        if (!isalnum(label[i]) && label[i] != '_') {
+            return -2;
+        }
+    }
+
+    if (isdigit(label[0])) {
+        return -3;
+    }
+
+    return 0;
+}
