@@ -164,7 +164,7 @@ release: distclean
 # make the release
 	mkdir -p f5c-$(VERSION)
 	autoreconf
-	cp -r README.md LICENSE Dockerfile Makefile configure.ac config.mk.in installdeps.mk src docs build .dockerignore configure f5c-$(VERSION)
+	cp -r README.md LICENSE Dockerfile Makefile configure.ac config.mk.in installdeps.mk src docs build slow5lib .dockerignore configure f5c-$(VERSION)
 	mkdir -p f5c-$(VERSION)/scripts
 	cp scripts/install-hdf5.sh scripts/install-hts.sh scripts/install-vbz.sh scripts/install-zstd.sh scripts/test.sh scripts/common.sh scripts/test.awk f5c-$(VERSION)/scripts
 	tar -zcf f5c-$(VERSION)-release.tar.gz f5c-$(VERSION)
@@ -174,7 +174,7 @@ release: distclean
 	./configure --enable-localhdf5 --enable-localzstd
 	make cuda=1 && mv f5c f5c-$(VERSION)/f5c_x86_64_linux_cuda && make clean
 	make && mv f5c f5c-$(VERSION)/f5c_x86_64_linux
-	cp -r README.md LICENSE docs slow5lib f5c-$(VERSION)/
+	cp -r README.md LICENSE docs f5c-$(VERSION)/
 	mkdir -p f5c-$(VERSION)/scripts && cp scripts/test.sh scripts/common.sh scripts/test.awk scripts/install-vbz.sh f5c-$(VERSION)/scripts
 	tar -zcf f5c-$(VERSION)-binaries.tar.gz f5c-$(VERSION)
 	rm -rf f5c-$(VERSION) && tar xf f5c-$(VERSION)-binaries.tar.gz && mv f5c-$(VERSION)/f5c_x86_64_linux f5c && scripts/test.sh

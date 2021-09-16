@@ -54,7 +54,7 @@ On OS X : brew install hdf5
 - Building from the Github repository additionally requires invoking `autoreconf --install` to generate the *configure* script. `autoreconf` can be installed on Ubuntu using `sudo apt-get install autoconf automake`.
 - If you skip `scripts/install-hts.sh` and `./configure`, hdf5 will be compiled locally. It is a good option if you cannot install hdf5 library system wide. However, building hdf5 takes ages.
 - *f5c* from version 0.8.0 onwards by default requires vector instructions (SSSE3 or higher for Intel/AMD and neon for ARM) for builtin *slow5lib*. If your processor is an ancient processor with no such vector instructions, invoke make as `make no_simd=1`.
-- You can optionally enable *zstd* support for builtin *slow5lib* when building *f5c* by invoking `make zstd=1`. This requires __zstd 1.x development libraries__ installed on your system (*libzstd1-dev* package for *apt*, *libzstd-devel* for *yum/dnf* and *zstd* for *homebrew*).
+- You can optionally enable *zstd* support for builtin *slow5lib* when building *f5c* by invoking `make zstd=1`. This requires __zstd 1.3 development libraries__ installed on your system (*libzstd1-dev* package for *apt*, *libzstd-devel* for *yum/dnf* and *zstd* for *homebrew*).
 - Instructions to build a docker image and conda installation are detailed [here](https://hasindu2008.github.io/f5c/docs/misc-install).
 - Other uncommon building options are detailed [here](https://hasindu2008.github.io/f5c/docs/building).
 - An SIMD accelerated version contributed by [@dkhyland](https://github.com/dkhyland) is available in the [*simd* branch](https://github.com/hasindu2008/f5c/tree/simd).

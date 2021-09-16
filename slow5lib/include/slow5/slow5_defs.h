@@ -40,7 +40,7 @@ extern "C" {
 #endif
 
 // library version
-#define SLOW5_LIB_VERSION "0.2.0-dirty"
+#define SLOW5_LIB_VERSION "0.3.0"
 
 // maximum file version supported by this library - independent of slow5 library version above
 // if updating change all 4 below
