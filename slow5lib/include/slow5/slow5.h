@@ -116,6 +116,7 @@ enum slow5_aux_type {
     SLOW5_FLOAT,
     SLOW5_DOUBLE,
     SLOW5_CHAR,
+    SLOW5_ENUM,
 
     SLOW5_INT8_T_ARRAY,
     SLOW5_INT16_T_ARRAY,
@@ -127,11 +128,12 @@ enum slow5_aux_type {
     SLOW5_UINT64_T_ARRAY,
     SLOW5_FLOAT_ARRAY,
     SLOW5_DOUBLE_ARRAY,
-    SLOW5_STRING
+    SLOW5_STRING,
+    SLOW5_ENUM_ARRAY,
 };
 
-#define SLOW5_IS_PTR(type)        (type >= SLOW5_INT8_T_ARRAY)
-#define SLOW5_TO_PRIM_TYPE(type)  ((enum slow5_aux_type) (type - SLOW5_INT8_T_ARRAY))
+#define SLOW5_IS_PTR(type)              ((type) >= SLOW5_INT8_T_ARRAY)
+#define SLOW5_TO_PRIM_TYPE(ptr_type)    ((enum slow5_aux_type) ((ptr_type) - SLOW5_INT8_T_ARRAY))
 
 /* NULL (missing value) representation */
 #define SLOW5_INT8_T_NULL     INT8_MAX
@@ -145,6 +147,7 @@ enum slow5_aux_type {
 #define SLOW5_FLOAT_NULL      nanf("")
 #define SLOW5_DOUBLE_NULL     nan("")
 #define SLOW5_CHAR_NULL       0
+#define SLOW5_ENUM_NULL       SLOW5_UINT8_T_NULL
 
 
 // Type with corresponding size
@@ -172,6 +175,7 @@ static const struct slow5_aux_type_meta SLOW5_AUX_TYPE_META[] = {
     SLOW5_AUX_TYPE_META_PRIM(   SLOW5_FLOAT,            float       ),
     SLOW5_AUX_TYPE_META_PRIM(   SLOW5_DOUBLE,           double      ),
     SLOW5_AUX_TYPE_META_PRIM(   SLOW5_CHAR,             char        ),
+    { SLOW5_ENUM,       sizeof (uint8_t),   "enum"  },
 
     SLOW5_AUX_TYPE_META_ARRAY(  SLOW5_INT8_T_ARRAY,     int8_t      ),
     SLOW5_AUX_TYPE_META_ARRAY(  SLOW5_INT16_T_ARRAY,    int16_t     ),
@@ -184,6 +188,7 @@ static const struct slow5_aux_type_meta SLOW5_AUX_TYPE_META[] = {
     SLOW5_AUX_TYPE_META_ARRAY(  SLOW5_FLOAT_ARRAY,      float       ),
     SLOW5_AUX_TYPE_META_ARRAY(  SLOW5_DOUBLE_ARRAY,     double      ),
     SLOW5_AUX_TYPE_META_ARRAY(  SLOW5_STRING,           char        ),
+    { SLOW5_ENUM_ARRAY, sizeof (uint8_t),   "enum*" },
 };
 
 // Auxiliary attribute to position map: attribute string -> index position
@@ -191,18 +196,21 @@ KHASH_MAP_INIT_STR(slow5_s2ui32, uint32_t)
 
 /**
 * @struct slow5_aux_meta
-* SLOW5 auxiliary field metadata (information avilable in the SLOW5 header)
+* SLOW5 auxiliary field metadata (information available in the SLOW5 header)
 */
-struct slow5_aux_meta {
-    uint32_t num;                   ///< number of auxiliary fields
-    size_t cap;                     ///< capacity of the arrays: attrs, types and sizes
+typedef struct slow5_aux_meta {
+    uint32_t num;                       ///< number of auxiliary fields
+    size_t cap;                         ///< capacity of the arrays: attrs, types and sizes
 
-    khash_t(slow5_s2ui32) *attr_to_pos;   ///< hash table that maps field name string -> index position in the following arrays.
-    char **attrs;                   ///< field names
-    enum slow5_aux_type *types;           ///< field datatype
-    uint8_t *sizes;                 ///< field datatype sizes, for arrays this stores the size (in bytes) of the corresponding primitive type (TODO: this is probably redundant)
-};
-typedef struct slow5_aux_meta slow5_aux_meta_t;
+    khash_t(slow5_s2ui32) *attr_to_pos; ///< hash table that maps field name string -> index position in the following arrays.
+    char **attrs;                       ///< field names
+    enum slow5_aux_type *types;         ///< field datatypes
+    uint8_t *sizes;                     ///< field datatype sizes, for arrays this stores the size (in bytes) of the corresponding primitive type (TODO: this is probably redundant)
+
+    /* the following are NULL if no auxiliary datatype is an enum type */
+    char ***enum_labels;                ///< array of enum labels stored as strings
+    uint8_t *enum_num_labels;           ///< array of number of enum labels
+} slow5_aux_meta_t;
 
 // Header data map: attribute string -> data string
 KHASH_MAP_INIT_STR(slow5_s2s, char *)
@@ -468,6 +476,7 @@ uint64_t slow5_aux_get_uint64(const slow5_rec_t *read, const char *field, int *e
 float slow5_aux_get_float(const slow5_rec_t *read, const char *field, int *err);
 double slow5_aux_get_double(const slow5_rec_t *read, const char *field, int *err);
 char slow5_aux_get_char(const slow5_rec_t *read, const char *field, int *err);
+uint8_t slow5_aux_get_enum(const slow5_rec_t *read, const char *field, int *err);
 
 /**
  * Get an auxiliary field in a SLOW5 record as an 8-bit signed integer array.
@@ -493,6 +502,7 @@ uint64_t *slow5_aux_get_uint64_array(const slow5_rec_t *read, const char *field,
 float *slow5_aux_get_float_array(const slow5_rec_t *read, const char *field, uint64_t *len, int *err);
 double *slow5_aux_get_double_array(const slow5_rec_t *read, const char *field, uint64_t *len, int *err);
 char *slow5_aux_get_string(const slow5_rec_t *read, const char *field, uint64_t *len, int *err);
+uint8_t *slow5_aux_get_enum_array(const slow5_rec_t *read, const char *field, uint64_t *len, int *err);
 
 
 
@@ -658,9 +668,9 @@ int slow5_hdr_set(const char *attr, const char *value, uint32_t read_group, slow
  * or format is SLOW5_FORMAT_UNKNOWN
  * or an internal error occurs.
  *
- * @param   header  slow5 header
- * @param   format  slow5 format to write the entry in
- * @param   comp    compression method
+ * @param   header          slow5 header
+ * @param   format          slow5 format to write the entry in
+ * @param   comp            compression method
  * @param   written number of bytes written to the returned buffer
  * @return  malloced memory storing the slow5 header representation,
  *          to use free() on afterwards
@@ -673,9 +683,10 @@ void *slow5_hdr_to_mem(slow5_hdr_t *header, enum slow5_fmt format, slow5_press_m
  * On success, the number of bytes written is returned.
  * On error, -1 is returned.
  *
- * @param   fp      output file pointer
- * @param   header  slow5 header
- * @param   format  slow5 format to write the entry in
+ * @param   fp              output file pointer
+ * @param   header          slow5 header
+ * @param   format          slow5 format to write the entry in
+ * @param   comp            compression method
  * @return  number of bytes written, -1 on error
  */
 int slow5_hdr_fwrite(FILE *fp, slow5_hdr_t *header, enum slow5_fmt format, slow5_press_method_t comp);
@@ -707,6 +718,16 @@ const char **slow5_get_hdr_keys(const slow5_hdr_t *header,uint64_t *len);
 char **slow5_get_aux_names(const slow5_hdr_t *header,uint64_t *len);
 //get the pointer to auxilliary field types
 enum slow5_aux_type *slow5_get_aux_types(const slow5_hdr_t *header,uint64_t *len);
+/**
+ * get the enum labels for a specific auxiliary field and set the number of labels in *n
+ * return NULL on error and slow5_errno set to
+ * SLOW5_ERR_ARG    if header, field NULL, n can be NULL
+ * SLOW5_ERR_NOAUX  if auxiliary header is NULL
+ * SLOW5_ERR_TYPE   if the enum labels or num_labels array is NULL, or the field type is not an enum type
+ * SLOW5_ERR_NOFLD  if the auxiliary field was not found
+ * SLOW5_ERR_MEM    memory allocation error
+ */
+char **slow5_get_aux_enum_labels(const slow5_hdr_t *header, const char *field, uint8_t *n);
 
 
 // Return

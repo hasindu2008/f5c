@@ -68,6 +68,7 @@ autom4te.cache
 /tmp/
 /htslib
 /hdf5
+/zstd
 /.vscode
 src/config.h
 test/ecoli_2kb_region/reads.fasta.index.readdb

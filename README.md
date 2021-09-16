@@ -11,9 +11,9 @@ First, the reads have to be indexed using `f5c index`. Then, invoke `f5c call-me
 
 [![GitHub Downloads](https://img.shields.io/github/downloads/hasindu2008/f5c/total?logo=GitHub)](https://github.com/hasindu2008/f5c/releases)
 [![BioConda Install](https://img.shields.io/conda/dn/bioconda/f5c?label=BioConda)](https://anaconda.org/bioconda/f5c)
-[![AARCH64](https://www.travis-ci.com/hasindu2008/f5c.svg?branch=master)](https://www.travis-ci.com/hasindu2008/f5c)
 [![x86_64](https://github.com/hasindu2008/f5c/actions/workflows/f5c-x86_64.yml/badge.svg)](https://github.com/hasindu2008/f5c/actions/workflows/f5c-x86_64.yml)
-
+[![AARCH64](https://www.travis-ci.com/hasindu2008/f5c.svg?branch=master)](https://www.travis-ci.com/hasindu2008/f5c)
+[![CodeFactor](https://www.codefactor.io/repository/github/hasindu2008/f5c/badge/master)](https://www.codefactor.io/repository/github/hasindu2008/f5c/overview/master)
 
 ## Quick start
 
@@ -24,9 +24,13 @@ wget "https://github.com/hasindu2008/f5c/releases/download/$VERSION/f5c-$VERSION
 ./f5c_x86_64_linux        # CPU version
 ./f5c_x86_64_linux_cuda   # cuda supported version
 ```
-Binaries should work on most Linux distributions and the only dependency is `zlib` which is available by default on most distros.
+Binaries should work on most Linux distributions as the only dependency is `zlib` which is available by default on most distroibutions. For compiled binaries to work, your processor must support SSSE3 instructions or higher (processors after 2007 have these) and your operating system must have GLIBC 2.17 or higher (Linux distributions from 2014 onwards typically have this).
+
+You can also use conda to install *f5c* as `conda install f5c -c bioconda -c conda-forge`.
 
 ## Building from source
+
+### Building a release
 
 Users are recommended to build from the  [latest release](https://github.com/hasindu2008/f5c/releases) tar ball. You need a compiler that supports C++11. Quick example for Ubuntu :
 ```sh
@@ -44,14 +48,16 @@ On Fedora/CentOS : sudo dnf/yum install hdf5-devel zlib-devel
 On Arch Linux: sudo pacman -S hdf5
 On OS X : brew install hdf5
 ```
-If you skip `scripts/install-hts.sh` and `./configure`, hdf5 will be compiled locally. It is a good option if you cannot install hdf5 library system wide. However, building hdf5 takes ages.
 
-Building from the Github repository additionally requires invoking `autoreconf --install` to generate the *configure* script. `autoreconf` can be installed on Ubuntu using `sudo apt-get install autoconf automake`.
+### Other building options
 
-Other building options are detailed [here](https://hasindu2008.github.io/f5c/docs/building).
-Instructions to build a docker image and conda installation are detailed [here](https://hasindu2008.github.io/f5c/docs/misc-install).
-
-An SIMD accelerated version contributed by [@dkhyland](https://github.com/dkhyland) is available in the [*simd* branch](https://github.com/hasindu2008/f5c/tree/simd).
+- Building from the Github repository additionally requires invoking `autoreconf --install` to generate the *configure* script. `autoreconf` can be installed on Ubuntu using `sudo apt-get install autoconf automake`.
+- If you skip `scripts/install-hts.sh` and `./configure`, hdf5 will be compiled locally. It is a good option if you cannot install hdf5 library system wide. However, building hdf5 takes ages.
+- *f5c* from version 0.8.0 onwards by default requires vector instructions (SSSE3 or higher for Intel/AMD and neon for ARM) for builtin *slow5lib*. If your processor is an ancient processor with no such vector instructions, invoke make as `make no_simd=1`.
+- You can optionally enable *zstd* support for builtin *slow5lib* when building *f5c* by invoking `make zstd=1`. This requires __zstd 1.3 development libraries__ installed on your system (*libzstd1-dev* package for *apt*, *libzstd-devel* for *yum/dnf* and *zstd* for *homebrew*).
+- Instructions to build a docker image and conda installation are detailed [here](https://hasindu2008.github.io/f5c/docs/misc-install).
+- Other uncommon building options are detailed [here](https://hasindu2008.github.io/f5c/docs/building).
+- An SIMD accelerated version contributed by [@dkhyland](https://github.com/dkhyland) is available in the [*simd* branch](https://github.com/hasindu2008/f5c/tree/simd).
 
 ### NVIDIA CUDA support
 
@@ -74,10 +80,10 @@ Visit [here](https://hasindu2008.github.io/f5c/docs/cuda-troubleshoot) for troub
 ## Usage
 
 ```sh
-f5c index -d [fast5_folder] [read.fastq|fasta]
-f5c call-methylation -b [reads.sorted.bam] -g [ref.fa] -r [reads.fastq|fasta] > [meth.tsv]
+f5c index -d [fast5_folder] [read.fastq|fasta] # or f5c index --slow5 [slow5_file] [read.fastq|fasta]
+f5c call-methylation -b [reads.sorted.bam] -g [ref.fa] -r [reads.fastq|fasta] > [meth.tsv] #specify --slow5 [slow5_file] to use a slow5 file instead of fast5
 f5c meth-freq -i [meth.tsv] > [freq.tsv]
-f5c eventalign -b [reads.sorted.bam] -g [ref.fa] -r [reads.fastq|fasta] > [events.tsv]    #specify --rna for direct RNA data
+f5c eventalign -b [reads.sorted.bam] -g [ref.fa] -r [reads.fastq|fasta] > [events.tsv]    #specify --rna for direct RNA data, --slow5 [slow5_file] to use a slow5 file
 ```
 
 Visit the [man page](https://hasindu2008.github.io/f5c/docs/commands) for all the commands and options.
