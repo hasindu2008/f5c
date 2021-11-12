@@ -60,7 +60,7 @@ int32_t align(AlignedPair* out_2, char* sequence, int32_t sequence_len,
 int32_t postalign(event_alignment_t* alignment, index_pair_t* base_to_event_map, double* events_per_base,
                   char* sequence, int32_t n_kmers, AlignedPair* event_alignment, int32_t n_events, uint32_t kmer_size);
 bool recalibrate_model(model_t* pore_model, uint32_t kmer_size, event_table et, scalings_t* scallings,
-                       const event_alignment_t* alignment_output, int32_t num_alignments, bool scale_var);
+                       const event_alignment_t* alignment_output, int32_t num_alignments, bool scale_var, int32_t minNumEventsToRescale);
 
 /* methylation call */
 void calculate_methylation_for_read(std::map<int, ScoredSite>* site_score_map, char* ref, bam1_t* record,

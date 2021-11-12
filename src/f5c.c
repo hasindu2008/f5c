@@ -598,7 +598,7 @@ void scaling_single(core_t* core, db_t* db, int32_t i){
         // internally this function will set shift/scale/etc of the pore model
         bool calibrated = recalibrate_model(
             core->model, core->kmer_size, db->et[i], &db->scalings[i],
-            db->event_alignment[i], db->n_event_alignment[i], 1);
+            db->event_alignment[i], db->n_event_alignment[i], 1, core->opt.min_num_events_to_rescale);
 
         // QC calibration
         if (!calibrated || db->scalings[i].var > MIN_CALIBRATION_VAR) {
@@ -1006,6 +1006,9 @@ void init_opt(opt_t* opt) {
     opt->num_thread = 8;
     opt->num_iop = 1;       //if changed, the SLOW5 mode must be handled by default in the arg parsing
     opt->region_str = NULL; //whole genome processing if null
+
+    opt->min_num_events_to_rescale = 200;
+
 #ifndef HAVE_CUDA
     opt->flag |= F5C_DISABLE_CUDA;
     opt->batch_size_bases = 5*1000*1000;
