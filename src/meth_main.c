@@ -101,6 +101,7 @@ static struct option long_options[] = {
     {"rna",no_argument,0,0},                       //42 if RNA (eventalign only)
     {"slow5",required_argument,0,0},               //43 read from a slow5 file
     {"min-recalib-events",required_argument,0,0},  //44 minimum number of events to recalibrate
+    {"collapse-events",no_argument,0,0},           //45 collapse events that stays on the same reference k-mer
     {0, 0, 0, 0}};
 
 
@@ -415,6 +416,14 @@ int meth_main(int argc, char* argv[], int8_t mode) {
                 ERROR("Minimum number of events to rescale should be larger than 0. You entered %d", opt.min_num_events_to_rescale);
                 exit(EXIT_FAILURE);
             }
+            WARNING("%s","Option --min-recalib-events is experimental. Exercise caution.");
+        } else if (c == 0 && longindex == 45){ //collapse events
+            if(mode!=1){
+                ERROR("%s","Option --collapse-events is available only in eventalign");
+                exit(EXIT_FAILURE);
+            }
+            WARNING("%s", "Option --collapse-events is experimental. Exercise caution.");
+            yes_or_no(&opt, F5C_COLLAPSE_EVENTS, longindex, "yes", 1);
         }
 
     }
@@ -478,6 +487,7 @@ int meth_main(int argc, char* argv[], int8_t mode) {
         fprintf(fp_help,"   --samples                  write the raw samples for the event to the tsv output\n");
         fprintf(fp_help,"   --signal-index             write the raw signal start and end index values for the event to the tsv output\n");
         fprintf(fp_help,"   --rna                      the dataset is direct RNA\n");
+        fprintf(fp_help,"   --collapse-events          collapse events that stays on the same reference k-mer\n");
     }
         fprintf(fp_help,"   --min-recalib-events INT   minimum number of events to recalbrate (decrease if your reads are very short and could not calibrate) [%d]\n",opt.min_num_events_to_rescale);
 

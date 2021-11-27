@@ -685,14 +685,20 @@ void eventalign_single(core_t* core, db_t* db, int32_t i){
     std::vector<event_alignment_t> *event_alignment_result = db->event_alignment_result[i];
     int8_t print_read_names = (core->opt.flag & F5C_PRINT_RNAME) ? 1 : 0;
     int8_t scale_events = (core->opt.flag & F5C_SCALE_EVENTS) ? 1 : 0;
+    int8_t collapse_events = (core->opt.flag & F5C_COLLAPSE_EVENTS) ? 1 : 0;
     int8_t write_samples = (core->opt.flag & F5C_PRINT_SAMPLES) ? 1 : 0;
     int8_t write_signal_index = (core->opt.flag & F5C_PRINT_SIGNAL_INDEX) ? 1 : 0;
     int8_t sam_output = (core->opt.flag & F5C_SAM) ? 1 : 0;
 
     if(sam_output==0){
-        db->event_alignment_result_str[i] = emit_event_alignment_tsv(0,&(db->et[i]),core->model,core->kmer_size, db->scalings[i],*event_alignment_result, print_read_names, scale_events, write_samples, write_signal_index,
+        if (collapse_events){
+            db->event_alignment_result_str[i] = emit_collapsed_event_alignment_tsv(0,&(db->et[i]),core->model,core->kmer_size, db->scalings[i],*event_alignment_result, print_read_names, scale_events, write_samples, write_signal_index,
                    db->read_idx[i], qname, contig, db->f5[i]->sample_rate, db->f5[i]->rawptr);
-
+        }
+        else {
+            db->event_alignment_result_str[i] = emit_event_alignment_tsv(0,&(db->et[i]),core->model,core->kmer_size, db->scalings[i],*event_alignment_result, print_read_names, scale_events, write_samples, write_signal_index,
+                   db->read_idx[i], qname, contig, db->f5[i]->sample_rate, db->f5[i]->rawptr);
+        }
     }
 }
 

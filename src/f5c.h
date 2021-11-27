@@ -53,6 +53,7 @@
 #define F5C_PRINT_SAMPLES 0x4000 //write the raw samples for the event to the tsv output (eventalign only)
 #define F5C_PRINT_SIGNAL_INDEX 0x8000 //write the raw signal start and end index values for the event to the tsv output (eventalign only)
 #define F5C_RD_SLOW5 0x10000 //read from a slow5 file
+#define F5C_COLLAPSE_EVENTS 0x20000 //collapse events
 
 /*************************************************************
  * flags for a read status (related to db_t->read_stat_flag) *
