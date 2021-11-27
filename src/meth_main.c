@@ -100,6 +100,7 @@ static struct option long_options[] = {
     {"signal-index", no_argument,0,0},             //41 write the raw signal start and end index values for the event to the tsv output (eventalign only)
     {"rna",no_argument,0,0},                       //42 if RNA (eventalign only)
     {"slow5",required_argument,0,0},               //43 read from a slow5 file
+    {"min-recalib-events",required_argument,0,0},  //44 minimum number of events to recalibrate
     {0, 0, 0, 0}};
 
 
@@ -408,7 +409,14 @@ int meth_main(int argc, char* argv[], int8_t mode) {
             slow5file=optarg;
             assert(slow5file!=NULL);
             yes_or_no(&opt, F5C_RD_SLOW5, longindex, "yes", 1);
+        } else if(c == 0 && longindex == 44){ //minimum number of events to rescale
+            opt.min_num_events_to_rescale = atoi(optarg);
+            if (opt.min_num_events_to_rescale < 1) {
+                ERROR("Minimum number of events to rescale should be larger than 0. You entered %d", opt.min_num_events_to_rescale);
+                exit(EXIT_FAILURE);
+            }
         }
+
     }
 
     if(is_ultra_thresh_set ==1 && tmpfile==NULL){
@@ -471,6 +479,8 @@ int meth_main(int argc, char* argv[], int8_t mode) {
         fprintf(fp_help,"   --signal-index             write the raw signal start and end index values for the event to the tsv output\n");
         fprintf(fp_help,"   --rna                      the dataset is direct RNA\n");
     }
+        fprintf(fp_help,"   --min-recalib-events INT   minimum number of events to recalbrate (decrease if your reads are very short and could not calibrate) [%d]\n",opt.min_num_events_to_rescale);
+
 #ifdef HAVE_CUDA
         fprintf(fp_help,"   --cuda-mem-frac FLOAT      Fraction of free GPU memory to allocate [0.9 (0.7 for tegra)]\n");
         //fprintf(fp_help,"   --cuda-block-size\n");

@@ -108,6 +108,8 @@ typedef struct {
     char *region_str; //the region string in format chr:start-end
     int8_t meth_out_version; //output tsv version for call-methylation
 
+    int32_t min_num_events_to_rescale; // the minimum number of event for rescaling, 200 is the default
+
     //todo : these are required only for HAVE_CUDA (but need to change the meth_main accordingly)
     int32_t cuda_block_size; //?
     float cuda_max_readlen; //max-lf

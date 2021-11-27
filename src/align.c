@@ -665,7 +665,7 @@ int32_t postalign(event_alignment_t* alignment, index_pair_t* base_to_event_map,
 bool recalibrate_model(model_t* pore_model, uint32_t kmer_size, event_table et,
                        scalings_t* scallings,
                        const event_alignment_t* alignment_output,
-                       int32_t num_alignments, bool scale_var) {
+                       int32_t num_alignments, bool scale_var, int32_t minNumEventsToRescale) {
     //std::vector<double> raw_events, times, level_means, level_stdvs;
     //std::cout << "Previous pore model parameters: " << sr.pore_model[strand_idx].shift << ", "
     //                                                << sr.pore_model[strand_idx].scale << ", "
@@ -686,7 +686,7 @@ bool recalibrate_model(model_t* pore_model, uint32_t kmer_size, event_table et,
         }
     }
 
-    const int32_t minNumEventsToRescale = 200;
+    //const int32_t minNumEventsToRescale = 200;
     bool recalibrated = false;
     if (num_M_state >= minNumEventsToRescale) {
         // Assemble linear system corresponding to weighted least squares problem
