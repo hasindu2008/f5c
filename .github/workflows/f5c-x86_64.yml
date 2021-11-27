@@ -24,7 +24,7 @@ jobs:
   ubuntu_16_install_scripts:
     name: Ubuntu 16 install scripts
     runs-on: ubuntu-18.04
-    container: ubuntu-16.04
+    container: ubuntu:16.04
     steps:
     - uses: actions/checkout@v2
     - name: install packages
@@ -38,7 +38,7 @@ jobs:
   ubuntu_16_pure_make:
     name: Ubuntu 16 pure make
     runs-on: ubuntu-18.04
-    container: ubuntu-16.04
+    container: ubuntu:16.04
     steps:
     - uses: actions/checkout@v2
     - name: install packages
