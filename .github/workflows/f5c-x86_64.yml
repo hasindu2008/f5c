@@ -28,7 +28,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: install packages
-      run: apt-get update && apt-get install -y zlib1g-dev valgrind
+      run: apt-get update && apt-get install -y zlib1g-dev valgrind gcc g++ autoconf automake make wget
     - name: build
       run: autoreconf && ./scripts/install-hdf5.sh &&./scripts/install-hts.sh && ./configure --enable-localhdf5 && make -j8
     - name: test
@@ -42,7 +42,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: install packages
-      run: apt-get update && apt-get install -y zlib1g-dev
+      run: apt-get update && apt-get install -y zlib1g-dev gcc g++ autoconf automake make wget
     - name: build
       run: make
     - name: test
