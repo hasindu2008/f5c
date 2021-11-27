@@ -28,7 +28,7 @@ void set_opt_profile(opt_t *opt, parameters machine){
     if(machine.disable_cuda){
         opt->flag |= F5C_DISABLE_CUDA;
     }
-    if(opt->flag |= F5C_RD_SLOW5){
+    if(opt->flag & F5C_RD_SLOW5){
         opt->num_iop = 1;
     }
 
