@@ -42,7 +42,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: install packages
-      run: apt-get update && apt-get install -y zlib1g-dev gcc g++ autoconf automake make wget
+      run: apt-get update && apt-get install -y zlib1g-dev gcc g++ autoconf automake make wget bzip2
     - name: build
       run: make
     - name: test
