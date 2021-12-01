@@ -108,3 +108,6 @@ echo "***************************** --samples***********************************
 ${exepath} eventalign -b ${bamfile} -g ${ref} -r ${reads} --secondary=yes --min-mapq=0 -B "$max_bases" --summary ${testdir}/f5c_event_align.summary.txt --samples > ${testdir}/result.txt
 execute_test "event_samples.exp" "test_eventalign_samples.awk" 10
 echo ""
+echo "***************************** --signal-index --collapse-events************************************"
+${exepath} eventalign -b ${bamfile} -g ${ref} -r ${reads} --secondary=yes --min-mapq=0 -B "$max_bases" --summary ${testdir}/f5c_event_align.summary.txt --signal-index --collapse-events > ${testdir}/result.txt
+execute_test "collapsed_signal_index.exp" "test_eventalign_signal_index.awk" 10

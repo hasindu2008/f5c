@@ -1870,11 +1870,11 @@ std::vector<float> get_scaled_samples_for_event(const event_table* events,scalin
     return out;
 }
 
-// this function can be perhaps integrated into the emit_event_alignment_tsv function
-char *emit_collapsed_event_alignment_tsv(uint32_t strand_idx,
+
+char *emit_event_alignment_tsv(uint32_t strand_idx,
                               const event_table* et, model_t* model, uint32_t kmer_size, scalings_t scalings,
                               const std::vector<event_alignment_t>& alignments,
-                              int8_t print_read_names, int8_t scale_events, int8_t write_samples, int8_t write_signal_index,
+                              int8_t print_read_names, int8_t scale_events, int8_t write_samples, int8_t write_signal_index, int8_t collapse,
                               int64_t read_index, char* read_name, char *ref_name,float sample_rate, float *rawptr)
 {
     //assert(params.alphabet == "");
@@ -1914,57 +1914,54 @@ char *emit_collapsed_event_alignment_tsv(uint32_t strand_idx,
         float event_mean = (et->event)[ea.event_idx].mean;
         float event_stdv = (et->event)[ea.event_idx].stdv;
         float event_duration = get_duration_seconds(et, ea.event_idx, sample_rate);
-
-        /* collapsing start */
-
-        // go through stays
-        n_collapse = 1;
-        while (i + n_collapse < alignments.size() && ea.ref_position ==  alignments[i+n_collapse].ref_position){
-            assert(strcmp(ea.ref_kmer,alignments[i+n_collapse].ref_kmer)==0);
-            // if(strcmp(ea.model_kmer,alignments[i+n_collapse].model_kmer)!=0){ //TODO: NNNN kmers must be handled
-            //     fprintf(stderr, "model kmer does not match! %s vs %s\n",ea.model_kmer,alignments[i+n_collapse].model_kmer);
-            // }
-            n_collapse++;
-        }
+        uint32_t rank = get_kmer_rank(ea.model_kmer, kmer_size);
+        float model_mean = 0.0;
+        float model_stdv = 0.0;
 
         uint64_t start_idx = (et->event)[ea.event_idx].start;
         uint64_t end_idx = (et->event)[ea.event_idx].start + (uint64_t)((et->event)[ea.event_idx].length);
 
-        if(n_collapse > 1){
-            uint64_t start_idx1 = start_idx;
-            uint64_t end_idx1 = end_idx;
+        if (collapse){
 
-            const event_alignment_t& ea2 = alignments[i+n_collapse-1];
-            uint64_t start_idx2 =  (et->event)[ea2.event_idx].start;
-            uint64_t end_idx2 = (et->event)[ea2.event_idx].start + (uint64_t)((et->event)[ea2.event_idx].length);
-
-            //min
-            start_idx =  start_idx1 < start_idx2 ? start_idx1 : start_idx2;
-            //max
-            end_idx = end_idx1 > end_idx2 ? end_idx1 : end_idx2;
-
-            event_mean = 0;
-            float event_var = 0;
-            float num_samples = end_idx-start_idx;
-
-            //inefficient, but for now this is fine
-            for(uint64_t j=start_idx; j<end_idx; j++){
-                event_mean += rawptr[j];
+            n_collapse = 1;
+            while (i + n_collapse < alignments.size() && ea.ref_position ==  alignments[i+n_collapse].ref_position){
+                assert(strcmp(ea.ref_kmer,alignments[i+n_collapse].ref_kmer)==0);
+                // if(strcmp(ea.model_kmer,alignments[i+n_collapse].model_kmer)!=0){ //TODO: NNNN kmers must be handled
+                //     fprintf(stderr, "model kmer does not match! %s vs %s\n",ea.model_kmer,alignments[i+n_collapse].model_kmer);
+                // }
+                n_collapse++;
             }
-            event_mean /= num_samples;
-            for(uint64_t j=start_idx; j<end_idx; j++){
-                event_var += (rawptr[j]-event_mean)*(rawptr[j]-event_mean);
+
+            if(n_collapse > 1){
+                uint64_t start_idx1 = start_idx;
+                uint64_t end_idx1 = end_idx;
+
+                const event_alignment_t& ea2 = alignments[i+n_collapse-1];
+                uint64_t start_idx2 =  (et->event)[ea2.event_idx].start;
+                uint64_t end_idx2 = (et->event)[ea2.event_idx].start + (uint64_t)((et->event)[ea2.event_idx].length);
+
+                //min
+                start_idx =  start_idx1 < start_idx2 ? start_idx1 : start_idx2;
+                //max
+                end_idx = end_idx1 > end_idx2 ? end_idx1 : end_idx2;
+
+                event_mean = 0;
+                float event_var = 0;
+                float num_samples = end_idx-start_idx;
+
+                //inefficient, but for now this is fine
+                for(uint64_t j=start_idx; j<end_idx; j++){
+                    event_mean += rawptr[j];
+                }
+                event_mean /= num_samples;
+                for(uint64_t j=start_idx; j<end_idx; j++){
+                    event_var += (rawptr[j]-event_mean)*(rawptr[j]-event_mean);
+                }
+                event_var /= num_samples;
+                event_stdv = sqrt(event_var);
+                event_duration = num_samples/sample_rate;
             }
-            event_var /= num_samples;
-            event_stdv = sqrt(event_var);
-            event_duration = num_samples/sample_rate;
         }
-
-        /* collapsing end */
-
-        uint32_t rank = get_kmer_rank(ea.model_kmer, kmer_size);
-        float model_mean = 0.0;
-        float model_stdv = 0.0;
 
         if(scale_events) {
 
@@ -1996,108 +1993,6 @@ char *emit_collapsed_event_alignment_tsv(uint32_t strand_idx,
                                                standard_level);
 
         if(write_signal_index) {
-            // collapsing  modification
-            sprintf_append(sp, "\t%lu\t%lu", start_idx, end_idx);
-        }
-
-        if(write_samples) {
-            //std::vector<float> samples = get_scaled_samples_for_event(ea.strand_idx, ea.event_idx); // collapsing  modification
-            std::vector<float> samples = get_scaled_samples(rawptr, start_idx, end_idx, scalings);
-            std::stringstream sample_ss;
-            std::copy(samples.begin(), samples.end(), std::ostream_iterator<float>(sample_ss, ","));
-
-            // remove training comma
-            std::string sample_str = sample_ss.str();
-            sample_str.resize(sample_str.size() - 1);
-            sprintf_append(sp, "\t%s", sample_str.c_str());
-        }
-        sprintf_append(sp, "\n");
-    }
-
-
-    //str_free(sp); //freeing is later done in free_db_tmp()
-    return sp->s;
-}
-
-
-char *emit_event_alignment_tsv(uint32_t strand_idx,
-                              const event_table* et, model_t* model, uint32_t kmer_size, scalings_t scalings,
-                              const std::vector<event_alignment_t>& alignments,
-                              int8_t print_read_names, int8_t scale_events, int8_t write_samples, int8_t write_signal_index,
-                              int64_t read_index, char* read_name, char *ref_name,float sample_rate, float *rawptr)
-{
-    //assert(params.alphabet == "");
-    //const PoreModel* pore_model = params.get_model();
-    //uint32_t k = pore_model->k;
-
-    kstring_t str;
-    kstring_t *sp = &str;
-    str_init(sp, sizeof(char)*alignments.size()*120);
-
-    for(size_t i = 0; i < alignments.size(); ++i) {
-
-        const event_alignment_t& ea = alignments[i];
-
-        // basic information
-        if (!print_read_names)
-        {
-            sprintf_append(sp, "%s\t%d\t%s\t%ld\t%c\t",
-                    ref_name, //ea.ref_name.c_str(),
-                    ea.ref_position,
-                    ea.ref_kmer,
-                    (long)read_index,
-                    't'); //"tc"[ea.strand_idx]);
-        }
-        else
-        {
-            sprintf_append(sp, "%s\t%d\t%s\t%s\t%c\t",
-                    ref_name, //ea.ref_name.c_str(),
-                    ea.ref_position,
-                    ea.ref_kmer,
-                    read_name, //sr.read_name.c_str(),
-                    't'); //"tc"[ea.strand_idx]);
-        }
-
-        // event information
-        float event_mean = (et->event)[ea.event_idx].mean;
-        float event_stdv = (et->event)[ea.event_idx].stdv;
-        float event_duration = get_duration_seconds(et, ea.event_idx, sample_rate);
-        uint32_t rank = get_kmer_rank(ea.model_kmer, kmer_size);
-        float model_mean = 0.0;
-        float model_stdv = 0.0;
-
-        if(scale_events) {
-
-            // scale reads to the model
-            event_mean = get_fully_scaled_level(event_mean, scalings);
-
-            // unscaled model parameters
-            if(ea.hmm_state != 'B') {
-                model_t model1 = model[rank];
-                model_mean = model1.level_mean;
-                model_stdv = model1.level_stdv;
-            }
-        } else {
-
-            // scale model to the reads
-            if(ea.hmm_state != 'B') {
-
-                model_t model1 = get_scaled_gaussian_from_pore_model_state(model, scalings, rank);
-                model_mean = model1.level_mean;
-                model_stdv = model1.level_stdv;
-            }
-        }
-
-        float standard_level = (event_mean - model_mean) / (sqrt(scalings.var) * model_stdv);
-        sprintf_append(sp, "%d\t%.2f\t%.3f\t%.5f\t", ea.event_idx, event_mean, event_stdv, event_duration);
-        sprintf_append(sp, "%s\t%.2f\t%.2f\t%.2f", ea.model_kmer,
-                                               model_mean,
-                                               model_stdv,
-                                               standard_level);
-
-        if(write_signal_index) {
-            uint64_t start_idx = (et->event)[ea.event_idx].start;
-            uint64_t end_idx = (et->event)[ea.event_idx].start + (uint64_t)((et->event)[ea.event_idx].length);
             sprintf_append(sp, "\t%lu\t%lu", start_idx, end_idx);
         }
 
