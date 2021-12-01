@@ -1998,11 +1998,12 @@ char *emit_event_alignment_tsv(uint32_t strand_idx,
 
         if(write_samples) {
             //std::vector<float> samples = get_scaled_samples_for_event(ea.strand_idx, ea.event_idx);
-            std::vector<float> samples = get_scaled_samples_for_event(et, scalings, ea.event_idx, rawptr);
+            //std::vector<float> samples = get_scaled_samples_for_event(et, scalings, ea.event_idx, rawptr);
+            std::vector<float> samples = get_scaled_samples(rawptr, start_idx, end_idx, scalings);
             std::stringstream sample_ss;
             std::copy(samples.begin(), samples.end(), std::ostream_iterator<float>(sample_ss, ","));
 
-            // remove training comma
+            // remove trailing comma
             std::string sample_str = sample_ss.str();
             sample_str.resize(sample_str.size() - 1);
             sprintf_append(sp, "\t%s", sample_str.c_str());
