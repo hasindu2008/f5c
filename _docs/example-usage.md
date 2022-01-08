@@ -89,7 +89,7 @@ Frequency count merging can also be useful to utilise a distributed system (e.g.
 
 ## Using *SLOW5* files with *f5c*
 
-*f5c* version 0.7 onwards supports [*SLOW5*](https://www.biorxiv.org/content/10.1101/2021.06.29.450255v1) file format. Existing *FAST5* files can be converted to *SLOW5* using [*slow5tools*](https://github.com/hasindu2008/slow5tools).
+*f5c* version 0.7 onwards supports [*SLOW5*](https://www.nature.com/articles/s41587-021-01147-4) file format. Existing *FAST5* files can be converted to *SLOW5* using [*slow5tools*](https://github.com/hasindu2008/slow5tools).
 
 ```bash
 #convert fast5 files to slow5 files using 8 I/O processes
