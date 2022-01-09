@@ -1,4 +1,4 @@
-/* @file signal_read_align.c
+/* @file resquiggle.c
 **
 ** align raw signal to basecalled read
 ** @author: Hiruna Samarakoon (hiruna@unsw.edu.au)
@@ -21,7 +21,7 @@
 
 KSEQ_INIT(gzFile, gzread)
 
-static const char *SIGNAL_READ_ALIGN_USAGE_MESSAGE =
+static const char *RESQUIGGLE_USAGE_MESSAGE =
     "Usage: f5c signal-read-align [OPTIONS] [SLOW5_FILE/DIR] reads.fastq ...\n"
     "Align raw signal to the basecalled read.\n\n"
     "   -o FILE         output file. Write to stdout if not specified\n"
@@ -246,12 +246,12 @@ void process_db2(core_t* core, db_t* db) {
     }
 }
 
-int signal_read_align_main(int argc, char **argv) {
-    fprintf(stderr,"signal_read_align_main\n");
+int resquiggle_main(int argc, char **argv) {
+    fprintf(stderr,"resquiggle_main\n");
 
     // No arguments given
     if (argc <= 1) {
-        fprintf(stderr, SIGNAL_READ_ALIGN_USAGE_MESSAGE, argv[0]);
+        fprintf(stderr, RESQUIGGLE_USAGE_MESSAGE, argv[0]);
         exit(EXIT_FAILURE);
     }
 

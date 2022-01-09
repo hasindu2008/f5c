@@ -29,7 +29,7 @@ OBJ = $(BUILD_DIR)/main.o \
       $(BUILD_DIR)/freq.o \
       $(BUILD_DIR)/eventalign.o \
       $(BUILD_DIR)/freq_merge.o \
-      $(BUILD_DIR)/signal_read_align.o \
+      $(BUILD_DIR)/resquiggle.o \
 	  $(BUILD_DIR)/profiles.o
 
 PREFIX = /usr/local
@@ -101,7 +101,7 @@ $(BUILD_DIR)/eventalign.o: src/eventalign.c src/str.h src/f5c.h src/f5cmisc.h sr
 $(BUILD_DIR)/freq_merge.o: src/freq_merge.c
 	$(CXX) $(CFLAGS) $(CPPFLAGS) $(LANGFLAG) $< -c -o $@
 
-$(BUILD_DIR)/signal_read_align.o: src/signal_read_align.c src/kseq.h
+$(BUILD_DIR)/resquiggle.o: src/resquiggle.c src/kseq.h
 	$(CXX) $(CFLAGS) $(CPPFLAGS) $(LANGFLAG) $< -c -o $@
 
 $(BUILD_DIR)/profiles.o: src/profiles.c src/profiles.h
