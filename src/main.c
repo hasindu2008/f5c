@@ -43,6 +43,7 @@ int meth_main(int argc, char* argv[], int8_t mode);
 int index_main(int argc, char** argv);
 int freq_main(int argc, char **argv);
 int freq_merge_main(int argc, char **argv);
+int signal_read_align_main(int argc, char **argv);
 
 int print_usage(FILE *fp_help){
 
@@ -92,6 +93,9 @@ int main(int argc, char* argv[]){
     }
     else if(strcmp(argv[1],"freq-merge")==0){
         ret=freq_merge_main(argc-1, argv+1);
+    }
+    else if(strcmp(argv[1],"signal-read-align")==0){
+        ret=signal_read_align_main(argc-1, argv+1);
     }
     else if(strcmp(argv[1],"--version")==0 || strcmp(argv[1],"-V")==0){
         fprintf(stdout,"F5C %s\n",F5C_VERSION);
