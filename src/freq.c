@@ -311,6 +311,7 @@ int freq_main(int argc, char **argv) {
                         exit(EXIT_FAILURE);
                     }
                 }
+                break;
             case 'h':
                 fprintf(stdout, usage, argv[0]);
                 exit(EXIT_SUCCESS);
