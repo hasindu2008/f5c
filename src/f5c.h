@@ -59,6 +59,7 @@
  * flags for a read status (related to db_t->read_stat_flag) *
  *************************************************************/
 
+#define RESET_READ_STATUS 0x000 //reset value
 #define FAILED_CALIBRATION 0x001 //if the calibration failed
 #define FAILED_ALIGNMENT 0x002 //if the alignment failed
 #define FAILED_QUALITY_CHK  0x004 //if the quality check failed
@@ -185,8 +186,9 @@ typedef struct {
 
 /* from nanopolish */
 typedef struct {
-    int32_t start;
-    int32_t stop; // inclusive
+    int32_t start; // index of the event that maps first to the base
+    int32_t stop; // inclusive // index of the event that maps last to the base
+    float dwell_time; //number of signal points that maps to the base
 } index_pair_t;
 
 /* from nanopolish */
@@ -277,6 +279,7 @@ typedef struct {
 
     //read sequence //todo : optimise by grabbing it from bam seq. is it possible due to clipping?
     char** read;
+    char** read_id;
     int32_t* read_len;
     int64_t* read_idx; //the index of the read entry in the BAM file
 
@@ -542,6 +545,7 @@ void free_core(core_t* core,opt_t opt);
 
 void pthread_db(core_t* core, db_t* db, void (*func)(core_t*,db_t*,int));
 void event_single(core_t* core,db_t* db, int32_t i);
+void scaling_single(core_t* core, db_t* db, int32_t i);
 
 #ifdef HAVE_CUDA
     /* initalise GPU */

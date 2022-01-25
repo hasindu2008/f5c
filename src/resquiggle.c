@@ -93,6 +93,8 @@ db_t* init_db2(core_t* core) {
 
     db->read = (char**)(malloc(sizeof(char*) * db->capacity_bam_rec));
     MALLOC_CHK(db->read);
+    db->read_id = (char**)(malloc(sizeof(char*) * db->capacity_bam_rec));
+    MALLOC_CHK(db->read_id);
     db->read_len = (int32_t*)(malloc(sizeof(int32_t) * db->capacity_bam_rec));
     MALLOC_CHK(db->read_len);
 //    db->read_idx = (int64_t*)(malloc(sizeof(int64_t) * db->capacity_bam_rec));
@@ -132,6 +134,9 @@ db_t* init_db2(core_t* core) {
 
     db->read_stat_flag = (int32_t *)malloc(sizeof(int32_t) * db->capacity_bam_rec);
     MALLOC_CHK(db->read_stat_flag);
+    for (i = 0; i < db->capacity_bam_rec; ++i) {
+        db->read_stat_flag[i] = RESET_READ_STATUS;
+    }
 
     db->site_score_map = (std::map<int, ScoredSite> **)malloc(sizeof(std::map<int, ScoredSite> *) * db->capacity_bam_rec);
     MALLOC_CHK(db->site_score_map);
@@ -172,6 +177,7 @@ db_t* init_db2(core_t* core) {
 void free_db2(db_t* db) {
     int32_t i = 0;
     free(db->read);
+    free(db->read_id);
     free(db->read_len);
     free(db->et);
     free(db->f5);
@@ -206,13 +212,14 @@ void free_db2(db_t* db) {
 /* partially free a data batch - only the read dependent allocations are freed */
 void free_db_tmp2(db_t* db) {
     int32_t i = 0;
-    for (i = 0; i < db->capacity_bam_rec; ++i) {
+    for (i = 0; i < db->n_bam_rec; ++i) {
         free(db->read[i]);
+        free(db->read_id[i]);
         free(db->f5[i]->rawptr);
         free(db->f5[i]);
         free(db->et[i].event);
         free(db->event_align_pairs[i]);
-//        free(db->base_to_event_map[i]);
+        free(db->base_to_event_map[i]);
 //        delete db->site_score_map[i];
 //        db->site_score_map[i] = new std::map<int, ScoredSite>;
 
@@ -227,10 +234,47 @@ void free_db_tmp2(db_t* db) {
     }
 }
 
+void calculate_dwell_time_single(core_t* core,db_t* db, int32_t i){
+    index_pair_t * indexPair = db->base_to_event_map[i];
+    int32_t n_kmers = db->read_len[i] - core->kmer_size + 1;
+    int32_t prev_valid_start_event_index = -1;
+    int32_t prev_valid_j = -1;
+    event_table et = db->et[i];
+
+    int multiple_bases_per_event_count = 0;
+    for (int32_t j=0; j<n_kmers; j++){
+        int32_t start_event_index = indexPair[j].start;
+        int end_event_index = indexPair[j].stop;
+        int divider = 1;
+        if(start_event_index == -1 && prev_valid_start_event_index != -1){
+            multiple_bases_per_event_count++;
+//            printf("start_event_index == -1 at basecalled_read_index %d\n", j);
+            start_event_index = prev_valid_start_event_index;
+            if(end_event_index != -1){
+                //                assert(end_event_index == -1);
+                fprintf(stderr,"assertion failed\n");
+                exit(EXIT_FAILURE);
+            }
+            end_event_index = prev_valid_start_event_index;
+            divider = j-prev_valid_j+1;
+        }else{
+            prev_valid_start_event_index = start_event_index;
+            prev_valid_j = j;
+        }
+        int signal_start_point = et.event[start_event_index].start;
+        int signal_end_point = et.event[end_event_index].start + (int)et.event[end_event_index].length;
+        int dwell_time = signal_end_point - signal_start_point;
+        for(int32_t k=prev_valid_j; k<=j; k++){
+            indexPair[k].dwell_time = dwell_time/divider;
+        }
+    }
+}
+
 void process_single2(core_t* core, db_t* db,int32_t i) {
     event_single(core,db,i);
     align_single(core, db,i);
-//    scaling_single(core,db,i);
+    scaling_single(core,db,i);
+    calculate_dwell_time_single(core,db,i);
 //    meth_single(core,db,i);
 }
 
@@ -243,6 +287,46 @@ void process_db2(core_t* core, db_t* db) {
     }
     else {
         pthread_db(core,db,process_single2);
+    }
+}
+
+void output_db2(core_t* core, db_t* db) {
+    for (int i = 0; i < db->n_bam_rec; i++) {
+        if((db->read_stat_flag[i]) & FAILED_ALIGNMENT){
+            continue;
+        }
+        event_table et = db->et[i];
+//        AlignedPair* event_align_pairs = db->event_align_pairs[i];
+//        for (int32_t j = 0; j < db->n_event_align_pairs[i]; j++) {
+//            printf("%d\t%d\t%d\n", event_align_pairs[j].ref_pos, event_align_pairs[j].read_pos, (int)et.event[event_align_pairs[j].read_pos].length);
+//        }
+        index_pair_t * indexPair = db->base_to_event_map[i];
+        int32_t n_kmers = db->read_len[i] - core->kmer_size + 1;
+        int32_t prev_valid_start_event_index = -1;
+        int multiple_bases_per_event_count = 0;
+        for (int32_t j=0; j<n_kmers; j++){
+            int32_t start_event_index = indexPair[j].start;
+            int end_event_index = indexPair[j].stop;
+            if(start_event_index == -1 && prev_valid_start_event_index != -1){
+                multiple_bases_per_event_count++;
+//                printf("start_event_index == -1 at basecalled_read_index %d\n", j);
+                start_event_index = prev_valid_start_event_index;
+                if(end_event_index != -1){
+//                assert(end_event_index == -1);
+                    fprintf(stderr,"assertion failed\n");
+                    exit(EXIT_FAILURE);
+                }
+                end_event_index = prev_valid_start_event_index;
+            }else{
+                prev_valid_start_event_index = start_event_index;
+            }
+            int signal_start_point = et.event[start_event_index].start;
+            int signal_end_point = et.event[end_event_index].start + (int)et.event[end_event_index].length;
+            int dwell_time = signal_end_point - signal_start_point;
+            float corrected_dwell_time = indexPair[j].dwell_time;
+            printf("%s\t%d\t%d\t%d\t%d\t%d\t%d\t%f\n", db->read_id[i], j, start_event_index, end_event_index, signal_start_point, signal_end_point, dwell_time, corrected_dwell_time);
+        }
+        fprintf(stderr,"multiple_bases_per_event_count=%d\n", multiple_bases_per_event_count);
     }
 }
 
@@ -284,7 +368,8 @@ int resquiggle_main(int argc, char **argv) {
         fprintf(stderr,"Error in loading index\n");
         exit(EXIT_FAILURE);
     }
-
+    char resquiggle_header0 [] = "read_id\tbasecalled_read_index\tstart_event_index\tend_event_index\tstart_signal_index\tend_signal_index\tdwell_time\tcorrected_dwell_time";
+    fprintf(stdout, "%s\n", resquiggle_header0);
 
     int64_t batch_size = opt.batch_size;
 
@@ -295,33 +380,31 @@ int resquiggle_main(int argc, char **argv) {
     while (1){
         db_t* db_t = init_db2(core);
         int64_t record_count = 0;
+
         while (record_count < batch_size) {
             if ((ret_kseq_read = kseq_read(seq)) < 0) {
                 if (ret_kseq_read < -1) {
                     return EXIT_FAILURE;
                 } else { //EOF file reached
                     flag_EOF = 1;
-                    db_t->capacity_bam_rec = record_count;
-                    db_t->n_bam_rec = record_count;
                     break;
                 }
             } else {
                 db_t->read[record_count] = strdup(seq->seq.s);
+                db_t->read_id[record_count] = strdup(seq->name.s);
                 db_t->read_len[record_count] = strlen(db_t->read[record_count]);
                 ret = slow5_get(seq->name.s, &rec, sp);
                 if(ret < 0){
                     fprintf(stderr,"Error in when fetching the read\n");
                 }
                 else{
-
-                    //        printf("name: %s\n", seq->name.s);
+                     //       printf("name: %s\n", seq->name.s);
                     //        if (seq->comment.l) printf("comment: %s\n", seq->comment.s);
                     //        printf("seq: %s\n", seq->seq.s);
                     //        if (seq->qual.l) printf("qual: %s\n", seq->qual.s);
 
-                    printf("%s\t",rec->read_id);
                     uint64_t len_raw_signal = rec->len_raw_signal;
-                    fprintf(stdout,"%" PRIu64 "\n",len_raw_signal);
+                    //fprintf(stdout,"%" PRIu64 "\n",len_raw_signal);
 
                     fast5_t *f5 = (fast5_t*)calloc(1, sizeof(fast5_t));
                     MALLOC_CHK(f5);
@@ -341,9 +424,10 @@ int resquiggle_main(int argc, char **argv) {
                 record_count++;
             }
         }
+        db_t->n_bam_rec = record_count;
 
         process_db2(core,db_t);
-
+        output_db2(core, db_t);
         free_db_tmp2(db_t);
         free_db2(db_t);
 
