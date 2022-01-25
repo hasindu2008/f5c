@@ -22,7 +22,7 @@
 KSEQ_INIT(gzFile, gzread)
 
 static const char *RESQUIGGLE_USAGE_MESSAGE =
-    "Usage: f5c signal-read-align [OPTIONS] [SLOW5_FILE/DIR] reads.fastq ...\n"
+    "Usage: f5c resquiggle [OPTIONS] [SLOW5_FILE/DIR] reads.fastq ...\n"
     "Align raw signal to the basecalled read.\n\n"
     "   -o FILE         output file. Write to stdout if not specified\n"
     "   -h              help\n"
