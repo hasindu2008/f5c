@@ -562,7 +562,6 @@ void event_single(core_t* core,db_t* db, int32_t i) {
 
 }
 
-
 void scaling_single(core_t* core, db_t* db, int32_t i){
 
     db->event_alignment[i] = NULL;
@@ -807,7 +806,7 @@ void output_db(core_t* core, db_t* db) {
             if((db->read_stat_flag[i]) & FAILED_ALIGNMENT){
                 continue;
             }
-            printf(">%s\tN_ALGN_PAIR:%d\t{ref_os,read_pos}\n",
+            printf(">%s\tN_ALGN_PAIR:%d\t{ref_pos,read_pos}\n",
                    bam_get_qname(db->bam_rec[i]),
                    (int)db->n_event_align_pairs[i]);
             AlignedPair* event_align_pairs = db->event_align_pairs[i];
