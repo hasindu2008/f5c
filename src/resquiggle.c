@@ -44,7 +44,7 @@ static struct option long_options[] = {
 };
 
 /* initialise the core data structure */
-core_t* init_core2(opt_t opt, int8_t mode) {
+core_t* init_core2(opt_t opt, const char *slow5file) {
 
     core_t* core = (core_t*)malloc(sizeof(core_t));
     MALLOC_CHK(core);
@@ -54,12 +54,9 @@ core_t* init_core2(opt_t opt, int8_t mode) {
     //model
     core->model = (model_t*)malloc(sizeof(model_t) * MAX_NUM_KMER); //4096 is 4^6 which is hardcoded now
     MALLOC_CHK(core->model);
-    core->cpgmodel = (model_t*)malloc(sizeof(model_t) * MAX_NUM_KMER_METH); //15625 is 4^6 which os hardcoded now
-    MALLOC_CHK(core->cpgmodel);
 
     //load the model from files
     uint32_t kmer_size=0;
-    uint32_t kmer_size_meth=0;
     if (opt.model_file) {
         kmer_size=read_model(core->model, opt.model_file, MODEL_TYPE_NUCLEOTIDE);
     } else {
@@ -72,6 +69,18 @@ core_t* init_core2(opt_t opt, int8_t mode) {
         }
     }
     core->kmer_size = kmer_size;
+
+    core->sf = slow5_open(slow5file,"r");
+    if (core->sf == NULL) {
+        STDERR("Error opening SLOW5 file %s\n",slow5file);
+        exit(EXIT_FAILURE);
+    }
+    int ret=slow5_idx_load(core->sf);
+    if(ret<0){
+        STDERR("Error in loading SLOW5 index for %s\n",slow5file);
+        exit(EXIT_FAILURE);
+    }
+
     return core;
 
 
@@ -79,10 +88,10 @@ core_t* init_core2(opt_t opt, int8_t mode) {
 
 void free_core2(core_t* core) {
     free(core->model);
-    free(core->cpgmodel);
-//    delete core->readbb;
-
+    slow5_idx_unload(core->sf);
+    slow5_close(core->sf);
     free(core);
+
 }
 
 /* initialise a data batch */
@@ -100,8 +109,6 @@ db_t* init_db2(core_t* core) {
     MALLOC_CHK(db->read_id);
     db->read_len = (int32_t*)(malloc(sizeof(int32_t) * db->capacity_bam_rec));
     MALLOC_CHK(db->read_len);
-//    db->read_idx = (int64_t*)(malloc(sizeof(int64_t) * db->capacity_bam_rec));
-//    MALLOC_CHK(db->read_idx);
 
     db->f5 = (fast5_t**)malloc(sizeof(fast5_t*) * db->capacity_bam_rec);
     MALLOC_CHK(db->f5);
@@ -339,6 +346,7 @@ int resquiggle_main(int argc, char **argv) {
     const char* optstring = "t:K:v:o:hV";
     int longindex = 0;
     int32_t c = -1;
+    char *slow5file = NULL;
 
     opt_t opt;
     init_opt(&opt); //initialise options to defaults
@@ -403,26 +411,18 @@ int resquiggle_main(int argc, char **argv) {
     seq = kseq_init(fp);
 
     //open slow5
-    slow5_file_t *sp = slow5_open(argv[optind+1],"r");
-    if(sp==NULL){
-        fprintf(stderr,"Error in opening file\n");
-        exit(EXIT_FAILURE);
-    }
+    slow5file = argv[optind+1];
+
     slow5_rec_t *rec = NULL;
     int ret=0;
 
-    ret = slow5_idx_load(sp);
-    if(ret<0){
-        fprintf(stderr,"Error in loading index\n");
-        exit(EXIT_FAILURE);
-    }
     char resquiggle_header0 [] = "read_id\tbasecalled_read_index\tstart_event_index\tend_event_index\tstart_signal_index\tend_signal_index\tdwell_time\tcorrected_dwell_time";
     fprintf(stdout, "%s\n", resquiggle_header0);
 
     int64_t batch_size = opt.batch_size;
 
     //initialise the core data structure
-    core_t* core = init_core2(opt, 1);
+    core_t* core = init_core2(opt, slow5file);
 
     int flag_EOF = 0;
     while (1){
@@ -444,7 +444,7 @@ int resquiggle_main(int argc, char **argv) {
                 if(core->opt.flag & F5C_RNA){
                     replace_char(db->read[record_count], 'U', 'T');
                 }
-                ret = slow5_get(seq->name.s, &rec, sp);
+                ret = slow5_get(seq->name.s, &rec, core->sf);
                 fprintf(stderr,"%s loaded\n",seq->name.s);
                 if(ret < 0){
                     fprintf(stderr,"Error in when fetching the read\n");
@@ -493,9 +493,6 @@ int resquiggle_main(int argc, char **argv) {
     gzclose(fp);
 //
     slow5_rec_free(rec);
-    slow5_idx_unload(sp);
-    slow5_close(sp);
-
     free_core2(core);
 
     return 0;
