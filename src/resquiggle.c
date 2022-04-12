@@ -135,11 +135,8 @@ db_t* init_db2(core_t* core) {
         (index_pair_t**)malloc(sizeof(index_pair_t*) * db->capacity_bam_rec);
     MALLOC_CHK(db->base_to_event_map);
 
-    db->read_stat_flag = (int32_t *)malloc(sizeof(int32_t) * db->capacity_bam_rec);
+    db->read_stat_flag = (int32_t *)calloc(db->capacity_bam_rec,sizeof(int32_t));
     MALLOC_CHK(db->read_stat_flag);
-    for (i = 0; i < db->capacity_bam_rec; ++i) {
-        db->read_stat_flag[i] = RESET_READ_STATUS;
-    }
 
     db->site_score_map = (std::map<int, ScoredSite> **)malloc(sizeof(std::map<int, ScoredSite> *) * db->capacity_bam_rec);
     MALLOC_CHK(db->site_score_map);

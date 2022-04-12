@@ -59,7 +59,6 @@
  * flags for a read status (related to db_t->read_stat_flag) *
  *************************************************************/
 
-#define RESET_READ_STATUS 0x000 //reset value
 #define FAILED_CALIBRATION 0x001 //if the calibration failed
 #define FAILED_ALIGNMENT 0x002 //if the alignment failed
 #define FAILED_QUALITY_CHK  0x004 //if the quality check failed
