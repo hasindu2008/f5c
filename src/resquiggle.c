@@ -22,7 +22,7 @@
 KSEQ_INIT(gzFile, gzread)
 
 static const char *RESQUIGGLE_USAGE_MESSAGE =
-    "Usage: f5c resquiggle [OPTIONS] [SLOW5_FILE/DIR] reads.fastq ...\n"
+    "Usage: f5c resquiggle [OPTIONS] reads.fastq signals.blow5\n"
     "Align raw signal to the basecalled read.\n\n"
     "   -o FILE         output file. Write to stdout if not specified\n"
     "   -h              help\n"
@@ -31,6 +31,17 @@ static const char *RESQUIGGLE_USAGE_MESSAGE =
     "\n\n"
     ;
 
+static struct option long_options[] = {
+    {"threads", required_argument, 0, 't'},        //0 number of threads [8]
+    {"batchsize", required_argument, 0, 'K'},      //1 batchsize - number of reads loaded at once [512]
+    {"verbose", required_argument, 0, 'v'},        //2 verbosity level [1]
+    {"help", no_argument, 0, 'h'},                 //3
+    {"version", no_argument, 0, 'V'},              //4
+    {"kmer-model", required_argument, 0, 0},       //5 custom nucleotide k-mer model file
+    {"output",required_argument, 0, 'o'},          //6 output to a file [stdout]
+    {"rna",no_argument,0,0},                       //7 if RNA
+    {0, 0, 0, 0}
+};
 
 /* initialise the core data structure */
 core_t* init_core2(opt_t opt, int8_t mode) {
@@ -60,17 +71,9 @@ core_t* init_core2(opt_t opt, int8_t mode) {
             kmer_size=set_model(core->model, MODEL_ID_DNA_NUCLEOTIDE);
         }
     }
-    if (opt.meth_model_file) {
-        kmer_size_meth=read_model(core->cpgmodel, opt.meth_model_file, MODEL_TYPE_METH);
-    } else {
-        kmer_size_meth=set_model(core->cpgmodel, MODEL_ID_DNA_CPG);
-    }
-    if( mode==0 && kmer_size != kmer_size_meth){
-        ERROR("The k-mer size of the nucleotide model (%d) and the methylation model (%d) should be the same.",kmer_size,kmer_size_meth);
-        exit(EXIT_FAILURE);
-    }
     core->kmer_size = kmer_size;
     return core;
+
 
 }
 
@@ -274,7 +277,7 @@ void process_single2(core_t* core, db_t* db,int32_t i) {
     event_single(core,db,i);
     align_single(core, db,i);
     scaling_single(core,db,i);
-    calculate_dwell_time_single(core,db,i);
+    //calculate_dwell_time_single(core,db,i);
 //    meth_single(core,db,i);
 }
 
@@ -324,38 +327,86 @@ void output_db2(core_t* core, db_t* db) {
             int signal_end_point = et.event[end_event_index].start + (int)et.event[end_event_index].length;
             int dwell_time = signal_end_point - signal_start_point;
             float corrected_dwell_time = indexPair[j].dwell_time;
-            printf("%s\t%d\t%d\t%d\t%d\t%d\t%d\t%f\n", db->read_id[i], j, start_event_index, end_event_index, signal_start_point, signal_end_point, dwell_time, corrected_dwell_time);
+            //printf("%s\t%d\t%d\t%d\t%d\t%d\t%d\t%f\n", db->read_id[i], j, start_event_index, end_event_index, signal_start_point, signal_end_point, dwell_time, corrected_dwell_time);
+            printf("%s\t%d\t%d\t%d\t%d\t%d\t%d\t%f\n", db->read_id[i], j, start_event_index, end_event_index, signal_start_point, signal_end_point, 0, 0);
         }
         fprintf(stderr,"multiple_bases_per_event_count=%d\n", multiple_bases_per_event_count);
     }
 }
 
 int resquiggle_main(int argc, char **argv) {
-    fprintf(stderr,"resquiggle_main\n");
 
-    // No arguments given
-    if (argc <= 1) {
-        fprintf(stderr, RESQUIGGLE_USAGE_MESSAGE, argv[0]);
-        exit(EXIT_FAILURE);
-    }
+    double realtime0 = realtime();
+
+    FILE *fp_help = stderr;
+    const char* optstring = "t:K:v:o:hV";
+    int longindex = 0;
+    int32_t c = -1;
 
     opt_t opt;
     init_opt(&opt); //initialise options to defaults
-//    opt.num_thread = 2;
+
+    //parse the user args
+    while ((c = getopt_long(argc, argv, optstring, long_options, &longindex)) >= 0) {
+        if (c == 'K') {
+            opt.batch_size = atoi(optarg);
+            if (opt.batch_size < 1) {
+                ERROR("Batch size should larger than 0. You entered %d",opt.batch_size);
+                exit(EXIT_FAILURE);
+            }
+        } else if (c == 't') {
+            opt.num_thread = atoi(optarg);
+            if (opt.num_thread < 1) {
+                ERROR("Number of threads should larger than 0. You entered %d", opt.num_thread);
+                exit(EXIT_FAILURE);
+            }
+        }
+        else if (c=='v'){
+            opt.verbosity = atoi(optarg);
+        }
+        else if (c=='V'){
+            fprintf(stdout,"F5C %s\n",F5C_VERSION);
+            exit(EXIT_SUCCESS);
+        }
+        else if (c=='h'){
+            fp_help = stdout;
+        }
+        else if(c=='o'){
+			if (strcmp(optarg, "-") != 0) {
+				if (freopen(optarg, "wb", stdout) == NULL) {
+					ERROR("failed to write the output to file %s : %s",optarg, strerror(errno));
+					exit(EXIT_FAILURE);
+				}
+			}
+        }
+        else if (c == 0 && longindex == 7) {
+            fprintf(stderr,"RNA set\n");
+            opt.flag |= F5C_RNA;
+        }
+    }
+
+    // No arguments given
+    if (argc - optind != 2 || fp_help == stdout) {
+        fprintf(fp_help, RESQUIGGLE_USAGE_MESSAGE, argv[0]);
+        if(fp_help == stdout){
+            exit(EXIT_SUCCESS);
+        }
+        exit(EXIT_FAILURE);
+    }
 
     // open fastq
     gzFile fp;
     kseq_t *seq;
     int ret_kseq_read;
     if (argc == 1) {
-        fprintf(stderr, "Usage: %s <in.fasta>\n", argv[1]);
+        fprintf(stderr, "Usage: %s <in.fasta>\n", argv[0]);
         return 1;
     }
-    fp = gzopen(argv[1], "r");
+    fp = gzopen(argv[optind], "r");
     seq = kseq_init(fp);
 
     //open slow5
-    slow5_file_t *sp = slow5_open(argv[2],"r");
+    slow5_file_t *sp = slow5_open(argv[optind+1],"r");
     if(sp==NULL){
         fprintf(stderr,"Error in opening file\n");
         exit(EXIT_FAILURE);
@@ -378,7 +429,7 @@ int resquiggle_main(int argc, char **argv) {
 
     int flag_EOF = 0;
     while (1){
-        db_t* db_t = init_db2(core);
+        db_t* db = init_db2(core);
         int64_t record_count = 0;
 
         while (record_count < batch_size) {
@@ -390,10 +441,14 @@ int resquiggle_main(int argc, char **argv) {
                     break;
                 }
             } else {
-                db_t->read[record_count] = strdup(seq->seq.s);
-                db_t->read_id[record_count] = strdup(seq->name.s);
-                db_t->read_len[record_count] = strlen(db_t->read[record_count]);
+                db->read[record_count] = strdup(seq->seq.s);
+                db->read_id[record_count] = strdup(seq->name.s);
+                db->read_len[record_count] = strlen(db->read[record_count]);
+                if(core->opt.flag & F5C_RNA){
+                    replace_char(db->read[record_count], 'U', 'T');
+                }
                 ret = slow5_get(seq->name.s, &rec, sp);
+                fprintf(stderr,"%s loaded\n",seq->name.s);
                 if(ret < 0){
                     fprintf(stderr,"Error in when fetching the read\n");
                 }
@@ -415,21 +470,21 @@ int resquiggle_main(int argc, char **argv) {
                     f5->offset = rec->offset;
                     f5->range = rec->range;
                     f5->sample_rate = rec->sampling_rate;
-                    db_t->f5[record_count] = f5;
+                    db->f5[record_count] = f5;
 
                     for(uint64_t i=0;i<len_raw_signal;i++){
-                        db_t->f5[record_count]->rawptr[i] = rec->raw_signal[i];
+                        db->f5[record_count]->rawptr[i] = rec->raw_signal[i];
                     }
                 }
                 record_count++;
             }
         }
-        db_t->n_bam_rec = record_count;
+        db->n_bam_rec = record_count;
 
-        process_db2(core,db_t);
-        output_db2(core, db_t);
-        free_db_tmp2(db_t);
-        free_db2(db_t);
+        process_db2(core,db);
+        output_db2(core, db);
+        free_db_tmp2(db);
+        free_db2(db);
 
         if(flag_EOF){
             break;
