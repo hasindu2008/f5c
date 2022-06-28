@@ -28,9 +28,6 @@ void set_opt_profile(opt_t *opt, parameters machine){
     if(machine.disable_cuda){
         opt->flag |= F5C_DISABLE_CUDA;
     }
-    if(opt->flag & F5C_RD_SLOW5){
-        opt->num_iop = 1;
-    }
 
     fprintf(stderr, "[%s] max-lf: %.1f, avg-epk: %.1f, max-epk: %.1f, K: %d, B: %.1fM, t: %d, ultra-thresh: %.1fk, iop: %d\n", __func__,
         opt->cuda_max_readlen,opt->cuda_avg_events_per_kmer,opt->cuda_max_avg_events_per_kmer,opt->batch_size,opt->batch_size_bases/(1000.0*1000.0),opt->num_thread,

@@ -12,6 +12,10 @@
 extern "C" {
 #endif
 
+/* This is for internal use only - do not use any of the following directly unless they are in the API documentation
+The API documentation is available at https://hasindu2008.github.io/slow5tools/
+*/
+
 //#define MIN(A,B) ( ( (A) < (B) ) ? (A) : (B) )
 //#define MAX(A,B) ( ( (A) > (B) ) ? (A) : (B) )
 #define SLOW5_LENGTH(X) (sizeof X / sizeof X[0])

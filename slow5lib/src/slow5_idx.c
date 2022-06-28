@@ -195,13 +195,41 @@ static int slow5_idx_build(struct slow5_idx *index, struct slow5_file *s5p) {
 
             uint8_t *read_decomp = read_comp;
             if (s5p->compress) {
-                read_decomp = (uint8_t *) slow5_ptr_depress(s5p->compress->record_press, read_comp, record_size, NULL);
-                if (read_decomp == NULL) {
-                    free(read_comp);
-                    free(read_decomp);
-                    return -1;
+
+                int8_t full_depress=!(s5p->compress->record_press->method == SLOW5_COMPRESS_ZLIB);
+                if(!full_depress){
+                    size_t part_len = 256; //guess max value to contain the read ID
+                    part_len = part_len > record_size ? record_size : part_len;
+                    size_t n=0;
+                    read_decomp = (uint8_t *) slow5_ptr_depress(s5p->compress->record_press, read_comp, part_len, &n);
+                    if(read_decomp == NULL || n < sizeof(slow5_rid_len_t) ){
+                        SLOW5_WARNING("%s","Partial decompression failed. Falling back to the slower method. Open an issue on GitHub.");
+                        free(read_decomp);
+                        full_depress = 1;
+                    }
+                    else {
+                        slow5_rid_len_t read_id_len;
+                        memcpy(&read_id_len, read_decomp, sizeof read_id_len);
+                        if(n < read_id_len + sizeof(slow5_rid_len_t)){
+                            SLOW5_WARNING("%s","Partial decompression failed. Read ID too long. Falling back to the slower method. Open an issue on GitHub.");
+                            free(read_decomp);
+                            full_depress = 1;
+                        }
+                    }
+                }
+
+                if(full_depress){
+                    read_decomp = (uint8_t *) slow5_ptr_depress(s5p->compress->record_press, read_comp, record_size, NULL);
+
+                    if (read_decomp == NULL) {
+                        free(read_comp);
+                        free(read_decomp);
+                        return -1;
+                    }
+
                 }
                 free(read_comp);
+
             }
 
             // Get read id length

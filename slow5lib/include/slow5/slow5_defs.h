@@ -39,8 +39,12 @@ SOFTWARE.
 extern "C" {
 #endif
 
+/* This is for internal use only - do not use any of the following directly unless they are in the API documentation
+The API documentation is available at https://hasindu2008.github.io/slow5tools/
+*/
+
 // library version
-#define SLOW5_LIB_VERSION "0.3.0"
+#define SLOW5_LIB_VERSION "0.5.1"
 
 // maximum file version supported by this library - independent of slow5 library version above
 // if updating change all 4 below

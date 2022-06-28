@@ -17,7 +17,7 @@ endif
 ifeq ($(zstd_local),)
 else
 CFLAGS		+= -DSLOW5_USE_ZSTD
-CPPFLAGS += -I $(zstd_local)
+CPPFLAGS 	+= -I $(zstd_local)
 endif
 BUILD_DIR	= lib
 
@@ -77,11 +77,12 @@ test: slow5lib
 
 pyslow5:
 	make clean
-	rm -rf *.so python/pyslow5.cpp build/lib.* build/temp.*
-	make -C $(SVB)
+	rm -rf *.so python/pyslow5.cpp build/lib.* build/temp.* build/bdist.* sdist pyslow5.egg-info dist
 	python3 setup.py build
 	cp build/lib.*/*.so  ./
-	LD_LIBRAY_PATH=$LD_LIBRAY_PATH:$(SVB) python3 < python/example.py
+	python3 < python/example.py
+	python3 setup.py sdist
+
 
 test-prep: slow5lib
 	gcc test/make_blow5.c -Isrc src/slow5.c src/slow5_press.c -lm -lz src/slow5_idx.c src/slow5_misc.c -o test/bin/make_blow5 -g

@@ -1115,23 +1115,23 @@ static int16_t *ptr_depress_svb_zd(const uint8_t *ptr, size_t count, size_t *n) 
     }
     uint32_t length = *n / sizeof *diff;
 
-    int32_t *out = (int32_t *) malloc(length * sizeof *out);
-    if (!out) {
+    int16_t *orig = (int16_t *) malloc(length * sizeof *orig);
+    if (!orig) {
         SLOW5_MALLOC_ERROR();
         free(diff);
         slow5_errno = SLOW5_ERR_MEM;
         return NULL;
     }
-    __slow5_zigzag_delta_decode(diff, out, length, 0);
+    __slow5_zigzag_delta_decode(diff, orig, length, 0);
 
-    int16_t *orig = (int16_t *) malloc(length * sizeof *orig);
-    for (int64_t i = 0; i < length; ++ i) {
-        orig[i] = out[i];
-    }
+    // int16_t *orig = (int16_t *) malloc(length * sizeof *orig);
+    // for (int64_t i = 0; i < length; ++ i) {
+    //     orig[i] = out[i];
+    // }
 
     *n = length * sizeof *orig;
     free(diff);
-    free(out);
+    //free(out);
     return orig;
 }
 

@@ -44,6 +44,7 @@ SOFTWARE.
 extern "C" {
 #endif /* _cplusplus */
 
+/* This is for internal use only - do not use any of the following directly*/
 
 /* Debug and verbosity */
 
