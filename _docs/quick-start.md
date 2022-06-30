@@ -8,7 +8,7 @@ Note that currently the binary only runs on *x86_64* platform.
 For example:
 
 ```sh
-VERSION=v0.8
+VERSION=v0.9
 wget "https://github.com/hasindu2008/f5c/releases/download/$VERSION/f5c-$VERSION-binaries.tar.gz"
 tar xvf f5c-$VERSION-binaries.tar.gz
 cd f5c-$VERSION/
