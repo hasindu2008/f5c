@@ -185,8 +185,8 @@ typedef struct {
 
 /* from nanopolish */
 typedef struct {
-    int32_t start;
-    int32_t stop; // inclusive
+    int32_t start; // index of the event that maps first to the base
+    int32_t stop; // inclusive // index of the event that maps last to the base
 } index_pair_t;
 
 /* from nanopolish */
@@ -277,6 +277,7 @@ typedef struct {
 
     //read sequence //todo : optimise by grabbing it from bam seq. is it possible due to clipping?
     char** read;
+    char** read_id;
     int32_t* read_len;
     int64_t* read_idx; //the index of the read entry in the BAM file
 
