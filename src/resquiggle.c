@@ -21,6 +21,10 @@
 
 KSEQ_INIT(gzFile, gzread)
 
+void pthread_db(core_t* core, db_t* db, void (*func)(core_t*,db_t*,int));
+void event_single(core_t* core,db_t* db, int32_t i);
+void scaling_single(core_t* core, db_t* db, int32_t i);
+
 //todo: add threads, batchsize, k-mer model
 static const char *RESQUIGGLE_USAGE_MESSAGE =
     "Usage: f5c resquiggle [OPTIONS] reads.fastq signals.blow5\n"

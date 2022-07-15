@@ -541,10 +541,6 @@ void free_db(db_t* db);
 /* free the core data structure */
 void free_core(core_t* core,opt_t opt);
 
-void pthread_db(core_t* core, db_t* db, void (*func)(core_t*,db_t*,int));
-void event_single(core_t* core,db_t* db, int32_t i);
-void scaling_single(core_t* core, db_t* db, int32_t i);
-
 #ifdef HAVE_CUDA
     /* initalise GPU */
     void init_cuda(core_t* core);
