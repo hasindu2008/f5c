@@ -30,7 +30,10 @@ static const char *RESQUIGGLE_USAGE_MESSAGE =
     "Usage: f5c resquiggle [OPTIONS] reads.fastq signals.blow5\n"
     "Align raw signals to basecalled reads.\n\n"
     "Options:\n"
+    "   -t INT              number of processing threads\n"
+    "   -K INT              batch size (max number of reads loaded at once)\n"
     "   -o FILE             output file. Write to stdout if not specified\n"
+    "   --rna               the dataset is direct RNA\n"
     "   -h                  help\n"
     "   --version           print version\n"
     "   --verbose INT       verbosity level\n"
@@ -47,11 +50,12 @@ static struct option long_options[] = {
     {"version", no_argument, 0, 'V'},              //4
     {"kmer-model", required_argument, 0, 0},       //5 custom nucleotide k-mer model file
     {"output",required_argument, 0, 'o'},          //6 output to a file [stdout]
+    {"rna",no_argument,0,0},                       //7 if RNA
     {0, 0, 0, 0}
 };
 
 /* initialise the core data structure */
-core_t* init_core2(opt_t opt, const char *slow5file) {
+core_t* init_core_rsq(opt_t opt, const char *slow5file) {
 
     core_t* core = (core_t*)malloc(sizeof(core_t));
     MALLOC_CHK(core);
@@ -100,7 +104,7 @@ void free_core_rsq(core_t* core) {
 }
 
 /* initialise a data batch */
-db_t* init_db2(core_t* core) {
+db_t* init_db_rsq(core_t* core) {
     db_t* db = (db_t*)(malloc(sizeof(db_t)));
     MALLOC_CHK(db);
 
@@ -351,6 +355,10 @@ int resquiggle_main(int argc, char **argv) {
         } else if (c == 0 && longindex == 5) { //custom nucleotide model file
             opt.model_file = optarg;
         }
+        else if (c == 0 && longindex == 7) {
+            fprintf(stderr,"RNA set\n");
+            opt.flag |= F5C_RNA;
+        }
     }
 
     // No arguments given
@@ -371,6 +379,9 @@ int resquiggle_main(int argc, char **argv) {
         exit(EXIT_FAILURE);
     }
 
+
+    WARNING("%s","f5c resquiggle is experimental. Use with caution. Report any bugs under GitHub issues.");
+
     //open slow5
     slow5file = argv[optind+1];
 
@@ -380,10 +391,10 @@ int resquiggle_main(int argc, char **argv) {
     fprintf(stdout, "%s\n", resquiggle_header0);
 
     //initialise the core data structure
-    core_t* core = init_core2(opt, slow5file);
+    core_t* core = init_core_rsq(opt, slow5file);
 
     while (1){
-        db_t* db = init_db2(core);
+        db_t* db = init_db_rsq(core);
         ret = load_db_rsq(core,db,fp);
         process_db_rsq(core,db);
         output_db_rsq(core, db);
@@ -400,31 +411,3 @@ int resquiggle_main(int argc, char **argv) {
     return 0;
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
