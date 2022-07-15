@@ -236,4 +236,19 @@ static inline char **read_bed_regions(char *bedfile, int64_t *count){
     return reg_list;
 }
 
+static inline int64_t mm_parse_num(const char* str) //taken from minimap2
+{
+    double x;
+    char* p;
+    x = strtod(str, &p);
+    if (*p == 'G' || *p == 'g')
+        x *= 1e9;
+    else if (*p == 'M' || *p == 'm')
+        x *= 1e6;
+    else if (*p == 'K' || *p == 'k')
+        x *= 1e3;
+    return (int64_t)(x + .499);
+}
+
+
 #endif

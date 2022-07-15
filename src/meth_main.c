@@ -105,20 +105,6 @@ static struct option long_options[] = {
     {0, 0, 0, 0}};
 
 
-static inline int64_t mm_parse_num(const char* str) //taken from minimap2
-{
-    double x;
-    char* p;
-    x = strtod(str, &p);
-    if (*p == 'G' || *p == 'g')
-        x *= 1e9;
-    else if (*p == 'M' || *p == 'm')
-        x *= 1e6;
-    else if (*p == 'K' || *p == 'k')
-        x *= 1e3;
-    return (int64_t)(x + .499);
-}
-
 //parse yes or no arguments : taken from minimap2
 static inline void yes_or_no(opt_t* opt, uint64_t flag, int long_idx,
                              const char* arg,

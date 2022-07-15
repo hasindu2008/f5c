@@ -417,7 +417,7 @@ static inline int read_from_fast5_files(core_t *core, db_t *db, std::string qnam
 /*************** Start of multiple I/O thread based SLOW5 reading *****************************/
 
 //read a single read from a SLOW5 file
-static void read_slow5_single(core_t* core, db_t* db, int i){
+void read_slow5_single(core_t* core, db_t* db, int i){
 
     // int ret = 0;
     std::string qname = bam_get_qname(db->bam_rec[i]);
