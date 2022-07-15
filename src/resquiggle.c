@@ -25,7 +25,9 @@ void pthread_db(core_t* core, db_t* db, void (*func)(core_t*,db_t*,int));
 void event_single(core_t* core,db_t* db, int32_t i);
 void scaling_single(core_t* core, db_t* db, int32_t i);
 
-//todo: add threads, batchsize, k-mer model
+//todo: CUDA support
+
+
 static const char *RESQUIGGLE_USAGE_MESSAGE =
     "Usage: f5c resquiggle [OPTIONS] reads.fastq signals.blow5\n"
     "Align raw signals to basecalled reads.\n\n"
@@ -245,7 +247,9 @@ void output_db_rsq(core_t* core, db_t* db) {
     }
 }
 
-int load_db_rsq(core_t* core, db_t* db, gzFile fp) {
+ret_status_t load_db_rsq(core_t* core, db_t* db, gzFile fp) {
+
+    ret_status_t status={0,0};
 
     kseq_t *seq;
     int ret_kseq_read;
@@ -255,12 +259,11 @@ int load_db_rsq(core_t* core, db_t* db, gzFile fp) {
         exit(EXIT_FAILURE);
     }
 
-    int64_t batch_size = core->opt.batch_size;
     int64_t i = 0;
     int ret = 0;
     slow5_rec_t *rec = NULL;
 
-    while (i < batch_size) {
+    while (i < core->opt.batch_size && status.num_bases<core->opt.batch_size_bases) {
         if ((ret_kseq_read = kseq_read(seq)) < 0) {
             if (ret_kseq_read < -1) {
                 ERROR("Failed to read kseq. Error code is %d", ret_kseq_read);
@@ -274,11 +277,11 @@ int load_db_rsq(core_t* core, db_t* db, gzFile fp) {
             db->read_id[i] = strdup(seq->name.s);
             NULL_CHK(db->read_id[i]);
             db->read_len[i] = strlen(db->read[i]);
+            status.num_bases += db->read_len[i];
             if(core->opt.flag & F5C_RNA){
                 replace_char(db->read[i], 'U', 'T');
             }
             ret = slow5_get(seq->name.s, &rec, core->sf);
-            fprintf(stderr,"%s loaded\n",seq->name.s);
             if(ret < 0){
                 fprintf(stderr,"Error in when fetching the read\n");
             }
@@ -306,10 +309,15 @@ int load_db_rsq(core_t* core, db_t* db, gzFile fp) {
     slow5_rec_free(rec);
     kseq_destroy(seq);
     db->n_bam_rec = i;
-    return i;
+    status.num_reads = i;
+
+    return status;
 }
 
 int resquiggle_main(int argc, char **argv) {
+
+    double realtime0 = realtime();
+
 
     FILE *fp_help = stderr;
     const char* optstring = "t:K:v:o:hV";
@@ -356,7 +364,6 @@ int resquiggle_main(int argc, char **argv) {
             opt.model_file = optarg;
         }
         else if (c == 0 && longindex == 7) {
-            fprintf(stderr,"RNA set\n");
             opt.flag |= F5C_RNA;
         }
     }
@@ -379,13 +386,12 @@ int resquiggle_main(int argc, char **argv) {
         exit(EXIT_FAILURE);
     }
 
-
     WARNING("%s","f5c resquiggle is experimental. Use with caution. Report any bugs under GitHub issues.");
 
     //open slow5
     slow5file = argv[optind+1];
 
-    int ret=0;
+    ret_status_t status = {opt.batch_size,opt.batch_size_bases};
 
     char resquiggle_header0 [] = "read_id\tkmer_idx\tstart_event_idx\tend_event_idx\tstart_raw_idx\tend_signal_idx";
     fprintf(stdout, "%s\n", resquiggle_header0);
@@ -393,17 +399,37 @@ int resquiggle_main(int argc, char **argv) {
     //initialise the core data structure
     core_t* core = init_core_rsq(opt, slow5file);
 
-    while (1){
+    while (status.num_reads >= core->opt.batch_size || status.num_bases>=core->opt.batch_size_bases){
         db_t* db = init_db_rsq(core);
-        ret = load_db_rsq(core,db,fp);
+        status = load_db_rsq(core,db,fp);
+
+        fprintf(stderr, "[%s::%.3f*%.2f] %d Entries (%.1fM bases) loaded\n", __func__,
+                realtime() - realtime0, cputime() / (realtime() - realtime0),
+                status.num_reads,status.num_bases/(1000.0*1000.0));
+
         process_db_rsq(core,db);
+
+        fprintf(stderr, "[%s::%.3f*%.2f] %d Entries (%.1fM bases) processed\n", __func__,
+                realtime() - realtime0, cputime() / (realtime() - realtime0),
+                status.num_reads,status.num_bases/(1000.0*1000.0));
+
         output_db_rsq(core, db);
         free_db_tmp_rsq(db);
         free_db_rsq(db);
-        if(ret < opt.batch_size){
-            break;
-        }
     }
+
+    //these must be updated and fixed
+    fprintf(stderr, "[%s] total entries: %ld, qc fail: %ld, could not calibrate: %ld, no alignment: %ld, bad read: %ld",
+             __func__,(long)core->total_reads, (long)core->qc_fail_reads, (long)core->failed_calibration_reads, (long)core->failed_alignment_reads, (long)core->bad_fast5_file);
+    fprintf(stderr,"\n[%s] total bases: %.1f Mbases",__func__,core->sum_bases/(float)(1000*1000));
+
+    fprintf(stderr, "\n[%s] Data loading time: %.3f sec", __func__,core->load_db_time);
+    fprintf(stderr, "\n[%s]     - fasta load time: %.3f sec", __func__, core->db_fasta_time);
+    fprintf(stderr, "\n[%s]     - slow5 load time: %.3f sec", __func__, core->db_fast5_time);
+    fprintf(stderr, "\n[%s] Data processing time: %.3f sec", __func__,core->process_db_time);
+    fprintf(stderr, "\n[%s] Data output time: %.3f sec", __func__,core->output_time);
+
+    fprintf(stderr,"\n");
 
     gzclose(fp);
     free_core_rsq(core);
