@@ -296,6 +296,7 @@ struct slow5_file_meta {
     const char *pathname;       ///< file path
     int fd;                     ///< file descriptor
     uint64_t start_rec_offset;  ///< offset (in bytes) of the first SLOW5 record (skipping the SLOW5 header; used for indexing)
+    char *fread_buffer;         ///< buffer for fread
 };
 typedef struct slow5_file_meta slow5_file_meta_t;
 
@@ -504,7 +505,10 @@ double *slow5_aux_get_double_array(const slow5_rec_t *read, const char *field, u
 char *slow5_aux_get_string(const slow5_rec_t *read, const char *field, uint64_t *len, int *err);
 uint8_t *slow5_aux_get_enum_array(const slow5_rec_t *read, const char *field, uint64_t *len, int *err);
 
-
+/****** Writing SLOW5 files ******.
+ * This is just around the corner.
+ * However, this is being procrastinated until someone requests. If anyone is interested please open a GitHub issue.
+ ***/
 
 
 /**************************************************************************************************
@@ -512,10 +516,10 @@ uint8_t *slow5_aux_get_enum_array(const slow5_rec_t *read, const char *field, ui
  **************************************************************************************************/
 
 /*
-IMPORTANT: The low-level API is not yet stable. Subject to changes in the future.
-Function proptotypes can be changed without notice or completely removed
-So do NOT use these functions in your code
-these functions are used by slow5tools and pyslow5 - so any change to a function here means slow5tools and pyslow5 must be fixed
+IMPORTANT: The low-level API is not yet finalised or documented, until someone requests.
+If anyone is interested, please open a GitHub issue, rather than trying to figure out from the code.
+Function prototypes can be changed without notice or completely removed. So do NOT use these functions in your code.
+these functions are used by slow5tools and pyslow5 - so any change to a function here means slow5tools and pyslow5 must be fixed.
 */
 
 /**
@@ -713,6 +717,12 @@ static inline ssize_t slow5_eof_print(void) {
 //len is the numberof elements
 //returns null if no attributes
 const char **slow5_get_hdr_keys(const slow5_hdr_t *header,uint64_t *len);
+
+//gets the list of read ids from the SLOW5 index
+//the list of read is is a pointer and must not be freed by user
+//*len will have the number of read ids
+//NULL will be returned in case of error
+char **slow5_get_rids(const slow5_file_t *s5p, uint64_t *len);
 
 //get the pointer to auxilliary field names
 char **slow5_get_aux_names(const slow5_hdr_t *header,uint64_t *len);

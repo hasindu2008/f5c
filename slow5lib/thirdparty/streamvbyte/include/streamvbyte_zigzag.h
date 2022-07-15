@@ -36,7 +36,7 @@ void __slow5_zigzag_decode(const uint32_t * in, int32_t * out, size_t N);
  * Convert N unsigned integers to N signed integers, using zigzag
  * delta encoding.
  */
-void __slow5_zigzag_delta_decode(const uint32_t * in, int32_t * out, size_t N, int32_t prev);
+void __slow5_zigzag_delta_decode(const uint32_t * in, int16_t * out, size_t N, int32_t prev);
 
 
 #if defined(__cplusplus)

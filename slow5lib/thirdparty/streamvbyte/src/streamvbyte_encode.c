@@ -86,7 +86,7 @@ static uint8_t *svb_encode_scalar(const uint32_t *in,
 
 
 
-// Encode an array of a given length read from in to bout in streamvbyte format.
+// Encode an array of a given length read from in to out in streamvbyte format.
 // Returns the number of bytes written.
 // Note: I am appending a __slow5_ to prevent any name collision with the original library
 size_t __slow5_streamvbyte_encode(const uint32_t *in, uint32_t count, uint8_t *out) {

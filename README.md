@@ -4,10 +4,10 @@ An optimised re-implementation of the *index*, *call-methylation* and *eventalig
 
 First, the reads have to be indexed using `f5c index`. Then, invoke `f5c call-methylation` to detect methylated cytosine bases. Finally, you may use `f5c meth-freq` to obtain methylation frequencies. Alternatively, invoke `f5c eventalign` to perform event alignment. The results are almost the same as from nanopolish except a few differences due to floating point approximations.
 
-*Full Documentation* : [https://hasindu2008.github.io/f5c/docs/overview](https://hasindu2008.github.io/f5c/docs/overview)  
-*Latest release* : [https://github.com/hasindu2008/f5c/releases/latest](https://github.com/hasindu2008/f5c/releases/latest)  
-*Pre-print* : [https://doi.org/10.1101/756122](https://www.biorxiv.org/content/10.1101/756122v1)  
-*Publication* : [https://doi.org/10.1186/s12859-020-03697-x](https://bmcbioinformatics.biomedcentral.com/articles/10.1186/s12859-020-03697-x)
+*Full Documentation* : [https://hasindu2008.github.io/f5c/docs/overview](https://hasindu2008.github.io/f5c/docs/overview)<br/>
+*Latest release* : [https://github.com/hasindu2008/f5c/releases/latest](https://github.com/hasindu2008/f5c/releases/latest)<br/>
+*Pre-print* : [https://doi.org/10.1101/756122](https://www.biorxiv.org/content/10.1101/756122v1)<br/>
+*Publication* : [https://doi.org/10.1186/s12859-020-03697-x](https://bmcbioinformatics.biomedcentral.com/articles/10.1186/s12859-020-03697-x)<br/>
 
 [![GitHub Downloads](https://img.shields.io/github/downloads/hasindu2008/f5c/total?logo=GitHub)](https://github.com/hasindu2008/f5c/releases)
 [![BioConda Install](https://img.shields.io/conda/dn/bioconda/f5c?label=BioConda)](https://anaconda.org/bioconda/f5c)
@@ -19,7 +19,7 @@ First, the reads have to be indexed using `f5c index`. Then, invoke `f5c call-me
 
 If you are a Linux user and want to quickly try out download the compiled binaries from the [latest release](https://github.com/hasindu2008/f5c/releases). For example:
 ```sh
-VERSION=v0.8
+VERSION=v1.0
 wget "https://github.com/hasindu2008/f5c/releases/download/$VERSION/f5c-$VERSION-binaries.tar.gz" && tar xvf f5c-$VERSION-binaries.tar.gz && cd f5c-$VERSION/
 ./f5c_x86_64_linux        # CPU version
 ./f5c_x86_64_linux_cuda   # cuda supported version
@@ -35,7 +35,7 @@ You can also use conda to install *f5c* as `conda install f5c -c bioconda -c con
 Users are recommended to build from the  [latest release](https://github.com/hasindu2008/f5c/releases) tar ball. You need a compiler that supports C++11. Quick example for Ubuntu :
 ```sh
 sudo apt-get install libhdf5-dev zlib1g-dev   #install HDF5 and zlib development libraries
-VERSION=v0.8
+VERSION=v1.0
 wget "https://github.com/hasindu2008/f5c/releases/download/$VERSION/f5c-$VERSION-release.tar.gz" && tar xvf f5c-$VERSION-release.tar.gz && cd f5c-$VERSION/
 scripts/install-hts.sh  # download and compile the htslib
 ./configure
@@ -55,6 +55,11 @@ On OS X : brew install hdf5
 - If you skip `scripts/install-hts.sh` and `./configure`, hdf5 will be compiled locally. It is a good option if you cannot install hdf5 library system wide. However, building hdf5 takes ages.
 - *f5c* from version 0.8.0 onwards by default requires vector instructions (SSSE3 or higher for Intel/AMD and neon for ARM) for builtin *slow5lib*. If your processor is an ancient processor with no such vector instructions, invoke make as `make no_simd=1`.
 - You can optionally enable *zstd* support for builtin *slow5lib* when building *f5c* by invoking `make zstd=1`. This requires __zstd 1.3 development libraries__ installed on your system (*libzstd1-dev* package for *apt*, *libzstd-devel* for *yum/dnf* and *zstd* for *homebrew*).
+- On Mac M1 or in any system if `./configure` cannot find the hdf5 libraries installed through the package manager, you can specify the location as *LDFLAGS=-L/path/to/shared/lib/ CPPFLAGS=-I/path/to/headers/*. For example on Mac M1:
+	```
+	./configure LDFLAGS=-L/opt/homebrew/lib/ CPPFLAGS=-I/opt/homebrew/include/
+	make
+	```
 - Instructions to build a docker image and conda installation are detailed [here](https://hasindu2008.github.io/f5c/docs/misc-install).
 - Other uncommon building options are detailed [here](https://hasindu2008.github.io/f5c/docs/building).
 - An SIMD accelerated version contributed by [@dkhyland](https://github.com/dkhyland) is available in the [*simd* branch](https://github.com/hasindu2008/f5c/tree/simd).
@@ -96,13 +101,25 @@ Follow the same steps as in [Nanopolish tutorial](https://nanopolish.readthedocs
 wget -O f5c_na12878_test.tgz "https://f5c.page.link/f5c_na12878_test"
 tar xf f5c_na12878_test.tgz
 
+###### Using FAST5 as input ######
+
 #index, call methylation and get methylation frequencies
 f5c index -d chr22_meth_example/fast5_files chr22_meth_example/reads.fastq
 f5c call-methylation -b chr22_meth_example/reads.sorted.bam -g chr22_meth_example/humangenome.fa -r chr22_meth_example/reads.fastq > chr22_meth_example/result.tsv
 f5c meth-freq -i chr22_meth_example/result.tsv > chr22_meth_example/freq.tsv
-
 #event alignment
 f5c eventalign -b chr22_meth_example/reads.sorted.bam -g chr22_meth_example/humangenome.fa -r chr22_meth_example/reads.fastq > chr22_meth_example/events.tsv
+
+###### Using SLOW5 as input ######
+
+#index, call methylation and get methylation frequencies
+f5c index --slow5 chr22_meth_example/reads.blow5 chr22_meth_example/reads.fastq
+f5c call-methylation --slow5 chr22_meth_example/reads.blow5 -b chr22_meth_example/reads.sorted.bam -g chr22_meth_example/humangenome.fa -r chr22_meth_example/reads.fastq > chr22_meth_example/result.tsv
+f5c meth-freq -i chr22_meth_example/result.tsv > chr22_meth_example/freq.tsv
+#event alignment
+f5c eventalign --slow5 chr22_meth_example/reads.blow5 -b chr22_meth_example/reads.sorted.bam -g chr22_meth_example/humangenome.fa -r chr22_meth_example/reads.fastq > chr22_meth_example/events.tsv
+
+
 ```
 
 ## Acknowledgement

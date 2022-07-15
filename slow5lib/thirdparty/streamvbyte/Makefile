@@ -25,12 +25,12 @@ endif
 endif
 
 
-LDFLAGS = -shared
+#LDFLAGS = -shared
 LIBNAME=libstreamvbyte.so.0.0.1
 LNLIBNAME=libstreamvbyte.so
 STATICLIB=libstreamvbyte.a
-all:  $(LIBNAME) $(STATICLIB)
-
+# all:  $(LIBNAME) $(STATICLIB)
+all: $(STATICLIB)
 
 #HEADERS=./include/streamvbyte.h ./include/streamvbytedelta.h ./include/streamvbyte_zigzag.h
 HEADERS=./include/streamvbyte.h ./include/streamvbyte_zigzag.h
@@ -60,14 +60,14 @@ streamvbyte_decode.o: ./src/streamvbyte_decode.c $(HEADERS)
 streamvbyte_encode.o: ./src/streamvbyte_encode.c $(HEADERS)
 	$(CC) $(CFLAGS) -c ./src/streamvbyte_encode.c -Iinclude
 
-$(LIBNAME): $(OBJECTS)
-	$(CC) $(CFLAGS) -o $(LIBNAME) $(OBJECTS)  $(LDFLAGS)
+# $(LIBNAME): $(OBJECTS)
+# 	$(CC) $(CFLAGS) -o $(LIBNAME) $(OBJECTS)  $(LDFLAGS)
 
 $(STATICLIB): $(OBJECTS)
 	ar rcs $@ $^
 
-$(LNLIBNAME): $(LIBNAME)
-	ln -f -s $(LIBNAME) $(LNLIBNAME)
+# $(LNLIBNAME): $(LIBNAME)
+# 	ln -f -s $(LIBNAME) $(LNLIBNAME)
 
 
 clean:

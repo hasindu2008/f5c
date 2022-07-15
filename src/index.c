@@ -331,11 +331,12 @@ void parse_index_options(int argc, char** argv)
                 WARNING("%s","--iop is incompatible with sequencing summary files. Option --sequencing-summary-file will be ignored");
             }
         }
-        else {
-            if(opt::sequencing_summary_fofn.empty() && opt::sequencing_summary_files.empty()){
-                INFO("%s","Consider using --iop option for fast parallel indexing");
-            }
-        }
+        // else {
+        //     if(opt::sequencing_summary_fofn.empty() && opt::sequencing_summary_files.empty()){
+        //         INFO("%s","Consider using --iop option for fast parallel indexing");
+        //     }
+        // }
+        INFO("%s","Consider using --slow5 option for fast indexing, methylation calling and eventalignment. See f5c section under https://hasindu2008.github.io/slow5tools/workflows.html for an example.");
     } else{
         if(opt::iop > 1){
             WARNING("%s","Option --iop has no effect in slow5 mode");
