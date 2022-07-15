@@ -20,7 +20,7 @@
 
 #include <vector> //required for eventalign
 
-#define F5C_VERSION "1.0"
+#define F5C_VERSION "1.0-dirty"
 
 /*******************************
  * major hard coded parameters *
