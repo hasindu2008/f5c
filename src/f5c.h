@@ -187,7 +187,6 @@ typedef struct {
 typedef struct {
     int32_t start; // index of the event that maps first to the base
     int32_t stop; // inclusive // index of the event that maps last to the base
-    float dwell_time; //number of signal points that maps to the base
 } index_pair_t;
 
 /* from nanopolish */

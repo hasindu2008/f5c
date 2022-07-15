@@ -21,15 +21,19 @@
 
 KSEQ_INIT(gzFile, gzread)
 
+//todo: add threads, batchsize, k-mer model
 static const char *RESQUIGGLE_USAGE_MESSAGE =
     "Usage: f5c resquiggle [OPTIONS] reads.fastq signals.blow5\n"
-    "Align raw signal to the basecalled read.\n\n"
-    "   -o FILE         output file. Write to stdout if not specified\n"
-    "   -h              help\n"
-    "   --version       print version\n"
-    "\nSee the manual page for details (`man ./docs/f5c.1' or https://f5c.page.link/man)."
+    "Align raw signals to basecalled reads.\n\n"
+    "Options:\n"
+    "   -o FILE             output file. Write to stdout if not specified\n"
+    "   -h                  help\n"
+    "   --version           print version\n"
+    "   --verbose INT       verbosity level\n"
+    "   --kmer-model FILE   custom nucleotide k-mer model file (format similar to test/r9-models/r9.4_450bps.nucleotide.6mer.template.model)\n"
     "\n\n"
     ;
+
 
 static struct option long_options[] = {
     {"threads", required_argument, 0, 't'},        //0 number of threads [8]
@@ -39,7 +43,6 @@ static struct option long_options[] = {
     {"version", no_argument, 0, 'V'},              //4
     {"kmer-model", required_argument, 0, 0},       //5 custom nucleotide k-mer model file
     {"output",required_argument, 0, 'o'},          //6 output to a file [stdout]
-    {"rna",no_argument,0,0},                       //7 if RNA
     {0, 0, 0, 0}
 };
 
@@ -82,11 +85,9 @@ core_t* init_core2(opt_t opt, const char *slow5file) {
     }
 
     return core;
-
-
 }
 
-void free_core2(core_t* core) {
+void free_core_rsq(core_t* core) {
     free(core->model);
     slow5_idx_unload(core->sf);
     slow5_close(core->sf);
@@ -96,7 +97,6 @@ void free_core2(core_t* core) {
 
 /* initialise a data batch */
 db_t* init_db2(core_t* core) {
-    int32_t i = 0;
     db_t* db = (db_t*)(malloc(sizeof(db_t)));
     MALLOC_CHK(db);
 
@@ -145,44 +145,15 @@ db_t* init_db2(core_t* core) {
     db->read_stat_flag = (int32_t *)calloc(db->capacity_bam_rec,sizeof(int32_t));
     MALLOC_CHK(db->read_stat_flag);
 
-    db->site_score_map = (std::map<int, ScoredSite> **)malloc(sizeof(std::map<int, ScoredSite> *) * db->capacity_bam_rec);
-    MALLOC_CHK(db->site_score_map);
-
     db->total_reads=0;
     db->bad_fast5_file=0;
-    db->ultra_long_skipped=0;
-
-    //eventalign related
-//    if(core->mode==1){
-    if(0){
-        db->eventalign_summary = (EventalignSummary *)malloc(sizeof(EventalignSummary) * db->capacity_bam_rec);
-        MALLOC_CHK(db->eventalign_summary);
-
-        db->event_alignment_result = (std::vector<event_alignment_t> **)malloc(sizeof(std::vector<event_alignment_t> *) * db->capacity_bam_rec);
-        MALLOC_CHK(db->event_alignment_result);
-
-        db->event_alignment_result_str = (char **)malloc(sizeof(char *) * db->capacity_bam_rec);
-        MALLOC_CHK(db->event_alignment_result_str);
-
-        for (i = 0; i < db->capacity_bam_rec; ++i) {
-            db->event_alignment_result[i] = new std::vector<event_alignment_t> ;
-            NULL_CHK(db->event_alignment_result[i]);
-            (db->eventalign_summary[i]).num_events=0; //done here in the same loop for efficiency
-            db->event_alignment_result_str[i] = NULL;
-        }
-
-    }
-    else{
-        db->eventalign_summary = NULL;
-        db->event_alignment_result = NULL;
-        db->event_alignment_result_str = NULL;
-    }
+    //db->ultra_long_skipped=0;
 
     return db;
 }
 
-void free_db2(db_t* db) {
-    int32_t i = 0;
+void free_db_rsq(db_t* db) {
+
     free(db->read);
     free(db->read_id);
     free(db->read_len);
@@ -196,28 +167,12 @@ void free_db2(db_t* db) {
     free(db->events_per_base);
     free(db->base_to_event_map);
     free(db->read_stat_flag);
-//    for (i = 0; i < db->capacity_bam_rec; ++i) {
-//        delete db->site_score_map[i];
-//    }
-    free(db->site_score_map);
-    //eventalign related
-    if(db->eventalign_summary){
-        free(db->eventalign_summary);
-    }
-    if(db->event_alignment_result){
-        for (i = 0; i < db->capacity_bam_rec; ++i) {
-            delete db->event_alignment_result[i];
-        }
-        free(db->event_alignment_result);
-    }
-    if(db->event_alignment_result_str){
-        free(db->event_alignment_result_str);
-    }
+
     free(db);
 }
 
 /* partially free a data batch - only the read dependent allocations are freed */
-void free_db_tmp2(db_t* db) {
+void free_db_tmp_rsq(db_t* db) {
     int32_t i = 0;
     for (i = 0; i < db->n_bam_rec; ++i) {
         free(db->read[i]);
@@ -227,120 +182,126 @@ void free_db_tmp2(db_t* db) {
         free(db->et[i].event);
         free(db->event_align_pairs[i]);
         free(db->base_to_event_map[i]);
-//        delete db->site_score_map[i];
-//        db->site_score_map[i] = new std::map<int, ScoredSite>;
-
-        if(db->event_alignment_result){ //eventalign related
-            delete db->event_alignment_result[i];
-            db->event_alignment_result[i] = new std::vector<event_alignment_t>;
-        }
-        if(db->event_alignment_result_str){ //eventalign related
-            free(db->event_alignment_result_str[i]);
-            db->event_alignment_result_str[i]=NULL;
-        }
     }
 }
 
-void calculate_dwell_time_single(core_t* core,db_t* db, int32_t i){
-    index_pair_t * indexPair = db->base_to_event_map[i];
-    int32_t n_kmers = db->read_len[i] - core->kmer_size + 1;
-    int32_t prev_valid_start_event_index = -1;
-    int32_t prev_valid_j = -1;
-    event_table et = db->et[i];
-
-    int multiple_bases_per_event_count = 0;
-    for (int32_t j=0; j<n_kmers; j++){
-        int32_t start_event_index = indexPair[j].start;
-        int end_event_index = indexPair[j].stop;
-        int divider = 1;
-        if(start_event_index == -1 && prev_valid_start_event_index != -1){
-            multiple_bases_per_event_count++;
-//            printf("start_event_index == -1 at basecalled_read_index %d\n", j);
-            start_event_index = prev_valid_start_event_index;
-            if(end_event_index != -1){
-                //                assert(end_event_index == -1);
-                fprintf(stderr,"assertion failed\n");
-                exit(EXIT_FAILURE);
-            }
-            end_event_index = prev_valid_start_event_index;
-            divider = j-prev_valid_j+1;
-        }else{
-            prev_valid_start_event_index = start_event_index;
-            prev_valid_j = j;
-        }
-        int signal_start_point = et.event[start_event_index].start;
-        int signal_end_point = et.event[end_event_index].start + (int)et.event[end_event_index].length;
-        int dwell_time = signal_end_point - signal_start_point;
-        for(int32_t k=prev_valid_j; k<=j; k++){
-            indexPair[k].dwell_time = dwell_time/divider;
-        }
-    }
-}
-
-void process_single2(core_t* core, db_t* db,int32_t i) {
+void process_single_rsq(core_t* core, db_t* db,int32_t i) {
     event_single(core,db,i);
     align_single(core, db,i);
     scaling_single(core,db,i);
-    //calculate_dwell_time_single(core,db,i);
-//    meth_single(core,db,i);
 }
 
-void process_db2(core_t* core, db_t* db) {
+void process_db_rsq(core_t* core, db_t* db) {
     if (core->opt.num_thread == 1) {
         int32_t i=0;
         for (i = 0; i < db->capacity_bam_rec; i++) {
-            process_single2(core,db,i);
+            process_single_rsq(core,db,i);
         }
     }
     else {
-        pthread_db(core,db,process_single2);
+        pthread_db(core,db,process_single_rsq);
     }
 }
 
-void output_db2(core_t* core, db_t* db) {
+void output_db_rsq(core_t* core, db_t* db) {
     for (int i = 0; i < db->n_bam_rec; i++) {
         if((db->read_stat_flag[i]) & FAILED_ALIGNMENT){
             continue;
         }
         event_table et = db->et[i];
-//        AlignedPair* event_align_pairs = db->event_align_pairs[i];
-//        for (int32_t j = 0; j < db->n_event_align_pairs[i]; j++) {
-//            printf("%d\t%d\t%d\n", event_align_pairs[j].ref_pos, event_align_pairs[j].read_pos, (int)et.event[event_align_pairs[j].read_pos].length);
-//        }
-        index_pair_t * indexPair = db->base_to_event_map[i];
+
+        index_pair_t *indexPair = db->base_to_event_map[i];
         int32_t n_kmers = db->read_len[i] - core->kmer_size + 1;
-        int32_t prev_valid_start_event_index = -1;
-        int multiple_bases_per_event_count = 0;
+        int32_t prev_st_event_idx = -1; //prev_valid_start_event_idx
+        //nt merged_events = 0;    //multiple_bases_per_event_count
+
         for (int32_t j=0; j<n_kmers; j++){
-            int32_t start_event_index = indexPair[j].start;
-            int end_event_index = indexPair[j].stop;
-            if(start_event_index == -1 && prev_valid_start_event_index != -1){
-                multiple_bases_per_event_count++;
-//                printf("start_event_index == -1 at basecalled_read_index %d\n", j);
-                start_event_index = prev_valid_start_event_index;
-                if(end_event_index != -1){
-//                assert(end_event_index == -1);
+            int32_t start_event_idx = indexPair[j].start;
+            int end_event_idx = indexPair[j].stop;
+            if(start_event_idx == -1 && prev_st_event_idx != -1){
+                //merged_events++;
+                start_event_idx = prev_st_event_idx;
+                if(end_event_idx != -1){
                     fprintf(stderr,"assertion failed\n");
                     exit(EXIT_FAILURE);
                 }
-                end_event_index = prev_valid_start_event_index;
+                end_event_idx = prev_st_event_idx;
             }else{
-                prev_valid_start_event_index = start_event_index;
+                prev_st_event_idx = start_event_idx;
             }
-            int signal_start_point = et.event[start_event_index].start;
-            int signal_end_point = et.event[end_event_index].start + (int)et.event[end_event_index].length;
-            int dwell_time = signal_end_point - signal_start_point;
-            float corrected_dwell_time = indexPair[j].dwell_time;
-            //printf("%s\t%d\t%d\t%d\t%d\t%d\t%d\t%f\n", db->read_id[i], j, start_event_index, end_event_index, signal_start_point, signal_end_point, dwell_time, corrected_dwell_time);
-            printf("%s\t%d\t%d\t%d\t%d\t%d\t%d\t%f\n", db->read_id[i], j, start_event_index, end_event_index, signal_start_point, signal_end_point, 0, 0);
+            int signal_start_point = et.event[start_event_idx].start;
+            int signal_end_point = et.event[end_event_idx].start + (int)et.event[end_event_idx].length;
+            printf("%s\t%d\t%d\t%d\t%d\t%d\n", db->read_id[i], j, start_event_idx, end_event_idx, signal_start_point, signal_end_point);
         }
-        fprintf(stderr,"multiple_bases_per_event_count=%d\n", multiple_bases_per_event_count);
+        //fprintf(stderr,"merged_events=%d\n", merged_events);
     }
 }
 
-int resquiggle_main(int argc, char **argv) {
+int load_db_rsq(core_t* core, db_t* db, gzFile fp) {
 
-    double realtime0 = realtime();
+    kseq_t *seq;
+    int ret_kseq_read;
+    seq = kseq_init(fp);
+    if(seq == NULL){
+        ERROR("%s","Failed to init kseq");
+        exit(EXIT_FAILURE);
+    }
+
+    int64_t batch_size = core->opt.batch_size;
+    int64_t i = 0;
+    int ret = 0;
+    slow5_rec_t *rec = NULL;
+
+    while (i < batch_size) {
+        if ((ret_kseq_read = kseq_read(seq)) < 0) {
+            if (ret_kseq_read < -1) {
+                ERROR("Failed to read kseq. Error code is %d", ret_kseq_read);
+                exit(EXIT_FAILURE);
+            } else { //EOF file reached
+                break;
+            }
+        } else {
+            db->read[i] = strdup(seq->seq.s);
+            NULL_CHK(db->read[i]);
+            db->read_id[i] = strdup(seq->name.s);
+            NULL_CHK(db->read_id[i]);
+            db->read_len[i] = strlen(db->read[i]);
+            if(core->opt.flag & F5C_RNA){
+                replace_char(db->read[i], 'U', 'T');
+            }
+            ret = slow5_get(seq->name.s, &rec, core->sf);
+            fprintf(stderr,"%s loaded\n",seq->name.s);
+            if(ret < 0){
+                fprintf(stderr,"Error in when fetching the read\n");
+            }
+            else{
+                uint64_t len_raw_signal = rec->len_raw_signal;
+                fast5_t *f5 = (fast5_t*)calloc(1, sizeof(fast5_t));
+                MALLOC_CHK(f5);
+
+                f5->nsample = len_raw_signal;
+                f5->rawptr = (float*)calloc(len_raw_signal, sizeof(float));
+                MALLOC_CHK(f5->rawptr);
+                f5->digitisation = rec->digitisation;
+                f5->offset = rec->offset;
+                f5->range = rec->range;
+                f5->sample_rate = rec->sampling_rate;
+                db->f5[i] = f5;
+
+                for(uint64_t j=0;j<len_raw_signal;j++){
+                    db->f5[i]->rawptr[j] = rec->raw_signal[j];
+                }
+            }
+            i++;
+        }
+    }
+    slow5_rec_free(rec);
+    kseq_destroy(seq);
+    db->n_bam_rec = i;
+    return i;
+}
+
+int resquiggle_main(int argc, char **argv) {
 
     FILE *fp_help = stderr;
     const char* optstring = "t:K:v:o:hV";
@@ -383,10 +344,8 @@ int resquiggle_main(int argc, char **argv) {
 					exit(EXIT_FAILURE);
 				}
 			}
-        }
-        else if (c == 0 && longindex == 7) {
-            fprintf(stderr,"RNA set\n");
-            opt.flag |= F5C_RNA;
+        } else if (c == 0 && longindex == 5) { //custom nucleotide model file
+            opt.model_file = optarg;
         }
     }
 
@@ -401,99 +360,38 @@ int resquiggle_main(int argc, char **argv) {
 
     // open fastq
     gzFile fp;
-    kseq_t *seq;
-    int ret_kseq_read;
-    if (argc == 1) {
-        fprintf(stderr, "Usage: %s <in.fasta>\n", argv[0]);
-        return 1;
-    }
+
     fp = gzopen(argv[optind], "r");
-    seq = kseq_init(fp);
+    if(fp == NULL){
+        ERROR("Failed to open reads file %s : %s",argv[optind], strerror(errno));
+        exit(EXIT_FAILURE);
+    }
 
     //open slow5
     slow5file = argv[optind+1];
 
-    slow5_rec_t *rec = NULL;
     int ret=0;
 
-    char resquiggle_header0 [] = "read_id\tbasecalled_read_index\tstart_event_index\tend_event_index\tstart_signal_index\tend_signal_index\tdwell_time\tcorrected_dwell_time";
+    char resquiggle_header0 [] = "read_id\tkmer_idx\tstart_event_idx\tend_event_idx\tstart_raw_idx\tend_signal_idx";
     fprintf(stdout, "%s\n", resquiggle_header0);
-
-    int64_t batch_size = opt.batch_size;
 
     //initialise the core data structure
     core_t* core = init_core2(opt, slow5file);
 
-    int flag_EOF = 0;
     while (1){
         db_t* db = init_db2(core);
-        int64_t record_count = 0;
-
-        while (record_count < batch_size) {
-            if ((ret_kseq_read = kseq_read(seq)) < 0) {
-                if (ret_kseq_read < -1) {
-                    return EXIT_FAILURE;
-                } else { //EOF file reached
-                    flag_EOF = 1;
-                    break;
-                }
-            } else {
-                db->read[record_count] = strdup(seq->seq.s);
-                db->read_id[record_count] = strdup(seq->name.s);
-                db->read_len[record_count] = strlen(db->read[record_count]);
-                if(core->opt.flag & F5C_RNA){
-                    replace_char(db->read[record_count], 'U', 'T');
-                }
-                ret = slow5_get(seq->name.s, &rec, core->sf);
-                fprintf(stderr,"%s loaded\n",seq->name.s);
-                if(ret < 0){
-                    fprintf(stderr,"Error in when fetching the read\n");
-                }
-                else{
-                     //       printf("name: %s\n", seq->name.s);
-                    //        if (seq->comment.l) printf("comment: %s\n", seq->comment.s);
-                    //        printf("seq: %s\n", seq->seq.s);
-                    //        if (seq->qual.l) printf("qual: %s\n", seq->qual.s);
-
-                    uint64_t len_raw_signal = rec->len_raw_signal;
-                    //fprintf(stdout,"%" PRIu64 "\n",len_raw_signal);
-
-                    fast5_t *f5 = (fast5_t*)calloc(1, sizeof(fast5_t));
-                    MALLOC_CHK(f5);
-
-                    f5->nsample = len_raw_signal;
-                    f5->rawptr = (float*)calloc(len_raw_signal, sizeof(float));
-                    f5->digitisation = rec->digitisation;
-                    f5->offset = rec->offset;
-                    f5->range = rec->range;
-                    f5->sample_rate = rec->sampling_rate;
-                    db->f5[record_count] = f5;
-
-                    for(uint64_t i=0;i<len_raw_signal;i++){
-                        db->f5[record_count]->rawptr[i] = rec->raw_signal[i];
-                    }
-                }
-                record_count++;
-            }
-        }
-        db->n_bam_rec = record_count;
-
-        process_db2(core,db);
-        output_db2(core, db);
-        free_db_tmp2(db);
-        free_db2(db);
-
-        if(flag_EOF){
+        ret = load_db_rsq(core,db,fp);
+        process_db_rsq(core,db);
+        output_db_rsq(core, db);
+        free_db_tmp_rsq(db);
+        free_db_rsq(db);
+        if(ret < opt.batch_size){
             break;
         }
     }
 
-//    printf("return value: %d\n", ret_kseq_read);
-    kseq_destroy(seq);
     gzclose(fp);
-//
-    slow5_rec_free(rec);
-    free_core2(core);
+    free_core_rsq(core);
 
     return 0;
 
