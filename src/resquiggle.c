@@ -16,6 +16,7 @@
 #include "f5c.h"
 #include "f5cmisc.h"
 #include "kseq.h"
+#include "str.h"
 
 #define TO_PICOAMPS(RAW_VAL,DIGITISATION,OFFSET,RANGE) (((RAW_VAL)+(OFFSET))*((RANGE)/(DIGITISATION)))
 
@@ -39,6 +40,7 @@ static void print_help_msg(FILE *fp_help, opt_t opt){
     fprintf(fp_help,"   -o FILE                    output to file [stdout]\n");
     fprintf(fp_help,"   -x STR                     parameter profile to be used for better performance (always applied before other options)\n"); //Added option in help
     fprintf(fp_help,"                              e.g., laptop, desktop, hpc; see https://f5c.page.link/profiles for the full list\n");
+    fprintf(fp_help,"   -c                         print in paf format\n");
     fprintf(fp_help,"   --verbose INT              verbosity level [%d]\n",opt.verbosity);
     fprintf(fp_help,"   --version                  print version\n");
     fprintf(fp_help,"   --kmer-model FILE          custom nucleotide k-mer model file (format similar to test/r9-models/r9.4_450bps.nucleotide.6mer.template.model)\n");
@@ -65,6 +67,7 @@ static struct option long_options[] = {
     {"disable-cuda", required_argument, 0, 0},     //10 disable running on CUDA [no] (only if compiled for CUDA)
     {"cuda-dev-id",required_argument, 0, 0},       //11 cuda device ID to run on (only if compiled for CUDA)
     {"cuda-mem-frac",required_argument, 0, 0},     //12 fraction of the free GPU memory to use (only if compiled for CUDA)
+    {"paf",no_argument,0,'c'},                       //13 if print in paf format
     {0, 0, 0, 0}
 };
 
@@ -278,7 +281,7 @@ void process_db_rsq(core_t* core, db_t* db) {
 
 }
 
-void output_db_rsq(core_t* core, db_t* db) {
+void output_db_rsq(core_t* core, db_t* db, int8_t fmt) {
 
     double output_start = realtime();
 
@@ -286,29 +289,68 @@ void output_db_rsq(core_t* core, db_t* db) {
         if(!db->read_stat_flag[i]){
             event_table et = db->et[i];
 
-            index_pair_t *indexPair = db->base_to_event_map[i];
+            index_pair_t *base_to_event_map = db->base_to_event_map[i];
             int32_t n_kmers = db->read_len[i] - core->kmer_size + 1;
-            int32_t prev_st_event_idx = -1; //prev_valid_start_event_idx
-            //nt merged_events = 0;    //multiple_bases_per_event_count
+            int64_t signal_start_point = -1;
+            int64_t signal_end_point = -1;
+
+            kstring_t str;
+            kstring_t *sp = &str;
+            str_init(sp, db->read_len[i]*3);
+            int64_t ci = 0; //current index
+            int64_t mi = 0;
 
             for (int32_t j=0; j<n_kmers; j++){
-                int32_t start_event_idx = indexPair[j].start;
-                int end_event_idx = indexPair[j].stop;
-                if(start_event_idx == -1 && prev_st_event_idx != -1){
-                    //merged_events++;
-                    start_event_idx = prev_st_event_idx;
-                    if(end_event_idx != -1){
-                        fprintf(stderr,"assertion failed\n");
-                        exit(EXIT_FAILURE);
+                int32_t start_event_idx = base_to_event_map[j].start;
+                int32_t end_event_idx = base_to_event_map[j].stop;
+                if(start_event_idx == -1){ //deletion from ref
+                    assert(j!=0);
+                    assert(end_event_idx == -1);
+                    signal_start_point = signal_end_point = -1;
+                    sprintf_append(sp,"%dD,",1);
+                } else {
+                    assert(end_event_idx != -1);\
+                    signal_start_point = et.event[start_event_idx].start; //inclusive
+                    signal_end_point = et.event[end_event_idx].start + (int)et.event[end_event_idx].length; //non-inclusive
+
+                    if(fmt){
+                        if(j==0) ci = signal_start_point;
+                        ci += (mi =  signal_start_point - ci);
+                        if(mi) sprintf_append(sp,"%dI,",(int)mi);
+                        ci += (mi = signal_end_point-signal_start_point);
+                        if(mi) sprintf_append(sp,"%d,",(int)mi);
                     }
-                    end_event_idx = prev_st_event_idx;
-                }else{
-                    prev_st_event_idx = start_event_idx;
+
                 }
-                int signal_start_point = et.event[start_event_idx].start;
-                int signal_end_point = et.event[end_event_idx].start + (int)et.event[end_event_idx].length;
-                printf("%s\t%d\t%d\t%d\t%d\t%d\n", db->read_id[i], j, start_event_idx, end_event_idx, signal_start_point, signal_end_point);
+
+
+                if(fmt==0) printf("%s\t%d\t%d\t%d\t%ld\t%ld\n", db->read_id[i], j, start_event_idx, end_event_idx, signal_start_point, signal_end_point);
+
             }
+
+
+            if(fmt==1){
+
+                assert(n_kmers>0);
+                str.s[str.l-1] = '\0'; //remove last comma
+
+                int32_t start_event_idx = base_to_event_map[0].start;
+                assert(start_event_idx>=0);
+                signal_start_point = et.event[start_event_idx].start;
+
+                //query: name, start, end, strand
+                printf("%s\t%ld\t%ld\t%ld\t+\t", db->read_id[i], (long)db->f5[i]->nsample,signal_start_point, signal_end_point);
+                //target: name, start, end
+                printf("%s\t%d\t%d\t%d\t", db->read_id[i], db->read_len[i],0, n_kmers);
+                //residue matches, block len, mapq
+                printf("%d\t%d\t%d\t",0,0,255);
+                printf("sc:i:%f\t",db->scalings->scale);
+                printf("sh:i:%f\t",db->scalings->shift);
+                printf("ss:Z:%s\n",str.s);
+
+            }
+            str_free(sp);
+
             //fprintf(stderr,"merged_events=%d\n", merged_events);
         } else {  //common section with f5c.c - can be modularised
             if((db->read_stat_flag[i])&FAILED_CALIBRATION){
@@ -470,11 +512,12 @@ int resquiggle_main(int argc, char **argv) {
 
 
     FILE *fp_help = stderr;
-    const char* optstring = "t:K:B:v:o:hVx:";
+    const char* optstring = "t:K:B:v:o:hVx:c";
     int longindex = 0;
     int32_t c = -1;
     char *slow5file = NULL;
     char* profilename = NULL; //Create variable to store profile arg
+    int8_t fmt = 0;
 
     opt_t opt;
     init_opt(&opt); //initialise options to defaults
@@ -524,6 +567,8 @@ int resquiggle_main(int argc, char **argv) {
 					exit(EXIT_FAILURE);
 				}
 			}
+        } else if (c == 'c'){
+            fmt=1;
         } else if (c == 0 && longindex == 5) { //custom nucleotide model file
             opt.model_file = optarg;
         }
@@ -574,7 +619,7 @@ int resquiggle_main(int argc, char **argv) {
 
     ret_status_t status = {opt.batch_size,opt.batch_size_bases};
 
-    char resquiggle_header0 [] = "read_id\tkmer_idx\tstart_event_idx\tend_event_idx\tstart_raw_idx\tend_signal_idx";
+    char resquiggle_header0 [] = "read_id\tkmer_idx\tstart_event_idx\tend_event_idx\tstart_raw_idx\tend_raw_idx";
     fprintf(stdout, "%s\n", resquiggle_header0);
 
     //initialise the core data structure
@@ -594,7 +639,7 @@ int resquiggle_main(int argc, char **argv) {
                 realtime() - realtime0, cputime() / (realtime() - realtime0),
                 status.num_reads,status.num_bases/(1000.0*1000.0));
 
-        output_db_rsq(core, db);
+        output_db_rsq(core, db, fmt);
         free_db_tmp_rsq(db);
         free_db_rsq(db);
     }

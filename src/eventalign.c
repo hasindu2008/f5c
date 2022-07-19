@@ -1918,8 +1918,8 @@ char *emit_event_alignment_tsv(uint32_t strand_idx,
         float model_mean = 0.0;
         float model_stdv = 0.0;
 
-        uint64_t start_idx = (et->event)[ea.event_idx].start;
-        uint64_t end_idx = (et->event)[ea.event_idx].start + (uint64_t)((et->event)[ea.event_idx].length);
+        uint64_t start_idx = (et->event)[ea.event_idx].start; //inclusive
+        uint64_t end_idx = (et->event)[ea.event_idx].start + (uint64_t)((et->event)[ea.event_idx].length); //non-inclusive
 
         if (collapse){
 
