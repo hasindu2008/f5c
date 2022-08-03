@@ -30,6 +30,33 @@ void scaling_single(core_t* core, db_t* db, int32_t i);
 //todo: CUDA support
 //TODO there are lot of copy pasted sections from f5c.c - can be modularised
 
+static inline int8_t drna_detect(slow5_file_t *sp){
+
+    const slow5_hdr_t* hdr = sp->header;
+    int8_t rna = 0;
+    char *exp =slow5_hdr_get("experiment_type", 0, hdr);
+    if(exp==NULL){
+        WARNING("%s","experiment_type not found in SLOW5 header. Assuming genomic_dna");
+        return 0;
+    }
+    if (strcmp(exp,"genomic_dna")==0){
+        rna = 0;
+    }else if (strcmp(exp,"rna")==0){
+        rna = 1;
+    } else {
+        WARNING("Unknown experiment type: %s. Assuming genomic_dna", exp);
+    }
+
+    for(uint32_t  i=1; i < hdr->num_read_groups; i++){
+        char *curr =slow5_hdr_get("experiment_type", i, hdr);
+        if (strcmp(curr, exp)){
+            WARNING("Experiment type mismatch: %s != %s in read group %d. Defaulted to %s", curr, exp, i, exp);
+        }
+    }
+    return rna;
+}
+
+
 static void print_help_msg(FILE *fp_help, opt_t opt){
     fprintf(fp_help,"Usage: f5c [OPTIONS] reads.fastq signals.blow5\n");
     fprintf(fp_help,"\noptions:\n");
@@ -79,6 +106,22 @@ core_t* init_core_rsq(opt_t opt, const char *slow5file, double realtime0) {
 
     core->opt = opt;
 
+    //slow5 FILE
+    core->sf = slow5_open(slow5file,"r");
+    if (core->sf == NULL) {
+        STDERR("Error opening SLOW5 file %s\n",slow5file);
+        exit(EXIT_FAILURE);
+    }
+    int ret=slow5_idx_load(core->sf);
+    if(ret<0){
+        STDERR("Error in loading SLOW5 index for %s\n",slow5file);
+        exit(EXIT_FAILURE);
+    }
+    if(drna_detect(core->sf)) {
+        core->opt.flag |= F5C_RNA;
+        opt.flag |= F5C_RNA;
+    }
+
     //model
     core->model = (model_t*)malloc(sizeof(model_t) * MAX_NUM_KMER); //4096 is 4^6 which is hardcoded now
     MALLOC_CHK(core->model);
@@ -98,16 +141,10 @@ core_t* init_core_rsq(opt_t opt, const char *slow5file, double realtime0) {
     }
     core->kmer_size = kmer_size;
 
-    core->sf = slow5_open(slow5file,"r");
-    if (core->sf == NULL) {
-        STDERR("Error opening SLOW5 file %s\n",slow5file);
-        exit(EXIT_FAILURE);
-    }
-    int ret=slow5_idx_load(core->sf);
-    if(ret<0){
-        STDERR("Error in loading SLOW5 index for %s\n",slow5file);
-        exit(EXIT_FAILURE);
-    }
+
+
+
+
 
     //realtime0
     core->realtime0=realtime0;
@@ -323,8 +360,20 @@ void output_db_rsq(core_t* core, db_t* db, int8_t fmt) {
 
                 }
 
-
-                if(fmt==0) printf("%s\t%d\t%d\t%d\t%ld\t%ld\n", db->read_id[i], j, start_event_idx, end_event_idx, signal_start_point, signal_end_point);
+                if(fmt==0){
+                    printf("%s\t%d\t",db->read_id[i], j);
+                    if(signal_start_point<0){
+                        printf(".\t");
+                    } else {
+                        printf("%ld\t", signal_start_point);
+                    }
+                    if(signal_end_point<0){
+                        printf(".\t");
+                    } else {
+                        printf("%ld\t", signal_end_point);
+                    }
+                    printf("\n");
+                }
 
             }
 
@@ -344,8 +393,8 @@ void output_db_rsq(core_t* core, db_t* db, int8_t fmt) {
                 printf("%s\t%d\t%d\t%d\t", db->read_id[i], db->read_len[i],0, n_kmers);
                 //residue matches, block len, mapq
                 printf("%d\t%d\t%d\t",0,0,255);
-                printf("sc:i:%f\t",db->scalings->scale);
-                printf("sh:i:%f\t",db->scalings->shift);
+                printf("sc:f:%f\t",db->scalings->scale);
+                printf("sh:f:%f\t",db->scalings->shift);
                 printf("ss:Z:%s\n",str.s);
 
             }
@@ -619,11 +668,13 @@ int resquiggle_main(int argc, char **argv) {
 
     ret_status_t status = {opt.batch_size,opt.batch_size_bases};
 
-    char resquiggle_header0 [] = "read_id\tkmer_idx\tstart_event_idx\tend_event_idx\tstart_raw_idx\tend_raw_idx";
-    fprintf(stdout, "%s\n", resquiggle_header0);
+    if(fmt==0){
+        const char *resquiggle_header0 = "read_id\tkmer_idx\tstart_raw_idx\tend_raw_idx";
+        fprintf(stdout, "%s\n", resquiggle_header0);
+    }
 
     //initialise the core data structure
-    core_t* core = init_core_rsq(opt, slow5file, realtime0);
+    core_t* core = init_core_rsq(opt, slow5file, realtime0); //use opt inside core afte this call
 
     while (status.num_reads >= core->opt.batch_size || status.num_bases>=core->opt.batch_size_bases){
         db_t* db = init_db_rsq(core);
