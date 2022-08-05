@@ -72,7 +72,6 @@ void ReadDB::load(const std::string& input_reads_filename, int8_t slow5_mode)
 {
     // generate input filenames
     m_indexed_reads_filename = input_reads_filename + GZIPPED_READS_SUFFIX;
-    bool success = false;
 
     if(slow5_mode == 0){
         std::string in_filename = m_indexed_reads_filename + READ_DB_SUFFIX;
@@ -96,25 +95,28 @@ void ReadDB::load(const std::string& input_reads_filename, int8_t slow5_mode)
 
             // load faidx
             m_fai = fai_load3(m_indexed_reads_filename.c_str(), NULL, NULL, 0);
-            if(m_fai != NULL) {
-                success = true;
+            if(m_fai == NULL) {
+                fprintf(stderr, "error: could not load the .fai index for input file %s\n",input_reads_filename.c_str());
+                fprintf(stderr,"Please run f5c index on your reads (see documentation)\n");
+                exit(EXIT_FAILURE);
             }
+        } else {
+            fprintf(stderr, "error: could not load the fast5 index (.readdb) for input file %s\n",input_reads_filename.c_str());
+            fprintf(stderr,"Please run f5c index on your reads (see documentation) or did you forget --slow5 <file.blow5> to enable slow5 mode?\n");
+            exit(EXIT_FAILURE);
         }
 
     }
     else {
         // load faidx
         m_fai = fai_load3(m_indexed_reads_filename.c_str(), NULL, NULL, 0);
-        if(m_fai != NULL) {
-            success = true;
+        if(m_fai == NULL) {
+            fprintf(stderr, "error: could not load the .fai index for input file %s\n",input_reads_filename.c_str());
+            fprintf(stderr,"Please run f5c index on your reads (see documentation)\n");
+            exit(EXIT_FAILURE);
         }
     }
 
-    if(!success) {
-        fprintf(stderr, "error: could not load the index files for input file %s\n",input_reads_filename.c_str());
-        fprintf(stderr,"Please run f5c index on your reads (see documentation)\n");
-        exit(EXIT_FAILURE);
-    }
 }
 
 ReadDB::~ReadDB()
