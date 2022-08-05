@@ -79,7 +79,7 @@ jobs:
     - name: install packages
       run: sudo apt-get update && sudo apt-get install -y zlib1g-dev
     - name: build
-      run: autoreconf --install && ./scripts/install-hts.sh && ./configure && make -j8 disable_hdf5=1
+      run: autoreconf --install && ./scripts/install-hts.sh && ./configure --disable-hdf5 && make -j8 disable_hdf5=1
   ubuntu_14_cuda_6_5:
     name: Ubuntu 14 cuda 6.5
     runs-on: ubuntu-18.04
