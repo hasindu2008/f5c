@@ -9,6 +9,8 @@
 #ifndef FAST5LITE_H
 #define FAST5LITE_H
 
+#ifndef DISABLE_HDF5
+
 #ifndef HAVE_CONFIG_H
 #    define HAVE_CONFIG_H
 #    include "config.h"
@@ -30,17 +32,21 @@
 #    include <hdf5.h>
 #endif
 
+#else
+    typedef long long unsigned int hsize_t;
+    typedef int hid_t;
+#endif
+
 #include <errno.h>
 #include <math.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 #include <assert.h>
 
 #include "error.h"
 #include <string>
-
-//#define SINGLE_FAST5_ONLY 1 //comment to enable multi fast5 support
 
 typedef struct {
     float* rawptr;   // raw signal (float is not the best datatype type though)
@@ -67,15 +73,17 @@ typedef struct {
 
 } fast5_t;
 
-
-// The following was adapted from Nanopolish : nanopolish_fast5_io.cpp
-
 typedef struct{
     hid_t hdf5_file;
     bool is_multi_fast5;
 }  fast5_file_t;
 
 
+#ifndef DISABLE_HDF5
+
+//#define SINGLE_FAST5_ONLY 1 //comment to enable multi fast5 support
+
+// The following was adapted from Nanopolish : nanopolish_fast5_io.cpp
 
 #ifndef SINGLE_FAST5_ONLY
 #include <vector>
@@ -487,5 +495,35 @@ static inline std::string fast5_get_read_id_single_fast5(fast5_file_t fh)
 
     return fast5_get_fixed_string_attribute(fh, raw_read_group, "read_id");
 }
+
+#else
+
+static inline fast5_file_t fast5_open(char* filename) {
+    ERROR("%s", "f5c has been compiled with no FAST5/HDF5 support. s2f unavailable. Recompile with FAST5/HDF5 support.");
+    exit(EXIT_FAILURE);
+}
+
+static inline int32_t fast5_read(fast5_file_t fh, fast5_t* f5, std::string read_id){
+    ERROR("%s", "f5c has been compiled with no FAST5/HDF5 support. s2f unavailable. Recompile with FAST5/HDF5 support.");
+    exit(EXIT_FAILURE);
+}
+
+static inline void fast5_close(fast5_file_t fh) {
+    ERROR("%s", "f5c has been compiled with no FAST5/HDF5 support. s2f unavailable. Recompile with FAST5/HDF5 support.");
+    exit(EXIT_FAILURE);
+}
+
+static inline std::string fast5_get_read_id_single_fast5(fast5_file_t fh){
+    ERROR("%s", "f5c has been compiled with no FAST5/HDF5 support. s2f unavailable. Recompile with FAST5/HDF5 support.");
+    exit(EXIT_FAILURE);
+}
+
+#include <vector>
+static inline std::vector<std::string> fast5_get_multi_read_groups(fast5_file_t fh){
+    ERROR("%s", "f5c has been compiled with no FAST5/HDF5 support. s2f unavailable. Recompile with FAST5/HDF5 support.");
+    exit(EXIT_FAILURE);
+}
+
+#endif
 
 #endif

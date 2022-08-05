@@ -69,6 +69,17 @@ jobs:
       run: autoreconf && ./scripts/install-hts.sh && ./configure && make -j8
     - name: test
       run: make test
+  ubuntu_22:
+    name: Ubuntu 22
+    runs-on: ubuntu-22.04
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        submodules: recursive
+    - name: install packages
+      run: sudo apt-get update && sudo apt-get install -y zlib1g-dev
+    - name: build
+      run: make -j8 disable_hdf5=1
   ubuntu_14_cuda_6_5:
     name: Ubuntu 14 cuda 6.5
     runs-on: ubuntu-18.04
@@ -89,9 +100,9 @@ jobs:
       run: export PATH=/usr/local/cuda/bin:${PATH} && autoreconf && ./scripts/install-hts.sh && ./configure && make cuda=1 -j8
     - name: test
       run: make test || scripts/test.sh custom --disable-cuda=yes
-  os_x_10_15:
-    name: OSX 10.15
-    runs-on: macos-10.15
+  os_x_11:
+    name: OSX 11
+    runs-on: macos-11
     steps:
     - uses: actions/checkout@v2
     - name: install packages
@@ -100,9 +111,9 @@ jobs:
       run: autoreconf --install && ./scripts/install-hts.sh && ./configure && make -j8
     - name: test
       run: make test
-  os_x_11:
-    name: OSX 10.15 hdf5 install script
-    runs-on: macos-10.15
+  os_x_11_2:
+    name: OSX 11 hdf5 install script
+    runs-on: macos-11
     steps:
     - uses: actions/checkout@v2
     - name: install packages

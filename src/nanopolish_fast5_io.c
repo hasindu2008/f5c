@@ -11,6 +11,8 @@
 #include <assert.h>
 #include "fast5lite.h"
 
+#ifndef DISABLE_HDF5
+
 #ifndef SINGLE_FAST5_ONLY
 
 #define H5Z_FILTER_VBZ 32020 //We need to find out what the numerical value for this is
@@ -430,5 +432,6 @@ close_group:
     return out;
 }
 
+#endif
 
 #endif

@@ -9,6 +9,7 @@ ifdef ENABLE_PROFILE
     CFLAGS += -p
 endif
 
+ifeq ($(disable_hdf5),)
 ifeq ($(HDF5), install)
     HDF5_LIB = $(BUILD_DIR)/lib/libhdf5.a
     HDF5_INC = -I$(BUILD_DIR)/include
@@ -18,6 +19,7 @@ ifneq ($(HDF5), autoconf)
     HDF5_LIB =
     HDF5_SYS_LIB = `pkg-config --libs hdf5`
     HDF5_INC = `pkg-config --cflags-only-I hdf5`
+endif
 endif
 endif
 

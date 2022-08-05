@@ -5,6 +5,8 @@ CPPFLAGS = @CPPFLAGS@
 HDF5 = @hdf_tar_install@
 HTS = @hts_tar_install@
 
+disable_hdf5 = @disable_hdf5@
+
 ifeq "locallibhts-@locallibhts@" "locallibhts-yes"
     CPPFLAGS += -I./htslib
     LDFLAGS += htslib/libhts.a

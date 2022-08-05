@@ -13,6 +13,10 @@ ifeq ($(zstd),1)
 LDFLAGS		+= -lzstd
 endif
 
+ifeq ($(disable_hdf5),1)
+CPPFLAGS += -DDISABLE_HDF5
+endif
+
 BINARY = f5c
 OBJ = $(BUILD_DIR)/main.o \
       $(BUILD_DIR)/meth_main.o \
