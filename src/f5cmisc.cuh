@@ -9,6 +9,7 @@
 #define F5CMISC_CUH
 
 #include <stdint.h>
+#include "error.h"
 
 /* if defined, perform CUDA_device_synchronise */
 #define CUDA_DEBUG 1
