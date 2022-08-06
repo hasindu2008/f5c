@@ -206,8 +206,8 @@ db_t* init_db_rsq(core_t* core) {
     db->read_len = (int32_t*)(malloc(sizeof(int32_t) * db->capacity_bam_rec));
     MALLOC_CHK(db->read_len);
 
-    db->f5 = (fast5_t**)malloc(sizeof(fast5_t*) * db->capacity_bam_rec);
-    MALLOC_CHK(db->f5);
+    db->sig = (signal_t**)malloc(sizeof(signal_t*) * db->capacity_bam_rec);
+    MALLOC_CHK(db->sig);
 
     db->et = (event_table*)malloc(sizeof(event_table) * db->capacity_bam_rec);
     MALLOC_CHK(db->et);
@@ -254,7 +254,7 @@ void free_db_rsq(db_t* db) {
     free(db->read_id);
     free(db->read_len);
     free(db->et);
-    free(db->f5);
+    free(db->sig);
     free(db->scalings);
     free(db->event_align_pairs);
     free(db->n_event_align_pairs);
@@ -273,8 +273,8 @@ void free_db_tmp_rsq(db_t* db) {
     for (i = 0; i < db->n_bam_rec; ++i) {
         free(db->read[i]);
         free(db->read_id[i]);
-        free(db->f5[i]->rawptr);
-        free(db->f5[i]);
+        free(db->sig[i]->rawptr);
+        free(db->sig[i]);
         free(db->et[i].event);
         free(db->event_align_pairs[i]);
         free(db->base_to_event_map[i]);
@@ -388,7 +388,7 @@ void output_db_rsq(core_t* core, db_t* db, int8_t fmt) {
                 signal_start_point = et.event[start_event_idx].start;
 
                 //query: name, start, end, strand
-                printf("%s\t%ld\t%ld\t%ld\t+\t", db->read_id[i], (long)db->f5[i]->nsample,signal_start_point, signal_end_point);
+                printf("%s\t%ld\t%ld\t%ld\t+\t", db->read_id[i], (long)db->sig[i]->nsample,signal_start_point, signal_end_point);
                 //target: name, start, end
                 printf("%s\t%d\t%d\t%d\t", db->read_id[i], db->read_len[i],0, n_kmers);
                 //residue matches, block len, mapq
@@ -434,15 +434,15 @@ static void read_slow5_single(core_t* core, db_t* db, int i){
     int len=0;
     len = slow5_get(db->read_id[i], &record, core->sf);
 
-    db->f5[i] = (fast5_t*)calloc(1, sizeof(fast5_t));
-    MALLOC_CHK(db->f5[i]);
+    db->sig[i] = (signal_t*)calloc(1, sizeof(signal_t));
+    MALLOC_CHK(db->sig[i]);
 
     if(record==NULL || len <0){ //todo : should we free if len<0
         db->bad_fast5_file++;
         if (core->opt.flag & F5C_SKIP_UNREADABLE) {
             WARNING("Slow5 record for read [%s] is unavailable/unreadable and will be skipped", db->read_id[i]);
-            db->f5[i]->nsample = 0;
-            db->f5[i]->rawptr = NULL;
+            db->sig[i]->nsample = 0;
+            db->sig[i]->rawptr = NULL;
         } else {
             ERROR("Slow5 record for read [%s] is unavailable/unreadable", db->read_id[i]);
             exit(EXIT_FAILURE);
@@ -450,18 +450,18 @@ static void read_slow5_single(core_t* core, db_t* db, int i){
     }
     else{
         assert(strcmp(db->read_id[i],record->read_id)==0);
-        db->f5[i]->nsample = record->len_raw_signal;  //n_samples
-        assert(db->f5[i]->nsample>0);
-        db->f5[i]->rawptr = (float*)calloc(db->f5[i]->nsample, sizeof(float));
-        MALLOC_CHK( db->f5[i]->rawptr);
+        db->sig[i]->nsample = record->len_raw_signal;  //n_samples
+        assert(db->sig[i]->nsample>0);
+        db->sig[i]->rawptr = (float*)calloc(db->sig[i]->nsample, sizeof(float));
+        MALLOC_CHK( db->sig[i]->rawptr);
 
-        db->f5[i]->digitisation = (float)record->digitisation;
-        db->f5[i]->offset = (float)record->offset;
-        db->f5[i]->range = (float)record->range;
-        db->f5[i]->sample_rate = (float)record->sampling_rate;
+        db->sig[i]->digitisation = (float)record->digitisation;
+        db->sig[i]->offset = (float)record->offset;
+        db->sig[i]->range = (float)record->range;
+        db->sig[i]->sample_rate = (float)record->sampling_rate;
 
-        for (int j = 0; j < (int)db->f5[i]->nsample; j++) { //check for int overflow
-            db->f5[i]->rawptr[j] = (float)record->raw_signal[j];
+        for (int j = 0; j < (int)db->sig[i]->nsample; j++) { //check for int overflow
+            db->sig[i]->rawptr[j] = (float)record->raw_signal[j];
         }
         // ret=1;
         slow5_rec_free(record);

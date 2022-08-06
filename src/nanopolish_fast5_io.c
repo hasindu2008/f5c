@@ -9,6 +9,7 @@
 #include <string.h>
 #include <math.h>
 #include <assert.h>
+#include "f5c.h"
 #include "fast5lite.h"
 
 #ifndef DISABLE_HDF5
@@ -16,38 +17,6 @@
 #ifndef SINGLE_FAST5_ONLY
 
 #define H5Z_FILTER_VBZ 32020 //We need to find out what the numerical value for this is
-
-//#define DEBUG_FAST5_IO 1
-
-//#define LEGACY_FAST5_RAW_ROOT "/Raw/Reads/"
-
-//int verbose = 0;
-
-//
-/*
-fast5_file_t fast5_open(const std::string& filename)
-{
-    fast5_file_t fh;
-    fh.hdf5_file = H5Fopen(filename.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
-
-    // read and parse the file version to determine if this is a multi-fast5 structured file
-    std::string version_str = fast5_get_string_attribute(fh, "/", "file_version");
-    if(version_str != "") {
-        int major;
-        int minor;
-        int ret = sscanf(version_str.c_str(), "%d.%d", &major, &minor);
-        if(ret != 2) {
-            fprintf(stderr, "Could not parse version string %s\n", version_str.c_str());
-            exit(EXIT_FAILURE);
-        }
-
-        fh.is_multi_fast5 = major >= 1;
-    } else {
-        fh.is_multi_fast5 = false;
-    }
-    return fh;
-}
-*/
 
 uint8_t fast5_is_vbz_compressed(fast5_file_t fh, const std::string& read_id) {
 
@@ -86,14 +55,6 @@ bool fast5_is_open(fast5_file_t fh)
 {
     return fh.hdf5_file >= 0;
 }
-
-//
-/*
-void fast5_close(fast5_file_t fh)
-{
-    H5Fclose(fh.hdf5_file);
-}
-*/
 
 //
 std::vector<std::string> fast5_get_multi_read_groups(fast5_file_t fh)
@@ -138,150 +99,13 @@ std::vector<std::string> fast5_get_multi_read_groups(fast5_file_t fh)
     return out;
 }
 
-//
-/*
-std::string fast5_get_read_id_single_fast5(fast5_file_t fh)
-{
-    // this function is not supported for multi-fast5 files
-    assert(!fh.is_multi_fast5);
 
-    int ret;
-    hid_t read_name_attribute, raw_group, attribute_type;
-    size_t storage_size = 0;
-    char* read_name_str = NULL;
-
-    std::string out = "";
-
-    // Get the path to the raw read group
-    std::string raw_read_group = fast5_get_raw_read_group(fh, "");
-    if(raw_read_group == "") {
-        return out;
-    }
-
-    return fast5_get_string_attribute(fh, raw_read_group, "read_id");
-}
-*/
-
-/*
-//
-raw_table fast5_get_raw_samples(fast5_file_t fh, const std::string& read_id, fast5_raw_scaling scaling)
-{
-    float* rawptr = NULL;
-    hid_t space;
-    hsize_t nsample;
-    herr_t status;
-    float raw_unit;
-    raw_table rawtbl = { 0, 0, 0, NULL };
-
-    // mostly from scrappie
-    std::string raw_read_group = fast5_get_raw_read_group(fh, read_id);
-
-    // Create data set name
-    std::string signal_path = raw_read_group + "/Signal";
-
-    hid_t dset = H5Dopen(fh.hdf5_file, signal_path.c_str(), H5P_DEFAULT);
-    if (dset < 0) {
-#ifdef DEBUG_FAST5_IO
-        fprintf(stderr, "Failed to open dataset '%s' to read raw signal from.\n", signal_path.c_str());
-#endif
-        goto cleanup2;
-    }
-
-    space = H5Dget_space(dset);
-    if (space < 0) {
-        fprintf(stderr, "Failed to create copy of dataspace for raw signal %s.\n", signal_path.c_str());
-        goto cleanup3;
-    }
-
-    H5Sget_simple_extent_dims(space, &nsample, NULL);
-    rawptr = (float*)calloc(nsample, sizeof(float));
-    status = H5Dread(dset, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT, rawptr);
-
-    if (status < 0) {
-        free(rawptr);
-#ifdef DEBUG_FAST5_IO
-        fprintf(stderr, "Failed to read raw data from dataset %s.\n", signal_path.c_str());
-#endif
-        goto cleanup4;
-    }
-
-    // convert to pA
-    rawtbl = (raw_table) { nsample, 0, nsample, rawptr };
-    raw_unit = scaling.range / scaling.digitisation;
-    for (size_t i = 0; i < nsample; i++) {
-        rawptr[i] = (rawptr[i] + scaling.offset) * raw_unit;
-    }
-
- cleanup4:
-    H5Sclose(space);
- cleanup3:
-    H5Dclose(dset);
- cleanup2:
-    return rawtbl;
-}*/
-
-//
 std::string fast5_get_experiment_type(fast5_file_t fh, const std::string& read_id)
 {
     std::string group = fh.is_multi_fast5 ? "/read_" + read_id + "/context_tags"
                                           : "/UniqueGlobalKey/context_tags";
     return fast5_get_string_attribute(fh, group.c_str(), "experiment_type");
 }
-
-/*
-// from scrappie
-float fast5_read_float_attribute(hid_t group, const char *attribute) {
-    float val = NAN;
-    if (group < 0) {
-#ifdef DEBUG_FAST5_IO
-        fprintf(stderr, "Invalid group passed to %s:%d.", __FILE__, __LINE__);
-#endif
-        return val;
-    }
-
-    hid_t attr = H5Aopen(group, attribute, H5P_DEFAULT);
-    if (attr < 0) {
-#ifdef DEBUG_FAST5_IO
-        fprintf(stderr, "Failed to open attribute '%s' for reading.", attribute);
-#endif
-        return val;
-    }
-
-    H5Aread(attr, H5T_NATIVE_FLOAT, &val);
-    H5Aclose(attr);
-
-    return val;
-}
-*/
-
-//
-/*
-fast5_raw_scaling fast5_get_channel_params(fast5_file_t fh, const std::string& read_id)
-{
-    // from scrappie
-    fast5_raw_scaling scaling = { NAN, NAN, NAN, NAN };
-
-    std::string scaling_path = fh.is_multi_fast5 ? "/read_" + read_id + "/channel_id"
-                                                 :  "/UniqueGlobalKey/channel_id";
-
-    hid_t scaling_group = H5Gopen(fh.hdf5_file, scaling_path.c_str(), H5P_DEFAULT);
-    if (scaling_group < 0) {
-#ifdef DEBUG_FAST5_IO
-        fprintf(stderr, "Failed to open group %s\n", scaling_path.c_str());
-#endif
-        return scaling;
-    }
-
-    scaling.digitisation = fast5_read_float_attribute(scaling_group, "digitisation");
-    scaling.offset = fast5_read_float_attribute(scaling_group, "offset");
-    scaling.range = fast5_read_float_attribute(scaling_group, "range");
-    scaling.sample_rate = fast5_read_float_attribute(scaling_group, "sampling_rate");
-
-    H5Gclose(scaling_group);
-
-    return scaling;
-}
-*/
 
 //
 // Internal functions

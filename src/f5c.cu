@@ -371,7 +371,7 @@ void* align_cudb(void* voidargs){
             // db->n_event_align_pairs[i] =
             //     align(db->event_align_pairs[i], db->read[i],
             //           db->read_len[i], db->et[i], core->model,
-            //           db->scalings[i], db->f5[i]->sample_rate);
+            //           db->scalings[i], db->sig[i]->sample_rate);
             //fprintf(stderr,"readlen %d,n_events %d\n",db->read_len[i],n_event_align_pairs);
         }
     } else {
@@ -438,7 +438,7 @@ static inline int8_t if_gpu_mem_free(core_t* core, db_t* db, int32_t i,int64_t s
 //are done of CPU
 static inline int8_t if_on_gpu(core_t* core, db_t* db, int32_t i){
 
-    if(db->f5[i]->nsample<=0){ //bad reads
+    if(db->sig[i]->nsample<=0){ //bad reads
         return 0;
     }
 
@@ -705,7 +705,7 @@ realtime1 = realtime();
             j++;
         }
         else{
-            if (db->f5[i]->nsample>0 && (db->et[i].n)/(float)(db->read_len[i]) < AVG_EVENTS_PER_KMER_MAX){
+            if (db->sig[i]->nsample>0 && (db->et[i].n)/(float)(db->read_len[i]) < AVG_EVENTS_PER_KMER_MAX){
                 ultra_long_reads[n_ultra_long_reads]=i;
                 n_ultra_long_reads++;
                 sum_bases_cpu += db->read_len[i];

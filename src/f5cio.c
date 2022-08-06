@@ -13,6 +13,7 @@
 #include <string.h>
 
 #include "f5c.h"
+#include "fast5lite.h"
 #include "f5cmisc.h"
 
 #include <sys/wait.h>
@@ -49,11 +50,11 @@ static inline int read_from_fast5_files2(char *qname_str, char *fast5_path, FILE
     fast5_file_t fast5_file = fast5_open(fast5_path);
 
     if (fast5_file.hdf5_file >= 0) {
-        fast5_t *f5 = (fast5_t*)calloc(1, sizeof(fast5_t));
-        MALLOC_CHK(f5);
+        signal_t *sig = (signal_t*)calloc(1, sizeof(signal_t));
+        MALLOC_CHK(sig);
 
         //INFO("Reading %s",qname.c_str());
-        int32_t ret=fast5_read(fast5_file, f5,qname);
+        int32_t ret=fast5_read(fast5_file, sig,qname);
 
         if(ret<0){
             ERROR("%s","Fast5 causes crashes with --iop");
@@ -65,12 +66,12 @@ static inline int read_from_fast5_files2(char *qname_str, char *fast5_path, FILE
 
         //write to the pipe
         //STDERR("writing to pipe %s",qname_str);
-        f5write(pipefp,&(f5->nsample), sizeof(hsize_t), 1);
-        f5write(pipefp,f5->rawptr, sizeof(float), f5->nsample);
-        f5write(pipefp,&(f5->digitisation), sizeof(float), 1);
-        f5write(pipefp,&(f5->offset), sizeof(float), 1);
-        f5write(pipefp,&(f5->range), sizeof(float), 1);
-        f5write(pipefp,&(f5->sample_rate), sizeof(float), 1);
+        f5write(pipefp,&(sig->nsample), sizeof(uint64_t), 1);
+        f5write(pipefp,sig->rawptr, sizeof(float), sig->nsample);
+        f5write(pipefp,&(sig->digitisation), sizeof(float), 1);
+        f5write(pipefp,&(sig->offset), sizeof(float), 1);
+        f5write(pipefp,&(sig->range), sizeof(float), 1);
+        f5write(pipefp,&(sig->sample_rate), sizeof(float), 1);
 
         ret=fflush(pipefp);
         if(ret!=0){
@@ -78,9 +79,9 @@ static inline int read_from_fast5_files2(char *qname_str, char *fast5_path, FILE
             exit(EXIT_FAILURE);
         }
 
-        free(f5->rawptr);
-        free(f5);
-        //STDERR("wrote to pipe %s : %lld samples",qname_str,f5->nsample);
+        free(sig->rawptr);
+        free(sig);
+        //STDERR("wrote to pipe %s : %lld samples",qname_str,sig->nsample);
     } else {
         ERROR("%s","Fast5 causes crashes with --iop");
         exit(EXIT_FAILURE);
@@ -320,19 +321,19 @@ static inline void handle_bad_fast5(core_t* core, db_t* db,std::string fast5_pat
 static inline int read_from_fast5_dump(core_t *core, db_t *db , int32_t i){
 
     //return 1 if success, 0 if failed
-    db->f5[i] = (fast5_t*)calloc(1, sizeof(fast5_t));
-    MALLOC_CHK(db->f5[i]);
+    db->sig[i] = (signal_t*)calloc(1, sizeof(signal_t));
+    MALLOC_CHK(db->sig[i]);
 
-    f5read(core->raw_dump,&(db->f5[i]->nsample), sizeof(hsize_t), 1);
+    f5read(core->raw_dump,&(db->sig[i]->nsample), sizeof(uint64_t), 1);
 
-    if(db->f5[i]->nsample>0){
-        db->f5[i]->rawptr = (float*)calloc(db->f5[i]->nsample, sizeof(float));
-        MALLOC_CHK( db->f5[i]->rawptr);
-        f5read(core->raw_dump,db->f5[i]->rawptr, sizeof(float), db->f5[i]->nsample);
-        f5read(core->raw_dump,&(db->f5[i]->digitisation), sizeof(float), 1);
-        f5read(core->raw_dump,&(db->f5[i]->offset), sizeof(float), 1);
-        f5read(core->raw_dump,&(db->f5[i]->range), sizeof(float), 1);
-        f5read(core->raw_dump,&(db->f5[i]->sample_rate), sizeof(float), 1);
+    if(db->sig[i]->nsample>0){
+        db->sig[i]->rawptr = (float*)calloc(db->sig[i]->nsample, sizeof(float));
+        MALLOC_CHK( db->sig[i]->rawptr);
+        f5read(core->raw_dump,db->sig[i]->rawptr, sizeof(float), db->sig[i]->nsample);
+        f5read(core->raw_dump,&(db->sig[i]->digitisation), sizeof(float), 1);
+        f5read(core->raw_dump,&(db->sig[i]->offset), sizeof(float), 1);
+        f5read(core->raw_dump,&(db->sig[i]->range), sizeof(float), 1);
+        f5read(core->raw_dump,&(db->sig[i]->sample_rate), sizeof(float), 1);
         return 1;
     }
     else{
@@ -356,18 +357,18 @@ static inline int read_from_fast5_files(core_t *core, db_t *db, std::string qnam
     core->db_fast5_open_time += ot;
     core->db_fast5_time += ot;
     if (fast5_file.hdf5_file >= 0) {
-        db->f5[i] = (fast5_t*)calloc(1, sizeof(fast5_t));
-        MALLOC_CHK(db->f5[i]);
+        db->sig[i] = (signal_t*)calloc(1, sizeof(signal_t));
+        MALLOC_CHK(db->sig[i]);
         t = realtime();
-        int32_t ret=fast5_read(fast5_file, db->f5[i],qname);
+        int32_t ret=fast5_read(fast5_file, db->sig[i],qname);
         double rt = realtime() - t;
         core->db_fast5_read_time += rt;
         core->db_fast5_time += rt;
         if(ret<0){
             handle_bad_fast5(core, db,fast5_path,qname);
             if(core->opt.flag & F5C_WR_RAW_DUMP){
-                hsize_t tmp_nsample = 0;
-                f5write(core->raw_dump,&tmp_nsample, sizeof(hsize_t), 1);
+                uint64_t tmp_nsample = 0;
+                f5write(core->raw_dump,&tmp_nsample, sizeof(uint64_t), 1);
             }
             free(fast5_path);
             return 0;
@@ -377,22 +378,22 @@ static inline int read_from_fast5_files(core_t *core, db_t *db, std::string qnam
         core->db_fast5_time += realtime() - t;
 
         if (core->opt.flag & F5C_PRINT_RAW) {
-            printf(">%s\tPATH:%s\tLN:%llu\n", qname.c_str(), fast5_path,
-                db->f5[i]->nsample);
+            printf(">%s\tPATH:%s\tLN:%lu\n", qname.c_str(), fast5_path,
+                db->sig[i]->nsample);
             uint32_t j = 0;
-            for (j = 0; j < db->f5[i]->nsample; j++) {
-                printf("%d\t", (int)db->f5[i]->rawptr[j]);
+            for (j = 0; j < db->sig[i]->nsample; j++) {
+                printf("%d\t", (int)db->sig[i]->rawptr[j]);
             }
             printf("\n");
         }
         if(core->opt.flag & F5C_WR_RAW_DUMP){
             //write the fast5 dump to the binary file pointer core->raw_dump
-            f5write(core->raw_dump,&(db->f5[i]->nsample), sizeof(hsize_t), 1);
-            f5write(core->raw_dump,db->f5[i]->rawptr, sizeof(float), db->f5[i]->nsample);
-            f5write(core->raw_dump,&(db->f5[i]->digitisation), sizeof(float), 1);
-            f5write(core->raw_dump,&(db->f5[i]->offset), sizeof(float), 1);
-            f5write(core->raw_dump,&(db->f5[i]->range), sizeof(float), 1);
-            f5write(core->raw_dump,&(db->f5[i]->sample_rate), sizeof(float), 1);
+            f5write(core->raw_dump,&(db->sig[i]->nsample), sizeof(uint64_t), 1);
+            f5write(core->raw_dump,db->sig[i]->rawptr, sizeof(float), db->sig[i]->nsample);
+            f5write(core->raw_dump,&(db->sig[i]->digitisation), sizeof(float), 1);
+            f5write(core->raw_dump,&(db->sig[i]->offset), sizeof(float), 1);
+            f5write(core->raw_dump,&(db->sig[i]->range), sizeof(float), 1);
+            f5write(core->raw_dump,&(db->sig[i]->sample_rate), sizeof(float), 1);
         }
 
         //db->n_bam_rec++;
@@ -403,8 +404,8 @@ static inline int read_from_fast5_files(core_t *core, db_t *db, std::string qnam
     } else {
         handle_bad_fast5(core, db,fast5_path,qname);
         if(core->opt.flag & F5C_WR_RAW_DUMP){
-            hsize_t tmp_nsample = 0;
-            f5write(core->raw_dump,&tmp_nsample, sizeof(hsize_t), 1);
+            uint64_t tmp_nsample = 0;
+            f5write(core->raw_dump,&tmp_nsample, sizeof(uint64_t), 1);
         }
         return 0;
     }
@@ -422,8 +423,8 @@ void read_slow5_single(core_t* core, db_t* db, int i){
     // int ret = 0;
     std::string qname = bam_get_qname(db->bam_rec[i]);
 
-    db->f5[i] = (fast5_t*)calloc(1, sizeof(fast5_t));
-    MALLOC_CHK(db->f5[i]);
+    db->sig[i] = (signal_t*)calloc(1, sizeof(signal_t));
+    MALLOC_CHK(db->sig[i]);
 
     int len=0;
 
@@ -435,8 +436,8 @@ void read_slow5_single(core_t* core, db_t* db, int i){
         db->bad_fast5_file++;
         if (core->opt.flag & F5C_SKIP_UNREADABLE) {
             WARNING("Slow5 record for read [%s] is unavailable/unreadable and will be skipped", qname.c_str());
-            db->f5[i]->nsample = 0;
-            db->f5[i]->rawptr = NULL;
+            db->sig[i]->nsample = 0;
+            db->sig[i]->rawptr = NULL;
         } else {
             ERROR("Slow5 record for read [%s] is unavailable/unreadable", qname.c_str());
             exit(EXIT_FAILURE);
@@ -445,18 +446,18 @@ void read_slow5_single(core_t* core, db_t* db, int i){
     }
     else{
         assert(strcmp(qname.c_str(),record->read_id)==0);
-        db->f5[i]->nsample = record->len_raw_signal;  //n_samples
-        assert(db->f5[i]->nsample>0);
-        db->f5[i]->rawptr = (float*)calloc(db->f5[i]->nsample, sizeof(float));
-        MALLOC_CHK( db->f5[i]->rawptr);
+        db->sig[i]->nsample = record->len_raw_signal;  //n_samples
+        assert(db->sig[i]->nsample>0);
+        db->sig[i]->rawptr = (float*)calloc(db->sig[i]->nsample, sizeof(float));
+        MALLOC_CHK( db->sig[i]->rawptr);
 
-        db->f5[i]->digitisation = (float)record->digitisation;
-        db->f5[i]->offset = (float)record->offset;
-        db->f5[i]->range = (float)record->range;
-        db->f5[i]->sample_rate = (float)record->sampling_rate;
+        db->sig[i]->digitisation = (float)record->digitisation;
+        db->sig[i]->offset = (float)record->offset;
+        db->sig[i]->range = (float)record->range;
+        db->sig[i]->sample_rate = (float)record->sampling_rate;
 
-        for (int j = 0; j < (int)db->f5[i]->nsample; j++) { //check for int overflow
-            db->f5[i]->rawptr[j] = (float)record->raw_signal[j];
+        for (int j = 0; j < (int)db->sig[i]->nsample; j++) { //check for int overflow
+            db->sig[i]->rawptr[j] = (float)record->raw_signal[j];
         }
 
         // ret=1;
@@ -677,19 +678,19 @@ void *get_fast5_from_pipe(void *voidargs){
         if(core->opt.verbosity>2){
             STDERR("tid %d : %d reading from pipe",t,i);
         }
-        db->f5[i] = (fast5_t*)calloc(1, sizeof(fast5_t));
-        MALLOC_CHK(db->f5[i]);
-        f5read(pipefp,&(db->f5[i]->nsample), sizeof(hsize_t), 1);
-        //STDERR("tid %d : %d th read samples %lld",t,i,db->f5[i]->nsample);
-        if(db->f5[i]->nsample>0){
-            db->f5[i]->rawptr = (float*)calloc(db->f5[i]->nsample, sizeof(float));
-            MALLOC_CHK( db->f5[i]->rawptr);
-            f5read(pipefp,db->f5[i]->rawptr, sizeof(float), db->f5[i]->nsample);
+        db->sig[i] = (signal_t*)calloc(1, sizeof(signal_t));
+        MALLOC_CHK(db->sig[i]);
+        f5read(pipefp,&(db->sig[i]->nsample), sizeof(uint64_t), 1);
+        //STDERR("tid %d : %d th read samples %lld",t,i,db->sig[i]->nsample);
+        if(db->sig[i]->nsample>0){
+            db->sig[i]->rawptr = (float*)calloc(db->sig[i]->nsample, sizeof(float));
+            MALLOC_CHK( db->sig[i]->rawptr);
+            f5read(pipefp,db->sig[i]->rawptr, sizeof(float), db->sig[i]->nsample);
             //STDERR("tid %d : %d th read samples read",t,i);
-            f5read(pipefp,&(db->f5[i]->digitisation), sizeof(float), 1);
-            f5read(pipefp,&(db->f5[i]->offset), sizeof(float), 1);
-            f5read(pipefp,&(db->f5[i]->range), sizeof(float), 1);
-            f5read(pipefp,&(db->f5[i]->sample_rate), sizeof(float), 1);
+            f5read(pipefp,&(db->sig[i]->digitisation), sizeof(float), 1);
+            f5read(pipefp,&(db->sig[i]->offset), sizeof(float), 1);
+            f5read(pipefp,&(db->sig[i]->range), sizeof(float), 1);
+            f5read(pipefp,&(db->sig[i]->sample_rate), sizeof(float), 1);
         }
         if(core->opt.verbosity>2){
             STDERR("tid %d : %d read from pipe",t,i);

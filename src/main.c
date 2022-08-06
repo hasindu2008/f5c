@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <signal.h>
+#include <assert.h>
 #include "f5cmisc.h"
 #include "error.h"
 

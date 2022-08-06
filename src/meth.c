@@ -147,9 +147,7 @@ int32_t get_event_alignment_record(const bam1_t* record,int32_t read_length, ind
     MALLOC_CHK(aligned_events);
 
     int32_t aligned_events_size = 0;
-    //this->sr = sr;
     int32_t k = kmer_size;
-    //size_t read_length = this->sr->read_sequence.length();
 
     for(int32_t i = 0; i < segments_size; ++i) {
         // skip positions at the boundary
@@ -171,8 +169,6 @@ int32_t get_event_alignment_record(const bam1_t* record,int32_t read_length, ind
 	    aligned_events[aligned_events_size++] = p;
 	    assert(aligned_events_size <= segments_size);
     }
-    //this->rc = strand_idx == 0 ? seq_record.rc : !seq_record.rc;
-    //this->strand = strand_idx;
 
     if(aligned_events_size) {
         //stride = aligned_events.front().read_pos < aligned_events.back().read_pos ? 1 : -1;
@@ -312,7 +308,6 @@ std::string disambiguate(const std::string& str) {
     }
     return out;
 }
-
 
 
 struct RecognitionMatch
@@ -474,60 +469,11 @@ bool find_by_ref_bounds(const AlignedPair *pairs, size_t pairs_size, int ref_sta
     return false;
 }
 
-
-
-// struct ScoredSite
-// {
-//     ScoredSite()
-//     {
-//         ll_unmethylated[0] = 0;
-//         ll_unmethylated[1] = 0;
-//         ll_methylated[0] = 0;
-//         ll_methylated[1] = 0;
-//         strands_scored = 0;
-//     }
-
-//     std::string chromosome;
-//     int start_position;
-//     int end_position;
-//     int n_cpg;
-//     std::string sequence;
-
-//     // scores per strand
-//     double ll_unmethylated[2];
-//     double ll_methylated[2];
-//     int strands_scored;
-
-//     //
-//     static bool sort_by_position(const ScoredSite& a, const ScoredSite& b) { return a.start_position < b.start_position; }
-
-// };
-
-
-
 // Test CpG sites in this read for methylation
 void calculate_methylation_for_read(std::map<int, ScoredSite>* site_score_map, char* ref, bam1_t* record, int32_t read_length, event_t* event, index_pair_t* base_to_event_map,
 scalings_t scaling, model_t* cpgmodel, uint32_t kmer_size, double events_per_base) {
 
-
-    //todo : have to check this, if required have to implement
-    // if(!sr.has_events_for_strand(strand_idx)) {
-    //     continue;
-    // }
-
-    //size_t k = sr.get_model_k(strand_idx);
     uint32_t k = kmer_size;
-
-    //todo : this is required in a generic version of the tool
-    // // check if there is a cpg model for this strand
-    // if(!PoreModelSet::has_model(sr.get_model_kit_name(strand_idx),
-    //                             "cpg",
-    //                             sr.get_model_strand_name(strand_idx),
-    //                             k))
-    // {
-    //     continue;
-    // }
-
     int ref_start_pos = record->core.pos;
     //int ref_end_pos =  bam_endpos(record);
 

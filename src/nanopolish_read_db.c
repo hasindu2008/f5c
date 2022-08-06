@@ -288,8 +288,6 @@ void ReadDB::clean() const
 
 }
 
-
-
 //
 size_t ReadDB::get_num_reads_with_path() const
 {

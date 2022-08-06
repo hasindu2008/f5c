@@ -22,6 +22,7 @@
 #include "error.h"
 #include <vector>
 #include <dirent.h>
+#include "f5c.h"
 #include "fast5lite.h"
 #include "f5cmisc.h"
 

@@ -302,8 +302,8 @@ db_t* init_db(core_t* core) {
     db->read_idx = (int64_t*)(malloc(sizeof(int64_t) * db->capacity_bam_rec));
     MALLOC_CHK(db->read_idx);
 
-    db->f5 = (fast5_t**)malloc(sizeof(fast5_t*) * db->capacity_bam_rec);
-    MALLOC_CHK(db->f5);
+    db->sig = (signal_t**)malloc(sizeof(signal_t*) * db->capacity_bam_rec);
+    MALLOC_CHK(db->sig);
 
     db->et = (event_table*)malloc(sizeof(event_table) * db->capacity_bam_rec);
     MALLOC_CHK(db->et);
@@ -510,13 +510,13 @@ void pthread_db(core_t* core, db_t* db, void (*func)(core_t*,db_t*,int)){
 
 void event_single(core_t* core,db_t* db, int32_t i) {
 
-    if(db->f5[i]->nsample>0){
+    if(db->sig[i]->nsample>0){
 
-        float* rawptr = db->f5[i]->rawptr;
-        float range = db->f5[i]->range;
-        float digitisation = db->f5[i]->digitisation;
-        float offset = db->f5[i]->offset;
-        int32_t nsample = db->f5[i]->nsample;
+        float* rawptr = db->sig[i]->rawptr;
+        float range = db->sig[i]->range;
+        float digitisation = db->sig[i]->digitisation;
+        float offset = db->sig[i]->offset;
+        int32_t nsample = db->sig[i]->nsample;
 
         // convert to pA
         float raw_unit = range / digitisation;
@@ -528,7 +528,7 @@ void event_single(core_t* core,db_t* db, int32_t i) {
         if (core->opt.flag & F5C_RNA){
             rna=1;
         }
-        db->et[i] = getevents(db->f5[i]->nsample, rawptr, rna);
+        db->et[i] = getevents(db->sig[i]->nsample, rawptr, rna);
 
         // if(db->et[i].n/(float)db->read_len[i] > 20){
         //     fprintf(stderr,"%s\tevents_per_base\t%f\tread_len\t%d\n",bam_get_qname(db->bam_rec[i]), db->et[i].n/(float)db->read_len[i],db->read_len[i]);
@@ -636,11 +636,11 @@ void scaling_single(core_t* core, db_t* db, int32_t i){
 //note that this is used in f5c.cu and thus modifications must be done with care
 void align_single(core_t* core, db_t* db, int32_t i) {
 
-    if(db->f5[i]->nsample>0){ //if a good read
-        if (db->f5[i]->nsample && (db->et[i].n)/(float)(db->read_len[i]) < AVG_EVENTS_PER_KMER_MAX){
+    if(db->sig[i]->nsample>0){ //if a good read
+        if (db->sig[i]->nsample && (db->et[i].n)/(float)(db->read_len[i]) < AVG_EVENTS_PER_KMER_MAX){
             db->n_event_align_pairs[i] = align(
                     db->event_align_pairs[i], db->read[i], db->read_len[i], db->et[i],
-                    core->model, core->kmer_size, db->scalings[i], db->f5[i]->sample_rate);
+                    core->model, core->kmer_size, db->scalings[i], db->sig[i]->sample_rate);
                 //fprintf(stderr,"readlen %d,n_events %d\n",db->read_len[i],n_event_align_pairs);
         }
         else{//todo : too many avg events per base - oversegmented
@@ -677,7 +677,7 @@ void eventalign_single(core_t* core, db_t* db, int32_t i){
                   i,
                   core->clip_start,
                   core->clip_end,
-                  &(db->et[i]), core->model,core->kmer_size, db->base_to_event_map[i],db->scalings[i],db->events_per_base[i],db->f5[i]->sample_rate);
+                  &(db->et[i]), core->model,core->kmer_size, db->base_to_event_map[i],db->scalings[i],db->events_per_base[i],db->sig[i]->sample_rate);
 
     char* qname = bam_get_qname(db->bam_rec[i]);
     char* contig = core->m_hdr->target_name[db->bam_rec[i]->core.tid];
@@ -691,7 +691,7 @@ void eventalign_single(core_t* core, db_t* db, int32_t i){
 
     if(sam_output==0){
         db->event_alignment_result_str[i] = emit_event_alignment_tsv(0,&(db->et[i]),core->model,core->kmer_size, db->scalings[i],*event_alignment_result, print_read_names, scale_events, write_samples, write_signal_index, collapse_events,
-                   db->read_idx[i], qname, contig, db->f5[i]->sample_rate, db->f5[i]->rawptr);
+                   db->read_idx[i], qname, contig, db->sig[i]->sample_rate, db->sig[i]->rawptr);
 
     }
 }
@@ -886,7 +886,7 @@ void output_db(core_t* core, db_t* db) {
                     fprintf(summary_fp, "%ld\t%s\t", (long)(db->read_idx[i]), qname);
                     fprintf(summary_fp, "%s\t%s\t%s\t",fast5_path_str.c_str(), (core->opt.flag & F5C_RNA) ? "rna" : "dna", strand_idx == 0 ? "template" : "complement" );
                     fprintf(summary_fp, "%d\t%d\t%d\t%d\t", summary.num_events, summary.num_steps, summary.num_skips, summary.num_stays);
-                    fprintf(summary_fp, "%.2lf\t%.3lf\t%.3lf\t%.3lf\t%.3lf\n", summary.sum_duration/(db->f5[i]->sample_rate), scalings.shift, scalings.scale, 0.0, scalings.var);
+                    fprintf(summary_fp, "%.2lf\t%.3lf\t%.3lf\t%.3lf\t%.3lf\n", summary.sum_duration/(db->sig[i]->sample_rate), scalings.shift, scalings.scale, 0.0, scalings.var);
                 }
                 std::vector<event_alignment_t> *event_alignment_result = db->event_alignment_result[i];
                 char *event_alignment_result_str = db->event_alignment_result_str[i];
@@ -899,7 +899,7 @@ void output_db(core_t* core, db_t* db) {
 
                 if(sam_output==0){
                     // emit_event_alignment_tsv(stdout,0,&(db->et[i]),core->model,db->scalings[i],*event_alignment_result, print_read_names, scale_events, write_samples, write_signal_index,
-                    //           db->read_idx[i], qname, contig, db->f5[i]->sample_rate, db->f5[i]->rawptr);
+                    //           db->read_idx[i], qname, contig, db->sig[i]->sample_rate, db->sig[i]->rawptr);
                     fputs(event_alignment_result_str,stdout);
                 }
                 else{
@@ -936,8 +936,8 @@ void free_db_tmp(db_t* db) {
         db->bam_rec[i] = bam_init1();
         free(db->fasta_cache[i]);
         free(db->read[i]);
-        free(db->f5[i]->rawptr);
-        free(db->f5[i]);
+        free(db->sig[i]->rawptr);
+        free(db->sig[i]);
         free(db->et[i].event);
         free(db->event_align_pairs[i]);
         free(db->base_to_event_map[i]);
@@ -967,7 +967,7 @@ void free_db(db_t* db) {
     free(db->read_len);
     free(db->read_idx);
     free(db->et);
-    free(db->f5);
+    free(db->sig);
     free(db->scalings);
     free(db->event_align_pairs);
     free(db->n_event_align_pairs);

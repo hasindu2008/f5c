@@ -7,6 +7,7 @@
 ******************************************************************************/
 
 #include "f5c.h"
+#include "error.h"
 #include <assert.h>
 //#define DEBUG_ESTIMATED_SCALING 1
 //#define DEBUG_RECALIB_SCALING 1

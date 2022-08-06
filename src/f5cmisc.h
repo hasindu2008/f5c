@@ -8,10 +8,10 @@
 #ifndef F5CMISC_H
 #define F5CMISC_H
 
-#include "error.h"
-#include "f5c.h"
 #include <sys/resource.h>
 #include <sys/time.h>
+#include "f5c.h"
+#include "error.h"
 
 #define MIN_CALIBRATION_VAR 2.5
 #define MAX_EVENT_TO_BP_RATIO 20

@@ -1225,14 +1225,10 @@ struct EventAlignmentParameters
 {
     EventAlignmentParameters()
     {
-        //sr = NULL;
         et = NULL;
-        //fai = NULL;
-        //hdr = NULL;
         record = NULL;
         model = NULL;
         kmer_size = 6;
-        //strand_idx = NUM_STRANDS;
 
         alphabet = "";
         read_idx = -1;
@@ -1242,12 +1238,9 @@ struct EventAlignmentParameters
 
 
     // Mandatory
-    //SquiggleRead* sr;
-    //necessary parameters inside sr
     index_pair_t* base_to_event_map;
     int32_t read_length;
     scalings_t scalings;
-
 
     std::string ref_name;
 
@@ -1273,22 +1266,14 @@ struct EventAlignmentParameters
 
  std::vector<event_alignment_t> align_read_to_ref(const EventAlignmentParameters& params, char *ref)
 {
-
-
     // Sanity check input parameters
-    //assert(params.sr != NULL);
     assert(params.et != NULL);
-    //assert(params.fai != NULL);
-    //assert(params.hdr != NULL);
     assert(params.record != NULL);
     assert(params.model != NULL);
     assert(params.kmer_size <= MAX_KMER_SIZE);
-    //assert(params.strand_idx < NUM_STRANDS);
     assert( (params.region_start == -1 && params.region_end == -1) || (params.region_start <= params.region_end));
-    //const PoreModel* pore_model = params.get_model(); // --hasindu this is model now
 
     std::vector<event_alignment_t> alignment_output;
-
 
     // Extract the reference subsequence for the entire alignment
     // int fetched_len = 0;
@@ -1578,10 +1563,7 @@ inline float z_score(const event_table* events, model_t* models, scalings_t scal
 
     float unscaledLevel = (events->event)[event_idx].mean;
     float level = unscaledLevel;
-    //float scaledLevel = unscaledLevel - time * scaling.shift;
 
-    //fprintf(stderr, "level %f\n",scaledLevel);
-    //GaussianParameters gp = read.get_scaled_gaussian_from_pore_model_state(pore_model, strand, kmer_rank);
     float gp_mean =
         scaling.scale * models[kmer_rank].level_mean + scaling.shift;
     float gp_stdv = models[kmer_rank].level_stdv * scaling.var; //scaling.var = 1;
@@ -1757,7 +1739,6 @@ void emit_event_alignment_sam(htsFile* fp,
 
     int strand_idx=0;
     // Variable-length data
-    //std::string qname = read_name + (alignments.front().strand_idx == 0 ? ".template" : ".complement");
     std::string qname = std::string(read_name) + (strand_idx == 0 ? ".template" : ".complement");
 
     // basic stats
@@ -1836,18 +1817,8 @@ static inline model_t get_scaled_gaussian_from_pore_model_state(model_t* models,
 std::vector<float> get_scaled_samples(float *samples, uint64_t start_idx, uint64_t end_idx, scalings_t scaling){
     std::vector<float> out;
     for(uint64_t i = start_idx; i < end_idx; ++i) {
-        //double curr_sample_time = (this->sample_start_time + i) / this->sample_rate;
-        // fprintf(stderr, "event_start: %.5lf sample start: %.5lf curr: %.5lf rate: %.2lf\n", event_start_time, this->sample_start_time / this->sample_rate, curr_sample_time, this->sample_rate);
-        //fprintf(stderr, "start_idx: %ld end_idx: %ld curr: %ld\n", start_idx, end_idx, i);
-        //double s = this->samples[i];
         double s = samples[i];
-        // apply scaling corrections
-        //double scaled_s = s - this->scalings[strand_idx].shift;
         double scaled_s = s - scaling.shift;
-        //assert(curr_sample_time >= (this->sample_start_time / this->sample_rate));
-        //scaled_s -= (curr_sample_time - (this->sample_start_time / this->sample_rate)) * this->scalings[strand_idx].drift;
-        //scaled_s -= (i - start_idx) * scaling.drift; //drift is always 0
-        //scaled_s /= this->scalings[strand_idx].scale;
         scaled_s /= scaling.scale;
         out.push_back(scaled_s);
     }
@@ -1856,11 +1827,6 @@ std::vector<float> get_scaled_samples(float *samples, uint64_t start_idx, uint64
 
 std::vector<float> get_scaled_samples_for_event(const event_table* events,scalings_t scaling, uint32_t event_idx, float *samples)
 {
-    //double event_start_time = this->events[strand_idx][event_idx].start_time;
-    //double event_duration = this->events[strand_idx][event_idx].duration;
-
-    //size_t start_idx = this->get_sample_index_at_time(event_start_time * this->sample_rate);
-    //size_t end_idx = this->get_sample_index_at_time((event_start_time + event_duration) * this->sample_rate);
     uint64_t start_idx = (events->event)[event_idx].start;
     uint64_t end_idx = (events->event)[event_idx].start + (uint64_t)((events->event)[event_idx].length);
     //assert(start_idx  < events->n && end_idx < events->n);
@@ -1877,9 +1843,6 @@ char *emit_event_alignment_tsv(uint32_t strand_idx,
                               int8_t print_read_names, int8_t scale_events, int8_t write_samples, int8_t write_signal_index, int8_t collapse,
                               int64_t read_index, char* read_name, char *ref_name,float sample_rate, float *rawptr)
 {
-    //assert(params.alphabet == "");
-    //const PoreModel* pore_model = params.get_model();
-    //uint32_t k = pore_model->k;
 
     kstring_t str;
     kstring_t *sp = &str;
@@ -1997,8 +1960,6 @@ char *emit_event_alignment_tsv(uint32_t strand_idx,
         }
 
         if(write_samples) {
-            //std::vector<float> samples = get_scaled_samples_for_event(ea.strand_idx, ea.event_idx);
-            //std::vector<float> samples = get_scaled_samples_for_event(et, scalings, ea.event_idx, rawptr);
             std::vector<float> samples = get_scaled_samples(rawptr, start_idx, end_idx, scalings);
             std::stringstream sample_ss;
             std::copy(samples.begin(), samples.end(), std::ostream_iterator<float>(sample_ss, ","));
@@ -2030,87 +1991,27 @@ void realign_read(std::vector<event_alignment_t>* event_alignment_result,Evental
     // Load a squiggle read for the mapped read
     std::string read_name = bam_get_qname(record);
 
-    // load read -- hasindu : we have to get rid of this sr
-    //SquiggleRead sr(read_name, read_db, opt::write_samples ? SRF_LOAD_RAW_SAMPLES : 0);
-
-    //hiruna
-    //commented this
-    // if(opt::verbose > 1) {
-    //     fprintf(stderr, "Realigning %s [%zu]\n",
-    //             read_name.c_str(), events->n);
-    // }
-
-    //for(int strand_idx = 0; strand_idx < 2; ++strand_idx) { -- hasindu : only 1 stand in our case
-
-        // Do not align this strand if it was not sequenced
-        // if(!sr.has_events_for_strand(strand_idx)) {
-        //     continue;
-        // }
-
         EventAlignmentParameters params;
-        //params.sr = &sr; -- hasindu : we have to get rid of this sr
-        params.et = events; // hasindu : what is required inside the sr is to be added like this
-        params.model = model; // hasindu : what is required inside the sr is to be added like this
+        params.et = events;
+        params.model = model;
         params.kmer_size = kmer_size;
-        //params.fai = fai;
-        //params.hdr = hdr;
         params.record = record;
-       // params.strand_idx = strand_idx; -- hasindu : only 1 stand in our case
 
         params.read_idx = read_idx;
         params.read_length = read_length;
         params.region_start = region_start;
         params.region_end = region_end;
 
-
         params.base_to_event_map = base_to_event_map;
         params.scalings = scalings;
 
-
         params.events_per_base = events_per_base; // this is in the struct db_t. in nanopolish_arm this is the value they have calculate.
-
-
 
         std::vector<event_alignment_t> alignment = align_read_to_ref(params,ref);
         *event_alignment_result = alignment;
 
-
-        //-- hasindu : output writing will be done outside of this function
-        //EventalignSummary summary;
-        //FILE* summary_fp = fopen("test/ecoli_2kb_region/f5c_event_align.summary","a");
-        //F_CHK(summary_fp,"test/ecoli_2kb_region/f5c_event_align.summary");
-        //todo : fix this
-        //FILE *summary_fp = stderr;
         if(summary_fp != NULL) {
             *summary = summarize_alignment(0, params, alignment, sample_rate);
         }
 
-        //fprintf(summary_fp,"sfsafsaf\n");
-        // if(opt::output_sam) {
-        //     emit_event_alignment_sam(sam_fp, sr, hdr, record, alignment);
-        // } else {
-        //     emit_event_alignment_tsv(tsv_fp, sr, strand_idx, params, alignment);
-        // }
-        //emit_event_alignment_tsv(stdout,0,events,model,scalings,alignment, 1, 1, 0,
-        //                      bam_get_qname(record), hdr->target_name[record->core.tid]);
-
-        // if(summary_fp != NULL)
-        //     fprintf(stderr, "debug summary_fp != NULL alignment.size() = %d \n",alignment.size());
-
-        // if(summary.num_events > 0)
-        //     fprintf(stderr, "debug summary.num_events > 0 read_idx = %d \n",read_idx);
-
-        // if(summary_fp != NULL && summary.num_events > 0) {
-        //     size_t strand_idx = 0;
-        //     fprintf(summary_fp, "%zu\t%s\t", read_idx, read_name.c_str());
-        //     fprintf(summary_fp, "%s\t%s\t%s\t",".", "dna", strand_idx == 0 ? "template" : "complement");
-        //     fprintf(summary_fp, "%d\t%d\t%d\t%d\t", summary.num_events, summary.num_steps, summary.num_skips, summary.num_stays);
-        //     fprintf(summary_fp, "%.2lf\t%.3lf\t%.3lf\t%.3lf\t%.3lf\n", summary.sum_duration/(4000.0), scalings.shift, scalings.scale, 0.0, scalings.var);
-
-        // }
-        // fclose(summary_fp);
-
-    //}
 }
-
-///mnt/f/hasindu2008.git/nanopolish/nanopolish eventalign  -b test/ecoli_2kb_region/reads.sorted.bam -g test/ecoli_2kb_region/draft.fa -r test/ecoli_2kb_region/reads.fasta -t 1 --summary=test/ecoli_2kb_region/eventalign.summary.exp > test/ecoli_2kb_region/eventalign.exp

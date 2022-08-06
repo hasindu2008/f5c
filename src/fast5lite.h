@@ -33,45 +33,11 @@
 #endif
 
 #else
-    typedef long long unsigned int hsize_t;
     typedef int hid_t;
 #endif
 
-#include <errno.h>
-#include <math.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
-#include <assert.h>
-
 #include "error.h"
 #include <string>
-
-typedef struct {
-    float* rawptr;   // raw signal (float is not the best datatype type though)
-    hsize_t nsample; // number of samples
-
-    //	Information for scaling raw data from ADC values to pA (are these duplicates?)
-    float digitisation;
-    float offset;
-    float range;
-    float sample_rate;
-
-    // computed scaling paramtersd
-    float scale;
-    float shift;
-    float drift;
-    float var;
-    float scale_sd;
-    float var_sd;
-
-    // derived parameters that are cached for efficiency. do we need these?
-    float log_var;
-    float scaled_var;
-    float log_scaled_var;
-
-} fast5_t;
 
 typedef struct{
     hid_t hdf5_file;
@@ -161,10 +127,10 @@ static inline float fast5_read_float_attribute(hid_t group,
 
 
 
-static inline int32_t fast5_read_single_fast5(fast5_file_t fh, fast5_t* f5) {
+static inline int32_t fast5_read_single_fast5(fast5_file_t fh, signal_t* sig) {
 
     hid_t hdf5_file = fh.hdf5_file;
-    f5->rawptr = NULL;
+    sig->rawptr = NULL;
     hid_t space;
     hsize_t nsample;
     herr_t status;
@@ -228,13 +194,13 @@ static inline int32_t fast5_read_single_fast5(fast5_file_t fh, fast5_t* f5) {
         return -1;
     }
 
-    f5->nsample = nsample;
-    f5->rawptr = (float*)calloc(nsample, sizeof(float));
+    sig->nsample = nsample;
+    sig->rawptr = (float*)calloc(nsample, sizeof(float));
     status = H5Dread(dset, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT,
-                     f5->rawptr);
+                     sig->rawptr);
 
     if (status < 0) {
-        free(f5->rawptr);
+        free(sig->rawptr);
         WARNING("Failed to read raw data from dataset %s.", signal_path);
         H5Sclose(space);
         H5Dclose(dset);
@@ -255,15 +221,15 @@ static inline int32_t fast5_read_single_fast5(fast5_file_t fh, fast5_t* f5) {
         return -1;
     }
 
-    f5->digitisation =
+    sig->digitisation =
         fast5_read_float_attribute(scaling_group, "digitisation");
-    f5->offset = fast5_read_float_attribute(scaling_group, "offset");
-    f5->range = fast5_read_float_attribute(scaling_group, "range");
-    f5->sample_rate =
+    sig->offset = fast5_read_float_attribute(scaling_group, "offset");
+    sig->range = fast5_read_float_attribute(scaling_group, "range");
+    sig->sample_rate =
         fast5_read_float_attribute(scaling_group, "sampling_rate");
 
-    if (f5->digitisation == NAN || f5->offset == NAN || f5->range == NAN ||
-        f5->sample_rate == NAN) {
+    if (sig->digitisation == NAN || sig->offset == NAN || sig->range == NAN ||
+        sig->sample_rate == NAN) {
         WARNING("Read a NAN value for scaling parameters for '%s'.",
                 signal_path);
         H5Gclose(scaling_group);
@@ -280,10 +246,10 @@ static inline int32_t fast5_read_single_fast5(fast5_file_t fh, fast5_t* f5) {
 
 #ifndef SINGLE_FAST5_ONLY
 
-static inline int32_t fast5_read_multi_fast5(fast5_file_t fh, fast5_t* f5, std::string read_id) {
+static inline int32_t fast5_read_multi_fast5(fast5_file_t fh, signal_t* sig, std::string read_id) {
 
     hid_t hdf5_file = fh.hdf5_file;
-    f5->rawptr = NULL;
+    sig->rawptr = NULL;
     hid_t space;
     hsize_t nsample;
     herr_t status;
@@ -320,13 +286,13 @@ static inline int32_t fast5_read_multi_fast5(fast5_file_t fh, fast5_t* f5, std::
         return -1;
     }
 
-    f5->nsample = nsample;
-    f5->rawptr = (float*)calloc(nsample, sizeof(float));
+    sig->nsample = nsample;
+    sig->rawptr = (float*)calloc(nsample, sizeof(float));
     status = H5Dread(dset, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT,
-                     f5->rawptr);
+                     sig->rawptr);
 
     if (status < 0) {
-        free(f5->rawptr);
+        free(sig->rawptr);
         if(fast5_is_vbz_compressed(fh, read_id) == 1) {
             ERROR("%s","The fast5 file is compressed with VBZ but the required plugin is not loaded. See https://f5c.page.link/troubleshoot for instructions.\n");
         }
@@ -350,15 +316,15 @@ static inline int32_t fast5_read_multi_fast5(fast5_file_t fh, fast5_t* f5, std::
         return -1;
     }
 
-    f5->digitisation =
+    sig->digitisation =
         fast5_read_float_attribute(scaling_group, "digitisation");
-    f5->offset = fast5_read_float_attribute(scaling_group, "offset");
-    f5->range = fast5_read_float_attribute(scaling_group, "range");
-    f5->sample_rate =
+    sig->offset = fast5_read_float_attribute(scaling_group, "offset");
+    sig->range = fast5_read_float_attribute(scaling_group, "range");
+    sig->sample_rate =
         fast5_read_float_attribute(scaling_group, "sampling_rate");
 
-    if (f5->digitisation == NAN || f5->offset == NAN || f5->range == NAN ||
-        f5->sample_rate == NAN) {
+    if (sig->digitisation == NAN || sig->offset == NAN || sig->range == NAN ||
+        sig->sample_rate == NAN) {
         WARNING("Read a NAN value for scaling parameters for '%s'.",
                 signal_path);
         H5Gclose(scaling_group);
@@ -371,17 +337,17 @@ static inline int32_t fast5_read_multi_fast5(fast5_file_t fh, fast5_t* f5, std::
 }
 #endif
 
-static inline int32_t fast5_read(fast5_file_t fh, fast5_t* f5, std::string read_id) {
+static inline int32_t fast5_read(fast5_file_t fh, signal_t* sig, std::string read_id) {
 #ifndef SINGLE_FAST5_ONLY
     if(fh.is_multi_fast5){
-        return fast5_read_multi_fast5(fh, f5, read_id);
+        return fast5_read_multi_fast5(fh, sig, read_id);
     }
     else{
-        return fast5_read_single_fast5(fh, f5);
+        return fast5_read_single_fast5(fh, sig);
     }
 
 #else
-    return fast5_read_single_fast5(fh, f5);
+    return fast5_read_single_fast5(fh, sig);
 #endif
 
 
@@ -503,7 +469,7 @@ static inline fast5_file_t fast5_open(char* filename) {
     exit(EXIT_FAILURE);
 }
 
-static inline int32_t fast5_read(fast5_file_t fh, fast5_t* f5, std::string read_id){
+static inline int32_t fast5_read(fast5_file_t fh, signal_t* sig, std::string read_id){
     ERROR("%s", "f5c has been compiled with no FAST5/HDF5 support. s2f unavailable. Recompile with FAST5/HDF5 support.");
     exit(EXIT_FAILURE);
 }

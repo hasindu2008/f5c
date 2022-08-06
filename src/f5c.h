@@ -8,16 +8,17 @@
 #ifndef F5C_H
 #define F5C_H
 
+#include <stdint.h>
+#include <stdio.h>
+
 #include <htslib/faidx.h>
 #include <htslib/hts.h>
 #include <htslib/sam.h>
 #include <slow5/slow5.h>
 
-#include "fast5lite.h"
 #include "nanopolish_read_db.h"
 
-
-
+#include <string>
 #include <vector> //required for eventalign
 
 #define F5C_VERSION "1.0-dirty"
@@ -261,6 +262,31 @@ typedef struct
     int reference_span;
 }EventalignSummary;
 
+typedef struct {
+    float* rawptr;   // raw signal (float is not the best datatype type though)
+    uint64_t nsample; // number of samples
+
+    //	Information for scaling raw data from ADC values to pA (are these duplicates?)
+    float digitisation;
+    float offset;
+    float range;
+    float sample_rate;
+
+    // computed scaling paramtersd
+    float scale;
+    float shift;
+    float drift;
+    float var;
+    float scale_sd;
+    float var_sd;
+
+    // derived parameters that are cached for efficiency. do we need these?
+    float log_var;
+    float scaled_var;
+    float log_scaled_var;
+
+} signal_t;
+
 /* a batch of read data (dynamic data based on the reads) */
 typedef struct {
     // region string
@@ -282,7 +308,7 @@ typedef struct {
     int64_t* read_idx; //the index of the read entry in the BAM file
 
     // fast5 file //should flatten this to reduce mallocs
-    fast5_t** f5;
+    signal_t** sig;
 
     //event table
     event_table* et;
