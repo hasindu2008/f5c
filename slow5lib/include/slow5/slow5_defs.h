@@ -44,7 +44,7 @@ The API documentation is available at https://hasindu2008.github.io/slow5tools/
 */
 
 // library version
-#define SLOW5_LIB_VERSION "0.5.1"
+#define SLOW5_LIB_VERSION "0.6.0"
 
 // maximum file version supported by this library - independent of slow5 library version above
 // if updating change all 4 below
@@ -150,7 +150,7 @@ The API documentation is available at https://hasindu2008.github.io/slow5tools/
 #define SLOW5_ERR_MAGIC         (-14)   // magic number invalid
 #define SLOW5_ERR_VERSION       (-15)   // version incompatible
 #define SLOW5_ERR_HDRPARSE      (-16)   // header parsing error
-#define SLOW5_ERR_TYPE          (-17)   // error relating to slow5 type
+#define SLOW5_ERR_TYPE          (-17)   // error relating to slow5 data type
 
 
 #ifdef __cplusplus

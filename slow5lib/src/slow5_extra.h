@@ -20,14 +20,14 @@ these functions are used by slow5tools and pyslow5 - so any change to a function
 */
 
 // slow5 file
-struct slow5_file *slow5_init(FILE *fp, const char *pathname, enum slow5_fmt format);
-struct slow5_file *slow5_init_empty(FILE *fp, const char *pathname, enum slow5_fmt format);
+slow5_file_t *slow5_init(FILE *fp, const char *pathname, enum slow5_fmt format);
+slow5_file_t *slow5_init_empty(FILE *fp, const char *pathname, enum slow5_fmt format);
 int slow5_is_eof(FILE *fp, const char *eof, size_t n);
 
 // slow5 header
-struct slow5_hdr *slow5_hdr_init_empty(void);
-struct slow5_hdr *slow5_hdr_init(FILE *fp, enum slow5_fmt format, slow5_press_method_t *method);
-void slow5_hdr_free(struct slow5_hdr *header);
+slow5_hdr_t *slow5_hdr_init_empty(void);
+slow5_hdr_t *slow5_hdr_init(FILE *fp, enum slow5_fmt format, slow5_press_method_t *method);
+void slow5_hdr_free(slow5_hdr_t *header);
 int slow5_version_cmp(struct slow5_version x, struct slow5_version y);
 /* return 1 if compatible, 0 otherwise */
 // file_version: what is currently in the file
@@ -42,30 +42,30 @@ static inline int slow5_is_version_compatible(struct slow5_version file_version,
 int slow5_signal_press_version_cmp(struct slow5_version current);
 
 // slow5 header data
-int slow5_hdr_data_init(FILE *fp, char **buf, size_t *cap, struct slow5_hdr *header, uint32_t *hdr_len);
-khash_t(slow5_s2s) *slow5_hdr_get_data(uint32_t read_group, const struct slow5_hdr *header);
-int64_t slow5_hdr_add_rg_data(struct slow5_hdr *header, khash_t(slow5_s2s) *new_data);
-char *slow5_hdr_types_to_str(struct slow5_aux_meta *aux_meta, size_t *len);
-char *slow5_hdr_attrs_to_str(struct slow5_aux_meta *aux_meta, size_t *len);
-void slow5_hdr_data_free(struct slow5_hdr *header);
+int slow5_hdr_data_init(FILE *fp, char **buf, size_t *cap, slow5_hdr_t *header, uint32_t *hdr_len);
+khash_t(slow5_s2s) *slow5_hdr_get_data(uint32_t read_group, const slow5_hdr_t *header);
+int64_t slow5_hdr_add_rg_data(slow5_hdr_t *header, khash_t(slow5_s2s) *new_data);
+char *slow5_hdr_types_to_str(slow5_aux_meta_t *aux_meta, size_t *len);
+char *slow5_hdr_attrs_to_str(slow5_aux_meta_t *aux_meta, size_t *len);
+void slow5_hdr_data_free(slow5_hdr_t *header);
 
-struct slow5_aux_meta *slow5_aux_meta_init_empty(void);
-struct slow5_aux_meta *slow5_aux_meta_init(FILE *fp, char **buf, size_t *cap, uint32_t *hdr_len, int *err);
-int slow5_aux_meta_add(struct slow5_aux_meta *aux_meta, const char *attr, enum slow5_aux_type type);
-int slow5_aux_meta_add_enum(struct slow5_aux_meta *aux_meta, const char *attr, enum slow5_aux_type type, const char **enum_labels, uint8_t enum_num_labels);
-void slow5_aux_meta_free(struct slow5_aux_meta *aux_meta);
+slow5_aux_meta_t *slow5_aux_meta_init_empty(void);
+slow5_aux_meta_t *slow5_aux_meta_init(FILE *fp, char **buf, size_t *cap, uint32_t *hdr_len, int *err);
+int slow5_aux_meta_add(slow5_aux_meta_t *aux_meta, const char *attr, enum slow5_aux_type type);
+int slow5_aux_meta_add_enum(slow5_aux_meta_t *aux_meta, const char *attr, enum slow5_aux_type type, const char **enum_labels, uint8_t enum_num_labels);
+void slow5_aux_meta_free(slow5_aux_meta_t *aux_meta);
 char **slow5_aux_meta_enum_parse(char *tok, enum slow5_aux_type type, uint8_t *n);
 
 // slow5 record
-void *slow5_get_mem(const char *read_id, size_t *n, const struct slow5_file *s5p);
-void *slow5_get_next_mem(size_t *n, const struct slow5_file *s5p);
-int slow5_rec_set(struct slow5_rec *read, struct slow5_aux_meta *aux_meta, const char *attr, const void *data);
-int slow5_rec_set_array(struct slow5_rec *read, struct slow5_aux_meta *aux_meta, const char *attr, const void *data, size_t len);
-static inline int slow5_rec_set_string(struct slow5_rec *read, struct slow5_aux_meta *aux_meta, const char *attr, const char *data) {
+void *slow5_get_mem(const char *read_id, size_t *n, const slow5_file_t *s5p);
+void *slow5_get_next_mem(size_t *n, const slow5_file_t *s5p);
+int slow5_rec_set(slow5_rec_t *read, slow5_aux_meta_t *aux_meta, const char *attr, const void *data);
+int slow5_rec_set_array(slow5_rec_t *read, slow5_aux_meta_t *aux_meta, const char *attr, const void *data, size_t len);
+static inline int slow5_rec_set_string(slow5_rec_t *read, slow5_aux_meta_t *aux_meta, const char *attr, const char *data) {
     return slow5_rec_set_array(read, aux_meta, attr, data, strlen(data));
 }
-int slow5_rec_parse(char *read_mem, size_t read_size, const char *read_id, struct slow5_rec **read, enum slow5_fmt format, struct slow5_aux_meta *aux_meta, enum slow5_press_method signal_method);
-int slow5_rec_depress_parse(char **mem, size_t *bytes, const char *read_id, struct slow5_rec **read, struct slow5_file *s5p);
+int slow5_rec_depress_parse(char **mem, size_t *bytes, const char *read_id, slow5_rec_t **read, slow5_file_t *s5p);
+int slow5_rec_parse(char *read_mem, size_t read_size, const char *read_id, slow5_rec_t **read, enum slow5_fmt format, slow5_aux_meta_t *aux_meta, enum slow5_press_method signal_method);
 void slow5_rec_aux_free(khash_t(slow5_s2a) *aux_map);
 
 // slow5 extension parsing
@@ -84,59 +84,46 @@ char *slow5_data_to_str(uint8_t *data, enum slow5_aux_type type, uint64_t ptr_le
 
 
 
+/**
+ * Add a read entry to the SLOW5 file while updating the SLOW5 index (not thread safe).
+ *
+ * Return
+ *  0   the read was successfully stored
+ * -1   read or s5p is NULL
+ * -2   the index was not previously init and failed to init
+ * -3   duplicate read id
+ * -4   writing failure
+ *
+ * @param   read    slow5_rec ptr
+ * @param   s5p     slow5 file
+ * @return  error code described above
+ */
+int slow5_add_rec(slow5_rec_t *read, slow5_file_t *s5p);
 
-
-
-
-
-
-
+/**
+ * Remove a read entry at a read_id in a slow5 file while updating the SLOW5 index (not thread safe).
+ *
+ * Return
+ *  0   the read was successfully stored
+ * -1   an input parameter is NULL
+ * -2   the index was not previously init and failed to init
+ * -3   read_id was not found in the index
+ *
+ * @param   read_id the read identifier
+ * @param   s5p     slow5 file
+ * @return  error code described above
+ */
+int slow5_rm_rec(const char *read_id, slow5_file_t *s5p); // TODO
 
 
 /* SLOW5 Extra API */
 
 /*
-// Convert fast5 files to a slow5 file
-// TODO decide return type
-int8_t fast5_to_slow5(const char *pathname_from, struct slow5_file *s5p_to);
-// Convert slow5 file to fast5 files
-int8_t slow5_to_fast5(struct slow5_file *s5p_from, const char *pathname_to);
-
 
 // Header
-int8_t slow5_hdr_write(struct slow5_file *s5p_from, struct slow5_file *s5p_to);
-int8_t slow5_hdr_data_write(struct slow5_file *s5p_from, struct slow5_file *s5p_to);
-int8_t slow5_hdr_data_attr_write(const char *attr, struct slow5_file *s5p_from, struct slow5_file *s5p_to);
-
-// Index
-inline khash_t(slow5_s2i) *slow5_idx_init_empty(void);
-
-// Convert fast5 dir/file to a slow5 file
-// TODO decide return type
-int8_t fast5dir_to_slow5(DIR *dirp_from, struct slow5_file *s5p_to);
-int8_t fast5fp_to_slow5(fast5_t f5p_from, struct slow5_file *s5p_to);
-
-// Convert slow5 file to fast5 dir/file
-// TODO decide return type
-int8_t slow5_to_fast5dir(struct slow5_file *s5p_from, DIR *dirp_to);
-int8_t slow5_to_fast5fp(struct slow5_file *s5p_from, fast5_t *f5p_to);
-
-// Merge 2 slow5 files to another slow5 file
-int8_t slow5_merge_2(struct slow5_file *s5p_from_1, struct slow5_file *s5p_from_2, struct slow5_file *s5p_to);
-
-// Split a slow5 file to a dir
-int8_t slow5_split(struct slow5_file *s5p, DIR *dirp);
-
-
-// Initiate an empty slow5 read object
-struct slow5_read *slow5_read_init_empty(void);
-// Initiate a slow5 read
-struct slow5_read *slow5_read_init(void); // TODO change void
-
-
-// Print out the SLOW5 structure contents
-void slow5_hdr_data_print(const struct SLOW5Header *hdr);
-
+int8_t slow5_hdr_write(slow5_file_t *s5p_from, slow5_file_t *s5p_to);
+int8_t slow5_hdr_data_write(slow5_file_t *s5p_from, slow5_file_t *s5p_to);
+int8_t slow5_hdr_data_attr_write(const char *attr, slow5_file_t *s5p_from, slow5_file_t *s5p_to);
 
 // Get the format from a slow5 format name
 enum slow5_format str_get_slow5_format(const char *str);
@@ -151,7 +138,6 @@ const char *slow5_format_get_str(enum slow5_format format);
 // Get the slow5 version array from a version string
 //const uint8_t *str_get_slow5_version(const char *str);
 */
-
 
 #ifdef __cplusplus
 }

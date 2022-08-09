@@ -77,7 +77,7 @@ test: slow5lib
 
 pyslow5:
 	make clean
-	rm -rf *.so python/pyslow5.cpp build/lib.* build/temp.* build/bdist.* sdist pyslow5.egg-info dist
+	rm -rf *.so python/pyslow5.cpp python/pyslow5.c build/lib.* build/temp.* build/bdist.* sdist pyslow5.egg-info dist
 	python3 setup.py build
 	cp build/lib.*/*.so  ./
 	python3 < python/example.py

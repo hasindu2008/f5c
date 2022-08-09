@@ -81,6 +81,9 @@ static char *get_missing_str(size_t *len);
 static int slow5_version_sanity(struct slow5_hdr *hdr);
 static struct slow5_version slow5_press_version_bump(struct slow5_version current, slow5_press_method_t method);
 
+static inline slow5_file_t *slow5_open_write(const char *filename);
+static inline slow5_file_t *slow5_open_append(const char *filename,  enum slow5_fmt format);
+
 enum slow5_log_level_opt slow5_log_level = SLOW5_LOG_INFO;
 enum slow5_exit_condition_opt slow5_exit_condition = SLOW5_EXIT_OFF;
 
@@ -198,40 +201,73 @@ struct slow5_file *slow5_init(FILE *fp, const char *pathname, enum slow5_fmt for
     return s5p;
 }
 
-// TODO this needs to be refined: talk to Sasha (he wrote this here)
+/*
+ * initialise an empty SLOW5 file structure
+ * if slow5_fmt is SLOW5_FORMAT_UNKNOWN determines format from pathname extension
+ * allocate memory for header, SLOW5 file structure and populate file number and offset
+ *
+ * errors
+ * SLOW5_ERR_OTH    big endian machine
+ * SLOW5_ERR_ARG    fp is NULL
+ * SLOW5_ERR_UNK    format could not be determined from extension
+ * SLOW5_ERR_MEM    memory allocation failed
+ * SLOW5_ERR_IO     ftello, fileno failed
+ */
 struct slow5_file *slow5_init_empty(FILE *fp, const char *pathname, enum slow5_fmt format) {
 
     if (slow5_is_big_endian()) {
         SLOW5_ERROR("%s","Big endian machine detected. slow5lib only support little endian at this time. Please open a github issue stating your machine spec <https://github.com/hasindu2008/slow5lib/issues>.");
+        slow5_errno = SLOW5_ERR_OTH;
         return NULL;
     }
-    // Pathname cannot be NULL at this point
-    if (fp == NULL) {
+    // pathname allowed to be NULL at this point
+    if (!fp) {
+        SLOW5_ERROR("Argument '%s' cannot be NULL.", SLOW5_TO_STR(fp));
+        slow5_errno = SLOW5_ERR_ARG;
         return NULL;
     }
 
     // Attempt to determine format from pathname
     if (format == SLOW5_FORMAT_UNKNOWN &&
             (format = slow5_path_get_fmt(pathname)) == SLOW5_FORMAT_UNKNOWN) {
+        SLOW5_ERROR("Unknown slow5 format for file '%s'. Extension must be '%s' or '%s'.",
+                pathname, SLOW5_ASCII_EXTENSION, SLOW5_BINARY_EXTENSION);
+        slow5_errno = SLOW5_ERR_UNK; //slow5_path_get_fmt does not set slow5_errno, so set here
         return NULL;
     }
 
     struct slow5_file *s5p;
     struct slow5_hdr *header = slow5_hdr_init_empty();
+    if (!header) {
+        SLOW5_ERROR("%s","Initiallising an empty slow5 header failed.");
+        return NULL;
+    }
+
     header->version = SLOW5_VERSION_STRUCT;
     s5p = (struct slow5_file *) calloc(1, sizeof *s5p);
-    SLOW5_MALLOC_CHK(s5p);
+    if (!s5p) {
+        SLOW5_MALLOC_ERROR();
+        slow5_errno = SLOW5_ERR_MEM;
+        return NULL;
+    }
 
     s5p->fp = fp;
     s5p->format = format;
     s5p->header = header;
 
     if ((s5p->meta.fd = fileno(fp)) == -1) {
+        SLOW5_ERROR("Obtaining file descriptor with fileno() failed: %s.", strerror(errno));
+        slow5_errno = SLOW5_ERR_IO;
         slow5_close(s5p);
         s5p = NULL;
     }
     s5p->meta.pathname = pathname;
-    s5p->meta.start_rec_offset = ftello(fp);
+    if ((s5p->meta.start_rec_offset = ftello(fp)) == -1) {
+        SLOW5_ERROR("Obtaining file offset with ftello() failed: %s.", strerror(errno));
+        slow5_errno = SLOW5_ERR_IO;
+        slow5_close(s5p);
+        s5p = NULL;
+    }
 
     return s5p;
 }
@@ -245,13 +281,9 @@ struct slow5_file *slow5_init_empty(FILE *fp, const char *pathname, enum slow5_f
  * If successful, return a slow5 file structure with the header parsed.
  * slow5_close() should be called when finished with the structure.
  *
- * The user at the moment is expected to give "r"
- * TODO : Make "r" into "rb" if BLOW5 - this is not an issue for POSIX systems as mode b is not used [https://man7.org/linux/man-pages/man3/fopen.3.html]
- *
- * slow5_open_with errors
  *
  * @param   pathname    relative or absolute path to slow5 file
- * @param   mode        only "r" for the moment for reading
+ * @param   mode        "r" for reading, "w" for writing a new file, "a" for appending to an existing file
  * @return              slow5 file structure
  */
 struct slow5_file *slow5_open(const char *pathname, const char *mode) {
@@ -272,9 +304,11 @@ struct slow5_file *slow5_open(const char *pathname, const char *mode) {
  * SLOW5_ERR_ARG    The pathname or mode provided was NULL.
  * SLOW5_ERR_IO     The file could not be opened. See errno for details.
  * slow5_init errors
+ * slow5_open_write errors
+ * slow5_open_append errors
  *
  * @param   pathname    path to slow5 file
- * @param   mode        only "r" for the moment
+ * @param   mode        "r" for reading, "w" for writing a new file, "a" for appending to an existing file
  * @param   format      format of the slow5 file
  * @return              slow5 file structure
  */
@@ -295,8 +329,26 @@ struct slow5_file *slow5_open_with(const char *pathname, const char *mode, enum 
         return NULL;
     }
 
-    if (strcmp(mode, "r") != 0) {
-        SLOW5_WARNING("Currently, the only supported mode is 'r'. You entered '%s'.", mode);
+    else if (strcmp(mode, "w") == 0){
+        struct slow5_file *s5p = slow5_open_write(pathname);
+        if(s5p) {
+            s5p->meta.mode = mode;
+        } else{
+            SLOW5_EXIT_IF_ON_ERR();
+        }
+        return s5p;
+    }
+    else if (strcmp(mode, "a") == 0){
+        struct slow5_file *s5p = slow5_open_append(pathname, format);
+        if(s5p) {
+            s5p->meta.mode = mode;
+        } else {
+            SLOW5_EXIT_IF_ON_ERR();
+        }
+        return s5p;
+    }
+    else if (strcmp(mode, "r") != 0){
+        SLOW5_WARNING("Currently, the only supported modes are 'r', 'w' and 'a'. You entered '%s'.", mode);
     }
 
     FILE *fp = fopen(pathname, mode);
@@ -312,9 +364,133 @@ struct slow5_file *slow5_open_with(const char *pathname, const char *mode, enum 
             SLOW5_ERROR("Error closing file '%s': %s.", pathname, strerror(errno));
         }
         SLOW5_EXIT_IF_ON_ERR();
+    } else {
+        s5p->meta.mode = mode;
     }
 
     return s5p;
+}
+
+/* Creates an empty SLOW5 file with the given pathname,
+*  initialise SLOW5 file structure with space for a single read group
+*  errors
+* SLOW5_ERR_IO     The file could not be opened. See errno for details.
+* slow5_init_empty errors
+* slow5_aux_meta_init_empty errors
+* slow5_press_init errors
+*/
+static inline slow5_file_t *slow5_open_write(const char *filename){
+
+    FILE *fp = fopen(filename, "w");
+    if(fp==NULL){
+        SLOW5_ERROR("Error opening file '%s': %s.", filename, strerror(errno));
+        slow5_errno = SLOW5_ERR_IO;
+        return NULL;
+    }
+
+    slow5_file_t *s5p = slow5_init_empty(fp, filename, SLOW5_FORMAT_UNKNOWN);
+    if(!s5p){
+        SLOW5_ERROR("Error initialising an empty SLOW5 file '%s'",filename);
+        fclose(fp);
+        return NULL;
+    }
+
+    slow5_hdr_t *header=s5p->header;
+    if (slow5_hdr_add_rg(header) < 0){ //todo error handling down the chain
+        SLOW5_ERROR("Error adding read group 0 for %s",filename);
+        slow5_close(s5p);
+        return NULL;
+    }
+    header->num_read_groups = 1;
+
+    struct slow5_aux_meta *aux_meta = slow5_aux_meta_init_empty();
+    if(!aux_meta){
+        SLOW5_ERROR("Error initializing aux meta for %s",filename);
+        slow5_close(s5p);
+        return NULL;
+    }
+    header->aux_meta = aux_meta;
+
+    //this structure is only to be used in single threaded writes
+    if(s5p->format == SLOW5_FORMAT_BINARY){
+        slow5_press_method_t press_out = {SLOW5_COMPRESS_ZLIB, SLOW5_COMPRESS_SVB_ZD};
+        s5p->compress = slow5_press_init(press_out);
+        if(!s5p->compress){
+            SLOW5_ERROR("Could not initialise the slow5 compression method. %s","");
+            slow5_close(s5p);
+            return NULL;
+        }
+    }
+
+    return s5p;
+}
+
+/* Opens a SLOW5 file with the given pathname for appending,
+*  populates the SLOW5 file structure and set file pointer to the end of the file
+*  errors
+* SLOW5_ERR_IO     The file could not be opened or fseek failed. See errno for details.
+* SLOW5_ERR_TRUNC  EOF marker not present
+* SLOW5_ERR_UNK    Unknown file format (not .slow5 or .blow5 extension)
+* slow5_init errors
+* slow5_is_eof errors
+*/
+static inline slow5_file_t *slow5_open_append(const char *filename, enum slow5_fmt format){
+
+    FILE *fp = fopen(filename, "r+");
+    if (!fp) {
+        SLOW5_ERROR("Error opening file '%s': %s.", filename, strerror(errno));
+        slow5_errno = SLOW5_ERR_IO;
+        return NULL;
+    }
+
+    struct slow5_file *s5p = slow5_init(fp, filename, format);
+    if (!s5p) {
+        if (fclose(fp) == EOF) {
+            SLOW5_ERROR("Error closing file '%s': %s.", filename, strerror(errno));
+        }
+        return NULL;
+    }
+
+    if(s5p->format==SLOW5_FORMAT_BINARY){
+        if(fseek(s5p->fp , 0, SEEK_END) !=0 ){
+            SLOW5_ERROR("Fseek to the end of file (SEEK_END) failed '%s': %s.", filename, strerror(errno));
+            slow5_errno = SLOW5_ERR_IO;
+            slow5_close(s5p);
+            return NULL;
+        }
+        const char eof[] = SLOW5_BINARY_EOF;
+        if(slow5_is_eof(s5p->fp, eof, sizeof eof)!=1){
+            SLOW5_ERROR("No valid slow5 EOF marker at the end of the SLOW5 file %s.",filename);
+            slow5_close(s5p);
+            return NULL;
+        }
+    }
+
+    if(s5p->format==SLOW5_FORMAT_BINARY){
+        const char eof[] = SLOW5_BINARY_EOF;
+        if(fseek(s5p->fp, - (sizeof *eof) * (sizeof eof) , SEEK_END) != 0){
+            SLOW5_ERROR("Fseek to the end of file (SEEK_END-eof_marker_size) failed '%s': %s.", filename, strerror(errno));
+            slow5_errno = SLOW5_ERR_IO;
+            slow5_close(s5p);
+            return NULL;
+        }
+    } else if (s5p->format==SLOW5_FORMAT_ASCII){
+        if(fseek(s5p->fp, 0 , SEEK_END) != 0){
+            SLOW5_ERROR("Fseek to the end of file failed '%s': %s.", filename, strerror(errno));
+            slow5_errno = SLOW5_ERR_IO;
+            slow5_close(s5p);
+            return NULL;
+        }
+    } else {
+        SLOW5_ERROR("Unknown slow5 format for file '%s'. Extension must be '%s' or '%s'.",
+                filename, SLOW5_ASCII_EXTENSION, SLOW5_BINARY_EXTENSION);
+        slow5_errno = SLOW5_ERR_UNK;
+        slow5_close(s5p);
+        return NULL;
+    }
+
+    return s5p;
+
 }
 
 /* Close a slow5 file and free its memory.
@@ -336,8 +512,20 @@ int slow5_close(struct slow5_file *s5p) {
     if (!s5p) {
         ret = EOF;
     } else {
+
+        if(s5p->meta.mode && (strcmp(s5p->meta.mode, "w") == 0 || strcmp(s5p->meta.mode, "a") == 0)){
+            if(s5p->format == SLOW5_FORMAT_BINARY){
+                SLOW5_LOG_DEBUG("Writing EOF marker to file '%s'", s5p->meta.pathname);
+                if(slow5_eof_fwrite(s5p->fp) < 0){
+                    SLOW5_ERROR_EXIT("%s","Error writing EOF!\n");
+                    slow5_errno = SLOW5_ERR_IO;
+                    ret = EOF;
+                }
+            }
+        }
+
         if (fclose(s5p->fp) == EOF) {
-            SLOW5_ERROR("Error closing slow5 file '%s': %s.", s5p->meta.pathname, strerror(errno));
+            SLOW5_ERROR("Error closing slow5 file '%s': %s.", s5p->meta.pathname, strerror(errno)); //not critical - so do not call exit
             slow5_errno = SLOW5_ERR_IO;
             ret = EOF;
         }
@@ -374,13 +562,55 @@ static inline void slow5_free(struct slow5_file *s5p) {
     }
 }
 
+int slow5_set_press(slow5_file_t *s5p, enum slow5_press_method rec_press, enum slow5_press_method sig_press){
+
+    if(s5p==NULL){
+        SLOW5_ERROR_EXIT("Argument '%s' cannot be NULL.", SLOW5_TO_STR(s5p));
+        slow5_errno = SLOW5_ERR_ARG;
+        return -1;
+    }
+    //only works in binary mode and opened in 'w' mode
+    if(!(s5p->meta.mode && strcmp(s5p->meta.mode,"w")==0)){
+        SLOW5_ERROR_EXIT("%s","File must have been opened for writing.");
+        slow5_errno = SLOW5_ERR_ARG;
+        return -1;
+    }
+
+    if(!(s5p->format == SLOW5_FORMAT_BINARY)){
+        SLOW5_ERROR_EXIT("%s","File should be in binary format (blow5).");
+        slow5_errno = SLOW5_ERR_ARG;
+        return -1;
+    }
+
+
+    //free the existing press if any
+    slow5_press_free(s5p->compress);
+
+    //this structure is only to be used in single threaded writes
+    if(s5p->format == SLOW5_FORMAT_BINARY){
+        slow5_press_method_t press_out = {rec_press,sig_press};
+        s5p->compress = slow5_press_init(press_out);
+        if(!s5p->compress){
+            slow5_errno = SLOW5_ERR_PRESS;
+            SLOW5_ERROR_EXIT("Could not initialise the slow5 compression method. %s","");
+            return -1;
+        }
+    }
+
+    return 0;
+
+}
 
 // slow5 header
 
 struct slow5_hdr *slow5_hdr_init_empty(void) {
 
     struct slow5_hdr *header = (struct slow5_hdr *) calloc(1, sizeof *(header));
-    SLOW5_MALLOC_CHK(header);
+    if (!header) {
+        SLOW5_MALLOC_ERROR();
+        slow5_errno = SLOW5_ERR_MEM;
+        return NULL;
+    }
 
     return header;
 }
@@ -1102,6 +1332,19 @@ int slow5_hdr_fwrite(FILE *fp, struct slow5_hdr *header, enum slow5_fmt format, 
     return ret;
 }
 
+
+int slow5_hdr_write(slow5_file_t *s5p){
+
+    slow5_press_method_t method={SLOW5_COMPRESS_NONE,SLOW5_COMPRESS_NONE};
+    if (s5p->format == SLOW5_FORMAT_BINARY){
+        method.record_method = s5p->compress->record_press->method;
+        method.signal_method = s5p->compress->signal_press->method;
+    }
+    int ret = slow5_hdr_fwrite(s5p->fp, s5p->header, s5p->format, method);
+    return ret;
+}
+
+
 /**
  * Get a header data map.
  *
@@ -1275,6 +1518,16 @@ int slow5_hdr_add_attr(const char *attr, struct slow5_hdr *header) {
     }
 
     return 0;
+}
+
+
+/*
+ * Add a new header data attribute.
+ *
+ * slow5_hdr_add is the wrapper to slow5_hdr_add_attr which exposed to public
+ */
+int slow5_hdr_add(const char *attr, slow5_hdr_t *header){
+    return slow5_hdr_add_attr(attr, header);
 }
 
 /**
@@ -1529,15 +1782,26 @@ int slow5_hdr_data_init(FILE *fp, char **bufp, size_t *cap, struct slow5_hdr *he
 
 struct slow5_aux_meta *slow5_aux_meta_init_empty(void) {
     struct slow5_aux_meta *aux_meta = (struct slow5_aux_meta *) calloc(1, sizeof *aux_meta);
-    SLOW5_MALLOC_CHK(aux_meta);
+    if(!aux_meta){
+        SLOW5_MALLOC_ERROR()
+        slow5_errno = SLOW5_ERR_MEM;
+        return NULL;
+    }
 
     aux_meta->cap = SLOW5_AUX_META_CAP_INIT;
     aux_meta->attrs = (char **) malloc(aux_meta->cap * sizeof *(aux_meta->attrs));
-    SLOW5_MALLOC_CHK(aux_meta->attrs);
     aux_meta->types = (enum slow5_aux_type *) malloc(aux_meta->cap * sizeof *(aux_meta->types));
-    SLOW5_MALLOC_CHK(aux_meta->types);
     aux_meta->sizes = (uint8_t *) malloc(aux_meta->cap * sizeof *(aux_meta->sizes));
-    SLOW5_MALLOC_CHK(aux_meta->sizes);
+
+    if(!aux_meta->attrs || !aux_meta->types || !aux_meta->sizes) {
+        SLOW5_MALLOC_ERROR()
+        slow5_errno = SLOW5_ERR_MEM;
+        free(aux_meta->attrs);
+        free(aux_meta->types);
+        free(aux_meta->sizes);
+        free(aux_meta);
+        return NULL;
+    }
 
     return aux_meta;
 }
@@ -1943,6 +2207,12 @@ int slow5_aux_meta_add(struct slow5_aux_meta *aux_meta, const char *attr, enum s
     return 0;
 }
 
+int slow5_aux_add(const char *field, enum slow5_aux_type type, slow5_hdr_t *header){
+    int ret = slow5_aux_meta_add(header->aux_meta, field, type);
+    return ret;
+}
+
+
 // Return
 // 0    success
 // -1   null input
@@ -2258,7 +2528,6 @@ int slow5_get(const char *read_id, struct slow5_rec **read, struct slow5_file *s
 }
 
 
-
 //gets the list of read ids from the SLOW5 index
 //the list of read is is a pointer and must not be freed by user
 //*len will have the number of read ids
@@ -2325,6 +2594,10 @@ int slow5_rec_depress_parse(char **mem, size_t *bytes, const char *read_id, stru
     }
 
     return 0;
+}
+
+int slow_decode(void **mem, size_t *bytes, slow5_rec_t **read, slow5_file_t *s5p){
+    return slow5_rec_depress_parse((char **)mem, bytes, NULL, read, s5p);
 }
 
 /*
@@ -2601,7 +2874,7 @@ int slow5_rec_parse(char *read_mem, size_t read_size, const char *read_id, struc
                         size = read->len_raw_signal;
                     }
                     if (read->raw_signal == NULL) {
-                        read->raw_signal = (int16_t *) malloc(size);
+                        read->raw_signal = (int16_t *) malloc(size+16);
                         SLOW5_MALLOC_CHK(read->raw_signal);
                         if (read->raw_signal == NULL) {
                             read->len_raw_signal = 0;
@@ -2609,7 +2882,7 @@ int slow5_rec_parse(char *read_mem, size_t read_size, const char *read_id, struc
                             break;
                         }
                     } else if (prev_len_raw_signal < read->len_raw_signal) {
-                        int16_t *raw_signal_tmp = (int16_t *) realloc(read->raw_signal, size);
+                        int16_t *raw_signal_tmp = (int16_t *) realloc(read->raw_signal, size+16);
                         SLOW5_MALLOC_CHK(raw_signal_tmp);
                         if (raw_signal_tmp == NULL) {
                             read->len_raw_signal = prev_len_raw_signal;
@@ -3000,6 +3273,16 @@ void *slow5_get_next_mem(size_t *n, const struct slow5_file *s5p) {
         return NULL;
 }
 
+
+int slow5_get_next_bytes(void **mem, size_t *bytes, slow5_file_t *s5p){
+    *mem = slow5_get_next_mem(bytes, s5p);
+    if (*mem == NULL) {
+        return -1;
+    } else {
+        return 0;
+    }
+}
+
 /**
  * Get the read entry under the current file pointer of a slow5 file.
  *
@@ -3096,6 +3379,13 @@ int slow5_rec_set(struct slow5_rec *read, struct slow5_aux_meta *aux_meta, const
     return 0;
 }
 
+
+int slow5_aux_set(slow5_rec_t *read, const char *field, const void *data, slow5_hdr_t *header){
+    int ret = slow5_rec_set(read, header->aux_meta, field, data);
+    return ret;
+}
+
+
 // For array types
 // Return
 // 0    success
@@ -3141,6 +3431,11 @@ int slow5_rec_set_array(struct slow5_rec *read, struct slow5_aux_meta *aux_meta,
     slow5_rec_set_aux_map(read->aux_map, attr, data_cast, len, aux_meta->sizes[i] * len, aux_meta->types[i]);
 
     return 0;
+}
+
+int slow5_aux_set_string(slow5_rec_t *read, const char *field, const char *data, slow5_hdr_t *header) {
+    int ret = slow5_rec_set_string(read, header->aux_meta, field, data);
+    return ret;
 }
 
 static inline void slow5_rec_set_aux_map(khash_t(slow5_s2a) *aux_map, const char *attr, const uint8_t *data, size_t len, uint64_t bytes, enum slow5_aux_type type) {
@@ -3462,6 +3757,23 @@ int slow5_rec_fwrite(FILE *fp, struct slow5_rec *read, struct slow5_aux_meta *au
     return ret;
 }
 
+int slow5_write_bytes(void *mem, size_t bytes, slow5_file_t *s5p){
+    size_t n = fwrite(mem, bytes, 1, s5p->fp);
+    int ret;
+    if (n != 1) {
+        ret = -1;
+    } else {
+        ret = 0; // TODO is this okay
+    }
+    return ret;
+}
+
+int slow5_write(slow5_rec_t *rec, slow5_file_t *s5p){
+    int ret = slow5_rec_fwrite(s5p->fp, rec, s5p->header->aux_meta, s5p->format, s5p->compress);
+    return ret;
+}
+
+
 /**
  * Get the read entry in the specified format.
  *
@@ -3733,6 +4045,36 @@ void *slow5_rec_to_mem(struct slow5_rec *read, struct slow5_aux_meta *aux_meta, 
     }
 
     return (void *) mem;
+}
+
+int slow5_encode(void **mem, size_t *bytes, slow5_rec_t *read, slow5_file_t *s5p){
+
+    slow5_press_t *press_ptr = NULL;
+
+    if(s5p->compress){
+
+        //todo - check error
+        //assert(sf->compress->record_press!=NULL);
+        //assert(sf->compress->signal_press!=NULL);
+
+        slow5_press_method_t press_out = {s5p->compress->record_press->method, s5p->compress->signal_press->method};
+        press_ptr = slow5_press_init(press_out);
+        if(!press_ptr){
+            SLOW5_ERROR("Could not initialize the slow5 compression method%s","");
+            return -1;
+        }
+    }
+
+    *mem = slow5_rec_to_mem(read, s5p->header->aux_meta, s5p->format, press_ptr, bytes);
+    slow5_press_free(press_ptr);
+
+    if(*mem == NULL){
+        SLOW5_ERROR("Could not encode the slow5 record%s","");
+        return -1;
+    }
+
+    return 0;
+
 }
 
 /*

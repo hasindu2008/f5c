@@ -77,6 +77,8 @@ pyslow5.egg-info/
 docs/doxygen
 examples/xample.slow5.idx
 /.eggs
+a.out
+/test.c
 
 # testing output
 *actual*

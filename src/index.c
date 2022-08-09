@@ -73,6 +73,7 @@ static const char *INDEX_USAGE_MESSAGE =
 "  -t INT            number of threads used for bgzf compression (makes indexing faster)\n"
 "  --iop INT         number of I/O processes to read fast5 files (makes fast5 indexing faster)\n"
 "  --slow5 FILE      slow5 file containing raw signals\n"
+"  --skip-slow5-idx  do not build the .idx for the slow5 file (useful when a slow5 index is already available)\n"
 "  --verbose INT     verbosity level\n"
 "  --version         print version\n"
 "\nSee the manual page for details (`man ./docs/f5c.1' or https://f5c.page.link/man)."
@@ -89,6 +90,7 @@ namespace opt
     int iop = 1;
     int threads = 4;
     char *slow5file = NULL;
+    bool skip_slow5_idx = false;
 }
 //static std::ostream* os_p;
 
@@ -262,7 +264,8 @@ static const struct option longopts[] = {
     { "summary-fofn",              required_argument, NULL, 'f' },          //5
     { "iop",                       required_argument, NULL, 0},             //6
     { "threads",                   required_argument, NULL, 't'},           //7
-    { "slow5",                   required_argument, NULL, 0},           //8
+    { "slow5",                     required_argument, NULL, 0},           //8
+    { "skip-slow5-idx",            no_argument,       NULL, 0},           //9
     { NULL, 0, NULL, 0 }
 };
 
@@ -303,6 +306,9 @@ void parse_index_options(int argc, char** argv)
                 if (longindex == 8) {
                     opt::slow5file = optarg;
                 }
+                if (longindex == 9) {
+                    opt::skip_slow5_idx = true;
+                }
                 break;
         }
     }
@@ -331,6 +337,9 @@ void parse_index_options(int argc, char** argv)
             if(!opt::sequencing_summary_files.empty()){
                 WARNING("%s","--iop is incompatible with sequencing summary files. Option --sequencing-summary-file will be ignored");
             }
+        }
+        if(opt::skip_slow5_idx){
+            WARNING("%s","--skip-slow5-idx is only useful with --slow5. Option ignored");
         }
         // else {
         //     if(opt::sequencing_summary_fofn.empty() && opt::sequencing_summary_files.empty()){
@@ -711,14 +720,16 @@ int index_main(int argc, char** argv)
             ERROR("Error in opening slowfile %s",opt::slow5file);
             exit(EXIT_FAILURE);
         }
-        int ret=0;
-        ret = slow5_idx_create(sp);
-        if(ret<0){
-            ERROR("Error in creating index for slow5 file %s\n",opt::slow5file);
-            exit(EXIT_FAILURE);
+        if(!opt::skip_slow5_idx){
+            int ret=0;
+            ret = slow5_idx_create(sp);
+            if(ret<0){
+                ERROR("Error in creating index for slow5 file %s\n",opt::slow5file);
+                exit(EXIT_FAILURE);
+            }
+            if(opt::verbose > 0) fprintf(stderr, "[%s] Slow5 index built - took %.3fs\n", __func__, realtime() - realtime0);
         }
         slow5_close(sp);
-        if(opt::verbose > 0) fprintf(stderr, "[%s] Slow5 index built - took %.3fs\n", __func__, realtime() - realtime0);
 
         realtime0 = realtime();
         ReadDB read_db;
