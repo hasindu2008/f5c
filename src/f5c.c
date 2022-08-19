@@ -569,10 +569,12 @@ void scaling_single(core_t* core, db_t* db, int32_t i){
     db->events_per_base[i] = 0; //todo : is double needed? not just int8?
 
     int32_t n_kmers = db->read_len[i] - core->kmer_size + 1;
-    db->base_to_event_map[i]=(index_pair_t*)(malloc(sizeof(index_pair_t) * n_kmers));
-    MALLOC_CHK(db->base_to_event_map[i]);
 
     if (db->n_event_align_pairs[i] > 0) {
+
+        db->base_to_event_map[i]=(index_pair_t*)(malloc(sizeof(index_pair_t) * n_kmers));
+        MALLOC_CHK(db->base_to_event_map[i]);
+
         // prepare data structures for the final calibration
 
         db->event_alignment[i] = (event_alignment_t*)malloc(
@@ -611,6 +613,7 @@ void scaling_single(core_t* core, db_t* db, int32_t i){
         free(db->event_alignment[i]);
 
     } else {
+        db->base_to_event_map[i] = NULL;
         // Could not align, fail this read
         // this->events[strand_idx].clear();
         // this->events_per_base[strand_idx] = 0.0f;
