@@ -329,39 +329,78 @@ void output_db_rsq(core_t* core, db_t* db, int8_t fmt) {
             index_pair_t *base_to_event_map = db->base_to_event_map[i];
             int32_t n_kmers = db->read_len[i] - core->kmer_size + 1;
             int64_t signal_start_point = -1;
+            int64_t signal_start_point2 = -1; //very first, to be printed later
             int64_t signal_end_point = -1;
+            int64_t signal_end_point2 = -1;
+            int64_t read_start = -1;
+            int64_t read_end = -1;
 
             kstring_t str;
             kstring_t *sp = &str;
             str_init(sp, db->read_len[i]*3);
             int64_t ci = 0; //current index
             int64_t mi = 0;
+            int64_t d = 0; //deletion count
+            int8_t ff = 1; //first start flag
+            int matches = 0;
+            int8_t rna = core->opt.flag & F5C_RNA;
 
-            for (int32_t j=0; j<n_kmers; j++){
+            if (rna){
+                for (int j = 0; j < n_kmers/2; ++j) {
+                    index_pair_t tmp= base_to_event_map[j];
+                    base_to_event_map[j]=base_to_event_map[n_kmers-1-j];
+                    base_to_event_map[n_kmers-1-j]=tmp;
+                }
+                for (int j = 0; j < n_kmers; ++j) {
+                    int32_t tmp = base_to_event_map[j].start;
+                    base_to_event_map[j].start = base_to_event_map[j].stop;
+                    base_to_event_map[j].stop = tmp;
+                }
+            }
+
+            for (int j=0;j<n_kmers; j++){
                 int32_t start_event_idx = base_to_event_map[j].start;
                 int32_t end_event_idx = base_to_event_map[j].stop;
                 if(start_event_idx == -1){ //deletion from ref
-                    assert(j!=0);
                     assert(end_event_idx == -1);
                     signal_start_point = signal_end_point = -1;
-                    sprintf_append(sp,"%dD,",1);
-                } else {
-                    assert(end_event_idx != -1);\
-                    signal_start_point = et.event[start_event_idx].start; //inclusive
-                    signal_end_point = et.event[end_event_idx].start + (int)et.event[end_event_idx].length; //non-inclusive
+                    if(!ff){
+                        assert(j!=0);
+                        d++;
+                    }
 
+                } else {
+                    assert(end_event_idx != -1);
+                    //assert(start_event_idx <= end_event_idx);
+
+                    signal_start_point = et.event[start_event_idx].start; //inclusive
+                    if(ff) {
+                        signal_start_point2 = signal_start_point;
+                        read_start = j;
+                        ff=0;
+                    }
+                    signal_end_point2=signal_end_point = et.event[end_event_idx].start + (int)et.event[end_event_idx].length; //non-inclusive
+                    read_end = j;
                     if(fmt){
+                        if(d>0){
+                            sprintf_append(sp,"%dD",d);
+                            d=0;
+                        }
                         if(j==0) ci = signal_start_point;
                         ci += (mi =  signal_start_point - ci);
-                        if(mi) sprintf_append(sp,"%dI,",(int)mi);
+                        if(mi) sprintf_append(sp,"%dI",(int)mi);
                         ci += (mi = signal_end_point-signal_start_point);
-                        if(mi) sprintf_append(sp,"%d,",(int)mi);
+
+                        if(mi) {
+                            matches++;
+                            sprintf_append(sp,"%d,",(int)mi);
+                        }
                     }
 
                 }
 
                 if(fmt==0){
-                    printf("%s\t%d\t",db->read_id[i], j);
+                    printf("%s\t%d\t",db->read_id[i], rna? n_kmers-j-1 : j);
                     if(signal_start_point<0){
                         printf(".\t");
                     } else {
@@ -370,29 +409,36 @@ void output_db_rsq(core_t* core, db_t* db, int8_t fmt) {
                     if(signal_end_point<0){
                         printf(".\t");
                     } else {
-                        printf("%ld\t", signal_end_point);
+                        printf("%ld", signal_end_point);
                     }
                     printf("\n");
+                    if(signal_start_point>=0 && signal_end_point>=0){
+                        if(signal_end_point<=signal_start_point){
+                            fprintf(stderr,"ERROR: signal_end_point(%ld)<=signal_start_point(%ld)\n",signal_end_point,signal_start_point);
+                            fprintf(stderr,"read_id=%s\tj=%d\tstartevent=%d\tendevent=%d\n",db->read_id[i],j,start_event_idx,end_event_idx);
+                            fprintf(stderr,"startevent.start=%ld\tstartevent.length=%f\tendevent.start=%ld\tendevent.length=%f\n",
+                                    et.event[start_event_idx].start,et.event[start_event_idx].length,et.event[end_event_idx].start,et.event[end_event_idx].length);
+                            exit(EXIT_FAILURE);
+                        }
+                    }
+
                 }
 
             }
 
-
             if(fmt==1){
 
                 assert(n_kmers>0);
-                str.s[str.l-1] = '\0'; //remove last comma
+                str.s[str.l] = '\0';
 
-                int32_t start_event_idx = base_to_event_map[0].start;
-                assert(start_event_idx>=0);
-                signal_start_point = et.event[start_event_idx].start;
-
+                assert(signal_start_point2!=-1);
+                assert(signal_end_point2!=-1);
                 //query: name, start, end, strand
-                printf("%s\t%ld\t%ld\t%ld\t+\t", db->read_id[i], (long)db->sig[i]->nsample,signal_start_point, signal_end_point);
+                printf("%s\t%ld\t%ld\t%ld\t+\t", db->read_id[i], (long)db->sig[i]->nsample,signal_start_point2, signal_end_point2);
                 //target: name, start, end
-                printf("%s\t%d\t%d\t%d\t", db->read_id[i], db->read_len[i],0, n_kmers);
+                printf("%s\t%d\t%ld\t%ld\t", db->read_id[i], n_kmers,rna?n_kmers-read_start:read_start, rna?n_kmers-1-read_end:read_end+1);
                 //residue matches, block len, mapq
-                printf("%d\t%d\t%d\t",0,0,255);
+                printf("%d\t%d\t%d\t",matches,n_kmers,255);
                 printf("sc:f:%f\t",db->scalings->scale);
                 printf("sh:f:%f\t",db->scalings->shift);
                 printf("ss:Z:%s\n",str.s);
