@@ -2,9 +2,9 @@
 
 f5c call-methylation, eventalign and meth-freq have the same output format as nanopolish and thus I have not put much effort to document those formats.
 
-## resqiiggle
+## resquiggle
 
-f5c resquiggle which is under development is explained below. Note that as this is under development, the output format is a draft and will change in the future versions. When it is stable, this notice will be removed.
+f5c resquiggle output is explained below. Note that resquiggle is under development, the output format is a draft and may change in the future versions. When it is stable, this notice will be removed.
 
 The default output is an intuitive TSV format with the following columns.
 
@@ -28,15 +28,17 @@ The query is the raw-signal and the target is the basecalled-read.
 |3  |int   |Raw signal start index  (0-based; BED-like; closed)   |
 |4  |int   |Raw signal end index (0-based; BED-like; open)       |
 |5  |char  |Relative strand: "+" or "-"               |
-|6  |string|Same as colum 1                     |
-|7  |int   |base-called sequence length                    |
-|8  |int   |start on basecalled sequence (0-based; BED-like; closed)  |
-|9  |int   |end on basecalled sequence (0-based; BED-like; open)   |
-|10 |int   |Number of residue matches                 |
-|11 |int   |Alignment block length                    |
+|6  |string|Same as column 1                     |
+|7  |int   |base-called sequence length (no. of k-mers)                   |
+|8  |int   |start on basecalled sequence (0-based; see note below)  |
+|9  |int   |end on basecalled sequence (0-based; see note below)   |
+|10 |int   |Number of k-mers matched on basecalled sequence                   |
+|11 |int   |Same as column 7                    |
 |12 |int   |Mapping quality (0-255; 255 for missing)  |
 
-10,11 and 12 are to be decided.
+For DNA reads, column 8 is a closed coordinate (inclusive) and column 9 is an open coordinate (not-inclusive); and, column 8 coordinate is always smaller than column 9. However, this is different in RNA reads because sequencing of direct-RNA happens in the reverse direction (3'->5') and therefore the raw signal is also in the reverse direction. The basecalled read output by basecallers are however in the correct direction (5'->3'). Thus, For RNA reads, column 8 coordinate will be larger than that on column 9. column 9 is a closed coordinate (inclusive) while column 8 is an open coordinate (not-inclusive) in this case, in contrary to DNA.
+
+10,11 and 12 are yet to be decided. column 12 is always 255 for now.
 
 Following optional tags are present:
 
@@ -50,7 +52,7 @@ Following optional tags are present:
 
 Consider the following example:
 
-8,5,4,8I4,3D4,5
+8,5,4,8I4,3D4,5,
 
 This means 8 signal samples map to the starting base of the sequence; the next 5 samples to the next base, the next 4 samples to the next base; 8 next samples are missing a mapping in the basecalled read (insertion to reference); 4 samples map to the next base; 3 bases in the basecalled read have no corresponding signal samples (deletion); 4 bases map to the next base; and 5 bases map to the next base.
 
