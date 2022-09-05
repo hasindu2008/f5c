@@ -81,6 +81,7 @@ The paf output will look like below:
 
 
 Now see the illustration below for RNA.
+
 <img width="500" alt="image" src="https://user-images.githubusercontent.com/12987163/188426236-ac5f4fdb-cfb2-4457-904c-55cd79b04982.png">
 
 Note that the RNA is sequenced 3'->5' end, so the raw signal is 3'->5' direction. As the basecaller outputs the basecalled read in 5'->3' direction, the basecalled read is reversed to be 3'->5' and but the indices denote the actual index in the basecalled read. If the basecalled read is `ACGGUAACUAUACG` and assuming the k-mer size in the model is 5, the 0th k-mer is `AUACG`, 1st k-mer is `UAUAC` ... and the 9th k-mer is `ACGGU`.
@@ -107,12 +108,19 @@ The paf output will look like below:
 A C code snippet that converts the value in the ss tag (a readable code which is not optimised) is given below:
 
 ```C
-    char *ss="2,3,2,2I1,2D2,3,";
+#include <stdio.h>
+#include <stdlib.h>
+#include <ctype.h>
 
+#define MAX_LEN_KMER 20000
+
+int main(){
+
+    //paf fields
+    char *ss="2,3,2,2I1,2D2,3,";
     int start_raw=2;
     int end_raw=17;
     int len_raw_signal=20;
-
     int start_kmer=0;
     int end_kmer=8;
     int len_kmer=8;
@@ -198,5 +206,8 @@ A C code snippet that converts the value in the ss tag (a readable code which is
             printf("%d\t%d\t%d\n", rna ? len_kmer-i-1 : i, end_raw_idx[i], st_raw_idx[i]);
         }
     }
+
+    return 0;
+}
 
 ```
