@@ -141,11 +141,6 @@ core_t* init_core_rsq(opt_t opt, const char *slow5file, double realtime0) {
     }
     core->kmer_size = kmer_size;
 
-
-
-
-
-
     //realtime0
     core->realtime0=realtime0;
 
@@ -282,7 +277,6 @@ void free_db_tmp_rsq(db_t* db) {
 }
 
 
-
 //high similarity with f5c.c - can be modularised
 void process_db_rsq(core_t* core, db_t* db) {
 
@@ -404,20 +398,18 @@ void output_db_rsq(core_t* core, db_t* db, int8_t fmt) {
                     if(signal_start_point<0){
                         printf(".\t");
                     } else {
-                        printf("%ld\t", signal_start_point);
+                        printf("%ld\t", (long)signal_start_point);
                     }
                     if(signal_end_point<0){
                         printf(".\t");
                     } else {
-                        printf("%ld", signal_end_point);
+                        printf("%ld", (long)signal_end_point);
                     }
                     printf("\n");
                     if(signal_start_point>=0 && signal_end_point>=0){
                         if(signal_end_point<=signal_start_point){
                             fprintf(stderr,"ERROR: signal_end_point(%ld)<=signal_start_point(%ld)\n",signal_end_point,signal_start_point);
                             fprintf(stderr,"read_id=%s\tj=%d\tstartevent=%d\tendevent=%d\n",db->read_id[i],j,start_event_idx,end_event_idx);
-                            fprintf(stderr,"startevent.start=%ld\tstartevent.length=%f\tendevent.start=%ld\tendevent.length=%f\n",
-                                    et.event[start_event_idx].start,et.event[start_event_idx].length,et.event[end_event_idx].start,et.event[end_event_idx].length);
                             exit(EXIT_FAILURE);
                         }
                     }
@@ -434,9 +426,9 @@ void output_db_rsq(core_t* core, db_t* db, int8_t fmt) {
                 assert(signal_start_point2!=-1);
                 assert(signal_end_point2!=-1);
                 //query: name, start, end, strand
-                printf("%s\t%ld\t%ld\t%ld\t+\t", db->read_id[i], (long)db->sig[i]->nsample,signal_start_point2, signal_end_point2);
+                printf("%s\t%ld\t%ld\t%ld\t+\t", db->read_id[i], (long)db->sig[i]->nsample,(long)signal_start_point2, (long)signal_end_point2);
                 //target: name, start, end
-                printf("%s\t%d\t%ld\t%ld\t", db->read_id[i], n_kmers,rna?n_kmers-read_start:read_start, rna?n_kmers-1-read_end:read_end+1);
+                printf("%s\t%d\t%ld\t%ld\t", db->read_id[i], n_kmers,(long)(rna?n_kmers-read_start:read_start), (long)(rna?n_kmers-1-read_end:read_end+1));
                 //residue matches, block len, mapq
                 printf("%d\t%d\t%d\t",matches,n_kmers,255);
                 printf("sc:f:%f\t",db->scalings->scale);
@@ -513,9 +505,7 @@ static void read_slow5_single(core_t* core, db_t* db, int i){
         slow5_rec_free(record);
     }
 
-
 }
-
 
 ret_status_t load_db_rsq(core_t* core, db_t* db, gzFile fp, kseq_t *seq) {
 
@@ -560,7 +550,6 @@ ret_status_t load_db_rsq(core_t* core, db_t* db, gzFile fp, kseq_t *seq) {
     }
 
     core->db_fasta_time += realtime() - t;
-
 
     db->n_bam_rec = i;
     status.num_reads = i;
@@ -705,7 +694,6 @@ int resquiggle_main(int argc, char **argv) {
         ERROR("%s","Failed to init kseq");
         exit(EXIT_FAILURE);
     }
-
 
     WARNING("%s","f5c resquiggle is experimental. Use with caution. Report any bugs under GitHub issues.");
 
