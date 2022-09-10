@@ -23,6 +23,8 @@ docs:
         url:    /docs/commands
       - title:  Examples
         url:    /docs/example-usage
+      - title:  Output
+        url:    /docs/output        
       - title:  Performance guidelines
         url:    /docs/f5c-perf-hints      
       - title:  Profiles

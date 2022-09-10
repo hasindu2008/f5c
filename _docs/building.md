@@ -11,7 +11,7 @@ git clone https://github.com/hasindu2008/f5c && cd f5c
 Alternatively, download the [latest release](https://github.com/hasindu2008/f5c/releases) tarball and extract.
 eg :
 ```sh
-VERSION=v1.0
+VERSION=v1.1
 wget "https://github.com/hasindu2008/f5c/releases/download/$VERSION/f5c-$VERSION-release.tar.gz" && tar xvf f5c-$VERSION-release.tar.gz && cd f5c-$VERSION/
 ```
 

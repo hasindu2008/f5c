@@ -2,7 +2,7 @@
 
 ## resquiggle
 
-f5c resquiggle output is explained below. Note that resquiggle is under development, the output format is a draft and may change in the future versions. When it is stable, this notice will be removed.
+f5c resquiggle aligns raw signals to basecalled reads. f5c resquiggle output is explained below. Note that resquiggle is under development, the output format is a draft and may change in the future versions. When it is stable, this notice will be removed.
 
 The default output is an intuitive TSV format with the following columns.
 
@@ -42,16 +42,18 @@ Following optional tags are present:
 |Tag|Type  |Description                               |
 |--:|:----:|:-----------------------------------------|
 |sc  |f| Post alignment recalibrated scale parameter                     |
-|sh  |f   |Post alignment reclibrated shift parameter                      |
+|sh  |f   |Post alignment recalibrated shift parameter                      |
 |ss  |Z   |signal alignment string in format described below   |
 
 *ss* string is a custom encoding that compacts the signal-base alignment. It can be thought of as an extended version CIGAR string that accommodates for signal alignment needs. This *ss* string was inspired by the --sam option in Nanopolish for eventalign.
 
-Consider the example `8,5,4,8I4,3D4,5,` for DNA. This means 8 signal samples map to the starting base of the sequence; the next 5 samples to the next base, the next 4 samples to the next base; 8 next samples are missing a mapping in the basecalled read (insertion to reference); 4 samples map to the next base; 3 bases in the basecalled read have no corresponding signal samples (deletion); 4 bases map to the next base; and 5 bases map to the next base. Note that the start indexes of read and signal are the absolute values in columns 8 and 3 above. the ss string is relative to this. The `,` after a number means step one base in the basecall reference, while step number of samples preceding the `,` in the raw signal.
+Consider the example `8,5,4,8I4,3D4,5,` for DNA. This means 8 signal samples map to the starting base of the sequence; the next 5 samples to the next base, the next 4 samples to the next base; 8 next samples are missing a mapping in the basecalled read (insertion to reference); 4 samples map to the next base; 3 bases in the basecalled read have no corresponding signal samples (deletion); 4 bases map to the next base; and 5 bases map to the next base. Note that the start indexes of read and signal are the absolute values in columns 8 and 3 above. the *ss* string is relative to this.
+
+The `,`, `D` and `I` can be though of as three different operations. The `,` after a number means step one base in the basecall reference, while step number of samples preceding the `,` in the raw signal. The `D` after a number means step number of bases preceding the `D` in the basecalled read and no stepping in the raw signal. The `I` after a number means step number of samples preceding the `I` in the raw signal and no stepping in the basecalled read.
 
 To make things further clear, given below is an illustration for an alignment of DNA raw-signal to a basecalled read.
 
-<img width="750" alt="image" src="https://user-images.githubusercontent.com/12987163/188426287-3da88fb7-7258-4919-94a7-29091532d91f.png">
+<img width="750" alt="image" src="../img/rsq-alignment-dna.png">
 
 Each dot in the top sequence in the illustration represent a k-mer and the number above each dot is the corresponding k-mer index. If the basecalled read is `ACGGTAACTATACGT` and assuming the k-mer size in the k-mer model is 6, the 0th k-mer is `ACGGTA`, 1st k-mer is `CGGTAA` ... and the 9th k-mer is `ATACGT`.
 Each dot in the bottom sequence in the illustration represent a raw-signal sample and the number below each dot is the corresponding signal index.
@@ -69,7 +71,7 @@ The tsv output from resquiggle will look like below:
 |rid0   |  6     |     12      |     14    |
 |rid0   |  7     |     14      |     17    |
 
-The paf output from rsquiggle will look like below (the header is not present in the actual output):
+The paf output from resquiggle will look like below (the header is not present in the actual output):
 
 |read_id|len_raw_signal|start_raw|end_raw|strand|read_id|len_kmer|start_kmer|end_kmer|matches|len_kmer|mapq| |
 |--:|----:|----:|--------:|--:|----:|----:|--------:|--:|----:|----:|--------:|--:|
@@ -77,9 +79,9 @@ The paf output from rsquiggle will look like below (the header is not present in
 
 Now see the illustration below for direct-RNA.
 
-<img width="750" alt="image" src="https://user-images.githubusercontent.com/12987163/188426236-ac5f4fdb-cfb2-4457-904c-55cd79b04982.png">
+<img width="750" alt="image" src="../img/rsq-alignment-dna.png">
 
-Note that the RNA is sequenced 3'->5' end, so the raw signal is 3'->5' direction. As the basecaller outputs the basecalled read in 5'->3' direction, the basecalled read is reversed to be 3'->5' in the illustration (note: indices in iullustration denote the actual index in the basecalled read). If the basecalled read is `ACGGUAACUAUACG` and assuming the k-mer size in the k-mer model is 5, the 0th k-mer is `AUACG`, 1st k-mer is `UAUAC` ... and the 9th k-mer is `ACGGU`.
+Note that the RNA is sequenced 3'->5' end, so the raw signal is 3'->5' direction. As the basecaller outputs the basecalled read in 5'->3' direction, the basecalled read is reversed to be 3'->5' in the illustration (note: indices in illustration denote the actual index in the basecalled read). If the basecalled read is `ACGGUAACUAUACG` and assuming the k-mer size in the k-mer model is 5, the 0th k-mer is `AUACG`, 1st k-mer is `UAUAC` ... and the 9th k-mer is `ACGGU`.
 
 The tsv output will look like below:
 |read_id|kmer_idx|start_raw_idx|end_raw_idx|
@@ -169,6 +171,8 @@ int main(){
 }
 
 ```
+
+Note that the beginning of the alignment could be crude due to the adaptor and barcode in the raw signal. In future versions, an option for this trimming may be introduced. Until then, if there is an huge step in the alignment in the beginning, that part could be trimmed by the user.
 
 # call-methylation
 
