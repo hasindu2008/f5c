@@ -4,6 +4,8 @@ title: Output
 
 ## resquiggle
 
+<img width="750" alt="image" src="../img/rsq.png">
+
 f5c resquiggle aligns raw signals to basecalled reads. f5c resquiggle output is explained below. Note that resquiggle is under development, the output format is a draft and may change in the future versions. When it is stable, this notice will be removed.
 
 The default output is an intuitive TSV format with the following columns.
@@ -105,7 +107,7 @@ The paf output will look like below:
 
 A C code snippet that converts the value in the ss tag (a readable code which is not optimised) is given below:
 
-```C
+```c
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
@@ -119,7 +121,7 @@ int main(){
     int start_raw=2; int end_raw=17; int len_raw_signal=20;
     int start_kmer=0; int end_kmer=8; int len_kmer=8;
 
- // Raw signal start index for the corresponding k-mer and Raw signal end index for the corresponding k-mer
+    // Raw signal start index for the corresponding k-mer and Raw signal end index for the corresponding k-mer
     int st_raw_idx[MAX_LEN_KMER]; int end_raw_idx[MAX_LEN_KMER];
 
     //intialise to -1
