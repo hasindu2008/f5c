@@ -88,6 +88,7 @@ Now see the illustration below for direct-RNA.
 Note that the RNA is sequenced 3'->5' end, so the raw signal is 3'->5' direction. As the basecaller outputs the basecalled read in 5'->3' direction, the basecalled read is reversed to be 3'->5' in the illustration (note: indices in illustration denote the actual index in the basecalled read). If the basecalled read is `ACGGUAACUAUACG` and assuming the k-mer size in the k-mer model is 5, the 0th k-mer is `AUACG`, 1st k-mer is `UAUAC` ... and the 9th k-mer is `ACGGU`.
 
 The tsv output will look like below:
+
 |read_id|kmer_idx|start_raw_idx|end_raw_idx|
 |--:|----:|----:|------------------------:|
 |rid0   |  7     |      2      |      4    |
