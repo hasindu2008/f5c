@@ -16,6 +16,23 @@ First, the reads have to be indexed using `f5c index`. Then, invoke `f5c call-me
 [![AARCH64](https://www.travis-ci.com/hasindu2008/f5c.svg?branch=master)](https://www.travis-ci.com/hasindu2008/f5c)
 [![CodeFactor](https://www.codefactor.io/repository/github/hasindu2008/f5c/badge/master)](https://www.codefactor.io/repository/github/hasindu2008/f5c/overview/master)
 
+Please cite the following when using *f5c* in your publications:
+
+> Gamaarachchi, H., Lam, C.W., Jayatilaka, G. et al. GPU accelerated adaptive banded event alignment for rapid comparative nanopore signal analysis. BMC Bioinformatics 21, 343 (2020). https://doi.org/10.1186/s12859-020-03697-x
+
+```
+@article{gamaarachchi2020gpu,
+  title={GPU accelerated adaptive banded event alignment for rapid comparative nanopore signal analysis},
+  author={Gamaarachchi, Hasindu and Lam, Chun Wai and Jayatilaka, Gihan and Samarakoon, Hiruna and Simpson, Jared T and Smith, Martin A and Parameswaran, Sri},
+  journal={BMC bioinformatics},
+  volume={21},
+  number={1},
+  pages={1--13},
+  year={2020},
+  publisher={BioMed Central}
+}
+```
+
 ## Quick start
 
 If you are a Linux user and want to quickly try out download the compiled binaries from the [latest release](https://github.com/hasindu2008/f5c/releases). For example:
