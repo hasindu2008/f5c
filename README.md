@@ -9,6 +9,7 @@ First, the reads have to be indexed using `f5c index`. Then, invoke `f5c call-me
 *Pre-print* : [https://doi.org/10.1101/756122](https://www.biorxiv.org/content/10.1101/756122v1)<br/>
 *Publication* : [https://doi.org/10.1186/s12859-020-03697-x](https://bmcbioinformatics.biomedcentral.com/articles/10.1186/s12859-020-03697-x)<br/>
 *Supplementary*: [nanopore_signal_alignment_supplementary_material.pdf](https://hasindu2008.github.io/f5c/nanopore_signal_alignment_supplementary_material.pdf)<br/>
+*Talk Video* :[https://www.nvidia.com/en-us/on-demand/session/gtcspring21-s31391](https://www.nvidia.com/en-us/on-demand/session/gtcspring21-s31391]
 
 [![GitHub Downloads](https://img.shields.io/github/downloads/hasindu2008/f5c/total?logo=GitHub)](https://github.com/hasindu2008/f5c/releases)
 [![BioConda Install](https://img.shields.io/conda/dn/bioconda/f5c?label=BioConda)](https://anaconda.org/bioconda/f5c)
