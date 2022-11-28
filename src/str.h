@@ -21,6 +21,8 @@ typedef struct __kstring_t {
 #define kroundup32(x) (--(x), (x)|=(x)>>1, (x)|=(x)>>2, (x)|=(x)>>4, (x)|=(x)>>8, (x)|=(x)>>16, ++(x))
 #endif
 
+#define INIT_CAP_SPRINTF_BUFFER (10000)
+
 //from https://github.com/lh3/minimap2/blob/master/format.c
 static inline void str_enlarge(kstring_t *s, int l)
 {
@@ -55,19 +57,23 @@ static inline void str_cat(kstring_t *s, char *t, int t_l){
 static inline void sprintf_append(kstring_t *s, const char *fmt, ... ){
 
 	va_list ap;
-	char buffer[10000];
+	char buffer_static[INIT_CAP_SPRINTF_BUFFER];
+	char *buffer = buffer_static;
 
 	va_start(ap, fmt);
-	int len = vsnprintf(buffer,10000,fmt,ap);
+	int len = vsnprintf(buffer, INIT_CAP_SPRINTF_BUFFER, fmt, ap);
 	va_end(ap);
 
-	assert(len>=0);
-	if(len>=10000){
-		WARNING("Too long string got truncated: %s",buffer);
+	assert(len >= 0);
+	if (len >= INIT_CAP_SPRINTF_BUFFER) {
+		/*WARNING("Too long string got truncated: %s",buffer);*/
+		buffer = (char *) malloc(len * sizeof *buffer);
 	}
 
 	str_cat(s,buffer,len);
-
+	if (len >= INIT_CAP_SPRINTF_BUFFER) {
+		free(buffer);
+	}
 }
 
 static inline void str_copy(kstring_t *s, const char *st, const char *en)
