@@ -8,6 +8,8 @@ title: Output
 
 f5c resquiggle aligns raw signals to basecalled reads. f5c resquiggle output is explained below. Note that resquiggle is under development, the output format is a draft and may change in the future versions. When it is stable, this notice will be removed.
 
+### resquiggle tsv output format
+
 The default output is an intuitive TSV format with the following columns.
 
 |Col|Type  |Name            |Description                                                            |
@@ -19,7 +21,9 @@ The default output is an intuitive TSV format with the following columns.
 
 If a corresponding base has no corresponding signal samples, a `.` will be printed.
 
-The above output is bulky. Specifying `-c` will produce a condensed output in PAF-like format (inspired by [UNCALLED](https://github.com/skovaka/UNCALLED)) with the following columns:
+### resquiggle paf output format
+
+The above tsv output is bulky. Specifying `-c` will produce a condensed output in PAF-like format (inspired by [UNCALLED](https://github.com/skovaka/UNCALLED)) with the following columns:
 The query is the raw-signal and the target is the basecalled-read.
 
 |Col|Type  |Name |Description                               |
@@ -49,11 +53,15 @@ Following optional tags are present:
 |sh  |f   |Post alignment recalibrated shift parameter                      |
 |ss  |Z   |signal alignment string in format described below   |
 
+#### *ss* tag
+
 *ss* string is a custom encoding that compacts the signal-base alignment. It can be thought of as an extended version CIGAR string that accommodates for signal alignment needs. This *ss* string was inspired by the --sam option in Nanopolish for eventalign.
 
 Consider the example `8,5,4,8I4,3D4,5,` for DNA. This means 8 signal samples map to the starting base of the sequence; the next 5 samples to the next base, the next 4 samples to the next base; 8 next samples are missing a mapping in the basecalled read (insertion to reference); 4 samples map to the next base; 3 bases in the basecalled read have no corresponding signal samples (deletion); 4 samples map to the next base; and 5 samples map to the next base. Note that the start indexes of read and signal are the absolute values in columns 8 and 3 above. the *ss* string is relative to this.
 
 The `,`, `D` and `I` can be though of as three different operations. The `,` after a number means step one base in the basecall reference, while step number of samples preceding the `,` in the raw signal. The `D` after a number means step number of bases preceding the `D` in the basecalled read and no stepping in the raw signal. The `I` after a number means step number of samples preceding the `I` in the raw signal and no stepping in the basecalled read.
+
+### DNA Example
 
 To make things further clear, given below is an illustration for an alignment of DNA raw-signal to a basecalled read.
 
@@ -81,6 +89,9 @@ The paf output from resquiggle will look like below (the header is not present i
 |--:|----:|----:|--------:|--:|----:|----:|--------:|--:|----:|----:|--------:|--:|
 |rid0   |20            |2        |17     |+     |rid0   | 8      |0         |8       | 6     |8       |255 |`ss:Z:2,3,2,2I1,2D2,3,` |
 
+
+### direct-RNA Example
+
 Now see the illustration below for direct-RNA.
 
 <img width="750" alt="image" src="../img/rsq-alignment-rna.png">
@@ -105,6 +116,9 @@ The paf output will look like below:
 |read_id|len_raw_signal|start_raw|end_raw|strand|read_id|len_kmer|start_kmer|end_kmer|matches|len_kmer|mapq| |
 |--:|----:|----:|--------:|--:|----:|----:|--------:|--:|----:|----:|--------:|--:|
 |rid0   |20            |2        |17     |+     |rid0   | 8      |8         |0       | 6     |8       |255 |`ss:Z:2,3,2,2I1,2D2,3,` |
+
+
+### C code snippet for parsing ss tag
 
 A C code snippet that converts the value in the ss tag (a readable code which is not optimised) is given below:
 
