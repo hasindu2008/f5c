@@ -29,7 +29,7 @@
 
 #define MAX_KMER_SIZE 9 //maximum k-mer size
 #define MAX_NUM_KMER 262144  //maximum number of k-mers in nucleotide model
-#define MAX_NUM_KMER_METH 15625 //maximum number of k-mers in methylated model
+#define MAX_NUM_KMER_METH 1953125 //maximum number of k-mers in methylated model
 //#define HAVE_CUDA 1 //if compiled for CUDA or not
 #define ALN_BANDWIDTH 100 // the band size in adaptive_banded_dynamic_alignment
 
