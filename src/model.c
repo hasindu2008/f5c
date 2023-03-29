@@ -45,9 +45,7 @@ uint32_t read_model(model_t* model, const char* file, uint32_t type) {
     FILE* fp = fopen(file, "r");
     F_CHK(fp, file);
 
-    //these two are discarded from the model. dummy vars
     char kmer[MAX_KMER_SIZE+4];
-    float weight;
 
     //buffers for getline
     char* buffer = (char*)malloc(sizeof(char) * (100)); //READ+newline+nullcharacter
@@ -57,7 +55,6 @@ uint32_t read_model(model_t* model, const char* file, uint32_t type) {
 
     uint32_t num_k = 0;
     uint32_t line_no = 0;
-
 
     while ((readlinebytes = getline(&buffer, &bufferSize, fp)) != -1) {
         line_no++;
@@ -89,22 +86,15 @@ uint32_t read_model(model_t* model, const char* file, uint32_t type) {
             continue;
         } else {
             //as sd_mean and sd_stdv seems not to be used just read to the dummy weight
-            #ifdef LOAD_SD_MEANSSTDV
-                int32_t ret =
-                    sscanf(buffer, "%s\t%f\t%f\t%f\t%f\t%f", kmer,
-                        &model[num_k].level_mean, &model[num_k].level_stdv,
-                        &model[num_k].sd_mean, &model[num_k].sd_stdv, &weight);
-            #else
-                int32_t ret =
-                    sscanf(buffer, "%s\t%f\t%f\t%f\t%f", kmer,
-                        &model[num_k].level_mean, &model[num_k].level_stdv,
-                        &weight, &weight);
-            #endif
+
+            int32_t ret =
+            sscanf(buffer, "%s\t%f\t%f", kmer, &model[num_k].level_mean, &model[num_k].level_stdv);
+
             #ifdef CACHED_LOG
                 model[num_k].level_log_stdv=log(model[num_k].level_stdv);
             #endif
             num_k++;
-            if (ret != 5) {
+            if (ret != 3) {
                 ERROR("File %s is corrupted at line %d. Does the format adhere to examples at test/r9-models?", file, line_no);
             }
             if (num_k > num_kmer) {
@@ -170,12 +160,8 @@ uint32_t set_model(model_t* model, uint32_t model_id) {
 
     uint32_t i = 0;
     for (i = 0; i < num_kmer; i++) {
-        model[i].level_mean = inbuilt_model[i * 4 + 0];
-        model[i].level_stdv = inbuilt_model[i * 4 + 1];
-    #ifdef LOAD_SD_MEANSSTDV
-        model[i].sd_mean = inbuilt_model[i * 4 + 2];
-        model[i].sd_stdv = inbuilt_model[i * 4 + 3];
-    #endif
+        model[i].level_mean = inbuilt_model[i * 2 + 0];
+        model[i].level_stdv = inbuilt_model[i * 2 + 1];
     #ifdef CACHED_LOG
         model[i].level_log_stdv=log(model[i].level_stdv);
     #endif
