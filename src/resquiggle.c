@@ -30,32 +30,8 @@ void scaling_single(core_t* core, db_t* db, int32_t i);
 //todo: CUDA support
 //TODO there are lot of copy pasted sections from f5c.c - can be modularised
 
-static inline int8_t drna_detect(slow5_file_t *sp){
-
-    const slow5_hdr_t* hdr = sp->header;
-    int8_t rna = 0;
-    char *exp =slow5_hdr_get("experiment_type", 0, hdr);
-    if(exp==NULL){
-        WARNING("%s","experiment_type not found in SLOW5 header. Assuming genomic_dna");
-        return 0;
-    }
-    if (strcmp(exp,"genomic_dna")==0){
-        rna = 0;
-    }else if (strcmp(exp,"rna")==0){
-        rna = 1;
-    } else {
-        WARNING("Unknown experiment type: %s. Assuming genomic_dna", exp);
-    }
-
-    for(uint32_t  i=1; i < hdr->num_read_groups; i++){
-        char *curr =slow5_hdr_get("experiment_type", i, hdr);
-        if (strcmp(curr, exp)){
-            WARNING("Experiment type mismatch: %s != %s in read group %d. Defaulted to %s", curr, exp, i, exp);
-        }
-    }
-    return rna;
-}
-
+int8_t drna_detect(slow5_file_t *sp);
+int8_t pore_detect(slow5_file_t *sp);
 
 static void print_help_msg(FILE *fp_help, opt_t opt){
     fprintf(fp_help,"Usage: f5c [OPTIONS] reads.fastq signals.blow5\n");
@@ -72,6 +48,7 @@ static void print_help_msg(FILE *fp_help, opt_t opt){
     fprintf(fp_help,"   --version                  print version\n");
     fprintf(fp_help,"   --kmer-model FILE          custom nucleotide k-mer model file (format similar to test/r9-models/r9.4_450bps.nucleotide.6mer.template.model)\n");
     fprintf(fp_help,"   --rna                      the dataset is direct RNA\n");
+    fprintf(fp_help,"   --pore STR                 r9 or r10\n");
 #ifdef HAVE_CUDA
         fprintf(fp_help,"   --disable-cuda=yes|no      disable running on CUDA [%s]\n",(opt.flag&F5C_DISABLE_CUDA?"yes":"no"));
         fprintf(fp_help,"   --cuda-dev-id INT          CUDA device ID to run kernels on [%d]\n",opt.cuda_dev_id);
@@ -94,7 +71,8 @@ static struct option long_options[] = {
     {"disable-cuda", required_argument, 0, 0},     //10 disable running on CUDA [no] (only if compiled for CUDA)
     {"cuda-dev-id",required_argument, 0, 0},       //11 cuda device ID to run on (only if compiled for CUDA)
     {"cuda-mem-frac",required_argument, 0, 0},     //12 fraction of the free GPU memory to use (only if compiled for CUDA)
-    {"paf",no_argument,0,'c'},                       //13 if print in paf format
+    {"paf",no_argument,0,'c'},                     //13 if print in paf format
+    {"pore",required_argument,0,0},                //13 pore
     {0, 0, 0, 0}
 };
 
@@ -121,6 +99,10 @@ core_t* init_core_rsq(opt_t opt, const char *slow5file, double realtime0) {
         core->opt.flag |= F5C_RNA;
         opt.flag |= F5C_RNA;
     }
+    if(core->opt.pore==NULL && pore_detect(core->sf)) {
+        core->opt.flag |= F5C_R10;
+        opt.flag |= F5C_R10;
+    }
 
     //model
     core->model = (model_t*)malloc(sizeof(model_t) * MAX_NUM_KMER); //4096 is 4^6 which is hardcoded now
@@ -132,11 +114,22 @@ core_t* init_core_rsq(opt_t opt, const char *slow5file, double realtime0) {
         kmer_size=read_model(core->model, opt.model_file, MODEL_TYPE_NUCLEOTIDE);
     } else {
         if(opt.flag & F5C_RNA){
-            INFO("%s","builtin RNA nucleotide model loaded");
-            kmer_size=set_model(core->model, MODEL_ID_RNA_NUCLEOTIDE);
+            if(opt.flag & F5C_R10){
+                ERROR("%s","RNA R10 model is not available");
+                exit(EXIT_FAILURE);
+            } else {
+                INFO("%s","builtin RNA R9 nucleotide model loaded");
+                kmer_size=set_model(core->model, MODEL_ID_RNA_R9_NUCLEOTIDE);
+            }
         }
         else{
-            kmer_size=set_model(core->model, MODEL_ID_DNA_NUCLEOTIDE);
+            if(opt.flag & F5C_R10){
+                INFO("%s","builtin DNA R10 nucleotide model loaded");
+                kmer_size=set_model(core->model, MODEL_ID_DNA_R10_NUCLEOTIDE);
+            } else {
+                INFO("%s","builtin DNA R9 nucleotide model loaded");
+                kmer_size=set_model(core->model, MODEL_ID_DNA_R9_NUCLEOTIDE);
+            }
         }
     }
     core->kmer_size = kmer_size;
@@ -668,6 +661,15 @@ int resquiggle_main(int argc, char **argv) {
             opt.cuda_dev_id = atoi(optarg);
         } else if(c == 0 && longindex == 12){ //todo : warning for CPU mode, warning for dynamic malloc mode
             opt.cuda_mem_frac = atof(optarg);
+        } else if(c == 0 && longindex == 14){ //pore
+            opt.pore = optarg;
+            if(!(strcmp(opt.pore,"r9")==0 || strcmp(opt.pore,"r10")==0)){
+                ERROR("%s","Pore model should be r9 or r10");
+                exit(EXIT_FAILURE);
+            }
+            if(strcmp(opt.pore,"r10")==0){
+                opt.flag |= F5C_R10;
+            }
         }
     }
 
@@ -730,7 +732,7 @@ int resquiggle_main(int argc, char **argv) {
     }
 
     //these must be updated and fixed
-    fprintf(stderr, "[%s] total entries: %ld, qc fail: %ld, could not calibrate: %ld, no alignment: %ld, bad read: %ld",
+    fprintf(stderr, "[%s] total entries: %ld, qc fail: %ld, could not calibrate: %ld, no alignment: %ld, bad reads: %ld",
              __func__,(long)core->total_reads, (long)core->qc_fail_reads, (long)core->failed_calibration_reads, (long)core->failed_alignment_reads, (long)core->bad_fast5_file);
     fprintf(stderr,"\n[%s] total bases: %.1f Mbases",__func__,core->sum_bases/(float)(1000*1000));
 
@@ -767,6 +769,11 @@ int resquiggle_main(int argc, char **argv) {
     fprintf(stderr, "\n[%s] Data output time: %.3f sec", __func__,core->output_time);
 
     fprintf(stderr,"\n");
+
+    if(core->qc_fail_reads + core->failed_calibration_reads + core->failed_alignment_reads > core->total_reads/2){
+        WARNING("%ld out of %ld reads failed. Double check --pore and --rna options.",(long)core->qc_fail_reads + core->failed_calibration_reads + core->failed_alignment_reads,(long)core->total_reads);
+    }
+
     kseq_destroy(seq);
     gzclose(fp);
     free_core_rsq(core);

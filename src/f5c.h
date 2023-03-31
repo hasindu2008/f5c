@@ -55,6 +55,7 @@
 #define F5C_PRINT_SIGNAL_INDEX 0x8000 //write the raw signal start and end index values for the event to the tsv output (eventalign only)
 #define F5C_RD_SLOW5 0x10000 //read from a slow5 file
 #define F5C_COLLAPSE_EVENTS 0x20000 //collapse events
+#define F5C_R10 0x40000 //r10
 
 /*************************************************************
  * flags for a read status (related to db_t->read_stat_flag) *
@@ -81,7 +82,6 @@
 // note : (2D arrays are very slow due to mallocs when the number of threads is high)
 
 #define CACHED_LOG 1 //if the log values of scalings and the model k-mers are cached
-//#define LOAD_SD_MEANSSTDV 1 //if the sd_mean and the sd_stdv is to be loaded (they are unused anyway)
 
 #define ESL_LOG_SUM 1 // enable the fast log sum for HMM
 
@@ -100,6 +100,7 @@ typedef struct {
     uint32_t flag;              //flags
     int32_t batch_size;         //max reads loaded at once: K
     int64_t batch_size_bases;   //max bases loaded at once: B
+    char *pore;
 
     int32_t num_thread; //t
     int32_t num_iop; //Used for io performance improvement if > 16 threads
@@ -148,11 +149,6 @@ typedef struct {
     float level_log_stdv;     //pre-calculated for efficiency
 #endif
 
-#ifdef LOAD_SD_MEANSSTDV
-    //float sd_mean;
-    //float sd_stdv;
-    //float weight;
-#endif
 } model_t;
 
 /* scaling parameters for the signal : taken from nanopolish */
@@ -338,6 +334,9 @@ typedef struct {
     int64_t total_reads; //total number mapped entries in the bam file (after filtering based on flags, mapq etc)
     int64_t bad_fast5_file; //empty fast5 path returned by readdb, could not open fast5
     int64_t ultra_long_skipped; //ultra long reads that are skipped
+    int64_t skip_mapq_reads;
+    int64_t skip_sec_reads;
+    int64_t unmapped_reads;
 
     //eventalign related
     EventalignSummary *eventalign_summary;
@@ -479,6 +478,9 @@ typedef struct {
     int64_t qc_fail_reads;
     int64_t failed_calibration_reads;
     int64_t failed_alignment_reads;
+    int64_t skip_mapq_reads;
+    int64_t skip_sec_reads;
+    int64_t unmapped_reads;
 
     //eventalign related
     int8_t mode;

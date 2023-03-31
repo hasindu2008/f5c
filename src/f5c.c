@@ -87,6 +87,58 @@ static inline char **read_bed_regions(char *bedfile, int64_t *count){
     return reg_list;
 }
 
+
+int8_t drna_detect(slow5_file_t *sp){
+
+    const slow5_hdr_t* hdr = sp->header;
+    int8_t rna = 0;
+    char *exp =slow5_hdr_get("experiment_type", 0, hdr);
+    if(exp==NULL){
+        WARNING("%s","experiment_type not found in SLOW5 header. Assuming genomic_dna");
+        return 0;
+    }
+    if (strcmp(exp,"genomic_dna")==0){
+        rna = 0;
+    }else if (strcmp(exp,"rna")==0){
+        rna = 1;
+    } else {
+        WARNING("Unknown experiment type: %s. Assuming genomic_dna", exp);
+    }
+
+    for(uint32_t  i=1; i < hdr->num_read_groups; i++){
+        char *curr =slow5_hdr_get("experiment_type", i, hdr);
+        if (strcmp(curr, exp)){
+            WARNING("Experiment type mismatch: %s != %s in read group %d. Defaulted to %s", curr, exp, i, exp);
+        }
+    }
+    return rna;
+}
+
+
+int8_t pore_detect(slow5_file_t *sp){
+
+    const slow5_hdr_t* hdr = sp->header;
+    int8_t r10 = 0;
+    char *kit =slow5_hdr_get("sequencing_kit", 0, hdr);
+    if(kit==NULL){
+        WARNING("%s","sequencing_kit not found in SLOW5 header. Assuming R9.4.1");
+        return 0;
+    }
+    if (strstr(kit,"114")==NULL){
+        r10 = 0;
+    } else {
+        r10 = 1;
+    }
+
+    for(uint32_t  i=1; i < hdr->num_read_groups; i++){
+        char *curr =slow5_hdr_get("sequencing_kit", i, hdr);
+        if (strcmp(curr, kit)){
+            WARNING("sequencing_kit type mismatch: %s != %s in read group %d. Defaulted to %s", curr, kit, i, kit);
+        }
+    }
+    return r10;
+}
+
 /* initialise the core data structure */
 core_t* init_core(const char* bamfilename, const char* fastafile,
                   const char* fastqfile, const char* tmpfile, opt_t opt,double realtime0, int8_t mode, char *eventalignsummary, char *slow5file) {
@@ -193,6 +245,22 @@ core_t* init_core(const char* bamfilename, const char* fastafile,
             STDERR("Error in loading SLOW5 index for %s\n",slow5file);
             exit(EXIT_FAILURE);
         }
+
+        if(drna_detect(core->sf)) {
+            core->opt.flag |= F5C_RNA;
+            opt.flag |= F5C_RNA;
+            if(opt.verbosity > 1) fprintf(stderr,"Detected RNA data. --rna was set automatically.");
+            if(mode == 0){
+                ERROR("%s","Methylation calling is not supported for RNA data.");
+                exit(EXIT_FAILURE);
+            }
+        }
+
+        if(core->opt.pore==NULL && pore_detect(core->sf)){
+            core->opt.flag |= F5C_R10;
+            opt.flag |= F5C_R10;
+            if(opt.verbosity > 1) fprintf(stderr,"Detected R10 data. --pore r10 was set automatically.");
+        }
     }
 
     // reference file
@@ -204,9 +272,9 @@ core_t* init_core(const char* bamfilename, const char* fastafile,
     core->readbb->load(fastqfile, (opt.flag & F5C_RD_SLOW5)? 1 : 0);
 
     //model
-    core->model = (model_t*)malloc(sizeof(model_t) * MAX_NUM_KMER); //4096 is 4^6 which is hardcoded now
+    core->model = (model_t*)malloc(sizeof(model_t) * MAX_NUM_KMER);
     MALLOC_CHK(core->model);
-    core->cpgmodel = (model_t*)malloc(sizeof(model_t) * MAX_NUM_KMER_METH); //15625 is 4^6 which os hardcoded now
+    core->cpgmodel = (model_t*)malloc(sizeof(model_t) * MAX_NUM_KMER_METH);
     MALLOC_CHK(core->cpgmodel);
 
     //load the model from files
@@ -216,17 +284,34 @@ core_t* init_core(const char* bamfilename, const char* fastafile,
         kmer_size=read_model(core->model, opt.model_file, MODEL_TYPE_NUCLEOTIDE);
     } else {
         if(opt.flag & F5C_RNA){
-            INFO("%s","builtin RNA nucleotide model loaded");
-            kmer_size=set_model(core->model, MODEL_ID_RNA_NUCLEOTIDE);
+            if(opt.flag & F5C_R10){
+                ERROR("%s","RNA R10 model is not available");
+                exit(EXIT_FAILURE);
+            } else {
+                INFO("%s","builtin RNA R9 nucleotide model loaded");
+                kmer_size=set_model(core->model, MODEL_ID_RNA_R9_NUCLEOTIDE);
+            }
         }
         else{
-            kmer_size=set_model(core->model, MODEL_ID_DNA_NUCLEOTIDE);
+            if(opt.flag & F5C_R10){
+                INFO("%s","builtin DNA R10 nucleotide model loaded");
+                kmer_size=set_model(core->model, MODEL_ID_DNA_R10_NUCLEOTIDE);
+            } else{
+                INFO("%s","builtin DNA R9 nucleotide model loaded");
+                kmer_size=set_model(core->model, MODEL_ID_DNA_R9_NUCLEOTIDE);
+            }
         }
     }
     if (opt.meth_model_file) {
         kmer_size_meth=read_model(core->cpgmodel, opt.meth_model_file, MODEL_TYPE_METH);
     } else {
-        kmer_size_meth=set_model(core->cpgmodel, MODEL_ID_DNA_CPG);
+        if(opt.flag & F5C_R10){
+            INFO("%s","builtin DNA R10 cpg model loaded");
+            kmer_size_meth=set_model(core->cpgmodel, MODEL_ID_DNA_R10_CPG);
+        } else {
+            INFO("%s","builtin DNA R9 cpg model loaded");
+            kmer_size_meth=set_model(core->cpgmodel, MODEL_ID_DNA_R9_CPG);
+        }
     }
     if( mode==0 && kmer_size != kmer_size_meth){
         ERROR("The k-mer size of the nucleotide model (%d) and the methylation model (%d) should be the same.",kmer_size,kmer_size_meth);
@@ -269,6 +354,9 @@ core_t* init_core(const char* bamfilename, const char* fastafile,
     core->qc_fail_reads=0;
     core->failed_calibration_reads=0;
     core->failed_alignment_reads=0;
+    core->skip_mapq_reads=0;
+    core->unmapped_reads=0;
+    core->skip_sec_reads=0;
 
     //eventalign related
     core->mode = mode;
@@ -411,6 +499,9 @@ db_t* init_db(core_t* core) {
     db->total_reads=0;
     db->bad_fast5_file=0;
     db->ultra_long_skipped=0;
+    db->skip_mapq_reads = 0;
+    db->unmapped_reads = 0;
+    db->skip_sec_reads = 0;
 
     //eventalign related
     if(core->mode==1){
@@ -903,6 +994,9 @@ void output_db(core_t* core, db_t* db) {
     core->total_reads += db->total_reads;
     core->bad_fast5_file += db->bad_fast5_file;
     core->ultra_long_skipped += db->ultra_long_skipped;
+    core->skip_mapq_reads += db->skip_mapq_reads;
+    core->skip_sec_reads += db->skip_sec_reads;
+    core->unmapped_reads += db->unmapped_reads;
 
     int32_t i = 0;
     for (i = 0; i < db->n_bam_rec; i++){
@@ -1069,6 +1163,7 @@ void init_opt(opt_t* opt) {
     opt->min_mapq = 20;
     opt->batch_size = 512;
     opt->batch_size_bases = 2*1000*1000;
+    opt->pore = NULL;
     opt->num_thread = 8;
     opt->num_iop = 1;       //if changed, the SLOW5 mode must be handled by default in the arg parsing
     opt->region_str = NULL; //whole genome processing if null
