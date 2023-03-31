@@ -247,19 +247,17 @@ core_t* init_core(const char* bamfilename, const char* fastafile,
         }
 
         if(drna_detect(core->sf)) {
-            core->opt.flag |= F5C_RNA;
             opt.flag |= F5C_RNA;
-            if(opt.verbosity > 1) fprintf(stderr,"Detected RNA data. --rna was set automatically.");
+            if(opt.verbosity > 1) fprintf(stderr,"Detected RNA data. --rna was set automatically.\n");
             if(mode == 0){
                 ERROR("%s","Methylation calling is not supported for RNA data.");
                 exit(EXIT_FAILURE);
             }
         }
 
-        if(core->opt.pore==NULL && pore_detect(core->sf)){
-            core->opt.flag |= F5C_R10;
+        if(opt.pore==NULL && pore_detect(core->sf)){
             opt.flag |= F5C_R10;
-            if(opt.verbosity > 1) fprintf(stderr,"Detected R10 data. --pore r10 was set automatically.");
+            if(opt.verbosity > 1) fprintf(stderr,"Detected R10 data. --pore r10 was set automatically.\n");
         }
     }
 

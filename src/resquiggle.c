@@ -697,8 +697,6 @@ int resquiggle_main(int argc, char **argv) {
         exit(EXIT_FAILURE);
     }
 
-    WARNING("%s","f5c resquiggle is experimental. Use with caution. Report any bugs under GitHub issues.");
-
     //open slow5
     slow5file = argv[optind+1];
 
