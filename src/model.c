@@ -162,7 +162,7 @@ uint32_t set_model(model_t* model, uint32_t model_id) {
         kmer_size=9;
         num_kmer=1953125;
         inbuilt_model=r10_4_400bps_cpg_9mer_template_model_builtin_data;
-        assert(num_kmer == (uint32_t)(1 << 5*kmer_size)); //num_kmer should be 5^kmer_size
+        assert(num_kmer == (uint32_t)pow(5,kmer_size)); //num_kmer should be 5^kmer_size
     }
     else{
         assert(0);
