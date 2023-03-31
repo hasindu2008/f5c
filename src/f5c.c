@@ -274,7 +274,7 @@ core_t* init_core(const char* bamfilename, const char* fastafile,
     //model
     core->model = (model_t*)malloc(sizeof(model_t) * MAX_NUM_KMER);
     MALLOC_CHK(core->model);
-    core->cpgmodel = (model_t*)malloc(sizeof(model_t) * MAX_NUM_KMER_METH);
+    core->cpgmodel = (model_t*)malloc(sizeof(model_t) * MAX_NUM_KMER_METH); //TODO: no need to do this for eventalign
     MALLOC_CHK(core->cpgmodel);
 
     //load the model from files
@@ -306,10 +306,10 @@ core_t* init_core(const char* bamfilename, const char* fastafile,
         kmer_size_meth=read_model(core->cpgmodel, opt.meth_model_file, MODEL_TYPE_METH);
     } else {
         if(opt.flag & F5C_R10){
-            INFO("%s","builtin DNA R10 cpg model loaded");
+            if(mode==0) INFO("%s","builtin DNA R10 cpg model loaded");
             kmer_size_meth=set_model(core->cpgmodel, MODEL_ID_DNA_R10_CPG);
         } else {
-            INFO("%s","builtin DNA R9 cpg model loaded");
+            if(mode==0) INFO("%s","builtin DNA R9 cpg model loaded");
             kmer_size_meth=set_model(core->cpgmodel, MODEL_ID_DNA_R9_CPG);
         }
     }
