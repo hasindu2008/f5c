@@ -274,8 +274,12 @@ core_t* init_core(const char* bamfilename, const char* fastafile,
     //model
     core->model = (model_t*)malloc(sizeof(model_t) * MAX_NUM_KMER);
     MALLOC_CHK(core->model);
-    core->cpgmodel = (model_t*)malloc(sizeof(model_t) * MAX_NUM_KMER_METH); //TODO: no need to do this for eventalign
-    MALLOC_CHK(core->cpgmodel);
+    if(mode == 0){
+        core->cpgmodel = (model_t*)malloc(sizeof(model_t) * MAX_NUM_KMER_METH);
+        MALLOC_CHK(core->cpgmodel);
+    } else {
+        core->cpgmodel = NULL;
+    }
 
     //load the model from files
     uint32_t kmer_size=0;
@@ -302,20 +306,22 @@ core_t* init_core(const char* bamfilename, const char* fastafile,
             }
         }
     }
-    if (opt.meth_model_file) {
-        kmer_size_meth=read_model(core->cpgmodel, opt.meth_model_file, MODEL_TYPE_METH);
-    } else {
-        if(opt.flag & F5C_R10){
-            if(mode==0) INFO("%s","builtin DNA R10 cpg model loaded");
-            kmer_size_meth=set_model(core->cpgmodel, MODEL_ID_DNA_R10_CPG);
+    if(mode == 0){
+        if (opt.meth_model_file) {
+            kmer_size_meth=read_model(core->cpgmodel, opt.meth_model_file, MODEL_TYPE_METH);
         } else {
-            if(mode==0) INFO("%s","builtin DNA R9 cpg model loaded");
-            kmer_size_meth=set_model(core->cpgmodel, MODEL_ID_DNA_R9_CPG);
+            if(opt.flag & F5C_R10){
+                INFO("%s","builtin DNA R10 cpg model loaded");
+                kmer_size_meth=set_model(core->cpgmodel, MODEL_ID_DNA_R10_CPG);
+            } else {
+                INFO("%s","builtin DNA R9 cpg model loaded");
+                kmer_size_meth=set_model(core->cpgmodel, MODEL_ID_DNA_R9_CPG);
+            }
         }
-    }
-    if( mode==0 && kmer_size != kmer_size_meth){
-        ERROR("The k-mer size of the nucleotide model (%d) and the methylation model (%d) should be the same.",kmer_size,kmer_size_meth);
-        exit(EXIT_FAILURE);
+        if(kmer_size != kmer_size_meth){
+            ERROR("The k-mer size of the nucleotide model (%d) and the methylation model (%d) should be the same.",kmer_size,kmer_size_meth);
+            exit(EXIT_FAILURE);
+        }
     }
     core->kmer_size = kmer_size;
 

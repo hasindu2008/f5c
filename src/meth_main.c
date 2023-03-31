@@ -192,7 +192,9 @@ void* pthread_post_processor(void* voidargs){
 void slow_fast5_warn(core_t *core){
 
     if(core->db_fast5_time  > core->process_db_time * 1.5){
-        INFO("%s","Fast5 reading took more time than processing. Try increasing --iop. See http://bit.ly/f5cperf");
+        if(!(core->opt.flag & F5C_RD_SLOW5)){
+            INFO("%s","Fast5 reading took more time than processing. Try increasing --iop. See http://bit.ly/f5cperf");
+        }
     }
 }
 
