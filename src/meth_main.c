@@ -102,6 +102,7 @@ static struct option long_options[] = {
     {"slow5",required_argument,0,0},               //43 read from a slow5 file
     {"min-recalib-events",required_argument,0,0},  //44 minimum number of events to recalibrate
     {"collapse-events",no_argument,0,0},           //45 collapse events that stays on the same reference k-mer
+    {"pore",required_argument,0,0},                //46 pore
     {0, 0, 0, 0}};
 
 
@@ -191,7 +192,9 @@ void* pthread_post_processor(void* voidargs){
 void slow_fast5_warn(core_t *core){
 
     if(core->db_fast5_time  > core->process_db_time * 1.5){
-        INFO("%s","Fast5 reading took more time than processing. Try increasing --iop. See http://bit.ly/f5cperf");
+        if(!(core->opt.flag & F5C_RD_SLOW5)){
+            INFO("%s","Fast5 reading took more time than processing. Try increasing --iop. See http://bit.ly/f5cperf");
+        }
     }
 }
 
@@ -412,6 +415,15 @@ int meth_main(int argc, char* argv[], int8_t mode) {
             }
             WARNING("%s", "Option --collapse-events is experimental. Exercise caution.");
             yes_or_no(&opt, F5C_COLLAPSE_EVENTS, longindex, "yes", 1);
+        } else if (c==0 && longindex == 46){ //pore
+            opt.pore = optarg;
+            if(!(strcmp(opt.pore,"r9")==0 || strcmp(opt.pore,"r10")==0)){
+                ERROR("%s","Pore model should be r9 or r10");
+                exit(EXIT_FAILURE);
+            }
+            if(strcmp(opt.pore,"r10")==0){
+                opt.flag |= F5C_R10;
+            }
         }
 
     }
@@ -480,6 +492,7 @@ int meth_main(int argc, char* argv[], int8_t mode) {
         fprintf(fp_help,"   --collapse-events          collapse events that stays on the same reference k-mer\n");
     }
         fprintf(fp_help,"   --min-recalib-events INT   minimum number of events to recalbrate (decrease if your reads are very short and could not calibrate) [%d]\n",opt.min_num_events_to_rescale);
+        fprintf(fp_help,"   --pore STR                 r9 or r10\n");
 
 #ifdef HAVE_CUDA
         fprintf(fp_help,"   --cuda-mem-frac FLOAT      Fraction of free GPU memory to allocate [0.9 (0.7 for tegra)]\n");
@@ -674,8 +687,8 @@ int meth_main(int argc, char* argv[], int8_t mode) {
 
 #endif
 
-
-    fprintf(stderr, "[%s] total entries: %ld, qc fail: %ld, could not calibrate: %ld, no alignment: %ld, bad fast5: %ld",
+    fprintf(stderr, "[%s] skipped unmapped: %ld, skipped secondary: %ld, skipped low_mapq: %ld\n", __func__,(long)core->unmapped_reads, (long)core->skip_sec_reads, (long)core->skip_mapq_reads);
+    fprintf(stderr, "[%s] total entries: %ld, qc fail: %ld, could not calibrate: %ld, no alignment: %ld, bad reads: %ld",
              __func__,(long)core->total_reads, (long)core->qc_fail_reads, (long)core->failed_calibration_reads, (long)core->failed_alignment_reads, (long)core->bad_fast5_file);
     fprintf(stderr,"\n[%s] total bases: %.1f Mbases",__func__,core->sum_bases/(float)(1000*1000));
 
@@ -750,6 +763,13 @@ int meth_main(int argc, char* argv[], int8_t mode) {
             core->align_time,core->extra_load_cpu);
         }
     #endif
+
+    if(core->skip_mapq_reads > core->total_reads){
+        WARNING("Skipped %ld reads with MAPQ < %d. Use --min-mapq to change the threshold.",(long)core->skip_mapq_reads,opt.min_mapq);
+    }
+    if(core->qc_fail_reads + core->failed_calibration_reads + core->failed_alignment_reads > core->total_reads/2){
+        WARNING("%ld out of %ld reads failed. Double check --pore and --rna options.",(long)core->qc_fail_reads + core->failed_calibration_reads + core->failed_alignment_reads,(long)core->total_reads);
+    }
 
     //free the core data structure
     free_core(core,opt);

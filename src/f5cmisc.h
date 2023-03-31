@@ -22,9 +22,11 @@
 #define MODEL_TYPE_METH 2
 
 //default model IDs
-#define MODEL_ID_DNA_NUCLEOTIDE 1
-#define MODEL_ID_DNA_CPG 2
-#define MODEL_ID_RNA_NUCLEOTIDE 3
+#define MODEL_ID_DNA_R9_NUCLEOTIDE 1
+#define MODEL_ID_DNA_R9_CPG 2
+#define MODEL_ID_RNA_R9_NUCLEOTIDE 3
+#define MODEL_ID_DNA_R10_NUCLEOTIDE 4
+#define MODEL_ID_DNA_R10_CPG 5
 
 
 // Flags to modify the behaviour of the HMM

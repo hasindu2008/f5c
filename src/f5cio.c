@@ -525,6 +525,9 @@ ret_status_t load_db1(core_t* core, db_t* db) { //no iop - used for slow5
     db->total_reads = 0;
     db->bad_fast5_file = 0;
     db->ultra_long_skipped =0;
+    db->skip_mapq_reads = 0;
+    db->skip_sec_reads = 0;
+    db->unmapped_reads = 0;
 
     ret_status_t status={0,0};
     int32_t i = 0;
@@ -543,12 +546,12 @@ ret_status_t load_db1(core_t* core, db_t* db) { //no iop - used for slow5
         if (result < 0) {
             break;
         } else {
-            if ((record->core.flag & BAM_FUNMAP) == 0 &&
-                record->core.qual >= core->opt.min_mapq) {
+            if ((record->core.flag & BAM_FUNMAP) == 0 && record->core.qual >= core->opt.min_mapq) {
                 // printf("%s\t%d\n",bam_get_qname(db->bam_rec[db->n_bam_rec]),result);
 
                 if(!(core->opt.flag & F5C_SECONDARY_YES)){
                     if((record->core.flag & BAM_FSECONDARY)){
+                        db->skip_sec_reads++;
                         continue;
                     }
                 }
@@ -597,6 +600,12 @@ ret_status_t load_db1(core_t* core, db_t* db) { //no iop - used for slow5
                     status.num_bases += read_length;
                 }
 
+            } else {
+                if(record->core.qual < core->opt.min_mapq){
+                    db->skip_mapq_reads++;
+                } else {
+                    db->unmapped_reads++;
+                }
             }
         }
     }
@@ -826,6 +835,9 @@ ret_status_t load_db2(core_t* core, db_t* db) { //separately load fast5 for mult
     db->total_reads = 0;
     db->bad_fast5_file = 0;
     db->ultra_long_skipped =0;
+    db->skip_mapq_reads = 0;
+    db->skip_sec_reads = 0;
+    db->unmapped_reads = 0;
 
     ret_status_t status={0,0};
     int32_t i = 0;
@@ -844,12 +856,12 @@ ret_status_t load_db2(core_t* core, db_t* db) { //separately load fast5 for mult
         if (result < 0) {
             break;
         } else {
-            if ((record->core.flag & BAM_FUNMAP) == 0 &&
-                record->core.qual >= core->opt.min_mapq) {
+            if ((record->core.flag & BAM_FUNMAP) == 0 && record->core.qual >= core->opt.min_mapq) {
                 // printf("%s\t%d\n",bam_get_qname(db->bam_rec[db->n_bam_rec]),result);
 
                 if(!(core->opt.flag & F5C_SECONDARY_YES)){
                     if((record->core.flag & BAM_FSECONDARY)){
+                        db->skip_sec_reads++;
                         continue;
                     }
                 }
@@ -878,6 +890,12 @@ ret_status_t load_db2(core_t* core, db_t* db) { //separately load fast5 for mult
 
                 db->n_bam_rec++;
                 status.num_bases += read_length;
+            } else {
+                if(record->core.qual < core->opt.min_mapq){
+                    db->skip_mapq_reads++;
+                } else {
+                    db->unmapped_reads++;
+                }
             }
 
         }

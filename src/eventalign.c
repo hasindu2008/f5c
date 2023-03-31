@@ -316,7 +316,7 @@ static inline float log_probability_match_r9(scalings_t scaling,
                                              float sample_rate) {
     // event level mean, scaled with the drift value
     strand = 0;
-    assert(kmer_rank < 15625);
+    assert(kmer_rank < MAX_NUM_KMER);
     //float level = read.get_drift_scaled_level(event_idx, strand);
 
     //float time =
