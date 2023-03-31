@@ -66,8 +66,8 @@ static inline void sprintf_append(kstring_t *s, const char *fmt, ... ){
 
 	assert(len >= 0);
 	if (len >= INIT_CAP_SPRINTF_BUFFER) {
-		/*WARNING("Too long string got truncated: %s",buffer);*/
 		buffer = (char *) malloc(len * sizeof *buffer);
+		MALLOC_CHK(buffer);
 	}
 
 	str_cat(s,buffer,len);
