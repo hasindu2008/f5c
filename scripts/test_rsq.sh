@@ -59,7 +59,7 @@ handle_tests() {
 execute_test() {
 
 	if [ $testdir = test/chr22_meth_example ]; then
-		echo "A"
+		echo "Diff not yet implemented for chr22_meth_example"
 	elif [ $testdir = test/ecoli_2kb_region ]; then
 		diff -q ${testdir}/result.txt ${testdir}_big_testresults/resquiggle.tsv || die "Validation of tsv failed"
 		diff -q ${testdir}/result2.txt ${testdir}_big_testresults/resquiggle.paf || die "Validation of paf failed"

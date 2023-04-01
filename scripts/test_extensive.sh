@@ -85,8 +85,16 @@ test_suit1 () {
 	echo "____________________________________________________________________"
 	echo "valgrind slow5"
 	scripts/test_slow5.sh valgrind 2> valgrind_slow5.log || die "failed"
+	echo "____________________________________________________________________"
 	echo "vbz"
 	scripts/test_vbz.sh 2> ecoli_vbz.log || die "failed"
+	echo "____________________________________________________________________"
+	echo "resquiggle"
+	scripts/test_resquiggle.sh 2> ecoli_resquiggle.log || die "failed"
+	echo "____________________________________________________________________"
+	echo "resquiggle valgrind"
+	scripts/test_resquiggle.sh valgrind 2> ecoli_resquiggle_valgrind.log || die "failed"
+	echo "____________________________________________________________________"
 
 	echo ""
 	echo "********************************************************************"
@@ -119,6 +127,8 @@ test_suit1 () {
 	echo "valgrind eventalign"
 	scripts/test_eventalign.sh -e valgrind 2> valgrind_rna_eventalign.log || die "failed"
 	echo "____________________________________________________________________"
+	echo "resquiggle"
+	scripts/test_resquiggle.sh -e 2> rna_resquiggle.log || die "failed"
 
 
 	echo ""
@@ -167,6 +177,10 @@ test_suit1_cuda () {
 	echo "____________________________________________________________________"
 	echo "slow5"
 	scripts/test_slow5.sh -c 2> na12878_slow5_cuda.log || die "failed"
+	echo "____________________________________________________________________"
+	echo "resquiggle"
+	scripts/test_resquiggle.sh -c 2> na12878_resquiggle_cuda.log || die "failed"
+
 
 	echo "************************Doing RNA tests*****************************"
 	echo "event alignment"
