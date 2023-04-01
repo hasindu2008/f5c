@@ -132,7 +132,7 @@ test_suit1 () {
 
 
 	echo "************************Doing R10 HG2 tests*****************************"
-	scripts/test_lsk.sh 2> lsk114.log || die "failed"
+	scripts/test_lsk114.sh 2> lsk114.log || die "failed"
 
 	echo ""
 	echo "*********************************************************************"
@@ -192,7 +192,7 @@ test_suit1_cuda () {
 
 
 	echo "************************Doing R10 HG2 tests*****************************"
-	scripts/test_lsk.sh 2> lsk114_cuda.log || die "failed"
+	scripts/test_lsk114.sh 2> lsk114_cuda.log || die "failed"
 
 	echo ""
 	echo "*********************************************************************"
