@@ -89,7 +89,7 @@ Visit [here](https://hasindu2008.github.io/f5c/docs/cuda-troubleshoot) for troub
 f5c index -d [fast5_folder] [read.fastq|fasta] # or f5c index --slow5 [slow5_file] [read.fastq|fasta]
 f5c call-methylation -b [reads.sorted.bam] -g [ref.fa] -r [reads.fastq|fasta] > [meth.tsv] #specify --slow5 [slow5_file] to use a slow5 file instead of fast5
 f5c meth-freq -i [meth.tsv] > [freq.tsv]
-f5c eventalign -b [reads.sorted.bam] -g [ref.fa] -r [reads.fastq|fasta] > [events.tsv]    #specify --rna for direct RNA data, --slow5 [slow5_file] to use a slow5 file
+f5c eventalign -b [reads.sorted.bam] -g [ref.fa] -r [reads.fastq|fasta] > [events.tsv]    #specify --rna for direct RNA data, --slow5 [slow5_file] to use a slow5 file, --pore r10 for R10.4.1 data
 ```
 
 Visit the [man page](https://hasindu2008.github.io/f5c/docs/commands) for all the commands and options.
