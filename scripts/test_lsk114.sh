@@ -29,13 +29,12 @@ testdir=test/hg2_lsk114_reads_1000
 
 download_test_set "https://f5c.page.link/hg2_lsk114_reads_1000"
 
+./f5c resquiggle ${testdir}/PGXX22394_reads_1000_6.4.2_sup.fastq ${testdir}/PGXX22394_reads_1000.blow5 > ${testdir}/rsq.txt || die "resquiggle failed"
+
 ./f5c eventalign -b ${testdir}/PGXX22394_reads_1000_6.4.2_sup.bam \
 		-r ${testdir}/PGXX22394_reads_1000_6.4.2_sup.fastq -g test/chr22_meth_example/humangenome.fa \
-		--slow5 ${testdir}/PGXX22394_reads_1000.blow5 \
-		--kmer-model test/r10-models/r10.4.1_400bps.nucleotide.9mer.template.model > ${testdir}/result.txt || die "eventalign failed"
-
+		--slow5 ${testdir}/PGXX22394_reads_1000.blow5 > ${testdir}/result.txt || die "eventalign failed"
 
 ./f5c call-methylation -b ${testdir}/PGXX22394_reads_1000_6.4.2_sup.bam \
 		-r ${testdir}/PGXX22394_reads_1000_6.4.2_sup.fastq -g test/chr22_meth_example/humangenome.fa \
-		--slow5 ${testdir}/PGXX22394_reads_1000.blow5 \
-		--kmer-model test/r10-models/r10.4.1_400bps.nucleotide.9mer.template.model --meth-model test/r10-models/r10.4.1_400bps.cpg.9mer.template.model > ${testdir}/meth.tsv || die "eventalign failed"
+		--slow5 ${testdir}/PGXX22394_reads_1000.blow5 > ${testdir}/meth.tsv || die "eventalign failed"

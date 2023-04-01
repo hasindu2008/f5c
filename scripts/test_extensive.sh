@@ -90,10 +90,10 @@ test_suit1 () {
 	scripts/test_vbz.sh 2> ecoli_vbz.log || die "failed"
 	echo "____________________________________________________________________"
 	echo "resquiggle"
-	scripts/test_resquiggle.sh 2> ecoli_resquiggle.log || die "failed"
+	scripts/test_rsq.sh 2> ecoli_resquiggle.log || die "failed"
 	echo "____________________________________________________________________"
 	echo "resquiggle valgrind"
-	scripts/test_resquiggle.sh valgrind 2> ecoli_resquiggle_valgrind.log || die "failed"
+	scripts/test_rsq.sh valgrind 2> ecoli_resquiggle_valgrind.log || die "failed"
 	echo "____________________________________________________________________"
 
 	echo ""
@@ -128,8 +128,11 @@ test_suit1 () {
 	scripts/test_eventalign.sh -e valgrind 2> valgrind_rna_eventalign.log || die "failed"
 	echo "____________________________________________________________________"
 	echo "resquiggle"
-	scripts/test_resquiggle.sh -e 2> rna_resquiggle.log || die "failed"
+	scripts/test_rsq.sh -e 2> rna_resquiggle.log || die "failed"
 
+
+	echo "************************Doing R10 HG2 tests*****************************"
+	scripts/test_lsk.sh 2> lsk114.log || die "failed"
 
 	echo ""
 	echo "*********************************************************************"
@@ -179,14 +182,17 @@ test_suit1_cuda () {
 	scripts/test_slow5.sh -c 2> na12878_slow5_cuda.log || die "failed"
 	echo "____________________________________________________________________"
 	echo "resquiggle"
-	scripts/test_resquiggle.sh -c 2> na12878_resquiggle_cuda.log || die "failed"
+	scripts/test_rsq.sh -c 2> na12878_resquiggle_cuda.log || die "failed"
 
 
 	echo "************************Doing RNA tests*****************************"
 	echo "event alignment"
-	scripts/test_eventalign.sh -e 2> rna_eventalign.log || echo "failure ignored until paste is implemented with join in full event align output"
+	scripts/test_eventalign.sh -e 2> rna_eventalign_cuda.log || echo "failure ignored until paste is implemented with join in full event align output"
 	echo "____________________________________________________________________"
 
+
+	echo "************************Doing R10 HG2 tests*****************************"
+	scripts/test_lsk.sh 2> lsk114_cuda.log || die "failed"
 
 	echo ""
 	echo "*********************************************************************"
