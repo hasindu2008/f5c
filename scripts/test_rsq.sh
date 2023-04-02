@@ -45,9 +45,9 @@ download_test_set() {
 
 
 handle_tests() {
-	numfailed=$(wc -l < ${testdir}/floatdiff.txt)
-	numcases=$(wc -l < ${testdir}/meth_float.txt)
-	numres=$(wc -l < ${testdir}/result_float.txt)
+	numfailed=$(wc -l < ${testdir}/diff.txt)
+	numcases=$(wc -l < ${ORIG})
+	numres=$(wc -l < ${RES})
 	echo "$numfailed of $numcases test cases deviated."
 	missing=$(echo "$numcases-$numres" | bc)
 	echo "$missing entries in the truthset are missing in the testset"
@@ -58,17 +58,23 @@ handle_tests() {
 
 execute_test() {
 
-	ARCH=$(uname -m)
-	if [ $ARCH != "aarm64" ]; then
-		if [ $testdir = test/chr22_meth_example ]; then
-			echo "Diff not yet implemented for chr22_meth_example"
-		elif [ $testdir = test/ecoli_2kb_region ]; then
-			diff -q ${testdir}/result.txt ${testdir}_big_testresults/resquiggle.tsv || die "Validation of tsv failed"
-			diff -q ${testdir}/result2.txt ${testdir}_big_testresults/resquiggle.paf || die "Validation of paf failed"
-		elif [ $testdir = test/rna ]; then
-			diff -q ${testdir}/result.txt ${testdir}/resquiggle.tsv || die "Validation of tsv failed"
-			diff -q ${testdir}/result2.txt ${testdir}/resquiggle.paf || die "Validation of paf failed"
-		fi
+
+	if [ $testdir = test/chr22_meth_example ]; then
+		echo "Diff not yet implemented for chr22_meth_example"
+	elif [ $testdir = test/ecoli_2kb_region ]; then
+		ORIG=${testdir}_big_testresults/resquiggle.tsv
+		RES=${testdir}/result.txt
+		diff -y --suppress-common-lines ${ORIG} ${RES} > ${testdir}/diff.txt || handle_tests
+		ORIG=${testdir}_big_testresults/resquiggle.paf
+		RES=${testdir}/result2.txt
+		diff -y --suppress-common-lines ${ORIG} ${RES} > ${testdir}/diff.txt || handle_tests
+	else
+		ORIG=${testdir}/resquiggle.tsv
+		RES=${testdir}/result.txt
+		diff -y --suppress-common-lines ${ORIG} ${RES} > ${testdir}/diff.txt || handle_tests
+		ORIG=${testdir}/resquiggle.paf
+		RES=${testdir}/result2.txt
+		diff -y --suppress-common-lines ${ORIG} ${RES} > ${testdir}/diff.txt || handle_tests
 	fi
 
 

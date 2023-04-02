@@ -132,9 +132,14 @@ test_suit1 () {
 
 
 	echo "************************Doing R10 HG2 tests*****************************"
+	echo "Methylation calling"
 	scripts/test.sh -f 2> r10_hg2_methcalling.log || die "failed"
+	echo "____________________________________________________________________"
+	echo "event alignment"
 	scripts/test_eventalign.sh -f 2> r10_hg2_eventalign.log || die "failed"
-	scripts/test_lsk114.sh 2> lsk114.log || die "failed"
+	echo "____________________________________________________________________"
+	echo "methylation resquiggle"
+	scripts/test_rsq -f 2> r10_hg2_resquiggle.log || die "failed"
 
 	echo ""
 	echo "*********************************************************************"
@@ -161,6 +166,9 @@ test_suit1_cuda () {
 	echo "____________________________________________________________________"
 	echo "slow5"
 	scripts/test_slow5.sh 2> ecoli_slow5_cuda.log || die "failed"
+	echo "____________________________________________________________________"
+	echo "resquiggle"
+	scripts/test_rsq.sh 2> ecoli_resquiggle_cuda.log || die "failed"
 	echo "____________________________________________________________________"
 
 	echo ""
@@ -191,12 +199,19 @@ test_suit1_cuda () {
 	echo "event alignment"
 	scripts/test_eventalign.sh -e 2> rna_eventalign_cuda.log || echo "failure ignored until paste is implemented with join in full event align output"
 	echo "____________________________________________________________________"
+	echo "resquiggle"
+	scripts/test_rsq.sh -e 2> rna_resquiggle_cuda.log || die "failed"
 
 
 	echo "************************Doing R10 HG2 tests*****************************"
-	scripts/test_lsk114.sh 2> lsk114_cuda.log || die "failed"
+	echo "Methylation calling"
 	scripts/test.sh -f 2> r10_hg2_methcalling_cuda.log || die "failed"
+	echo "____________________________________________________________________"
+	echo "event alignment"
 	scripts/test_eventalign.sh -f 2> r10_hg2_eventalign.log || die "failed"
+	echo "____________________________________________________________________"
+	echo "resquiggle"
+	scripts/test_rsq -f 2> r10_hg2_resquiggle.log || die "failed"
 
 	echo ""
 	echo "*********************************************************************"
