@@ -97,6 +97,8 @@ execute_test() {
 
 	if [ $testdir = test/chr22_meth_example ]; then
 		echo "event by event test not implemented not yet implemented!"
+	elif [ $testdir = test/hg2_lsk114_reads_1000 ]; then
+		echo "event by event test not implemented not yet implemented!"
 	else
 		echo "----------------comparing full results--------------"
 		if [ $testdir = test/ecoli_2kb_region ]; then
@@ -147,7 +149,7 @@ help_msg() {
 
 #############################################################################################
 # parse options and change defaults if necessary
-while getopts b:g:r:t:K:B:cdhe opt
+while getopts b:g:r:t:K:B:cdhef opt
 do
 	case $opt in
 		b) bamfile="$OPTARG";;
@@ -166,6 +168,12 @@ do
 		   reads=${testdir}/reads.fastq
 		   testset_url="https://f5c.page.link/f5c_rna_test"
 		   fallback_url="https://f5c.page.link/f5c_rna_test_fallback";;
+		f) testdir=test/hg2_lsk114_reads_1000
+		   reads=${testdir}/PGXX22394_reads_1000_6.4.2_sup.fastq
+		   slow5=${testdir}/PGXX22394_reads_1000.blow5
+		   ref=test/chr22_meth_example/humangenome.fa
+		   bamfile=${testdir}/PGXX22394_reads_1000_6.4.2_sup.bam
+		   testset_url="https://f5c.page.link/hg2_lsk114_reads_1000";;
 		K) batchsize="$OPTARG";;
 		B) max_bases="$OPTARG";;
 		d) download_test_set "https://f5c.page.link/f5c_na12878_test" "https://f5c.page.link/f5c_na12878_test_fallback"
@@ -192,6 +200,9 @@ cmd="${exepath} eventalign -b ${bamfile} -g ${ref} -r ${reads} -t ${threads} -K 
 if [ $testdir = test/rna ]; then
 	${exepath} index -d ${testdir}/fast5_files ${reads}
 	cmd="${cmd}"" --rna"
+elif [ $testdir = test/hg2_lsk114_reads_1000 ]; then
+	${exepath} index -t12 --slow5 ${slow5} ${reads}
+	cmd="${cmd}"" --slow5 ${slow5}"
 fi
 
 #run test accordingly
@@ -199,6 +210,9 @@ if [ -z "$mode" ]; then
 	if [ $testdir = test/chr22_meth_example ]; then
 		${exepath} index -t12 --iop 12 -d ${testdir}/fast5_files/ ${reads}
 		${cmd} > /dev/null
+	elif [ $testdir = test/hg2_lsk114_reads_1000 ]; then
+		${exepath} index -t12 --slow5 ${slow5} ${reads}
+		${cmd} > ${testdir}/result.txt
 	else
 		${exepath} index -d ${testdir}/fast5_files ${reads}
 		${cmd} > ${testdir}/result.txt

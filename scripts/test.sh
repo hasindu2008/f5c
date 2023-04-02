@@ -63,6 +63,13 @@ execute_test() {
 		grep -w "chr20" ${testdir}/meth.exp | awk '{print $1$2$3$4$8$9$10"\t"$5"\t"$6"\t"$7}'  > ${testdir}/meth_float.txt
 
 		join  ${testdir}/result_float.txt ${testdir}/meth_float.txt | awk -v thresh=0.1 -f scripts/test.awk > ${testdir}/floatdiff.txt || handle_tests "${file}"
+
+	elif [ $testdir = test/hg2_lsk114_reads_1000 ]; then
+		cat ${testdir}/result.txt | awk '{print $1$2$3$4$8$9$10"\t"$5"\t"$6"\t"$7}' > ${testdir}/result_float.txt
+		cat ${testdir}/meth.exp | awk '{print $1$2$3$4$8$9$10"\t"$5"\t"$6"\t"$7}'  > ${testdir}/meth_float.txt
+
+		join  ${testdir}/result_float.txt ${testdir}/meth_float.txt | awk -v thresh=0.1 -f scripts/test.awk > ${testdir}/floatdiff.txt || handle_tests "${file}"
+
 	else
 		tail -n +2 ${testdir}/result.txt | awk '{print $1,$2,$3,$4,$8,$9,$10}' > ${testdir}/result_exact.txt
 		awk '{print $1,$2,$3,$4,$8,$9,$10}' ${testdir}/meth.exp > ${testdir}/meth_exact.txt
@@ -113,7 +120,7 @@ help_msg() {
 }
 
 # parse options
-while getopts b:g:r:t:K:B:cdh opt
+while getopts b:g:r:t:K:B:cdhf opt
 do
 	case $opt in
 		b) bamfile="$OPTARG";;
@@ -126,6 +133,12 @@ do
 		   reads=${testdir}/reads.fastq
 		   testset_url="https://f5c.page.link/f5c_na12878_test"
 		   fallback_url="https://f5c.page.link/f5c_na12878_test_fallback";;
+		f) testdir=test/hg2_lsk114_reads_1000
+		   reads=${testdir}/PGXX22394_reads_1000_6.4.2_sup.fastq
+		   slow5=${testdir}/PGXX22394_reads_1000.blow5
+		   ref=test/chr22_meth_example/humangenome.fa
+		   bamfile=${testdir}/PGXX22394_reads_1000_6.4.2_sup.bam
+		   testset_url="https://f5c.page.link/hg2_lsk114_reads_1000";;
 		K) batchsize="$OPTARG";;
 		B) max_bases="$OPTARG";;
 		d) download_test_set "https://f5c.page.link/f5c_na12878_test" "https://f5c.page.link/f5c_na12878_test_fallback"
@@ -150,6 +163,11 @@ if [ -z "$mode" ]; then
 	if [ $testdir = test/chr22_meth_example ]; then
 		${exepath} index -d ${testdir}/fast5_files ${reads} --iop "$threads" -t "$threads"
 		${exepath} call-methylation -b ${bamfile} -g ${ref} -r ${reads} -t "$threads" -K "$batchsize" -B "$max_bases" --meth-out-version=1 > ${testdir}/result.txt
+		execute_test
+	elif [ $testdir = test/hg2_lsk114_reads_1000 ]
+		then
+		${exepath} index --slow5 "$slow5" ${reads} -t "$threads"
+		${exepath} call-methylation -b ${bamfile} -g ${ref} -r ${reads} -t "$threads" -K "$batchsize" -B "$max_bases" --slow5 "$slow5" --meth-out-version=1 > ${testdir}/result.txt
 		execute_test
 	else
 		${exepath} index -d ${testdir}/fast5_files ${reads}

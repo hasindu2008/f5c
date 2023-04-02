@@ -108,7 +108,7 @@ help_msg() {
 }
 
 # parse options
-while getopts b:g:r:t:K:B:cdhe opt
+while getopts b:g:r:t:K:B:cdhef opt
 do
 	case $opt in
 		r) reads="$OPTARG";;
@@ -123,6 +123,10 @@ do
 		   slow5=${testdir}/reads.blow5
 		   testset_url="https://f5c.page.link/f5c_rna_test"
 		   fallback_url="https://f5c.page.link/f5c_rna_test_fallback";;
+		f) testdir=test/hg2_lsk114_reads_1000
+		   reads=${testdir}/PGXX22394_reads_1000_6.4.2_sup.fastq
+		   slow5=${testdir}/PGXX22394_reads_1000.blow5
+		   testset_url="https://f5c.page.link/hg2_lsk114_reads_1000";;
 		K) batchsize="$OPTARG";;
 		B) max_bases="$OPTARG";;
 		d) download_test_set "https://f5c.page.link/f5c_na12878_test" "https://f5c.page.link/f5c_na12878_test_fallback"

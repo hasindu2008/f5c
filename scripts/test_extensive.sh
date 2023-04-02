@@ -132,6 +132,8 @@ test_suit1 () {
 
 
 	echo "************************Doing R10 HG2 tests*****************************"
+	scripts/test.sh -f 2> r10_hg2_methcalling.log || die "failed"
+	scripts/test_eventalign.sh -f 2> r10_hg2_eventalign.log || die "failed"
 	scripts/test_lsk114.sh 2> lsk114.log || die "failed"
 
 	echo ""
@@ -193,6 +195,8 @@ test_suit1_cuda () {
 
 	echo "************************Doing R10 HG2 tests*****************************"
 	scripts/test_lsk114.sh 2> lsk114_cuda.log || die "failed"
+	scripts/test.sh -f 2> r10_hg2_methcalling_cuda.log || die "failed"
+	scripts/test_eventalign.sh -f 2> r10_hg2_eventalign.log || die "failed"
 
 	echo ""
 	echo "*********************************************************************"
