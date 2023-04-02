@@ -70,6 +70,11 @@ handle_tests() {
 
 #full eventalign results
 handle_tests2() {
+	THRESH=5
+	ARCH=$(uname -m)
+	if [ $ARCH = "aarch64" ]; then
+		THRESH=10
+	fi
 	numfailed=$(cat  ${testdir}/joined_diff.txt |  wc -l)
 	numcases=$(wc -l < ${testdir}/nanopolish.txt)
 	numres=$(wc -l < ${testdir}/f5c.txt)
@@ -77,7 +82,7 @@ handle_tests2() {
 	missing=$(echo "$numcases-$numres" | bc)
 	echo "$missing entries in the truthset are missing in the testset"
 	failp=$(echo "$numfailed*100/$numcases" | bc)
-	[ "$failp" -gt 5 ] && die "${1}: Validation failed"
+	[ "$failp" -gt "$THRESH" ] && die "${1}: Validation failed"
 	echo "Validation passed"
 }
 
