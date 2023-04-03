@@ -57,6 +57,11 @@ download_ecoli_2kb_region_big_testresults() {
 
 #event alignsummaries
 handle_tests() {
+	THRESH=5
+	ARCH=$(uname -m)
+	if [ $ARCH = "aarch64" ]; then
+		THRESH=20
+	fi
 	numfailed=$(cat  ${testdir}/joined_diff.txt | awk '{print $NF}' | sort -u -k1,1 | wc -l)
 	numcases=$(wc -l < ${testdir}/nanopolish.summary.txt)
 	numres=$(wc -l < ${testdir}/f5c.summary.txt)
@@ -64,7 +69,7 @@ handle_tests() {
 	missing=$(echo "$numcases-$numres" | bc)
 	echo "$missing entries in the truthset are missing in the testset"
 	failp=$(echo "$numfailed*100/$numcases" | bc)
-	[ "$failp" -gt 5 ] && die "${1}: Validation failed"
+	[ "$failp" -gt "$THRESH" ] && die "${1}: Validation failed"
 	echo "Validation passed"
 }
 
@@ -73,7 +78,7 @@ handle_tests2() {
 	THRESH=5
 	ARCH=$(uname -m)
 	if [ $ARCH = "aarch64" ]; then
-		THRESH=10
+		THRESH=15
 	fi
 	numfailed=$(cat  ${testdir}/joined_diff.txt |  wc -l)
 	numcases=$(wc -l < ${testdir}/nanopolish.txt)

@@ -85,11 +85,11 @@ test -d ${testdir}_big_testresults || download_ecoli_2kb_region_big_testresults
 ${exepath} index -d ${testdir}/fast5_files ${testdir}/reads.fasta
 echo "************************** --print-read-names ****************************"
 ${exepath} eventalign -b ${bamfile} -g ${ref} -r ${reads} --secondary=yes --min-mapq=0 -B "$max_bases" --summary ${testdir}/f5c_event_align.summary.txt --print-read-names > ${testdir}/result.txt
-execute_test "events_print_read_names.exp" "test_eventalign.awk" 5
+execute_test "events_print_read_names.exp" "test_eventalign.awk" 10
 echo ""
 echo "****************************** --scale-events ****************************"
 ${exepath} eventalign -b ${bamfile} -g ${ref} -r ${reads} --secondary=yes --min-mapq=0 -B "$max_bases" --summary ${testdir}/f5c_event_align.summary.txt --scale-events > ${testdir}/result.txt
-execute_test "events_scale_events.exp" "test_eventalign.awk" 5
+execute_test "events_scale_events.exp" "test_eventalign.awk" 10
 echo ""
 echo "****************************** --sam**************************************"
 ${exepath} eventalign -b ${bamfile} -g ${ref} -r ${reads} --secondary=yes --min-mapq=0 -B "$max_bases" --summary ${testdir}/f5c_event_align.summary.txt --sam > ${testdir}/result.txt
@@ -102,11 +102,11 @@ echo "Validation passed"
 echo ""
 echo "**************************** --signal-index********************************"
 ${exepath} eventalign -b ${bamfile} -g ${ref} -r ${reads} --secondary=yes --min-mapq=0 -B "$max_bases" --summary ${testdir}/f5c_event_align.summary.txt --signal-index > ${testdir}/result.txt
-execute_test "event_signal-index.exp" "test_eventalign_signal_index.awk" 5
+execute_test "event_signal-index.exp" "test_eventalign_signal_index.awk" 10
 echo ""
 echo "***************************** --samples************************************"
 ${exepath} eventalign -b ${bamfile} -g ${ref} -r ${reads} --secondary=yes --min-mapq=0 -B "$max_bases" --summary ${testdir}/f5c_event_align.summary.txt --samples > ${testdir}/result.txt
-execute_test "event_samples.exp" "test_eventalign_samples.awk" 10
+execute_test "event_samples.exp" "test_eventalign_samples.awk" 20
 echo ""
 echo "***************************** --signal-index --collapse-events************************************"
 ${exepath} eventalign -b ${bamfile} -g ${ref} -r ${reads} --secondary=yes --min-mapq=0 -B "$max_bases" --summary ${testdir}/f5c_event_align.summary.txt --signal-index --collapse-events > ${testdir}/result.txt

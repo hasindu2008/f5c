@@ -138,8 +138,8 @@ test_suit1 () {
 	echo "event alignment"
 	scripts/test_eventalign.sh -f 2> r10_hg2_eventalign.log || die "failed"
 	echo "____________________________________________________________________"
-	echo "methylation resquiggle"
-	scripts/test_rsq -f 2> r10_hg2_resquiggle.log || die "failed"
+	echo "resquiggle"
+	scripts/test_rsq.sh -f 2> r10_hg2_resquiggle.log || die "failed"
 
 	echo ""
 	echo "*********************************************************************"

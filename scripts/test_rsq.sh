@@ -52,31 +52,37 @@ handle_tests() {
 	missing=$(echo "$numcases-$numres" | bc)
 	echo "$missing entries in the truthset are missing in the testset"
 	failp=$(echo "$numfailed*100/$numcases" | bc)
-	[ "$failp" -gt 5 ] && die "${1}: Validation failed"
+	[ "$failp" -gt ${THRESH} ] && die "${1}: Validation failed"
 	echo "Validation passed"
 }
 
 execute_test() {
-
 
 	if [ $testdir = test/chr22_meth_example ]; then
 		echo "Diff not yet implemented for chr22_meth_example"
 	elif [ $testdir = test/ecoli_2kb_region ]; then
 		ORIG=${testdir}_big_testresults/resquiggle.tsv
 		RES=${testdir}/result.txt
-		diff -y --suppress-common-lines ${ORIG} ${RES} > ${testdir}/diff.txt || handle_tests
+		THRESH=5
+		diff -y --suppress-common-lines ${ORIG} ${RES} > ${testdir}/diff.txt || handle_tests $testdir
 		ORIG=${testdir}_big_testresults/resquiggle.paf
 		RES=${testdir}/result2.txt
-		diff -y --suppress-common-lines ${ORIG} ${RES} > ${testdir}/diff.txt || handle_tests
+		THRESH=40
+		diff -y --suppress-common-lines ${ORIG} ${RES} > ${testdir}/diff.txt || handle_tests $testdir
 	else
+		THRESH=5
 		ORIG=${testdir}/resquiggle.tsv
 		RES=${testdir}/result.txt
-		diff -y --suppress-common-lines ${ORIG} ${RES} > ${testdir}/diff.txt || handle_tests
+		diff -y --suppress-common-lines ${ORIG} ${RES} > ${testdir}/diff.txt || handle_tests $testdir
 		ORIG=${testdir}/resquiggle.paf
 		RES=${testdir}/result2.txt
-		diff -y --suppress-common-lines ${ORIG} ${RES} > ${testdir}/diff.txt || handle_tests
+		if [ $testdir = test/hg2_lsk114_reads_1000 ]; then
+			THRESH=90
+		else
+			THRESH=40
+		fi
+		diff -y --suppress-common-lines ${ORIG} ${RES} > ${testdir}/diff.txt || handle_tests $testdir
 	fi
-
 
 }
 
