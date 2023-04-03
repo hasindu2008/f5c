@@ -8,12 +8,31 @@ First, the reads have to be indexed using `f5c index`. Then, invoke `f5c call-me
 *Latest release* : [https://github.com/hasindu2008/f5c/releases/latest](https://github.com/hasindu2008/f5c/releases/latest)<br/>
 *Pre-print* : [https://doi.org/10.1101/756122](https://www.biorxiv.org/content/10.1101/756122v1)<br/>
 *Publication* : [https://doi.org/10.1186/s12859-020-03697-x](https://bmcbioinformatics.biomedcentral.com/articles/10.1186/s12859-020-03697-x)<br/>
+*Supplementary*: [nanopore_signal_alignment_supplementary_material.pdf](https://hasindu2008.github.io/f5c/nanopore_signal_alignment_supplementary_material.pdf)<br/>
+*Talk Video* : [https://www.nvidia.com/en-us/on-demand/session/gtcspring21-s31391](https://www.nvidia.com/en-us/on-demand/session/gtcspring21-s31391)<br/>
 
 [![GitHub Downloads](https://img.shields.io/github/downloads/hasindu2008/f5c/total?logo=GitHub)](https://github.com/hasindu2008/f5c/releases)
 [![BioConda Install](https://img.shields.io/conda/dn/bioconda/f5c?label=BioConda)](https://anaconda.org/bioconda/f5c)
 [![x86_64](https://github.com/hasindu2008/f5c/actions/workflows/f5c-x86_64.yml/badge.svg)](https://github.com/hasindu2008/f5c/actions/workflows/f5c-x86_64.yml)
 [![AARCH64](https://www.travis-ci.com/hasindu2008/f5c.svg?branch=master)](https://www.travis-ci.com/hasindu2008/f5c)
 [![CodeFactor](https://www.codefactor.io/repository/github/hasindu2008/f5c/badge/master)](https://www.codefactor.io/repository/github/hasindu2008/f5c/overview/master)
+
+Please cite the following when using *f5c* in your publications:
+
+> Gamaarachchi, H., Lam, C.W., Jayatilaka, G. et al. GPU accelerated adaptive banded event alignment for rapid comparative nanopore signal analysis. BMC Bioinformatics 21, 343 (2020). https://doi.org/10.1186/s12859-020-03697-x
+
+```
+@article{gamaarachchi2020gpu,
+  title={GPU accelerated adaptive banded event alignment for rapid comparative nanopore signal analysis},
+  author={Gamaarachchi, Hasindu and Lam, Chun Wai and Jayatilaka, Gihan and Samarakoon, Hiruna and Simpson, Jared T and Smith, Martin A and Parameswaran, Sri},
+  journal={BMC bioinformatics},
+  volume={21},
+  number={1},
+  pages={1--13},
+  year={2020},
+  publisher={BioMed Central}
+}
+```
 
 ## Quick start
 
