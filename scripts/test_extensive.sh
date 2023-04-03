@@ -211,7 +211,7 @@ test_suit1_cuda () {
 	scripts/test_eventalign.sh -f 2> r10_hg2_eventalign_cuda.log || echo "failure ignored for now until smaller diffs are accounted"
 	echo "____________________________________________________________________"
 	echo "resquiggle"
-	scripts/test_rsq -f 2> r10_hg2_resquiggle.log || die "failed"
+	scripts/test_rsq.sh -f 2> r10_hg2_resquiggle.log || die "failed"
 
 	echo ""
 	echo "*********************************************************************"
