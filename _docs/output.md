@@ -96,7 +96,7 @@ Now see the illustration below for direct-RNA.
 
 <img width="750" alt="image" src="../img/rsq-alignment-rna.png">
 
-Note that the RNA is sequenced 3'->5' end, so the raw signal is 3'->5' direction. As the basecaller outputs the basecalled read in 5'->3' direction, the basecalled read is reversed to be 3'->5' in the illustration (note: indices in illustration denote the actual index in the basecalled read in 5'->3' direction). If the basecalled read in 5'->3' direction is `ACGGUAACUAUA` and assuming the k-mer size in the k-mer model is 5, the 0th k-mer is `ACGGU`, 1st k-mer is `CGGUA` ... and the 9th k-mer is `CUAUA`.
+Note that the RNA is sequenced 3'->5' end, so the raw signal is 3'->5' direction. As the basecaller outputs the basecalled read in 5'->3' direction, the basecalled read is reversed to be 3'->5' in the illustration (note: indices in illustration denote the actual index in the basecalled read in 5'->3' direction). If the basecalled read in 5'->3' direction is `ACGGUAACUAUA` and assuming the k-mer size in the k-mer model is 5, the 0th k-mer is `ACGGU`, 1st k-mer is `CGGUA` ... and the 7th k-mer is `CUAUA`.
 
 The tsv output will look like below:
 
