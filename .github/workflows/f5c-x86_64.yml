@@ -85,7 +85,7 @@ jobs:
       run: scripts/test_slow5.sh
   ubuntu_14_cuda_6_5:
     name: Ubuntu 14 cuda 6.5
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     container: ubuntu:14.04
     steps:
     - uses: actions/checkout@v2
