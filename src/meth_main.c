@@ -103,6 +103,7 @@ static struct option long_options[] = {
     {"min-recalib-events",required_argument,0,0},  //44 minimum number of events to recalibrate
     {"collapse-events",no_argument,0,0},           //45 collapse events that stays on the same reference k-mer
     {"pore",required_argument,0,0},                //46 pore
+    {"paf",no_argument,0,'c'},                     //47 if print in paf format (only for eventalign)
     {0, 0, 0, 0}};
 
 
@@ -205,7 +206,7 @@ int meth_main(int argc, char* argv[], int8_t mode) {
 
     //signal(SIGSEGV, sig_handler);
 
-    const char* optstring = "r:b:g:t:B:K:v:o:x:w:hV";
+    const char* optstring = "r:b:g:t:B:K:v:o:x:w:hVc";
 
     int longindex = 0;
     int32_t c = -1;
@@ -273,6 +274,13 @@ int meth_main(int argc, char* argv[], int8_t mode) {
         }
         else if (c=='h'){
             fp_help = stdout;
+        }
+        else if (c=='c'){
+            if(mode!=1){
+                ERROR("%s","Option -c is available only in eventalign");
+                exit(EXIT_FAILURE);
+            }
+            yes_or_no(&opt, F5C_PAF, longindex, "yes", 1);
         }
         else if (c == 0 && longindex == 9) {
             opt.min_mapq = atoi(optarg); //todo : check whether this is between 0 and 60
@@ -482,6 +490,7 @@ int meth_main(int argc, char* argv[], int8_t mode) {
         fprintf(fp_help,"   --meth-out-version INT     methylation tsv output version (set 2 to print the strand column) [%d]\n",opt.meth_out_version);
     }
     if(mode==1){
+        fprintf(fp_help,"   -c                         output in PAF format\n");
         fprintf(fp_help,"   --summary FILE             summarise the alignment of each read/strand in FILE\n");
         fprintf(fp_help,"   --sam                      write output in SAM format\n");
         fprintf(fp_help,"   --print-read-names         print read names instead of indexes\n");
@@ -543,13 +552,26 @@ int meth_main(int argc, char* argv[], int8_t mode) {
         int8_t write_samples = (core->opt.flag & F5C_PRINT_SAMPLES) ? 1 : 0 ;
         int8_t write_signal_index = (core->opt.flag & F5C_PRINT_SIGNAL_INDEX) ? 1 : 0;
         int8_t sam_output =  (core->opt.flag & F5C_SAM) ? 1 : 0 ;
+        int8_t paf_output =  (core->opt.flag & F5C_PAF) ? 1 : 0 ;
 
-        if(sam_output==0){
+        if(sam_output && paf_output){
+            ERROR("%s","-c and --sam cannot be used together");
+            exit(EXIT_FAILURE);
+        }
+
+        if(sam_output){
+            emit_sam_header(core->sam_output, core->m_hdr);
+        } else if (paf_output){
+            WARNING("%s","-c is experimental. Exercise caution!");
+            if(core->opt.flag & F5C_RNA){
+                ERROR("%s","-c not implemented for -rna yet!");
+                exit(EXIT_FAILURE);
+            }
+            //none
+        } else{
             emit_event_alignment_tsv_header(stdout, print_read_names, write_samples, write_signal_index);
         }
-        else{
-            emit_sam_header(core->sam_output, core->m_hdr);
-        }
+
     }
     int32_t counter=0;
 
