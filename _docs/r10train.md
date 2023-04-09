@@ -113,22 +113,26 @@ total entries: 482419, qc fail: 900, could not calibrate: 318, no alignment: 392
 
 Plots below show how each training round improved the number of successful alignments and reduced the number of failed alignments (failed alignments = qc fail + could not calibrate + no alignment; successful alignments = total entries - failed alignments).
 
-<img width="500" alt="image" src="../img/r10train_alns.svg"> <img width="500" alt="image" src="../img/r10train_alnf.svg">
+<img width="400" alt="image" src="../img/r10train_alns.svg"> <img width="400" alt="image" src="../img/r10train_alnf.svg">
 
 
 # Methylation model
 
 1. We need both non-methylated data (used for nucleotide model training above) and methylated data for training a model for methylation calling. We already basecalled  the non-methylated data at step 1 [above](#nucleotide-model). Now let us basecall the methylated dataset.
-```
-buttery-eel  -g /install/ont-guppy-6.4.2/bin/  --config dna_r10.4.1_e8.2_400bps_sup.cfg  --device 'cuda:all' -i  meth_reads.blow5 -q 10 -o  meth.fastq --port 5555
 
 ```
+buttery-eel  -g /install/ont-guppy-6.4.2/bin/  --config dna_r10.4.1_e8.2_400bps_sup.cfg  --device 'cuda:all' -i  meth_reads.blow5 -q 10 -o  meth.fastq --port 5555
+```
+
 2. Now combined passed reads from the non-methylated dataset and the methylated dataset into one single fastq file.
+
 ```
 cat nonmeth.pass.fastq meth.pass.fastq > positive_and_negative_pass.fastq
 
 ```
+
 3. Merge the methylated and non methylated BLOW5 files into one single file:
+
 ```
 slow5tools merge meth_reads.blow5 nonmeth_reads.blow5 -o merged.blow5
 ```
@@ -141,6 +145,7 @@ sed 's/chr/chr_meth_/g' hg38noAlt_M_replaced_N.fa > hg38noAlt_chr_renamed_to_met
 # use seqtk to create single lined FASTA and replace all CG sites with MG.  
 seqtk  seq -l0 hg38noAlt_chr_renamed_to_meth.fa | sed 's/CG/MG/g'  > hg38noAlt_chr_renamed_to_meth_methylated_cpg.fa
 ```
+
 M is the nanopolish symbol for methylated bases. The boundaries (C'\n'G) will not be properly replaced if you use a multiline FASTA, that is why seqtk is used above to make it a single lined FASTA. 
 
 5. Map the methylated reads to the renamed reference `hg38noAlt_chr_renamed_to_meth.fa` we created in the previous step above (not the `hg38noAlt_chr_renamed_to_meth_methylated_cpg.fa`)
@@ -151,18 +156,21 @@ samtools index meth_pass.bam
 ```
 
 6. Merge the BAM file from non-methylated data (`nonmeth_pass.bam` we created before for in step 3 [above](#nucleotide-model)) and the BAM file from methylated  data (`meth_pass.bam`) into a single BAM file.
+
 ```
 samtools merge merged.bam nonmeth_pass.bam meth_pass.bam 
 samtools index merged.bam
 ```
 
 7. Now create the hybrid reference to be later used with nanopolish.
+
 ```
 seqtk  seq -l0 hg38noAlt_M_replaced_N.fa > hg38noAlt_tmp.fa
 cat hg38noAlt_tmp.fa hg38noAlt_chr_renamed_to_meth_methylated_cpg.fa > hg38noAlt_hybrid.fa
 ```
 
 8. Now we need to create a base methylated model for nanopolish. What we did was, we took the `r10_450bps.nucleotide.9mer.template.round9.model` nucleotide model which was trained above, created a new model with 'M' in the alphabet and put the same level_mean and level_stdv as for the corresponding 'C' counterparts. This file is named as `r10.4.1_400bps.cpg.9mer.model` which is available [here](https://f5c.page.link/r10train).
+
 ```
 #model_name r10_450bps.cpg.9mer.template.model
 #kit    r10_450bps
@@ -205,12 +213,14 @@ AAAAAACCC	109.189000	13.997700	1	1	1	1
 ```
 
 9. Now let us use nanopolish to train a methylation model. 
+
 ```
 slow5-nanopolish-train/nanopolish index  positive_and_negative_pass.fastq --slow5 merged.blow5
 slow5-nanopolish-train/nanopolish train -r positive_and_negative_pass.fastq -g hg38noAlt_hybrid.fa -b merged.bam  -t 72 --train-kmers=all --input-model-filename r10.4.1_400bps.cpg.9mer.model -d trained_meth_models --rounds 10
 ```
 
 10. The created  `trained_meth_models/r10_450bps.cpg.9mer.template.round9.model` (available for download [here](https://f5c.page.link/r10train)) looked like below :
+
 ```
 #model_name	r10_450bps.cpg.9mer.template.model
 #kit	r10_450bps
@@ -270,7 +280,7 @@ R --save < eval/meth/plot_methylation.R
 
 The data `eval/meth/chr22.tsv` is bisulphite data for chr22 of HG2 curated from [here](https://labs.epi2me.io/gm24385-5mc/). How the called number of sites (N) and correlation (r) change with each training round are as below:
 
-<img width="1000" alt="image" src="../img/r10train_meth_nr.png">
+<img width="800" alt="image" src="../img/r10train_meth_nr.png">
 
 The correlation plot from `trained_meth_models/r10_450bps.cpg.9mer.template.round9.model` is as follows:
 
