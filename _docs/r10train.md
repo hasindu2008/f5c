@@ -1,14 +1,18 @@
-# Training new models for f5c using Nanopolish train
+---
+title: Training new models for f5c using Nanopolish train
+---
 
-We Wanted to train new models for R10.4.1 for use with f5c. f5c has no implementation for training new models. Given f5c relies on nanopolish models, we use nanopolish for training models. The process of figuring out the nanopolish training for R10.4.1 was quite challenging and required considerable effort. With great help from [Jared Simpon](https://github.com/jts), we were able to figure. Hence, we have briefly documented the process we used to train R10.4.1 with nanopolish, and hope it can benefit someone else.
+*This article is uneditted and not proofread. If you find mistakes, please report at [issues](https://github.com/hasindu2008/f5c/issues).*
 
-We sequenced the human methylated and non-methylated dataset from https://zymoresearch.eu/pages/dna-methylation-standards. The non-methylated data is used for training neucleotide model. Both methylated and nonmethylated are needed for training a methylation model in CpG context.
+We wanted to train new models for R10.4.1 for use with f5c. f5c has no implementation for training new models. Given f5c relies on nanopolish models, we use nanopolish for training such models. The process of figuring out the nanopolish training for R10.4.1 was quite challenging and required considerable effort. With great help from [Jared Simpon](https://github.com/jts), we were able to figure out. Hence, we have briefly documented the process we used to train R10.4.1 with nanopolish, and hope it can benefit someone else.
 
-In this example, We will be using BLOW5 files to train as it is much faster and convienient to use. You can get the nanopolish r10 branch with BLOW5 support from https://github.com/hiruna72/nanopolish (the commit used: ce29c2dadb245857ad4a86a33b60724d2f312ca4) and compile it. The binary compiled on Ubuntu 16 is available under `slow5-nanopolish-train/` [here](https://f5c.page.link/r10train) and will work if your Linux distribution is recent.
+We sequenced the human methylated and non-methylated dataset from [zymo dna methylation standards](https://zymoresearch.eu/pages/dna-methylation-standards). The non-methylated data is used for training neucleotide model. Both methylated and non-methylated are needed for training a methylation model in CpG context.
+
+In this example, We will be using [BLOW5](https://github.com/hasindu2008/slow5tools) files to train as BLOW5 is much faster and convienient to use. You can get the nanopolish *r10 branch* with BLOW5 support from [here](https://github.com/hiruna72/nanopolish) (commit used: ce29c2dadb245857ad4a86a33b60724d2f312ca4, remember to checkout to r10 branch) and compile it. The binary compiled on Ubuntu 16 is available under `slow5-nanopolish-train/` [here](https://f5c.page.link/r10train) and will work if your Linux distribution is recent.
 
 # Nucleotide model
 
-1. The base-model provided by ONT for dna_r10.4.1_e8.2_400bps was used as the base model (available: https://github.com/nanoporetech/kmer_models). The current level values in the ONT model are normalised. We convert to nanopolish model format as below (file `r10.4.1_400bps.nucleotide.9mer.model` available  [here](https://f5c.page.link/r10train)):
+1. The base-model provided by [ONT for dna_r10.4.1_e8.2_400bps](https://github.com/nanoporetech/kmer_models) was used as the base model. The current level values in the ONT model are normalised. We convert to nanopolish model format as below (file `r10.4.1_400bps.nucleotide.9mer.model` available  [here](https://f5c.page.link/r10train)):
 
 ```
 #ont_model_name r10_180mv_450bps_9mer
@@ -24,10 +28,10 @@ AAAAAAAAT	58.4335200897368	3.0	1	1	1	1
 AAAAAAACA	63.6599592820753	3.0	1	1	1	1
 ```
 
-Though are training a model for dna_r10.4.1_e8.2_400bps, note that in the model above we have r10_180mv_450bps_9mer as the model, to trick nanopolish train to work. For converting the levels from ONT model to pA abive, we used `level*23.027081308793+96.631070539403`. Note that level_stdv is set to 3.0 for all kmers to start with. Other columns such as sd_mena are unsused, so leave them as 1.
+ Though we are training a model for dna_r10.4.1_e8.2_400bps, note that in the model above we have r10_180mv_450bps_9mer as the model, to trick nanopolish train to work. For converting the levels from ONT model to pA above, we used `level*23.027081308793+96.631070539403`, with mean and std constants calculatedusing [sigtk pa](https://github.com/hasindu2008/sigtk) and datamash on a R10.4.1 dataset. Note that level_stdv is set to 3.0 for all kmers to start with. Other columns such as sd_mean are unsused, so leave them as 1.
 
 
-2. Assume we have the nonmethylated dataset in a [BLOW file](https://github.com/hasindu2008/slow5tools) called `nonmeth_reads.blow5`. Basecall the BLOW5 file with super accuracy through [buttery-eel](https://github.com/Psy-Fer/buttery-eel) using Guppy:
+2. Assume we have the non-methylated dataset in a BLOW file called `nonmeth_reads.blow5`. Basecall the BLOW5 file with super accuracy through [buttery-eel](https://github.com/Psy-Fer/buttery-eel) using Guppy:
 ```
 buttery-eel  -g /install/ont-guppy-6.4.2/bin/  --config dna_r10.4.1_e8.2_400bps_sup.cfg  --device 'cuda:all' -i  nonmeth_reads.blow5 -q 10 -o  nonmeth.fastq --port 5555
 ```
@@ -44,7 +48,7 @@ slow5-nanopolish-train/nanopolish index  nonmeth.pass.fastq --slow5 nonmeth_read
 slow5-nanopolish-train/nanopolish train -r nonmeth.pass.fastq -g hg38noAlt_M_replaced_N.fa -b nonmeth_pass.bam  -t 72 --train-kmers=all --input-model-filename ./r10.4.1_400bps.nucleotide.9mer.model -d trained_nuc_models/
 ```
 
-if training is successful, you should see files like `r10_450bps.nucleotide.9mer.template.roundX.model` under `trained_nuc_models` (they are uploaded [here](https://f5c.page.link/r10train)). They should look like:
+If training is successful, you should see files like `r10_450bps.nucleotide.9mer.template.roundX.model` under `trained_nuc_models` (they are uploaded [here](https://f5c.page.link/r10train)). They should look like:
 ```
 #model_name	r10_450bps.nucleotide.9mer.template.model
 #kit	r10_450bps
@@ -56,7 +60,7 @@ AAAAAAAAG	55.7136	2.52011	1	1
 AAAAAAAAT	57.2297	2.71002	1	1
 ```
 
-Also there will files like `r10_450bps.nucleotide.9mer.template.roundX.summmary.tsv`. Make sure in those files, the "is_trained" coulumn is set to 1:
+Also there will files like `r10_450bps.nucleotide.9mer.template.roundX.summmary.tsv`. Make sure in those files, the `is_trained` coulumn is set to 1:
 ```
 model_short_name	kmer	num_matches	num_skips	num_stays	num_events_for_training	was_trained	trained_level_mean	trained_level_stdv
 r10_450bps.t	CAAAAAAAA	0	0	0	1000	1	56.42	1.82
@@ -65,9 +69,9 @@ r10_450bps.t	AATAAAAAA	0	0	0	1000	1	57.26	3.36
 r10_450bps.t	CCTAAAAAA	0	0	0	1000	1	60.58	2.35
 r10_450bps.t	AAAAAAAAA	0	0	0	1000	1	54.20	1.99
 ```
-If all of them are 0, that means they were not successfully trained. By default, nanopolish will require at least 100 num_events_for_training, so unless you have good coverage for all k-mers, some of the k-mers will not be trained. In our case, majority of the k-mers were trained.
+If all of them are 0, that means they were not successfully trained. By default, nanopolish will require at least 100 `num_events_for_training`, so unless you have good coverage for all k-mers, some of the k-mers will not be trained. In our case, majority of the k-mers were trained, but not all.
 
-If the outputs are empty or if all k-mers are not trained (happened to us at the beginning), it could be due to multiple reasons. I do not remeber much of those now, but these issues may help debugging: https://github.com/jts/nanopolish/issues/825, https://github.com/jts/nanopolish/issues/761,  https://github.com/jts/nanopolish/issues/1059, https://github.com/jts/nanopolish/issues/1064.
+If the outputs are empty or if all k-mers are not trained (happened to us at the beginning), it could be due to multiple reasons. I do not remeber much of those now, but these issues may help debugging: [#825](https://github.com/jts/nanopolish/issues/825), [#761](https://github.com/jts/nanopolish/issues/761),  [#1059](https://github.com/jts/nanopolish/issues/1059), [#1064](https://github.com/jts/nanopolish/issues/1064).
 
 
 5. Then we used the last model trained in step 4 above (`trained_nuc_models/r10_450bps.nucleotide.9mer.template.round4.model`) as the input to train 10 more rounds.
@@ -76,7 +80,7 @@ slow5-nanopolish-train/nanopolish train -r nometh.pass.fastq -g hg38noAlt_M_repl
 trained_nuc_models_more/ --rounds 10
 ```
 
-The created model called `trained_nuc_models_more/r10_450bps.nucleotide.9mer.template.round9.model` (they are uploaded [here](https://f5c.page.link/r10train)) which looked like below is the final model that I put as the inbuilt model for f5c-v1.2-beta:
+The created model called `trained_nuc_models_more/r10_450bps.nucleotide.9mer.template.round9.model` (they are uploaded [here](https://f5c.page.link/r10train)) which looked like below, is the final model that we put as the inbuilt model for f5c-v1.2-beta:
 ```
 #model_name	r10_450bps.nucleotide.9mer.template.model
 #kit	r10_450bps
@@ -96,7 +100,7 @@ AAAAAAAGG	59.7029	4.50327	1	1
 AAAAAAAGT	62.8706	3.91294	1	1
 ```
 
-6. To determine how training went, I used f5c eventalign to align a set of hg2 reads (BLOW5 file available [here](https://slow5.page.link/na12878_prom_sub_slow5)) using the model file created after each training round. An example command that uses the last training round model:
+6. To determine how training went, we used f5c eventalign to align a set of hg2 reads (BLOW5 file available [here](https://slow5.page.link/na12878_prom_sub_slow5)) using the model file created after each training round. An example command that uses the last training round model:
 
 ```
 f5c eventalign -x hpc-low -b hg2_subsample_guppy_6.4.2_hac_pass.bam -r hg2_subsample_guppy_6.4.2_hac_pass.fastq  -g /genome/hg38noAlt.fa  --slow5 hg2_subsample.blow5 --kmer-model trained_nuc_models_more/r10_450bps.nucleotide.9mer.template.round9.model > event.tsv 
@@ -244,8 +248,8 @@ AAAAAACAM	109.249	13.1459	1	1
 AAAAAACAT	107.25	11.8888	1	1
 ```
 
-Make sure that `r10_450bps.cpg.9mer.template.round9.summmary.tsv` has the column "was_trained" set to 1 for k-mers with CG and MG. If the outputs are empty or if all k-mers are not trained (happened to us at the beginning), it could be due to multiple reasons.  I had to manually replace the inbuilt .inl model in nanopolish with values from the trained nucletide model `trained_nuc_models_more/r10_450bps.nucleotide.9mer.template.round9.model` (https://github.com/hiruna72/nanopolish/commit/5c7d01372abaef2aa2de9fde7227b1b09d34ea88).  If you are using the latest r10 branch from https://github.com/hiruna72/nanopolish/ or the binary download from [here](https://f5c.page.link/r10train) this is already done for you. 
-These issues may help debugging if you are having troubles: https://github.com/jts/nanopolish/issues/825, https://github.com/jts/nanopolish/issues/761,  https://github.com/jts/nanopolish/issues/1059, https://github.com/jts/nanopolish/issues/1064.
+Make sure that `r10_450bps.cpg.9mer.template.round9.summmary.tsv` has the column "was_trained" set to 1 for k-mers with CG and MG. If the outputs are empty or if all k-mers are not trained (happened to us at the beginning), it could be due to multiple reasons.  I had to manually replace the inbuilt .inl model in nanopolish with values from the trained nucletide model `trained_nuc_models_more/r10_450bps.nucleotide.9mer.template.round9.model` (see [here](https://github.com/hiruna72/nanopolish/commit/5c7d01372abaef2aa2de9fde7227b1b09d34ea88)).  If you are using the latest r10 branch from https://github.com/hiruna72/nanopolish/ or the binary download from [here](https://f5c.page.link/r10train) this is already done for you. 
+These issues may help debugging if you are having troubles:  [#825](https://github.com/jts/nanopolish/issues/825), [#761](https://github.com/jts/nanopolish/issues/761),  [#1059](https://github.com/jts/nanopolish/issues/1059), [#1064](https://github.com/jts/nanopolish/issues/1064).
 
 
 11. To see how the training went, I used f5c call-methylation with trained methylation models from each round. For this I used a ~30X chr22 HG2 dataset.
