@@ -10,7 +10,7 @@ We sequenced the human methylated and non-methylated dataset from [zymo dna meth
 
 In this example, We will be using [BLOW5](https://github.com/hasindu2008/slow5tools) files to train as BLOW5 is much faster and convienient to use. You can get the nanopolish *r10 branch* with BLOW5 support from [here](https://github.com/hiruna72/nanopolish) (commit used: ce29c2dadb245857ad4a86a33b60724d2f312ca4, remember to checkout to r10 branch) and compile it. The binary compiled on Ubuntu 16 is available under `slow5-nanopolish-train/` [here](https://f5c.page.link/r10train) and will work if your Linux distribution is recent.
 
-# Nucleotide model
+## Nucleotide model
 
 1. The base-model provided by [ONT for dna_r10.4.1_e8.2_400bps](https://github.com/nanoporetech/kmer_models) was used as the base model. The current level values in the ONT model are normalised. We convert to nanopolish model format as below (file `r10.4.1_400bps.nucleotide.9mer.model` available  [here](https://f5c.page.link/r10train)):
 
@@ -113,10 +113,10 @@ total entries: 482419, qc fail: 900, could not calibrate: 318, no alignment: 392
 
 Plots below show how each training round improved the number of successful alignments and reduced the number of failed alignments (failed alignments = qc fail + could not calibrate + no alignment; successful alignments = total entries - failed alignments).
 
-<img width="400" alt="image" src="../img/r10train_alns.svg"> <img width="400" alt="image" src="../img/r10train_alnf.svg">
+<img width="500" alt="image" src="../img/r10train_alns.svg"> <img width="500" alt="image" src="../img/r10train_alnf.svg">
 
 
-# Methylation model
+## Methylation model
 
 1. We need both non-methylated data (used for nucleotide model training above) and methylated data for training a model for methylation calling. We already basecalled  the non-methylated data at step 1 [above](#nucleotide-model). Now let us basecall the methylated dataset.
 
@@ -280,7 +280,7 @@ R --save < eval/meth/plot_methylation.R
 
 The data `eval/meth/chr22.tsv` is bisulphite data for chr22 of HG2 curated from [here](https://labs.epi2me.io/gm24385-5mc/). How the called number of sites (N) and correlation (r) change with each training round are as below:
 
-<img width="800" alt="image" src="../img/r10train_meth_nr.png">
+<img width="1000" alt="image" src="../img/r10train_meth_nr.png">
 
 The correlation plot from `trained_meth_models/r10_450bps.cpg.9mer.template.round9.model` is as follows:
 
