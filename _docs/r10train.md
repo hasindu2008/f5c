@@ -270,7 +270,7 @@ The data `eval/meth/chr22.tsv` is bisulphite data for chr22 of HG2 curated from 
 
 The correlation plot from `trained_meth_models/r10_450bps.cpg.9mer.template.round9.model` is as follows:
 
-<img width="500" alt="image" src="../img/r10train_bi_vs_f5c.svg">
+<img width="500" alt="image" src="../img/r10train_bi_vs_f5c.png">
 
 The `trained_meth_models/r10_450bps.cpg.9mer.template.round9.model` was used as the inbuilt model for f5c-v1.2-beta. 
  
