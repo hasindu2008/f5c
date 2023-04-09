@@ -41,7 +41,7 @@ docs:
         url:    /docs/f5c-gpu-perf        
       - title:  Portable binary
         url:    /docs/portable-binary
-      - title: R10 Training  
+      - title: R10 training  
         url: /docs/r10train
   - title:      Archived
     children:
