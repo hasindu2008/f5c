@@ -40,9 +40,9 @@ Specifying `-c` will generate the output in a PAF-like format (much smaller than
 
 ## DNA examples
 
-### + strand
+### Positive strand
 
-The tsv output from resquiggle will look like below (assume --print-read-name and --signal-index are provided):
+The tsv output from resquiggle will look like below (assume `--print-read-name` and `--signal-index are provided`):
 
 |contig	|position	|reference_kmer	|read_id	|strand	|event_index	|event_level_mean	|event_stdv	|event_length	|model_kmer	|model_mean	|model_stdv	|standardized_level	|start_idx	|end_idx|
 |:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----|
@@ -65,9 +65,13 @@ The paf output from eventalign will look like below (the header is not present i
 |--:|----:|----:|--------:|--:|----:|----:|--------:|--:|----:|----:|--------:|--:|
 |rid0   |1000            |265        |317     |+     |ctg0   | 30      |12         |19       | 6    |7      |255 |`ss:Z:16,1D13,7,5,7,4,` |
 
-cmd: ./f5c eventalign -b test/chr22_meth_example/reads.sorted.bam -g test/chr22_meth_example/humangenome.fa -r test/chr22_meth_example/reads.fastq -t 16 -K 256 -B 2M --print-read-name --signal-index --slow5 test/chr22_meth_example/reads.blow5 | grep f81713d0-6ac4-41cf-947e-7fe12de2e863
+<!--
+cmd: ./f5c eventalign -b test/chr22_meth_example/reads.sorted.bam -g test/chr22_meth_example/humangenome.fa -r test/chr22_meth_example/reads.fastq -t 16 -K 256 -B 2M --print-read-name --signal-index --slow5 test/chr22_meth_example/reads.blow5 | grep f81713d0-6ac4-41cf-947e-7fe12de2e863 
+!-->
 
-### - strand
+### Negative strand
+
+The tsv output from resquiggle will look like below (assume `--print-read-name` and `--signal-index are provided`):
 
 |contig	|position	|reference_kmer	|read_id	|strand	|event_index	|event_level_mean	|event_stdv	|event_length	|model_kmer	|model_mean	|model_stdv	|standardized_level	|start_idx	|end_idx|
 |:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----|
@@ -87,7 +91,11 @@ cmd: ./f5c eventalign -b test/chr22_meth_example/reads.sorted.bam -g test/chr22_
 |ctg0|17|GGTGGA|rid1|t|1903|85.62|0.589|0.00075|TCCACC|87.17|1.76|-0.81	|663|666|
 |ctg0|18|GTGGAA|rid1|t|1902|90.79|1.335|0.00075|TTCCAC|91.76|1.96|-0.45	|660|663|
 
+<!--
 ./f5c eventalign -b test/chr22_meth_example/reads.sorted.bam -g test/chr22_meth_example/humangenome.fa -r test/chr22_meth_example/reads.fastq -t 16 -K 256 -B 2M --print-read-name --signal-index --slow5 test/chr22_meth_example/reads.blow5 | grep 5831b66f-83e8-4d75-a576-0f75ba6a7f64
+-->
+
+The paf output from eventalign will look like below (the header is not present in the actual output):
 
 |read_id|len_raw_signal|start_raw|end_raw|strand|ref_id|len_kmer|start_kmer|end_kmer|matches|len_block|mapq| |
 |--:|----:|----:|--------:|--:|----:|----:|--------:|--:|----:|----:|--------:|--:|
