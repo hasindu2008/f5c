@@ -42,6 +42,11 @@ Specifying `-c` will generate the output in a PAF-like format (much smaller than
 
 ### Positive strand
 
+Assume we have a read signal named rid0 of 1000 signal samples, mapped to a reference contig named ctg0 of 35 bases Assume a k-mer size of 6. We have a total of 30 k-mers in the reference. Assume the signal-reference alignment looks like in teh figure below. Assume that the 12-24th bases (0-index; bed-like; closed) inthis contig are `TTGATGGTGGAA`.
+
+<img width="900" alt="image" src="../img/eventalign-dna-1.png">
+
+
 The tsv output from resquiggle will look like below (assume `--print-read-name` and `--signal-index are provided`):
 
 |contig	|position	|reference_kmer	|read_id	|strand	|event_index	|event_level_mean	|event_stdv	|event_length	|model_kmer	|model_mean	|model_stdv	|standardized_level	|start_idx	|end_idx|
