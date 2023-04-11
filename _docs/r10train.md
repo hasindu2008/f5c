@@ -2,13 +2,14 @@
 title: Training new models for f5c using Nanopolish train
 ---
 
-*This article is uneditted and not proofread. If you find mistakes, please report at [issues](https://github.com/hasindu2008/f5c/issues).*
+*If you find mistakes or suggestions, please report at [issues](https://github.com/hasindu2008/f5c/issues).*
 
 We wanted to train new models for R10.4.1 for use with f5c. f5c has no implementation for training new models. Given f5c relies on nanopolish models, we use nanopolish for training such models. The process of figuring out the nanopolish training for R10.4.1 was quite challenging and required considerable effort. With great help from [Jared Simpon](https://github.com/jts), we were able to figure out. Hence, we have briefly documented the process we used to train R10.4.1 with nanopolish, and hope it can benefit someone else.
 
-We sequenced the human methylated and non-methylated dataset from [zymo dna methylation standards](https://zymoresearch.eu/pages/dna-methylation-standards). The non-methylated data is used for training neucleotide model. Both methylated and non-methylated are needed for training a methylation model in CpG context.
+We sequenced the human methylated and non-methylated (WGA) DNA datasets from [zymo dna methylation standards (D5013)](https://zymoresearch.eu/pages/dna-methylation-standards). One PromethION flowcell was used for each dataset and we obtained ~7X depth for the non-methylated  and ~9X for the methylated.
+The whole genome amplified non-methylated data with no base modifications is used for training neucleotide model. Both methylated (only CG methylated in this Zymo dataset) and non-methylated are needed for training a methylation model in CpG context.
 
-In this example, We will be using [BLOW5](https://github.com/hasindu2008/slow5tools) files to train as BLOW5 is much faster and convienient to use. You can get the nanopolish *r10 branch* with BLOW5 support from [here](https://github.com/hiruna72/nanopolish) (commit used: ce29c2dadb245857ad4a86a33b60724d2f312ca4, remember to checkout to r10 branch) and compile it. The binary compiled on Ubuntu 16 is available under `slow5-nanopolish-train/` [here](https://f5c.page.link/r10train) and will work if your Linux distribution is recent.
+In this example, We will be using [BLOW5](https://github.com/hasindu2008/slow5tools) files to train as BLOW5 is much faster and convienient to use. You can get the nanopolish *r10 branch* with BLOW5 support from [here](https://github.com/hiruna72/nanopolish) (commit used ce29c2da, remember to checkout to r10 branch) and compile it. The binary compiled on Ubuntu 16 is available under `slow5-nanopolish-train/` [here](https://f5c.page.link/r10train) and will work if your Linux distribution is recent.
 
 ## Nucleotide model
 
@@ -67,7 +68,7 @@ In this example, We will be using [BLOW5](https://github.com/hasindu2008/slow5to
     r10_450bps.t	CCTAAAAAA	0	0	0	1000	1	60.58	2.35
     r10_450bps.t	AAAAAAAAA	0	0	0	1000	1	54.20	1.99
     ```
-    If all of them are 0, that means they were not successfully trained. By default, nanopolish will require at least 100 `num_events_for_training`, so unless you have good coverage for all k-mers, some of the k-mers will not be trained. In our case, majority of the k-mers were trained, but not all.
+    If all of them are 0, that means they were not successfully trained. By default, nanopolish will require at least 100 `num_events_for_training`, so unless you have good coverage for all k-mers, some of the k-mers will not be trained. In our case, we had around ~7X depth for the human genome and 99.42% of the k-mers were trained (260631 of 262144), but not all.
     If the outputs are empty or if all k-mers are not trained (happened to us at the beginning), it could be due to multiple reasons. I do not remeber much of those now, but these issues may help debugging: [#825](https://github.com/jts/nanopolish/issues/825), [#761](https://github.com/jts/nanopolish/issues/761),  [#1059](https://github.com/jts/nanopolish/issues/1059), [#1064](https://github.com/jts/nanopolish/issues/1064).
 
 
@@ -105,7 +106,8 @@ In this example, We will be using [BLOW5](https://github.com/hasindu2008/slow5to
     total entries: 482419, qc fail: 900, could not calibrate: 318, no alignment: 3924, bad reads: 0
     ```
     Plots below show how each training round improved the number of successful alignments and reduced the number of failed alignments (failed alignments = qc fail + could not calibrate + no alignment; successful alignments = total entries - failed alignments).
-    <img width="500" alt="image" src="../img/r10train_alns.svg"> <img width="500" alt="image" src="../img/r10train_alnf.svg">
+    <img width="750" alt="image" src="../img/r10train_alns.svg"> 
+    <img width="750" alt="image" src="../img/r10train_alnf.svg">
     
 ## Methylation model
 
@@ -262,6 +264,8 @@ In this example, We will be using [BLOW5](https://github.com/hasindu2008/slow5to
 
 ___
 
-As we used minimal data to train (the coverage for human methylated and non-methylated dataset was pretty low), the models are not perfect. Some k-mers did not even have enough coverage to train. But the good thing is, now anyone who has better data can use the models we generated as the base models (`trained_nuc_models_more/r10_450bps.nucleotide.9mer.template.round9.model` as the base nucleotide model and `trained_meth_models/r10_450bps.cpg.9mer.template.round9.model` as the base methylation model) and train futher.
+As we used minimal data to train (the coverage for human methylated and non-methylated dataset was <10X coverage), the models are not perfect. Some k-mers did not even have enough coverage to train. Also, the sequencing we did was for 400bps speed and thus the models may not work well for 260bps. 
+But the good thing is, now anyone who has better data can use the models we generated as the base models (`trained_nuc_models_more/r10_450bps.nucleotide.9mer.template.round9.model` as the base nucleotide model and `trained_meth_models/r10_450bps.cpg.9mer.template.round9.model` as the base methylation model) and train futher. 
 
+Nanopolish train also has this `--bedmethyl=FILE` option that can infer the presence/absence of methylation sites using FILE as a map, which could be a useful feature that I am yet to explore.
 
