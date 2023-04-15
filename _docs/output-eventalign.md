@@ -42,7 +42,7 @@ Specifying `-c` will generate the output in a PAF-like format (much smaller than
 
 ### Positive strand
 
-Assume we have a read signal named rid0 of 1000 signal samples, mapped to a reference contig named ctg0 of 35 bases Assume a k-mer size of 6. We have a total of 30 k-mers in the reference. Assume the signal-reference alignment looks like in teh figure below. Assume that the 12-24th bases (0-index; bed-like; closed) inthis contig are `TTGATGGTGGAA`.
+Assume we have a read signal named rid0 of 1000 signal samples, mapped to a reference contig named ctg0 of 35 bases Assume a k-mer size of 6. We have a total of 30 k-mers in the reference. Assume the signal-reference alignment looks like in teh figure below. Assume that the 12-24th bases (0-index; bed-like; closed) inthis contig are `TTGATGGTGGAA`. Thus, 12th kmer is TTGATG, 13th k-mer is TGATGG, 14th k-mer is GATGGT, .. and the 18th k-mer is GTGGAA.
 
 <img width="900" alt="image" src="../img/eventalign-dna-1.png">
 
@@ -75,6 +75,22 @@ cmd: ./f5c eventalign -b test/chr22_meth_example/reads.sorted.bam -g test/chr22_
 !-->
 
 ### Negative strand
+
+Assume we have a read signal named rid1 of 1000 signal samples, mapped to a reference contig named ctg0 of 35 bases Assume a k-mer size of 6. We have a total of 30 k-mers in the reference. Assume the signal-reference alignment looks like in the figure below. 
+
+<img width="900" alt="image" src="../img/eventalign-dna-2.png">
+
+
+Assume that the 11-24th bases (0-index; bed-like; closed) in this contig are ATTGATGGTGGAA. Thus, 11th kmer is ATTGAT, 12th k-mer is TTGATG, 13th k-mer is TGATGG, .. 17th k-mer is GGTGGA and the 18th k-mer is GTGGAA.
+
+Th negative strand is like:
+```
+5' ATTGATGGTGGAA 3' + strand
+   |||||||||||||
+3' TAACTACCACCTT 5' - strand
+```
+
+The Reverse complement is thus TTCCACCATCAAT. The 11th k-mer ATTGAT in the + strand relates to ATCAAT in the - strand,  12th k-mer TTGATG relates to CATCAA, 13th k-mer TGATGG relates to CCATC ,... , 17th k-mer GGTGGA relates to TCCACC  and 18th k-mer GTGGAA relates to TTCCAC.
 
 The tsv output from resquiggle will look like below (assume `--print-read-name` and `--signal-index are provided`):
 
