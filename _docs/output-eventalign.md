@@ -76,7 +76,7 @@ cmd: ./f5c eventalign -b test/chr22_meth_example/reads.sorted.bam -g test/chr22_
 
 ### Negative strand
 
-Assume we have a read signal named rid1 of 1000 signal samples, mapped to a reference contig named ctg0 of 35 bases Assume a k-mer size of 6. We have a total of 30 k-mers in the reference. Assume the signal-reference alignment looks like in the figure below. 
+Assume we have a read signal named rid1 of 1000 signal samples, mapped to a reference contig named ctg0 of 35 bases Assume a k-mer size of 6. We have a total of 30 k-mers in the reference. Assume the signal-reference alignment looks like in the figure below (note: indices in illustration denote the actual index in the + strand of the reference genome in 5’->3’ direction). 
 
 <img width="900" alt="image" src="../img/eventalign-dna-2.png">
 
