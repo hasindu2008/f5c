@@ -34,9 +34,9 @@ Following optional columns are controlled via command line options:
 |`--scale-events`   |float |model_stdv| Intead of scaling the model to the events, now events will be scaled to the model. column 12 becomes *level_stdv* (*level_stdv* is the second column in the pore model)|
 |`--samples`        |float,float,...|samples|  Prints the comma separated signal samples corresponding to the mapped k-mer (scaled pA current values). `scaled pA current values = (pA - scaling.shift) / scaling.scale` where `pA = (raw_signal + offset) * range / digitisation`|
 
-## event align output
+## eventalign paf output
 
-Specifying `-c` will generate the output in a PAF-like format (much smaller than the TSV output). This is almost the same as the PAF output format in f5c resquiggle with only difference being that the "basecalled read" in resquiggle is now the "refererence contig" in eventalign. Assume that the reader has well familiarised with the PAF output explained in resquiggle as those information is not repeated here. Unlike in resquiggle, the strand column (column 5) can be now both '+' and '-'. Some examples are below.
+Specifying `-c` will generate the output in a PAF-like format (much smaller than the TSV output). This is similar to the PAF output format in [f5c resquiggle](https://hasindu2008.github.io/f5c/docs/output#resquiggle-paf-output-format) with only difference being that the "basecalled read" in resquiggle is now the "refererence contig" in eventalign. Assumming that the reader is well familiarised with the PAF output explained in resquiggle that information is not repeated here. Unlike in resquiggle, the strand column (column 5) can be now both '+' and '-'. Some examples are given below.
 
 ## DNA examples
 
