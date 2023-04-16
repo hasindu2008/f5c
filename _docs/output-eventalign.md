@@ -21,7 +21,7 @@ The default TSV output is as below:
 |13 |int   |standardized_level|*(event_level_mean - model_mean) / (sqrt(scalings.var) * model_stdv)*  |
 
 
-Command line options can be used to modify default columns or print additional columns. `--samples` will print two additional columns will be printed, namely start_idx and end_idx. 
+Command line options can be used to modify default columns or print additional columns. `--samples` will print two additional columns, namely start_idx and end_idx. 
 
 Following optional columns are controlled via command line options:
 |Command_line_Option|Type  |Name |Description                               |
