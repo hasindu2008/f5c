@@ -193,10 +193,45 @@ int main(){
 
 Note that the beginning of the alignment could be crude due to the adaptor and barcode in the raw signal. In future versions, an option for this trimming may be introduced. Until then, if there is an huge step in the alignment in the beginning, that part could be trimmed by the user.
 
-# call-methylation
+## event-align
+
+
+### eventalign tsv output
+
+Same as Nanopolish output. The default TSV output is as below:
+
+|Col|Type  |Name |Description                               |
+|--:|:----:|:----|:-----------------------------------------|
+|1  |string|contig|Contig on the reference which the read maps to                       |
+|2  |int   |position|Start index on the contig (0-based; BED-like; closed)                    |
+|3  |string   |reference_kmer|The k-mer on the reference   |
+|4  |int   |read_index|Index in the BAM file for the coresponding read (0-based)       |
+|5  |char  |strand|Legacy, ignore               |
+|6  |int|event_index|Index of the event on the event table (0-based; BED-like; closed)                    |
+|7  |float   |event_level_mean|Mean level of the current values of the event                   |
+|8  |float   |event_stdv| Standard deviation of the current values of the event  |
+|9  |float   |event_length| Length of the event (in seconds)   |
+|10 |int   |model_kmer|The k-mer on the pore-model which this event matched                   |
+|11 |int   |model_mean|Scaled mean level on the pore-model for the matched k-mer *(scaling.scale * level_mean + scaling.shift)* where *level_mean* in the first column in the pore-model                   |
+|12 |int   |model_stdv|Scaled standard deviation on the pore-model for the matched k-mer *(level_stdv * scaling.var)* where *level_stdv* in the second column in the pore-model |
+|13 |int   |standardized_level|*(event_level_mean - model_mean) / (sqrt(scalings.var) * model_stdv)*  |
+
+
+Command line options can be used to modify default columns or print additional columns. `--samples` will print two additional columns, namely start_idx and end_idx. 
+
+Following optional columns are controlled via command line options:
+|Command_line_Option|Type  |Name |Description                               |
+|:----------|:----|:----|:-----------------------------------------|
+|`--print-read-name`|string|read_name|Column 4 will become read_name that prints the read ID|
+|`--signal-index`   |int   |start_idx|start_idx is the starting index on the raw signal which the corresponding k-mer maps to (0-based; BED-like; closed)|
+|`--signal-index`   |int   |end_idx  |end_idx is the ending index on the raw signal which the corresponding k-mer maps to (0-based; BED-like; open)|
+|`--scale-events`   |float |event_level_mean| Intead of scaling the model to the events, now events will be scaled to the model. column 7 becomes `(event_level_mean-scaling.shift)/scaling.scale`|
+|`--scale-events`   |float |model_mean| Intead of scaling the model to the events, now events will be scaled to the model. column 11 becomes *level_mean* (*level_mean* is the first column in the pore model)|
+|`--scale-events`   |float |model_stdv| Intead of scaling the model to the events, now events will be scaled to the model. column 12 becomes *level_stdv* (*level_stdv* is the second column in the pore model)|
+|`--samples`        |float,float,...|samples|  Prints the comma separated signal samples corresponding to the mapped k-mer (scaled pA current values). `scaled pA current values = (pA - scaling.shift) / scaling.scale` where `pA = (raw_signal + offset) * range / digitisation`|
+
+
+## call-methylation
 
 Same as Nanopolish output.
 
-# event-align
-
-Same as Nanopolish output.
