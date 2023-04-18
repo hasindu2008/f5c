@@ -195,7 +195,6 @@ Note that the beginning of the alignment could be crude due to the adaptor and b
 
 ## event-align
 
-
 ### eventalign tsv output
 
 Same as Nanopolish output. The default TSV output is as below:
@@ -216,10 +215,10 @@ Same as Nanopolish output. The default TSV output is as below:
 |12 |int   |model_stdv|Scaled standard deviation on the pore-model for the matched k-mer *(level_stdv * scaling.var)* where *level_stdv* in the second column in the pore-model |
 |13 |int   |standardized_level|*(event_level_mean - model_mean) / (sqrt(scalings.var) * model_stdv)*  |
 
-
 Command line options can be used to modify default columns or print additional columns. `--samples` will print two additional columns, namely start_idx and end_idx. 
 
 Following optional columns are controlled via command line options:
+
 |Command_line_Option|Type  |Name |Description                               |
 |:----------|:----|:----|:-----------------------------------------|
 |`--print-read-name`|string|read_name|Column 4 will become read_name that prints the read ID|
