@@ -52,7 +52,7 @@ uint32_t read_model(model_t* model, const char* file, uint32_t type);
 uint32_t set_model(model_t* model, uint32_t model_id);
 
 /* events */
-event_table getevents(size_t nsample, float* rawptr, int8_t rna);
+event_table getevents(size_t nsample, float* rawptr, int8_t rna, const char *edparam_str);
 
 /* alignment related */
 scalings_t estimate_scalings_using_mom(char* sequence, int32_t sequence_len, model_t* pore_model, uint32_t kmer_size, event_table et);

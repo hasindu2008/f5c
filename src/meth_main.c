@@ -103,6 +103,7 @@ static struct option long_options[] = {
     {"min-recalib-events",required_argument,0,0},  //44 minimum number of events to recalibrate
     {"collapse-events",no_argument,0,0},           //45 collapse events that stays on the same reference k-mer
     {"pore",required_argument,0,0},                //46 pore
+    {"edparam",required_argument,0,0},             //47 event detection parameters
     {0, 0, 0, 0}};
 
 
@@ -424,6 +425,8 @@ int meth_main(int argc, char* argv[], int8_t mode) {
             if(strcmp(opt.pore,"r10")==0){
                 opt.flag |= F5C_R10;
             }
+        } else if (c==0 && longindex == 47){ //event detection parameters
+            opt.edparam_str = optarg;
         }
 
     }
@@ -507,6 +510,7 @@ int meth_main(int argc, char* argv[], int8_t mode) {
         fprintf(fp_help,"   --profile-cpu=yes|no       process section by section (used for profiling on CPU)\n");
         fprintf(fp_help,"   --write-dump=yes|no        write the fast5 dump to a file or not\n");
         fprintf(fp_help,"   --read-dump=yes|no         read from a fast5 dump file or not\n");
+        fprintf(fp_help,"   --edparam                  comma separated list of parameters (window_length1,window_length2,threshold1,threshold2,peak_height) for event detection\n");
         fprintf(fp_help,"\nSee the manual page for details (`man ./docs/f5c.1' or https://f5c.page.link/man).\n");
         if(fp_help == stdout){
             exit(EXIT_SUCCESS);

@@ -558,8 +558,40 @@ event_table detect_events(raw_table const rt, detector_param const edparam) {
     return et;
 }
 
+static detector_param parse_set(char const* edparam_str) {
+
+    detector_param edparam;
+
+    float window_length1;
+    float window_length2;
+    float threshold1;
+    float threshold2;
+    float peak_height;
+
+    int n = sscanf(edparam_str, "%f,%f,%f,%f,%f", &window_length1, &window_length2, &threshold1, &threshold2, &peak_height);
+    if(n != 5){
+        fprintf(stderr, "Error parsing event detection parameters. format: --edparam window_length1,window_length2,threshold1,threshold2,peak_height. . e.g.: 3,6,1.4,9.0,0.2 for default dna, 7,14,2.5,9.0,1.0 for default rna\n");
+        exit(EXIT_FAILURE);
+    }
+
+    assert(window_length1 > 0);
+    assert(window_length2 > 0);
+    assert(threshold1 > 0);
+    assert(threshold2 > 0);
+    assert(peak_height > 0);
+
+    edparam.window_length1 = window_length1;
+    edparam.window_length2 = window_length2;
+    edparam.threshold1 = threshold1;
+    edparam.threshold2 = threshold2;
+    edparam.peak_height = peak_height;
+
+    return edparam;
+
+}
+
 // interface to scrappie functions
-event_table getevents(size_t nsample, float* rawptr, int8_t rna) {
+event_table getevents(size_t nsample, float* rawptr, int8_t rna, const char *edparam_str) {
     event_table et;
     raw_table rt = (raw_table){nsample, 0, nsample, rawptr};
 
@@ -574,6 +606,13 @@ event_table getevents(size_t nsample, float* rawptr, int8_t rna) {
     const detector_param* ed_params = &event_detection_defaults; // for dna
     if(rna){
         ed_params = &event_detection_rna; //rna
+    }
+
+    detector_param custom_edparam;
+    if(edparam_str != NULL){
+        custom_edparam = parse_set(edparam_str);
+        ed_params = &custom_edparam;
+        fprintf(stderr, "Using custom event detection parameters: window_length1=%ld, window_length2=%ld, threshold1=%.1f, threshold2=%.1f, peak_height=%.1f\n", ed_params->window_length1, ed_params->window_length2, ed_params->threshold1, ed_params->threshold2, ed_params->peak_height);
     }
 
     et = detect_events(rt, *ed_params);

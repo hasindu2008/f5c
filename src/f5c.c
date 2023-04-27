@@ -686,7 +686,7 @@ void event_single(core_t* core,db_t* db, int32_t i) {
         if (core->opt.flag & F5C_RNA){
             rna=1;
         }
-        db->et[i] = getevents(db->sig[i]->nsample, rawptr, rna);
+        db->et[i] = getevents(db->sig[i]->nsample, rawptr, rna, core->opt.edparam_str);
 
         // if(db->et[i].n/(float)db->read_len[i] > 20){
         //     fprintf(stderr,"%s\tevents_per_base\t%f\tread_len\t%d\n",bam_get_qname(db->bam_rec[i]), db->et[i].n/(float)db->read_len[i],db->read_len[i]);
@@ -1194,4 +1194,6 @@ void init_opt(opt_t* opt) {
     opt->cuda_max_readlen=3.0f;
     opt->cuda_avg_events_per_kmer=2.0f; //only if CUDA_DYNAMIC_MALLOC is unset
     opt->cuda_max_avg_events_per_kmer=5.0f;
+
+    opt->edparam_str = NULL;
 }

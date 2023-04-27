@@ -120,6 +120,8 @@ typedef struct {
     float cuda_max_avg_events_per_kmer; //max-epk
     int32_t cuda_dev_id;
     float cuda_mem_frac;
+
+    const char *edparam_str; //the string for the event detection parameters
 } opt_t;
 
 /* a single signal-space event : adapted from taken from scrappie */
