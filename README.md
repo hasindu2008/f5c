@@ -1,6 +1,6 @@
 # f5c
 
-An optimised re-implementation of the *index*, *call-methylation* and *eventalign* modules in [Nanopolish](https://github.com/jts/nanopolish). Given a set of basecalled Nanopore reads and the raw signals, *f5c call-methylation* detects the methylated cytosine and *f5c eventalign* aligns raw nanopore signals (events) to the reference k-mers. *f5c* can optionally utilise NVIDIA graphics cards for acceleration.
+An optimised re-implementation of the *index*, *call-methylation* and *eventalign* modules in [Nanopolish](https://github.com/jts/nanopolish). Given a set of basecalled Nanopore reads and the raw signals, *f5c call-methylation* detects the methylated cytosine and *f5c eventalign* aligns raw nanopore signals (events) to the reference k-mers. *f5c* can optionally utilise NVIDIA graphics cards for acceleration. f5c v1.2 onwards support the latest nanopore R10.4.1 chemistry.
 
 First, the reads have to be indexed using `f5c index`. Then, invoke `f5c call-methylation` to detect methylated cytosine bases. Finally, you may use `f5c meth-freq` to obtain methylation frequencies. Alternatively, invoke `f5c eventalign` to perform event alignment. The results are almost the same as from nanopolish except a few differences due to floating point approximations.
 
@@ -38,7 +38,7 @@ Please cite the following when using *f5c* in your publications:
 
 If you are a Linux user and want to quickly try out download the compiled binaries from the [latest release](https://github.com/hasindu2008/f5c/releases). For example:
 ```sh
-VERSION=v1.1
+VERSION=v1.2
 wget "https://github.com/hasindu2008/f5c/releases/download/$VERSION/f5c-$VERSION-binaries.tar.gz" && tar xvf f5c-$VERSION-binaries.tar.gz && cd f5c-$VERSION/
 ./f5c_x86_64_linux        # CPU version
 ./f5c_x86_64_linux_cuda   # cuda supported version
@@ -54,7 +54,7 @@ You can also use conda to install *f5c* as `conda install f5c -c bioconda -c con
 Users are recommended to build from the  [latest release](https://github.com/hasindu2008/f5c/releases) tar ball. You need a compiler that supports C++11. Quick example for Ubuntu :
 ```sh
 sudo apt-get install libhdf5-dev zlib1g-dev   #install HDF5 and zlib development libraries
-VERSION=v1.1
+VERSION=v1.2
 wget "https://github.com/hasindu2008/f5c/releases/download/$VERSION/f5c-$VERSION-release.tar.gz" && tar xvf f5c-$VERSION-release.tar.gz && cd f5c-$VERSION/
 scripts/install-hts.sh  # download and compile the htslib
 ./configure
