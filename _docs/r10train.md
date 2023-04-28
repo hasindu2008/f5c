@@ -264,8 +264,13 @@ In this example, We will be using [BLOW5](https://github.com/hasindu2008/slow5to
 
 ___
 
-As we used minimal data to train (the coverage for human methylated and non-methylated dataset was <10X coverage), the models are not perfect. Some k-mers did not even have enough coverage to train. Also, the sequencing we did was for 400bps speed and thus the models may not work well for 260bps. 
+## Caveats and Possible Improvements
+
+- As we used minimal data to train (the coverage for human methylated and non-methylated dataset was <10X coverage), the models are not perfect. Some k-mers did not even have enough coverage to train (<100 events)).
 But the good thing is, now anyone who has better data can use the models we generated as the base models (`trained_nuc_models_more/r10_450bps.nucleotide.9mer.template.round9.model` as the base nucleotide model and `trained_meth_models/r10_450bps.cpg.9mer.template.round9.model` as the base methylation model) and train futher. 
 
-Nanopolish train also has this `--bedmethyl=FILE` option that can infer the presence/absence of methylation sites using FILE as a map, which could be a useful feature that I am yet to explore.
+- The sequencing we did was for 400bps speed and thus the models may not work well for 260bps. Anyway, ONT is deprecating 260bps I heard.
 
+- Nanopolish train also has this `--bedmethyl=FILE` option that can infer the presence/absence of methylation sites using FILE as a map, which could be a useful feature that I am yet to explore.
+
+- Many meta parameters such as those for event detection, scaling and HMM structure used for R10 are same as for R9. These parameters could be optimised for R10 but haven't got time to explore. Thus unless a lot of more work is done, it is not possible to say whether what f5c currently give for R10 is the best that can be achieved from nanopolish-style models. 
