@@ -56,6 +56,7 @@
 #define F5C_RD_SLOW5 0x10000 //read from a slow5 file
 #define F5C_COLLAPSE_EVENTS 0x20000 //collapse events
 #define F5C_R10 0x40000 //r10
+#define F5C_PAF 0x80000 //paf (eventalign only)
 
 /*************************************************************
  * flags for a read status (related to db_t->read_stat_flag) *
