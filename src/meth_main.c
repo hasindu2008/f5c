@@ -104,6 +104,7 @@ static struct option long_options[] = {
     {"collapse-events",no_argument,0,0},           //45 collapse events that stays on the same reference k-mer
     {"pore",required_argument,0,0},                //46 pore
     {"edparam",required_argument,0,0},             //47 event detection parameters
+    {"max-events-base",required_argument,0,0},     //48 max events per base (threshold for QC_FAIL)
     {0, 0, 0, 0}};
 
 
@@ -427,6 +428,9 @@ int meth_main(int argc, char* argv[], int8_t mode) {
             }
         } else if (c==0 && longindex == 47){ //event detection parameters
             opt.edparam_str = optarg;
+        } else if (c==0 && longindex == 48){ //max_events_per_base
+            opt.max_events_per_base = atof(optarg);
+            assert(opt.max_events_per_base>0);
         }
 
     }
@@ -511,6 +515,7 @@ int meth_main(int argc, char* argv[], int8_t mode) {
         fprintf(fp_help,"   --write-dump=yes|no        write the fast5 dump to a file or not\n");
         fprintf(fp_help,"   --read-dump=yes|no         read from a fast5 dump file or not\n");
         fprintf(fp_help,"   --edparam                  comma separated list of parameters (window_length1,window_length2,threshold1,threshold2,peak_height) for event detection\n");
+        fprintf(fp_help,"   --max-events-base          maximum number of events per base (threshold for qc fail)\n");
         fprintf(fp_help,"\nSee the manual page for details (`man ./docs/f5c.1' or https://f5c.page.link/man).\n");
         if(fp_help == stdout){
             exit(EXIT_SUCCESS);

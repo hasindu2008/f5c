@@ -122,6 +122,7 @@ typedef struct {
     float cuda_mem_frac;
 
     const char *edparam_str; //the string for the event detection parameters
+    float max_events_per_base; //the maximum number of events per base (default 5.0)
 } opt_t;
 
 /* a single signal-space event : adapted from taken from scrappie */

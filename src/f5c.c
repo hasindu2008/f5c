@@ -782,7 +782,7 @@ void scaling_single(core_t* core, db_t* db, int32_t i){
 
     // Filter poor quality reads that have too many "stays"
 
-    if (db->events_per_base[i] > 5.0) {
+    if (db->events_per_base[i] > core->opt.max_events_per_base) {
         //     events[0].clear();
         //     events[1].clear();
         //free(db->event_align_pairs[i]);
@@ -1196,4 +1196,5 @@ void init_opt(opt_t* opt) {
     opt->cuda_max_avg_events_per_kmer=5.0f;
 
     opt->edparam_str = NULL;
+    opt->max_events_per_base = 5;
 }
