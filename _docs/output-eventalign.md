@@ -166,4 +166,29 @@ Note that start_kmer and end_kmer are otherway round compared to DNA.
 !-->
 
 
+<!--
+
+negative 
+./f5c eventalign -b test/rna/reads.sorted.bam -g test/rna/gencode.v35.transcripts.fa -r test/rna/reads.fastq -t 16 -K 256 -B 2M --summary test/rna/f5c_event_align.summary.txt  --rna --signal-index --print-read-name | grep 29192917-7793-4f78-b079-c7aa3f24992e
+
+trn0	4	AAATG	rid1	t	584	100.70	2.678	0.00664	CATTT	100.40	6.94	0.04	11061	11081
+trn0	5	AATGG	rid1	t	583	96.55	4.060	0.00432	CCATT	98.42	2.68	-0.62	11081	11094
+trn0	6	ATGGC	rid1	t	582	83.36	1.416	0.00332	GCCAT	84.06	2.64	-0.24	11094	11104
+trn0	6	ATGGC	rid1	t	581	87.00	6.172	0.00299	GCCAT	84.06	2.64	0.99	11104	11113
+trn0	7	TGGCT	rid1	t	580	121.45	4.970	0.00598	AGCCA	121.42	4.13	0.01	11113	11131
+trn0	7	TGGCT	rid1	t	579	128.10	1.094	0.00299	AGCCA	121.42	4.13	1.44	11131	11140
+trn0	7	TGGCT	rid1	t	578	124.88	4.039	0.00631	AGCCA	121.42	4.13	0.75	11140	11159
+trn0	8	GGCTG	rid1	t	577	115.80	2.588	0.00465	CAGCC	115.81	3.78	-0.00	11159	11173
+trn0	8	GGCTG	rid1	t	576	111.04	2.482	0.00332	CAGCC	115.81	3.78	-1.13	11173	11183
+trn0	9	GCTGA	rid1	t	575	99.95	2.843	0.00498	TCAGC	101.66	6.39	-0.24	11183	11198
+
+todo: Note on splice
+todo: in ctual output in paf,, fix the reference contig len
+
+!-->
+
+
+
+
+
 
