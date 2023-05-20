@@ -42,7 +42,7 @@ Specifying `-c` will generate the output in a PAF-like format (much smaller than
 
 ### Positive strand
 
-Assume we have a read signal named rid0 of 1000 signal samples, mapped to a reference contig named ctg0 of 35 bases Assume a k-mer size of 6. We have a total of 30 k-mers in the reference. Assume the signal-reference alignment looks like in teh figure below. Assume that the 12-24th bases (0-index; bed-like; closed) inthis contig are `TTGATGGTGGAA`. Thus, 12th kmer is TTGATG, 13th k-mer is TGATGG, 14th k-mer is GATGGT, .. and the 18th k-mer is GTGGAA.
+Assume we have a read signal named rid0 of 1000 signal samples, mapped to a reference contig named ctg0 of 35 bases Assume a k-mer size of 6. We have a total of 30 k-mers in the reference. Assume the signal-reference alignment looks like in teh figure below. Assume that the 12-24th bases (0-index; bed-like) inthis contig are `TTGATGGTGGAA`. Thus, 12th kmer is TTGATG, 13th k-mer is TGATGG, 14th k-mer is GATGGT, .. and the 18th k-mer is GTGGAA.
 
 <img width="900" alt="image" src="../img/eventalign-dna-1.png">
 
@@ -81,7 +81,7 @@ Assume we have a read signal named rid1 of 1000 signal samples, mapped to a refe
 <img width="900" alt="image" src="../img/eventalign-dna-2.png">
 
 
-Assume that the 11-24th bases (0-index; bed-like; closed) in this contig are ATTGATGGTGGAA. Thus, 11th kmer is ATTGAT, 12th k-mer is TTGATG, 13th k-mer is TGATGG, .. 17th k-mer is GGTGGA and the 18th k-mer is GTGGAA.
+Assume that the 11-24th bases (0-index; bed-like) in this contig are ATTGATGGTGGAA. Thus, 11th kmer is ATTGAT, 12th k-mer is TTGATG, 13th k-mer is TGATGG, .. 17th k-mer is GGTGGA and the 18th k-mer is GTGGAA.
 
 Th negative strand is like:
 ```
@@ -124,5 +124,44 @@ The paf output from eventalign will look like below (the header is not present i
 
 ## RNA examples
 
-    
+In RNA, a read should always map to + strand of the transcripts in the transcriptome. Thus - mappings in thory should not exist.
+
+Assume we have a read signal named rid0 of 3000 signal samples, mapped to a reference transcript  named trn0 of 65 bases Assume a k-mer size of 5. We have a total of 61 k-mers in the reference. 
+
+Assume the signal-reference alignment looks like in the figure below. Note that the RNA is sequenced 3'->5' end, so the raw signal is 3'->5' direction. However, as transcipts in the reference are in 5'->3' direction, the transcript is reversed to be 3'->5' in the illustration (note: indices in illustration denote the actual index in the transcriptd in 5'->3' direction). 
+
+Assume that the 45-56th bases (0-index; bed-like) in this transcript in 5'->3' direction is `GAGAGCCCTGA`. Then, 45th kmer is GAGAG, 46th k-mer is AGAGC, 47th k-mer is GAGCC, .. and the 51st k-mer is CCTGA.
+
+
+<img width="900" alt="image" src="../img/eventalign-rna-1.png">
+
+
+The tsv output from resquiggle will look like below (assume `--print-read-name` and `--signal-index are provided`):
+
+|contig	|position	|reference_kmer	|read_id	|strand	|event_index	|event_level_mean	|event_stdv	|event_length	|model_kmer	|model_mean	|model_stdv	|standardized_level	|start_idx	|end_idx|
+|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----|
+trn0|45|GAGAG|rid0|t|62|139.24|11.306|0.02390|GAGAG|140.16|10.24|-0.07|2199|2271|
+trn0|46|AGAGC|rid0|t|63|141.04|11.203|0.01926|AGAGC|144.32|9.93|-0.25|2141|2199|
+trn0|47|GAGCC|rid0|t|64|117.06|5.038|0.01029|GAGCC|118.37|5.26|-0.19|2110|2141|
+trn0|47|GAGCC|rid0|t|65|114.03|1.993|0.00365|GAGCC|118.37|5.26|-0.62|2099|2110|
+trn0|47|GAGCC|rid0|t|66|116.30|3.843|0.00398|GAGCC|118.37|5.26|-0.30|2087|2099|
+trn0|48|AGCCC|rid0|t|67|132.00|1.294|0.00697|AGCCC|126.60|5.74|0.71|2066|2087|
+trn0|48|AGCCC|rid0|t|68|93.27|13.847|0.00863|NNNNN|0.00|0.00|inf|2040|2066|
+trn0|50|CCCTG|rid0|t|69|80.59|2.676|0.00498|CCCTG|86.42|4.10|-1.08|2025|2040|
+trn0|51|CCTGA|rid0|t|70|100.31|2.563|0.00398|CCTGA|109.18|4.97|-1.35|2013|2025|
+trn0|51|CCTGA|rid0|t|71|116.03|2.440|0.00631|CCTGA|109.18|4.97|1.04|1994|2013|
+trn0|51|CCTGA|rid0|t|72|101.67|1.433|0.00332|CCTGA|109.18|4.97|-1.14|1984|1994|
+
+
+The paf output from eventalign will look like below (the header is not present in the actual output):
+
+|read_id|len_raw_signal|start_raw|end_raw|strand|ref_id|len_kmer|start_kmer|end_kmer|matches|len_block|mapq| |
+|--:|----:|----:|--------:|--:|----:|----:|--------:|--:|----:|----:|--------:|--:|
+|rid0   |3000            |1984        |2271     |+     |trn0   | 61      |52         |45       | 6    |7      |255 |`ss:Z:41,15,1D47,54,58,72,` |
+
+<!--
+./f5c eventalign -b test/rna/reads.sorted.bam -g test/rna/gencode.v35.transcripts.fa -r test/rna/reads.fastq -t 16 -K 256 -B 2M --summary test/rna/f5c_event_align.summary.txt  --rna --signal-index --print-read-name | grep cf78b09c-cb53-4631-8bef-a98b344d67c3
+!-->
+
+
 
