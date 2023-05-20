@@ -124,7 +124,7 @@ The paf output from eventalign will look like below (the header is not present i
 
 ## RNA examples
 
-In RNA, a read should always map to + strand of the transcripts in the transcriptome. Thus - mappings in thory should not exist.
+In RNA, a read should always map to + strand of the transcripts in the transcriptome. Thus - mappings if any are meaning less. Only + ones are discussed below.
 
 Assume we have a read signal named rid0 of 3000 signal samples, mapped to a reference transcript  named trn0 of 65 bases Assume a k-mer size of 5. We have a total of 61 k-mers in the reference. 
 
@@ -158,6 +158,8 @@ The paf output from eventalign will look like below (the header is not present i
 |read_id|len_raw_signal|start_raw|end_raw|strand|ref_id|len_kmer|start_kmer|end_kmer|matches|len_block|mapq| |
 |--:|----:|----:|--------:|--:|----:|----:|--------:|--:|----:|----:|--------:|--:|
 |rid0   |3000            |1984        |2271     |+     |trn0   | 61      |52         |45       | 6    |7      |255 |`ss:Z:41,15,1D47,54,58,72,` |
+
+Note that start_kmer and end_kmer are otherway round compared to DNA.
 
 <!--
 ./f5c eventalign -b test/rna/reads.sorted.bam -g test/rna/gencode.v35.transcripts.fa -r test/rna/reads.fastq -t 16 -K 256 -B 2M --summary test/rna/f5c_event_align.summary.txt  --rna --signal-index --print-read-name | grep cf78b09c-cb53-4631-8bef-a98b344d67c3
