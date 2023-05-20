@@ -1979,7 +1979,7 @@ char *emit_event_alignment_tsv(uint32_t strand_idx,
 
 
 char *emit_event_alignment_paf(const event_table* et,  int64_t len_raw_signal, int64_t ref_len, uint32_t kmer_size, scalings_t scalings,
-                              const std::vector<event_alignment_t>& alignments, bam1_t* bam_record, char* read_name, char *ref_name)
+                              const std::vector<event_alignment_t>& alignments, bam1_t* bam_record, char* read_name, char *ref_name, int8_t rna)
 {
 
     kstring_t str;
@@ -1993,7 +1993,7 @@ char *emit_event_alignment_paf(const event_table* et,  int64_t len_raw_signal, i
 
         event_alignment_t *aln = (event_alignment_t*)malloc(sizeof(event_alignment_t)*aln_size);
 
-        if(strand == '-') {
+        if( (!rna && strand == '-') || (rna && strand == '+') ) { // if dna reverse strand or rna forward strand, reverse
             //reverse the alignments
             for(size_t i=0; i<aln_size; i++) {
                 aln[i] = alignments[aln_size-1-i];
@@ -2007,11 +2007,8 @@ char *emit_event_alignment_paf(const event_table* et,  int64_t len_raw_signal, i
         const event_alignment_t& ea_start = aln[0];
         const event_alignment_t& ea_end = aln[aln_size-1];
 
-
-
         uint64_t start_idx_sig = (et->event)[ea_start.event_idx].start; //inclusive
         uint64_t end_idx_sig = (et->event)[ea_end.event_idx].start + (uint64_t)((et->event)[ea_end.event_idx].length); //non-inclusive
-
 
         //read_id, len_raw_signal, start_raw, end_raw, strand
         sprintf_append(sp,"%s\t%ld\t%ld\t%ld\t%c\t",  read_name, len_raw_signal, start_idx_sig, end_idx_sig, strand);
@@ -2019,14 +2016,16 @@ char *emit_event_alignment_paf(const event_table* et,  int64_t len_raw_signal, i
         assert(end_idx_sig - start_idx_sig <= (uint64_t)len_raw_signal);
 
         //ref, len_kmer, start_kmer, end_kmer
-        uint64_t start_idx_kmer = strand == '+' ? ea_start.ref_position : ea_end.ref_position;
-        uint64_t end_idx_kmer = strand == '+' ? ea_end.ref_position : ea_start.ref_position;
+        int8_t dir_swap = ((!rna && strand == '+') || (rna && strand == '-')) ? 1 : 0;
+        uint64_t start_idx_kmer = dir_swap ? ea_start.ref_position : ea_end.ref_position;
+        uint64_t end_idx_kmer = dir_swap ? ea_end.ref_position : ea_start.ref_position;
         end_idx_kmer++;
+        //fprintf(stderr, "%s %c start_idx_kmer: %ld end_idx_kmer: %ld\n", read_name, strand,start_idx_kmer, end_idx_kmer);
         assert(start_idx_kmer < end_idx_kmer);
         assert(end_idx_kmer - start_idx_kmer <= (uint64_t)ref_len);
         int n_kmer = end_idx_kmer - start_idx_kmer;
 
-        sprintf_append(sp, "%s\t%ld\t%ld\t%ld\t", ref_name, n_kmer, start_idx_kmer, end_idx_kmer);
+        sprintf_append(sp, "%s\t%ld\t%ld\t%ld\t", ref_name, n_kmer, rna ? end_idx_kmer : start_idx_kmer, rna ? start_idx_kmer : end_idx_kmer);
 
         //matches, len_kmer, mapq
         sprintf_append(sp, "%ld\t%ld\t%d\t", n_kmer, n_kmer, 255);
@@ -2085,7 +2084,7 @@ char *emit_event_alignment_paf(const event_table* et,  int64_t len_raw_signal, i
             ci += (mi = end_idx-start_idx);
             assert(mi>=0);
             assert((uint64_t)ci == end_idx);
-            c_ref_pos = strand == '+' ? ea.ref_position+1 : ea.ref_position-1;
+            c_ref_pos = dir_swap ? ea.ref_position+1 : ea.ref_position-1;
             if(mi) {
                 matches++;
                 sprintf_append(sp,"%d,",(int)mi);
@@ -2095,7 +2094,7 @@ char *emit_event_alignment_paf(const event_table* et,  int64_t len_raw_signal, i
 
         assert(matches <= n_kmer);
         assert((uint64_t)ci == end_idx_sig);
-        if(strand == '+')
+        if(dir_swap)
             assert(c_ref_pos == ea_end.ref_position+1);
         else
             assert(c_ref_pos == ea_end.ref_position-1);

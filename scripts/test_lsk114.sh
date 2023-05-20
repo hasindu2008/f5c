@@ -38,3 +38,9 @@ download_test_set "https://f5c.page.link/hg2_lsk114_reads_1000"
 ./f5c call-methylation -b ${testdir}/PGXX22394_reads_1000_6.4.2_sup.bam \
 		-r ${testdir}/PGXX22394_reads_1000_6.4.2_sup.fastq -g test/chr22_meth_example/humangenome.fa \
 		--slow5 ${testdir}/PGXX22394_reads_1000.blow5 > ${testdir}/meth.tsv || die "eventalign failed"
+
+./f5c eventalign -b ${testdir}/PGXX22394_reads_1000_6.4.2_sup.bam \
+		-r ${testdir}/PGXX22394_reads_1000_6.4.2_sup.fastq -g test/chr22_meth_example/humangenome.fa \
+		--slow5 ${testdir}/PGXX22394_reads_1000.blow5 -c > ${testdir}/result.txt || die "eventalign failed"
+
+diff -q ${testdir}/result.txt ${testdir}/eventalign.paf || die "eventalign failed"

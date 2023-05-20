@@ -563,10 +563,6 @@ int meth_main(int argc, char* argv[], int8_t mode) {
             emit_sam_header(core->sam_output, core->m_hdr);
         } else if (paf_output){
             WARNING("%s","-c is experimental. Exercise caution!");
-            if(core->opt.flag & F5C_RNA){
-                ERROR("%s","-c not implemented for -rna yet!");
-                exit(EXIT_FAILURE);
-            }
             //none
         } else{
             emit_event_alignment_tsv_header(stdout, print_read_names, write_samples, write_signal_index);

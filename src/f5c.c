@@ -850,10 +850,11 @@ void eventalign_single(core_t* core, db_t* db, int32_t i){
     int8_t write_signal_index = (core->opt.flag & F5C_PRINT_SIGNAL_INDEX) ? 1 : 0;
     int8_t sam_output = (core->opt.flag & F5C_SAM) ? 1 : 0;
     int8_t paf_output = (core->opt.flag & F5C_PAF) ? 1 : 0;
+    int8_t rna = (core->opt.flag & F5C_RNA) ? 1 : 0;
 
     if(paf_output){
         int64_t ref_len = core->m_hdr->target_len[db->bam_rec[i]->core.tid];
-        db->event_alignment_result_str[i] = emit_event_alignment_paf(&(db->et[i]),db->sig[i]->nsample, ref_len,core->kmer_size, db->scalings[i],*event_alignment_result, db->bam_rec[i], qname, contig);
+        db->event_alignment_result_str[i] = emit_event_alignment_paf(&(db->et[i]),db->sig[i]->nsample, ref_len,core->kmer_size, db->scalings[i],*event_alignment_result, db->bam_rec[i], qname, contig, rna);
     } else if(sam_output){
         //none - outside
     } else {

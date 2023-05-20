@@ -85,7 +85,7 @@ void realign_read(std::vector<event_alignment_t>* event_alignment_result, Eventa
                   event_table* events, model_t* model, uint32_t kmer_size, index_pair_t* base_to_event_map,
                   scalings_t scaling,double events_per_base, float sample_rate);
 char *emit_event_alignment_paf(const event_table* et, int64_t len_raw_signal, int64_t ref_len, uint32_t kmer_size, scalings_t scalings,
-                              const std::vector<event_alignment_t>& alignments, bam1_t* bam_record, char* read_name, char *ref_name);
+                              const std::vector<event_alignment_t>& alignments, bam1_t* bam_record, char* read_name, char *ref_name, int8_t rna);
 /* hmm */
 float profile_hmm_score(const char *m_seq,const char *m_rc_seq, event_t* event, scalings_t scaling,
                         model_t* cpgmodel, uint32_t kmer_size, uint32_t event_start_idx,
