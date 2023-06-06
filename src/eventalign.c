@@ -2188,9 +2188,9 @@ char *emit_event_alignment_paf(const event_table* et,  int64_t len_raw_signal, i
         sprintf_append(sp, "sc:f:%.2f\tsh:f:%.2f\tss:Z:", scalings.scale, scalings.shift);
 
         //fprintf(stderr, "%s\n", f5c_ss.ss);
-        str_cat(sp, f5c_ss.ss, strlen(f5c_ss.ss));
-        sprintf_append(sp, "\n");
-        //sprintf_append(sp, "%s\n",f5c_ss.ss);
+        //str_cat(sp, f5c_ss.ss, strlen(f5c_ss.ss));
+        //sprintf_append(sp, "\n");
+        sprintf_append(sp, "%s\n",f5c_ss.ss);
 
         free(f5c_ss.ss);
 

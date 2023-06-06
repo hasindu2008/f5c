@@ -69,7 +69,7 @@ static inline void sprintf_append(kstring_t *s, const char *fmt, ... ){
 		buffer = (char *) malloc((len+1) * sizeof *buffer);
 		MALLOC_CHK(buffer);
 		va_start(ap, fmt);
-		int len1 = vsnprintf(buffer, len, fmt, ap);
+		int len1 = vsnprintf(buffer, len+1, fmt, ap);
 		va_end(ap);
 		assert(len == len1);
 	}
