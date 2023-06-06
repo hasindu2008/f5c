@@ -111,6 +111,7 @@ typedef struct {
 
     char *region_str; //the region string in format chr:start-end
     int8_t meth_out_version; //output tsv version for call-methylation
+    int8_t sam_out_version; //output sam version for eventalign
 
     int32_t min_num_events_to_rescale; // the minimum number of event for rescaling, 200 is the default
 

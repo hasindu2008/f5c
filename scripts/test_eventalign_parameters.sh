@@ -92,7 +92,7 @@ ${exepath} eventalign -b ${bamfile} -g ${ref} -r ${reads} --secondary=yes --min-
 execute_test "events_scale_events.exp" "test_eventalign.awk" 10
 echo ""
 echo "****************************** --sam**************************************"
-${exepath} eventalign -b ${bamfile} -g ${ref} -r ${reads} --secondary=yes --min-mapq=0 -B "$max_bases" --summary ${testdir}/f5c_event_align.summary.txt --sam > ${testdir}/result.txt
+${exepath} eventalign -b ${bamfile} -g ${ref} -r ${reads} --secondary=yes --min-mapq=0 -B "$max_bases" --summary ${testdir}/f5c_event_align.summary.txt --sam --sam-out-version 1 > ${testdir}/result.txt
 numfailed=$(diff -y --suppress-common-lines ${testdir}_big_testresults/events.sam.exp ${testdir}/result.txt  | wc -l)
 numcases=$(wc -l < ${testdir}_big_testresults/events.sam.exp)
 failp=$(echo "$numfailed*100/$numcases" | bc)
