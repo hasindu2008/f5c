@@ -1026,11 +1026,6 @@ void output_db(core_t* core, db_t* db) {
                     double sum_ll_u = ss.ll_unmethylated[0]; //+ ss.ll_unmethylated[1];
                     double diff = sum_ll_m - sum_ll_u;
 
-                    // fprintf(stderr, "%s\t%d\t%d\t", ss.chromosome.c_str(), ss.start_position, ss.end_position);
-                    // fprintf(stderr, "%s\t%.2lf\t", qname, diff);
-                    // fprintf(stderr, "%.2lf\t%.2lf\t", sum_ll_m, sum_ll_u);
-                    // fprintf(stderr, "%d\t%d\t%s\n", ss.strands_scored, ss.n_cpg, ss.sequence.c_str());
-
                     // output only if inside the window boundaries
                     if( !( (core->clip_start != -1 && ss.start_position < core->clip_start) ||
                         (core->clip_end != -1 && ss.end_position >= core->clip_end) ) ) {
@@ -1061,23 +1056,10 @@ void output_db(core_t* core, db_t* db) {
                     fprintf(summary_fp, "%d\t%d\t%d\t%d\t", summary.num_events, summary.num_steps, summary.num_skips, summary.num_stays);
                     fprintf(summary_fp, "%.2lf\t%.3lf\t%.3lf\t%.3lf\t%.3lf\n", summary.sum_duration/(db->sig[i]->sample_rate), scalings.shift, scalings.scale, 0.0, scalings.var);
                 }
-                //std::vector<event_alignment_t> *event_alignment_result = db->event_alignment_result[i];
+
                 char *event_alignment_result_str = db->event_alignment_result_str[i];
-
-                // int8_t print_read_names = (core->opt.flag & F5C_PRINT_RNAME) ? 1 : 0;
-                // int8_t scale_events = (core->opt.flag & F5C_SCALE_EVENTS) ? 1 : 0;
-                // int8_t write_samples = (core->opt.flag & F5C_PRINT_SAMPLES) ? 1 : 0;
-                // int8_t write_signal_index = (core->opt.flag & F5C_PRINT_SIGNAL_INDEX) ? 1 : 0;
-                //int8_t sam_output = (core->opt.flag & F5C_SAM) ? 1 : 0;
-
-                //if(sam_output==0){
-                    // emit_event_alignment_tsv(stdout,0,&(db->et[i]),core->model,db->scalings[i],*event_alignment_result, print_read_names, scale_events, write_samples, write_signal_index,
-                    //           db->read_idx[i], qname, contig, db->sig[i]->sample_rate, db->sig[i]->rawptr);
                 fputs(event_alignment_result_str,stdout);
-                //}
-                //else{
-                    //emit_event_alignment_sam(core->sam_output , qname, core->m_hdr, db->bam_rec[i], *event_alignment_result);
-                //}
+
             }
         }
         else{

@@ -1671,6 +1671,7 @@ typedef struct {
 
 f5c_ss_t get_f5c_ss(const event_table* et,  int64_t len_raw_signal, int64_t ref_len,
              const std::vector<event_alignment_t>& alignments, bam1_t* bam_record, int8_t rna){
+
     f5c_ss_t f5c_ss;
     f5c_ss.start_raw = 0;
     f5c_ss.end_raw = 0;
@@ -1717,7 +1718,6 @@ f5c_ss_t get_f5c_ss(const event_table* et,  int64_t len_raw_signal, int64_t ref_
     uint64_t start_idx_kmer = dir_swap ? ea_start.ref_position : ea_end.ref_position;
     uint64_t end_idx_kmer = dir_swap ? ea_end.ref_position : ea_start.ref_position;
     end_idx_kmer++;
-    //fprintf(stderr, "%s %c start_idx_kmer: %ld end_idx_kmer: %ld\n", read_name, strand,start_idx_kmer, end_idx_kmer);
     assert(start_idx_kmer < end_idx_kmer);
     assert(end_idx_kmer - start_idx_kmer <= (uint64_t)ref_len);
     int n_kmer = end_idx_kmer - start_idx_kmer;
@@ -1798,11 +1798,9 @@ f5c_ss_t get_f5c_ss(const event_table* et,  int64_t len_raw_signal, int64_t ref_
     else
         assert(c_ref_pos == ea_end.ref_position-1);
 
-
     free(aln);
 
     f5c_ss.ss = sp->s;
-    //fprintf(stderr, "%s\n", f5c_ss.ss);
 
     return f5c_ss;
 
@@ -1951,7 +1949,6 @@ char *emit_event_alignment_sam(char* read_name,
             bam_destroy1(event_record); // automatically frees malloc'd segment
         }
         else if(sam_out_version ==2){
-
             f5c_ss_t f5c_ss = get_f5c_ss(et, len_raw_signal, ref_len, alignments, base_record, rna);
             char si[1024]; //todo too much?
             sprintf(si, "%ld,%ld,%ld,%ld", f5c_ss.start_raw, f5c_ss.end_raw, f5c_ss.start_kmer, f5c_ss.end_kmer);
@@ -1963,7 +1960,6 @@ char *emit_event_alignment_sam(char* read_name,
             NEG_CHK(ret_sw);
             sprintf_append(sp, "\n");
             free(f5c_ss.ss);
-
         }
         else{
             fprintf(stderr, "sam_out_version should be either 1 or 2\n");
@@ -2187,7 +2183,6 @@ char *emit_event_alignment_paf(const event_table* et,  int64_t len_raw_signal, i
         //scale, shift
         sprintf_append(sp, "sc:f:%.2f\tsh:f:%.2f\tss:Z:", scalings.scale, scalings.shift);
 
-        //fprintf(stderr, "%s\n", f5c_ss.ss);
         //str_cat(sp, f5c_ss.ss, strlen(f5c_ss.ss));
         //sprintf_append(sp, "\n");
         sprintf_append(sp, "%s\n",f5c_ss.ss);
