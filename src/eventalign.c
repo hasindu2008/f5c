@@ -1660,6 +1660,152 @@ void emit_event_alignment_tsv_header(FILE* fp, int8_t print_read_names, int8_t w
 }
 
 
+typedef struct {
+    uint64_t start_raw;
+    uint64_t end_raw;
+    uint64_t start_kmer;
+    uint64_t end_kmer;
+    char *ss;
+} f5c_ss_t;
+
+
+f5c_ss_t get_f5c_ss(const event_table* et,  int64_t len_raw_signal, int64_t ref_len,
+             const std::vector<event_alignment_t>& alignments, bam1_t* bam_record, int8_t rna){
+
+    f5c_ss_t f5c_ss;
+    f5c_ss.start_raw = 0;
+    f5c_ss.end_raw = 0;
+    f5c_ss.start_kmer = 0;
+    f5c_ss.end_kmer = 0;
+    f5c_ss.ss = NULL;
+
+    kstring_t str;
+    kstring_t *sp = &str;
+    size_t aln_size = alignments.size();
+    assert(aln_size > 0);
+    str_init(sp, sizeof(char)*aln_size*120); //Null terminated string returned if aln_size == 0
+
+    char strand = bam_is_rev(bam_record)? '-' : '+';
+
+    event_alignment_t *aln = (event_alignment_t*)malloc(sizeof(event_alignment_t)*aln_size);
+
+    if( (!rna && strand == '-') || (rna && strand == '+') ) { // if dna reverse strand or rna forward strand, reverse
+        //reverse the alignments
+        for(size_t i=0; i<aln_size; i++) {
+            aln[i] = alignments[aln_size-1-i];
+        }
+    } else {
+        for(size_t i=0; i<aln_size; i++) {
+            aln[i] = alignments[i];
+        }
+    }
+
+    const event_alignment_t& ea_start = aln[0];
+    const event_alignment_t& ea_end = aln[aln_size-1];
+
+    uint64_t start_idx_sig = (et->event)[ea_start.event_idx].start; //inclusive
+    uint64_t end_idx_sig = (et->event)[ea_end.event_idx].start + (uint64_t)((et->event)[ea_end.event_idx].length); //non-inclusive
+
+    //read_id, len_raw_signal, start_raw, end_raw, strand
+    //sprintf_append(sp,"%s\t%ld\t%ld\t%ld\t%c\t",  read_name, len_raw_signal, start_idx_sig, end_idx_sig, strand);
+    f5c_ss.start_raw = start_idx_sig;
+    f5c_ss.end_raw = end_idx_sig;
+    assert(start_idx_sig < end_idx_sig);
+    assert(end_idx_sig - start_idx_sig <= (uint64_t)len_raw_signal);
+
+    //ref, len_kmer, start_kmer, end_kmer
+    int8_t dir_swap = ((!rna && strand == '+') || (rna && strand == '-')) ? 1 : 0;
+    uint64_t start_idx_kmer = dir_swap ? ea_start.ref_position : ea_end.ref_position;
+    uint64_t end_idx_kmer = dir_swap ? ea_end.ref_position : ea_start.ref_position;
+    end_idx_kmer++;
+    assert(start_idx_kmer < end_idx_kmer);
+    assert(end_idx_kmer - start_idx_kmer <= (uint64_t)ref_len);
+    int n_kmer = end_idx_kmer - start_idx_kmer;
+
+    //sprintf_append(sp, "%s\t%ld\t%ld\t%ld\t", ref_name, n_kmer, rna ? end_idx_kmer : start_idx_kmer, rna ? start_idx_kmer : end_idx_kmer);
+    f5c_ss.start_kmer = rna ? end_idx_kmer : start_idx_kmer;
+    f5c_ss.end_kmer = rna ? start_idx_kmer : end_idx_kmer;
+
+    //matches, len_kmer, mapq
+    //sprintf_append(sp, "%ld\t%ld\t%d\t", n_kmer, n_kmer, 255);
+
+    //scale, shift
+    //sprintf_append(sp, "sc:f:%.2f\tsh:f:%.2f\tss:Z:", scalings.scale, scalings.shift);
+
+    int64_t c_ref_pos = ea_start.ref_position;
+    int64_t ci = start_idx_sig; //current index
+    int64_t mi = 0;
+    int64_t d = 0; //deletion count
+    int matches = 0;
+
+    size_t n_collapse = 1;
+    for(size_t i = 0; i < aln_size; i+=n_collapse) {
+
+        const event_alignment_t& ea = aln[i];
+
+        uint64_t start_idx = (et->event)[ea.event_idx].start; //inclusive
+        uint64_t end_idx = (et->event)[ea.event_idx].start + (uint64_t)((et->event)[ea.event_idx].length); //non-inclusive
+
+        n_collapse = 1;
+        while (i + n_collapse < aln_size && ea.ref_position ==  aln[i+n_collapse].ref_position){
+            assert(strcmp(ea.ref_kmer,aln[i+n_collapse].ref_kmer)==0);
+            // if(strcmp(ea.model_kmer,aln[i+n_collapse].model_kmer)!=0){ //TODO: NNNN kmers must be handled
+            //     fprintf(stderr, "model kmer does not match! %s vs %s\n",ea.model_kmer,aln[i+n_collapse].model_kmer);
+            // }
+            n_collapse++;
+        }
+
+        if(n_collapse > 1){
+            uint64_t start_idx1 = start_idx;
+            uint64_t end_idx1 = end_idx;
+
+            const event_alignment_t& ea2 = aln[i+n_collapse-1];
+            uint64_t start_idx2 =  (et->event)[ea2.event_idx].start;
+            uint64_t end_idx2 = (et->event)[ea2.event_idx].start + (uint64_t)((et->event)[ea2.event_idx].length);
+
+            assert(start_idx1 < start_idx2 );
+            assert(end_idx1 < end_idx2 );
+            //min
+            start_idx =  start_idx1 < start_idx2 ? start_idx1 : start_idx2;
+            //max
+            end_idx = end_idx1 > end_idx2 ? end_idx1 : end_idx2;
+
+        }
+
+        d = ea.ref_position-c_ref_pos;
+        d = d < 0 ? -d : d;
+        if(d>0){
+            sprintf_append(sp,"%dD",d);
+        }
+        ci += (mi =  start_idx - ci);
+        assert(mi>=0);
+        if(mi) sprintf_append(sp,"%dI",(int)mi);
+        ci += (mi = end_idx-start_idx);
+        assert(mi>=0);
+        assert((uint64_t)ci == end_idx);
+        c_ref_pos = dir_swap ? ea.ref_position+1 : ea.ref_position-1;
+        if(mi) {
+            matches++;
+            sprintf_append(sp,"%d,",(int)mi);
+        }
+    }
+    //sprintf_append(sp, "\n");
+
+    assert(matches <= n_kmer);
+    assert((uint64_t)ci == end_idx_sig);
+    if(dir_swap)
+        assert(c_ref_pos == ea_end.ref_position+1);
+    else
+        assert(c_ref_pos == ea_end.ref_position-1);
+
+    free(aln);
+
+    f5c_ss.ss = sp->s;
+
+    return f5c_ss;
+
+}
+
 std::vector<uint32_t> event_alignment_to_cigar(const std::vector<event_alignment_t>& alignments )
 {
     std::vector<uint32_t> out;
@@ -1726,73 +1872,103 @@ std::vector<uint32_t> event_alignment_to_cigar(const std::vector<event_alignment
 
 
 
-void emit_event_alignment_sam(htsFile* fp,
-                              char* read_name,
+char *emit_event_alignment_sam(char* read_name,
                               bam_hdr_t* base_hdr,
                               bam1_t* base_record,
-                              const std::vector<event_alignment_t>& alignments
+                              const std::vector<event_alignment_t>& alignments, int8_t sam_out_version,
+                              event_table* et, int64_t len_raw_signal, int64_t ref_len, int8_t rna
                               )
 {
-    if(alignments.empty())
-        return;
-    bam1_t* event_record = bam_init1();
 
-    int strand_idx=0;
-    // Variable-length data
-    std::string qname = std::string(read_name) + (strand_idx == 0 ? ".template" : ".complement");
+    kstring_t str;
+    kstring_t *sp = &str;
+    size_t aln_size = alignments.size();
+    str_init(sp, sizeof(char)*aln_size*120);
 
-    // basic stats
-    event_record->core.tid = base_record->core.tid;
-    event_record->core.pos = alignments.front().ref_position;
-    event_record->core.qual = base_record->core.qual;
-    event_record->core.l_qname = qname.length() + 1; // must be null-terminated
+    if(!alignments.empty()){
 
-    event_record->core.flag = alignments.front().rc ? 16 : 0;
+        if(sam_out_version==1){
+            bam1_t* event_record = bam_init1();
 
-    event_record->core.l_qseq = 0;
+            int strand_idx=0;
+            // Variable-length data
+            std::string qname = std::string(read_name) + (strand_idx == 0 ? ".template" : ".complement");
 
-    event_record->core.mtid = -1;
-    event_record->core.mpos = -1;
-    event_record->core.isize = 0;
+            // basic stats
+            event_record->core.tid = base_record->core.tid;
+            event_record->core.pos = alignments.front().ref_position;
+            event_record->core.qual = base_record->core.qual;
+            event_record->core.l_qname = qname.length() + 1; // must be null-terminated
 
-    std::vector<uint32_t> cigar = event_alignment_to_cigar(alignments);
-    event_record->core.n_cigar = cigar.size();
+            event_record->core.flag = alignments.front().rc ? 16 : 0;
 
-    // calculate length of incoming data
-    event_record->m_data = event_record->core.l_qname + // query name
-                           event_record->core.n_cigar * 4 + // 4 bytes per cigar op
-                           event_record->core.l_qseq + // query seq
-                           event_record->core.l_qseq; // query quality
+            event_record->core.l_qseq = 0;
 
-    // nothing copied yet
-    event_record->l_data = 0;
+            event_record->core.mtid = -1;
+            event_record->core.mpos = -1;
+            event_record->core.isize = 0;
 
-    // allocate data
-    event_record->data = (uint8_t*)malloc(event_record->m_data);
+            std::vector<uint32_t> cigar = event_alignment_to_cigar(alignments);
+            event_record->core.n_cigar = cigar.size();
 
-    // copy q name
-    assert(event_record->core.l_qname <= event_record->m_data);
-    strncpy(bam_get_qname(event_record),
-            qname.c_str(),
-            event_record->core.l_qname);
-    event_record->l_data += event_record->core.l_qname;
+            // calculate length of incoming data
+            event_record->m_data = event_record->core.l_qname + // query name
+                                event_record->core.n_cigar * 4 + // 4 bytes per cigar op
+                                event_record->core.l_qseq + // query seq
+                                event_record->core.l_qseq; // query quality
 
-    // cigar
-    assert(event_record->l_data + event_record->core.n_cigar * 4 <= event_record->m_data);
-    memcpy(bam_get_cigar(event_record),
-           &cigar[0],
-           event_record->core.n_cigar * 4);
-    event_record->l_data += event_record->core.n_cigar * 4;
+            // nothing copied yet
+            event_record->l_data = 0;
 
-    // no copy for seq and qual
-    assert((int64_t)event_record->l_data <= (int64_t)event_record->m_data);
+            // allocate data
+            event_record->data = (uint8_t*)malloc(event_record->m_data);
 
-    int stride = alignments.front().event_idx < alignments.back().event_idx ? 1 : -1;
-    bam_aux_append(event_record, "ES", 'i', 4, reinterpret_cast<uint8_t*>(&stride));
+            // copy q name
+            assert(event_record->core.l_qname <= event_record->m_data);
+            strncpy(bam_get_qname(event_record),
+                    qname.c_str(),
+                    event_record->core.l_qname);
+            event_record->l_data += event_record->core.l_qname;
 
-    int ret_sw = sam_write1(fp, base_hdr, event_record);
-    NEG_CHK(ret_sw);
-    bam_destroy1(event_record); // automatically frees malloc'd segment
+            // cigar
+            assert(event_record->l_data + event_record->core.n_cigar * 4 <= event_record->m_data);
+            memcpy(bam_get_cigar(event_record),
+                &cigar[0],
+                event_record->core.n_cigar * 4);
+            event_record->l_data += event_record->core.n_cigar * 4;
+
+            // no copy for seq and qual
+            assert((int64_t)event_record->l_data <= (int64_t)event_record->m_data);
+
+            int stride = alignments.front().event_idx < alignments.back().event_idx ? 1 : -1;
+            bam_aux_append(event_record, "ES", 'i', 4, reinterpret_cast<uint8_t*>(&stride));
+
+            int ret_sw = sam_format1(base_hdr, event_record, sp);
+            NEG_CHK(ret_sw);
+            sprintf_append(sp, "\n");
+            bam_destroy1(event_record); // automatically frees malloc'd segment
+        }
+        else if(sam_out_version ==2){
+            f5c_ss_t f5c_ss = get_f5c_ss(et, len_raw_signal, ref_len, alignments, base_record, rna);
+            char si[1024]; //todo too much?
+            sprintf(si, "%ld,%ld,%ld,%ld", f5c_ss.start_raw, f5c_ss.end_raw, f5c_ss.start_kmer, f5c_ss.end_kmer);
+            int ret_sw = bam_aux_append(base_record, "si", 'Z', strlen(si)+1, (uint8_t*)si); //todo is +1 needed?
+            NEG_CHK(ret_sw);
+            ret_sw = bam_aux_append(base_record, "ss", 'Z', strlen(f5c_ss.ss)+1, (uint8_t*)f5c_ss.ss);
+            NEG_CHK(ret_sw);
+            ret_sw = sam_format1(base_hdr, base_record, sp);
+            NEG_CHK(ret_sw);
+            sprintf_append(sp, "\n");
+            free(f5c_ss.ss);
+        }
+        else{
+            fprintf(stderr, "sam_out_version should be either 1 or 2\n");
+            exit(EXIT_FAILURE);
+        }
+
+    }
+
+    return sp->s;
 }
 
 //Return the observed current level after correcting shift and scale
@@ -1989,43 +2165,17 @@ char *emit_event_alignment_paf(const event_table* et,  int64_t len_raw_signal, i
 
     if(aln_size > 0){
 
+        f5c_ss_t f5c_ss = get_f5c_ss(et, len_raw_signal, ref_len, alignments, bam_record, rna);
+
         char strand = bam_is_rev(bam_record)? '-' : '+';
 
-        event_alignment_t *aln = (event_alignment_t*)malloc(sizeof(event_alignment_t)*aln_size);
-
-        if( (!rna && strand == '-') || (rna && strand == '+') ) { // if dna reverse strand or rna forward strand, reverse
-            //reverse the alignments
-            for(size_t i=0; i<aln_size; i++) {
-                aln[i] = alignments[aln_size-1-i];
-            }
-        } else {
-            for(size_t i=0; i<aln_size; i++) {
-                aln[i] = alignments[i];
-            }
-        }
-
-        const event_alignment_t& ea_start = aln[0];
-        const event_alignment_t& ea_end = aln[aln_size-1];
-
-        uint64_t start_idx_sig = (et->event)[ea_start.event_idx].start; //inclusive
-        uint64_t end_idx_sig = (et->event)[ea_end.event_idx].start + (uint64_t)((et->event)[ea_end.event_idx].length); //non-inclusive
-
         //read_id, len_raw_signal, start_raw, end_raw, strand
-        sprintf_append(sp,"%s\t%ld\t%ld\t%ld\t%c\t",  read_name, len_raw_signal, start_idx_sig, end_idx_sig, strand);
-        assert(start_idx_sig < end_idx_sig);
-        assert(end_idx_sig - start_idx_sig <= (uint64_t)len_raw_signal);
+        sprintf_append(sp,"%s\t%ld\t%ld\t%ld\t%c\t",  read_name, len_raw_signal, f5c_ss.start_raw, f5c_ss.end_raw, strand);
 
         //ref, len_kmer, start_kmer, end_kmer
-        int8_t dir_swap = ((!rna && strand == '+') || (rna && strand == '-')) ? 1 : 0;
-        uint64_t start_idx_kmer = dir_swap ? ea_start.ref_position : ea_end.ref_position;
-        uint64_t end_idx_kmer = dir_swap ? ea_end.ref_position : ea_start.ref_position;
-        end_idx_kmer++;
-        //fprintf(stderr, "%s %c start_idx_kmer: %ld end_idx_kmer: %ld\n", read_name, strand,start_idx_kmer, end_idx_kmer);
-        assert(start_idx_kmer < end_idx_kmer);
-        assert(end_idx_kmer - start_idx_kmer <= (uint64_t)ref_len);
-        int n_kmer = end_idx_kmer - start_idx_kmer;
-
-        sprintf_append(sp, "%s\t%ld\t%ld\t%ld\t", ref_name, n_kmer, rna ? end_idx_kmer : start_idx_kmer, rna ? start_idx_kmer : end_idx_kmer);
+        int n_kmer = f5c_ss.end_kmer - f5c_ss.start_kmer;
+        n_kmer = n_kmer < 0 ? -n_kmer : n_kmer;
+        sprintf_append(sp, "%s\t%ld\t%ld\t%ld\t", ref_name, n_kmer, f5c_ss.start_kmer, f5c_ss.end_kmer);
 
         //matches, len_kmer, mapq
         sprintf_append(sp, "%ld\t%ld\t%d\t", n_kmer, n_kmer, 255);
@@ -2033,74 +2183,11 @@ char *emit_event_alignment_paf(const event_table* et,  int64_t len_raw_signal, i
         //scale, shift
         sprintf_append(sp, "sc:f:%.2f\tsh:f:%.2f\tss:Z:", scalings.scale, scalings.shift);
 
-        int64_t c_ref_pos = ea_start.ref_position;
-        int64_t ci = start_idx_sig; //current index
-        int64_t mi = 0;
-        int64_t d = 0; //deletion count
-        int matches = 0;
+        //str_cat(sp, f5c_ss.ss, strlen(f5c_ss.ss));
+        //sprintf_append(sp, "\n");
+        sprintf_append(sp, "%s\n",f5c_ss.ss);
 
-        size_t n_collapse = 1;
-        for(size_t i = 0; i < aln_size; i+=n_collapse) {
-
-            const event_alignment_t& ea = aln[i];
-
-            uint64_t start_idx = (et->event)[ea.event_idx].start; //inclusive
-            uint64_t end_idx = (et->event)[ea.event_idx].start + (uint64_t)((et->event)[ea.event_idx].length); //non-inclusive
-
-            n_collapse = 1;
-            while (i + n_collapse < aln_size && ea.ref_position ==  aln[i+n_collapse].ref_position){
-                assert(strcmp(ea.ref_kmer,aln[i+n_collapse].ref_kmer)==0);
-                // if(strcmp(ea.model_kmer,aln[i+n_collapse].model_kmer)!=0){ //TODO: NNNN kmers must be handled
-                //     fprintf(stderr, "model kmer does not match! %s vs %s\n",ea.model_kmer,aln[i+n_collapse].model_kmer);
-                // }
-                n_collapse++;
-            }
-
-            if(n_collapse > 1){
-                uint64_t start_idx1 = start_idx;
-                uint64_t end_idx1 = end_idx;
-
-                const event_alignment_t& ea2 = aln[i+n_collapse-1];
-                uint64_t start_idx2 =  (et->event)[ea2.event_idx].start;
-                uint64_t end_idx2 = (et->event)[ea2.event_idx].start + (uint64_t)((et->event)[ea2.event_idx].length);
-
-                assert(start_idx1 < start_idx2 );
-                assert(end_idx1 < end_idx2 );
-                //min
-                start_idx =  start_idx1 < start_idx2 ? start_idx1 : start_idx2;
-                //max
-                end_idx = end_idx1 > end_idx2 ? end_idx1 : end_idx2;
-
-            }
-
-            d = ea.ref_position-c_ref_pos;
-            d = d < 0 ? -d : d;
-            if(d>0){
-                sprintf_append(sp,"%dD",d);
-            }
-            ci += (mi =  start_idx - ci);
-            assert(mi>=0);
-            if(mi) sprintf_append(sp,"%dI",(int)mi);
-            ci += (mi = end_idx-start_idx);
-            assert(mi>=0);
-            assert((uint64_t)ci == end_idx);
-            c_ref_pos = dir_swap ? ea.ref_position+1 : ea.ref_position-1;
-            if(mi) {
-                matches++;
-                sprintf_append(sp,"%d,",(int)mi);
-            }
-        }
-        sprintf_append(sp, "\n");
-
-        assert(matches <= n_kmer);
-        assert((uint64_t)ci == end_idx_sig);
-        if(dir_swap)
-            assert(c_ref_pos == ea_end.ref_position+1);
-        else
-            assert(c_ref_pos == ea_end.ref_position-1);
-
-
-        free(aln);
+        free(f5c_ss.ss);
 
         //str_free(sp); //freeing is later done in free_db_tmp()
 

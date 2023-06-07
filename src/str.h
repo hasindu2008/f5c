@@ -66,8 +66,12 @@ static inline void sprintf_append(kstring_t *s, const char *fmt, ... ){
 
 	assert(len >= 0);
 	if (len >= INIT_CAP_SPRINTF_BUFFER) {
-		buffer = (char *) malloc(len * sizeof *buffer);
+		buffer = (char *) malloc((len+1) * sizeof *buffer);
 		MALLOC_CHK(buffer);
+		va_start(ap, fmt);
+		int len1 = vsnprintf(buffer, len+1, fmt, ap);
+		va_end(ap);
+		assert(len == len1);
 	}
 
 	str_cat(s,buffer,len);

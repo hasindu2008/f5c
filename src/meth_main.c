@@ -90,7 +90,7 @@ static struct option long_options[] = {
     {"iop",required_argument, 0, 0},               //31 number of I/O processes
     {"window",required_argument, 0, 'w'},          //32 the genomic window (region)
     {"summary",required_argument,0,0},             //33 summarize the alignment of each read/strand in FILE (eventalign only)
-    {"sam",no_argument,0,0},                       //34 write output in SAM format (eventalign only)
+    {"sam",no_argument,0,'a'},                     //34 write output in SAM format (eventalign only)
     {"scale-events",no_argument,0,0},              //35 scale events to the model, rather than vice-versa (eventalign only)
     {"print-read-names",no_argument,0,0},          //36 print read names instead of indexes (eventalign only)
     {"samples",no_argument,0,0},                   //37 write the raw samples for the event to the tsv output (eventalign only)
@@ -104,6 +104,7 @@ static struct option long_options[] = {
     {"collapse-events",no_argument,0,0},           //45 collapse events that stays on the same reference k-mer
     {"pore",required_argument,0,0},                //46 pore
     {"paf",no_argument,0,'c'},                     //47 if print in paf format (only for eventalign)
+    {"sam-out-version",required_argument,0,0},     //48 specify the version of the sam output for eventalign (eventalign only)
     {0, 0, 0, 0}};
 
 
@@ -206,7 +207,7 @@ int meth_main(int argc, char* argv[], int8_t mode) {
 
     //signal(SIGSEGV, sig_handler);
 
-    const char* optstring = "r:b:g:t:B:K:v:o:x:w:hVc";
+    const char* optstring = "r:b:g:t:B:K:v:o:x:w:hVca";
 
     int longindex = 0;
     int32_t c = -1;
@@ -221,6 +222,7 @@ int meth_main(int argc, char* argv[], int8_t mode) {
 
     int8_t is_ultra_thresh_set = 0;
     int8_t is_meth_out_version_set = 0;
+    int8_t is_sam_out_version_set = 0;
     int8_t is_iop_set = 0;
 
     FILE *fp_help = stderr;
@@ -281,8 +283,13 @@ int meth_main(int argc, char* argv[], int8_t mode) {
                 exit(EXIT_FAILURE);
             }
             yes_or_no(&opt, F5C_PAF, longindex, "yes", 1);
-        }
-        else if (c == 0 && longindex == 9) {
+        } else if (c == 'a'){ //sam output
+            if(mode!=1){
+                ERROR("%s","Option --sam is available only in eventalign");
+                exit(EXIT_FAILURE);
+            }
+            yes_or_no(&opt, F5C_SAM, longindex, "yes", 1);
+        } else if (c == 0 && longindex == 9) {
             opt.min_mapq = atoi(optarg); //todo : check whether this is between 0 and 60
         } else if (c == 0 && longindex == 10) { //consider secondary mappings or not
             yes_or_no(&opt, F5C_SECONDARY_YES, longindex, optarg, 1);
@@ -350,12 +357,6 @@ int meth_main(int argc, char* argv[], int8_t mode) {
                 exit(EXIT_FAILURE);
             }
             eventalignsummary=optarg;
-        } else if (c == 0 && longindex == 34){ //sam output
-            if(mode!=1){
-                ERROR("%s","Option --sam is available only in eventalign");
-                exit(EXIT_FAILURE);
-            }
-            yes_or_no(&opt, F5C_SAM, longindex, "yes", 1);
         } else if (c == 0 && longindex == 35){ //scale events
             if(mode!=1){
                 ERROR("%s","Option --scale-events is available only in eventalign");
@@ -432,8 +433,18 @@ int meth_main(int argc, char* argv[], int8_t mode) {
             if(strcmp(opt.pore,"r10")==0){
                 opt.flag |= F5C_R10;
             }
+        } else if (c == 0 && longindex == 48){ //specify the version of the sam output for eventalign (eventalign only)
+            opt.sam_out_version=atoi(optarg);
+            if(mode!=1){
+                ERROR("%s","Option --sam-out-version is available only in eventalign");
+                exit(EXIT_FAILURE);
+            }
+            if(opt.sam_out_version<1 || opt.sam_out_version>2){
+                ERROR("--sam-out-version accepts only 1 or 2. You entered %d",opt.sam_out_version);
+                exit(EXIT_FAILURE);
+            }
+            is_sam_out_version_set = 1;
         }
-
     }
 
     if(is_ultra_thresh_set ==1 && tmpfile==NULL){
@@ -442,6 +453,10 @@ int meth_main(int argc, char* argv[], int8_t mode) {
 
     if(mode==0 && is_meth_out_version_set==0){
         INFO("%s","Default methylation tsv output format is changed from f5c v0.7 onwards to match latest nanopolish output. Set --meth-out-version=1 to fall back to the old format.");
+    }
+
+    if(mode==1 && is_sam_out_version_set==0 && (opt.flag&F5C_SAM)){
+        INFO("%s","Default sam output format is changed from f5c v1.3 onwards. Set --sam-out-version=1 to fall back to the old format.");
     }
 
     if(slow5file!=NULL){
@@ -562,7 +577,6 @@ int meth_main(int argc, char* argv[], int8_t mode) {
         if(sam_output){
             emit_sam_header(core->sam_output, core->m_hdr);
         } else if (paf_output){
-            WARNING("%s","-c is experimental. Exercise caution!");
             //none
         } else{
             emit_event_alignment_tsv_header(stdout, print_read_names, write_samples, write_signal_index);
