@@ -577,7 +577,6 @@ int meth_main(int argc, char* argv[], int8_t mode) {
         if(sam_output){
             emit_sam_header(core->sam_output, core->m_hdr);
         } else if (paf_output){
-            WARNING("%s","-c is experimental. Exercise caution!");
             //none
         } else{
             emit_event_alignment_tsv_header(stdout, print_read_names, write_samples, write_signal_index);
