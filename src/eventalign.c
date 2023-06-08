@@ -1665,6 +1665,7 @@ typedef struct {
     uint64_t end_raw;
     uint64_t start_kmer;
     uint64_t end_kmer;
+    uint64_t matches;
     char *ss;
 } f5c_ss_t;
 
@@ -1801,6 +1802,7 @@ f5c_ss_t get_f5c_ss(const event_table* et,  int64_t len_raw_signal, int64_t ref_
     free(aln);
 
     f5c_ss.ss = sp->s;
+    f5c_ss.matches = matches;
 
     return f5c_ss;
 
@@ -2173,12 +2175,13 @@ char *emit_event_alignment_paf(const event_table* et,  int64_t len_raw_signal, i
         sprintf_append(sp,"%s\t%ld\t%ld\t%ld\t%c\t",  read_name, len_raw_signal, f5c_ss.start_raw, f5c_ss.end_raw, strand);
 
         //ref, len_kmer, start_kmer, end_kmer
-        int n_kmer = f5c_ss.end_kmer - f5c_ss.start_kmer;
-        n_kmer = n_kmer < 0 ? -n_kmer : n_kmer;
+        uint64_t n_kmer = ref_len - kmer_size + 1;
+        int len_block = f5c_ss.end_kmer - f5c_ss.start_kmer;
+        len_block = len_block < 0 ? -len_block : len_block;
         sprintf_append(sp, "%s\t%ld\t%ld\t%ld\t", ref_name, n_kmer, f5c_ss.start_kmer, f5c_ss.end_kmer);
 
         //matches, len_kmer, mapq
-        sprintf_append(sp, "%ld\t%ld\t%d\t", n_kmer, n_kmer, 255);
+        sprintf_append(sp, "%ld\t%ld\t%d\t", f5c_ss.matches, len_block, 255);
 
         //scale, shift
         sprintf_append(sp, "sc:f:%.2f\tsh:f:%.2f\tss:Z:", scalings.scale, scalings.shift);
