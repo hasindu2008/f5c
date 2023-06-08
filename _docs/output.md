@@ -38,7 +38,7 @@ The query is the raw-signal and the target is the basecalled-read.
 |8  |int   |start_kmer| k-mer start index on basecalled sequence (0-based; see note below)  |
 |9  |int   |end_kmer| k-mer end index on basecalled sequence (0-based; see note below)   |
 |10 |int   |matches|Number of k-mers matched on basecalled sequence                   |
-|11 |int   |len_kmer|Same as column 7                    |
+|11 |int   |len_block| Same as column 7                    |
 |12 |int   |mapq|Mapping quality (0-255; 255 for missing)  |
 
 For DNA reads, column 8 is a closed coordinate (inclusive) and column 9 is an open coordinate (not-inclusive); and, column 8 coordinate is always smaller than column 9. However, this is different in direct-RNA reads because sequencing of direct-RNA happens in the reverse direction (3'->5') and therefore the raw signal is also in the reverse direction. The basecalled read output by basecallers are however in the correct direction (5'->3'). Thus, For RNA reads, column 8 coordinate will be larger than that on column 9. column 9 is a closed coordinate (inclusive) while column 8 is an open coordinate (not-inclusive) in this case, in contrary to DNA.
@@ -85,7 +85,7 @@ The tsv output from resquiggle will look like below:
 
 The paf output from resquiggle will look like below (the header is not present in the actual output):
 
-|read_id|len_raw_signal|start_raw|end_raw|strand|read_id|len_kmer|start_kmer|end_kmer|matches|len_kmer|mapq| |
+|read_id|len_raw_signal|start_raw|end_raw|strand|read_id|len_kmer|start_kmer|end_kmer|matches|len_block|mapq| |
 |--:|----:|----:|--------:|--:|----:|----:|--------:|--:|----:|----:|--------:|--:|
 |rid0   |20            |2        |17     |+     |rid0   | 8      |0         |8       | 6     |8       |255 |`ss:Z:2,3,2,2I1,2D2,3,` |
 
@@ -113,7 +113,7 @@ The tsv output will look like below:
 
 The paf output will look like below:
 
-|read_id|len_raw_signal|start_raw|end_raw|strand|read_id|len_kmer|start_kmer|end_kmer|matches|len_kmer|mapq| |
+|read_id|len_raw_signal|start_raw|end_raw|strand|read_id|len_kmer|start_kmer|end_kmer|matches|len_block|mapq| |
 |--:|----:|----:|--------:|--:|----:|----:|--------:|--:|----:|----:|--------:|--:|
 |rid0   |20            |2        |17     |+     |rid0   | 8      |8         |0       | 6     |8       |255 |`ss:Z:2,3,2,2I1,2D2,3,` |
 
