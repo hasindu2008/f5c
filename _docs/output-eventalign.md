@@ -36,7 +36,36 @@ Following optional columns are controlled via command line options:
 
 ## eventalign paf output
 
-Specifying `-c` will generate the output in a PAF-like format (much smaller than the TSV output). This is similar to the PAF output format in [f5c resquiggle](https://hasindu2008.github.io/f5c/docs/output#resquiggle-paf-output-format) with only difference being that the "basecalled read" in resquiggle is now the "refererence contig" in eventalign. Assumming that the reader is well familiarised with the PAF output explained in resquiggle that information is not repeated here. Unlike in resquiggle, the strand column (column 5) can be now both '+' and '-'. Some examples are given below.
+Specifying `-c` will generate the output in a PAF-like format (much smaller than the TSV output, f5c v1.3 or higher). This is similar to the PAF output format in [f5c resquiggle](https://hasindu2008.github.io/f5c/docs/output#resquiggle-paf-output-format) with major difference being that the "basecalled read" in resquiggle is now the "refererence sequence" in eventalign. Assumming that the reader is well familiarised with the PAF output explained in resquiggle, that information is not repeated here, instead only a summary is given. Unlike in resquiggle, the strand column (column 5) can be now both '+' and '-'.  The query is the raw-signal and the target is the reference.
+
+|Col|Type  |Name |Description                               |
+|--:|:----:|:----|:-----------------------------------------|
+|1  |string|read_id|Read identifier name                       |
+|2  |int   |len_raw_signal|Raw signal length (number of samples)                    |
+|3  |int   |start_raw|Raw signal start index  (0-based; BED-like; closed)   |
+|4  |int   |end_raw|Raw signal end index (0-based; BED-like; open)       |
+|5  |char  |strand|Relative strand: "+" or "-"               |
+|6  |string|read_id|Reference sequence name                     |
+|7  |int   |len_kmer|Reference sequence length (no. of k-mers)                   |
+|8  |int   |start_kmer| k-mer start index on reference sequence (0-based; see note below)  |
+|9  |int   |end_kmer| k-mer end index on sequence sequence (0-based; see note below)   |
+|10 |int   |matches|Number of k-mers matched on reference sequence                   |
+|11 |int   |len_block|Number of k-mers on the mapped segment on reference sequence                    |
+|12 |int   |mapq|Mapping quality (0-255; 255 for missing)  |
+
+For DNA reads, column 8 is a closed coordinate (inclusive) and column 9 is an open coordinate (not-inclusive); and, column 8 coordinate is always smaller than column 9. However, this is different in direct-RNA reads because sequencing of direct-RNA happens in the reverse direction (3'->5') and therefore the raw signal is also in the reverse direction. The sequences in the reference transcriptome are however in the correct direction (5'->3'). Thus, For RNA reads, column 8 coordinate will be larger than that on column 9. column 9 is a closed coordinate (inclusive) while column 8 is an open coordinate (not-inclusive) in this case, in contrary to DNA.
+
+10,11 and 12 are yet to be decided. column 12 is always 255 for now.
+
+Following optional tags are present:
+
+|Tag|Type  |Description                               |
+|--:|:----:|:-----------------------------------------|
+|sc  |f| Post alignment recalibrated scale parameter                     |
+|sh  |f   |Post alignment recalibrated shift parameter                      |
+|ss  |Z   |signal alignment string in format described below   |
+
+Please refer to the explanations in [f5c resquiggle](https://hasindu2008.github.io/f5c/docs/output#resquiggle-paf-output-format) about the ss tag. Some examples are given below.
 
 ## DNA examples
 
@@ -96,21 +125,21 @@ The tsv output from resquiggle will look like below (assume `--print-read-name` 
 
 |contig	|position	|reference_kmer	|read_id	|strand	|event_index	|event_level_mean	|event_stdv	|event_length	|model_kmer	|model_mean	|model_stdv	|standardized_level	|start_idx	|end_idx|
 |:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----|
-|ctg0|11|ATTGAT|rid1|t|1916|80.09|0.969|0.00150|NNNNNN|0.00 |0.00|inf	|723|729|
-|ctg0|13|TGATGG|rid1|t|1915|78.14|0.577|0.00100|CCATCA|75.83|2.68|0.79	|719|723|
-|ctg0|13|TGATGG|rid1|t|1914|74.39|1.898|0.00075|CCATCA|75.83|2.68|-0.49	|716|719|
-|ctg0|14|GATGGT|rid1|t|1913|86.91|2.630|0.00200|ACCATC|86.41|2.16|0.21	|708|716|
-|ctg0|15|ATGGTG|rid1|t|1912|93.88|1.184|0.00150|CACCAT|97.64|2.26|-1.52	|702|708|
-|ctg0|15|ATGGTG|rid1|t|1911|99.83|1.552|0.00125|CACCAT|97.64|2.26|0.88	|697|702|
-|ctg0|15|ATGGTG|rid1|t|1910|98.60|0.511|0.00075|CACCAT|97.64|2.26|0.39	|694|697|
-|ctg0|15|ATGGTG|rid1|t|1909|99.54|1.254|0.00225|CACCAT|97.64|2.26|0.77	|685|694|
-|ctg0|15|ATGGTG|rid1|t|1908|97.82|1.226|0.00075|CACCAT|97.64|2.26|0.07	|682|685|
-|ctg0|15|ATGGTG|rid1|t|1907|99.46|0.562|0.00100|CACCAT|97.64|2.26|0.73	|678|682|
-|ctg0|15|ATGGTG|rid1|t|1906|98.85|0.916|0.00125|CACCAT|97.64|2.26|0.49	|673|678|
-|ctg0|16|TGGTGG|rid1|t|1905|86.25|1.327|0.00100|CCACCA|85.37|1.55|0.52	|669|673|
-|ctg0|17|GGTGGA|rid1|t|1904|86.88|1.283|0.00075|TCCACC|87.17|1.76|-0.15	|666|669|
-|ctg0|17|GGTGGA|rid1|t|1903|85.62|0.589|0.00075|TCCACC|87.17|1.76|-0.81	|663|666|
-|ctg0|18|GTGGAA|rid1|t|1902|90.79|1.335|0.00075|TTCCAC|91.76|1.96|-0.45	|660|663|
+|ctg0|11|ATTGAT|rid1|t|216|80.09|0.969|0.00150|NNNNNN|0.00 |0.00|inf	|723|729|
+|ctg0|13|TGATGG|rid1|t|215|78.14|0.577|0.00100|CCATCA|75.83|2.68|0.79	|719|723|
+|ctg0|13|TGATGG|rid1|t|214|74.39|1.898|0.00075|CCATCA|75.83|2.68|-0.49	|716|719|
+|ctg0|14|GATGGT|rid1|t|213|86.91|2.630|0.00200|ACCATC|86.41|2.16|0.21	|708|716|
+|ctg0|15|ATGGTG|rid1|t|212|93.88|1.184|0.00150|CACCAT|97.64|2.26|-1.52	|702|708|
+|ctg0|15|ATGGTG|rid1|t|211|99.83|1.552|0.00125|CACCAT|97.64|2.26|0.88	|697|702|
+|ctg0|15|ATGGTG|rid1|t|210|98.60|0.511|0.00075|CACCAT|97.64|2.26|0.39	|694|697|
+|ctg0|15|ATGGTG|rid1|t|209|99.54|1.254|0.00225|CACCAT|97.64|2.26|0.77	|685|694|
+|ctg0|15|ATGGTG|rid1|t|208|97.82|1.226|0.00075|CACCAT|97.64|2.26|0.07	|682|685|
+|ctg0|15|ATGGTG|rid1|t|207|99.46|0.562|0.00100|CACCAT|97.64|2.26|0.73	|678|682|
+|ctg0|15|ATGGTG|rid1|t|206|98.85|0.916|0.00125|CACCAT|97.64|2.26|0.49	|673|678|
+|ctg0|16|TGGTGG|rid1|t|205|86.25|1.327|0.00100|CCACCA|85.37|1.55|0.52	|669|673|
+|ctg0|17|GGTGGA|rid1|t|204|86.88|1.283|0.00075|TCCACC|87.17|1.76|-0.15	|666|669|
+|ctg0|17|GGTGGA|rid1|t|203|85.62|0.589|0.00075|TCCACC|87.17|1.76|-0.81	|663|666|
+|ctg0|18|GTGGAA|rid1|t|202|90.79|1.335|0.00075|TTCCAC|91.76|1.96|-0.45	|660|663|
 
 <!--
 ./f5c eventalign -b test/chr22_meth_example/reads.sorted.bam -g test/chr22_meth_example/humangenome.fa -r test/chr22_meth_example/reads.fastq -t 16 -K 256 -B 2M --print-read-name --signal-index --slow5 test/chr22_meth_example/reads.blow5 | grep 5831b66f-83e8-4d75-a576-0f75ba6a7f64
@@ -124,9 +153,9 @@ The paf output from eventalign will look like below (the header is not present i
 
 ## RNA examples
 
-In RNA, a read should always map to + strand of the transcripts in the transcriptome. Thus - mappings if any are meaning less. Only + ones are discussed below.
+### Positive strand
 
-Assume we have a read signal named rid0 of 3000 signal samples, mapped to a reference transcript  named trn0 of 65 bases Assume a k-mer size of 5. We have a total of 61 k-mers in the reference. 
+Assume we have a read signal named rid0 of 3000 signal samples, mapped to a reference transcript (or can be a ctg in the reference genome) named trn0 of 65 bases. Assume a k-mer size of 5. We have a total of 61 k-mers in the reference. 
 
 Assume the signal-reference alignment looks like in the figure below. Note that the RNA is sequenced 3'->5' end, so the raw signal is 3'->5' direction. However, as transcipts in the reference are in 5'->3' direction, the transcript is reversed to be 3'->5' in the illustration (note: indices in illustration denote the actual index in the transcriptd in 5'->3' direction). 
 
@@ -166,29 +195,74 @@ Note that start_kmer and end_kmer are otherway round compared to DNA.
 !-->
 
 
+### Negative strand
+
+Assume we have a read signal named rid1 of 500 signal samples, mapped to a reference contig named ctg1 of 20 bases. Assume a k-mer size of 5. We have a total of 24 k-mers in the reference. Assume the signal-reference alignment looks like in the figure below (note: indices in illustration denote the actual index in the + strand of the reference genome in 5’->3’ direction). 
+
+<img width="900" alt="image" src="../img/eventalign-rna-2.png">
+
+
+Assume that the 4-13th bases (0-index; bed-like) in this contig are AAATGGCTGA. Thus, 4th kmer is AAATG, 5th k-mer is AATGG, .. 8th k-mer is GGCTG and the 9th k-mer is GCTGA.
+
+Th negative strand is like:
+```
+5' AAATGGCTGA 3' + strand
+   ||||||||||
+3' TTTACCGACT 5' - strand
+```
+
+The Reverse complement is thus TCAGCCATTT. The 4th k-mer AAATG in the + strand relates to CATTT in the - strand,  5th k-mer AATGG relates to CCATT ,... , 8th k-mer GGCTG relates to CAGCC and 9th k-mer GCTGA relates to TCAGC.
+
+The tsv output from resquiggle will look like below (assume `--print-read-name` and `--signal-index are provided`):
+
+|contig	|position	|reference_kmer	|read_id	|strand	|event_index	|event_level_mean	|event_stdv	|event_length	|model_kmer	|model_mean	|model_stdv	|standardized_level	|start_idx	|end_idx|
+|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----|
+|ctg1|4|AAATG|rid1|t|14|100.70|2.678|0.00664|CATTT|100.40|6.94|0.04|61|81|
+|ctg1|5|AATGG|rid1|t|13|96.55|4.060|0.00432|CCATT|98.42|2.68|-0.62|81|94|
+|ctg1|6|ATGGC|rid1|t|12|83.36|1.416|0.00332|GCCAT|84.06|2.64|-0.24|94|104|
+|ctg1|6|ATGGC|rid1|t|11|87.00|6.172|0.00299|GCCAT|84.06|2.64|0.99|104|113|
+|ctg1|7|TGGCT|rid1|t|10|121.45|4.970|0.00598|AGCCA|121.42|4.13|0.01|113|131|
+|ctg1|7|TGGCT|rid1|t|9|128.10|1.094|0.00299|AGCCA|121.42|4.13|1.44|131|140|
+|ctg1|7|TGGCT|rid1|t|8|124.88|4.039|0.00631|AGCCA|121.42|4.13|0.75|140|159|
+|ctg1|8|GGCTG|rid1|t|7|115.80|2.588|0.00465|CAGCC|115.81|3.78|-0.00|159|173|
+|ctg1|8|GGCTG|rid1|t|6|111.04|2.482|0.00332|CAGCC|115.81|3.78|-1.13|173|183|
+|ctg1|9|GCTGA|rid1|t|5|99.95|2.843|0.00498|TCAGC|101.66|6.39|-0.24|183|198|
+
+The paf output from eventalign will look like below (the header is not present in the actual output):
+
+|read_id|len_raw_signal|start_raw|end_raw|strand|ref_id|len_kmer|start_kmer|end_kmer|matches|len_block|mapq| |
+|--:|----:|----:|--------:|--:|----:|----:|--------:|--:|----:|----:|--------:|--:|
+|rid1   |500            |61        |198     |-     |ctg1   | 24      |10         |4       | 6    |6      |255 |`ss:Z:20,13,19,46,24,15,` |
+
 <!--
 
 negative 
 ./f5c eventalign -b test/rna/reads.sorted.bam -g test/rna/gencode.v35.transcripts.fa -r test/rna/reads.fastq -t 16 -K 256 -B 2M --summary test/rna/f5c_event_align.summary.txt  --rna --signal-index --print-read-name | grep 29192917-7793-4f78-b079-c7aa3f24992e
 
-trn0	4	AAATG	rid1	t	584	100.70	2.678	0.00664	CATTT	100.40	6.94	0.04	11061	11081
-trn0	5	AATGG	rid1	t	583	96.55	4.060	0.00432	CCATT	98.42	2.68	-0.62	11081	11094
-trn0	6	ATGGC	rid1	t	582	83.36	1.416	0.00332	GCCAT	84.06	2.64	-0.24	11094	11104
-trn0	6	ATGGC	rid1	t	581	87.00	6.172	0.00299	GCCAT	84.06	2.64	0.99	11104	11113
-trn0	7	TGGCT	rid1	t	580	121.45	4.970	0.00598	AGCCA	121.42	4.13	0.01	11113	11131
-trn0	7	TGGCT	rid1	t	579	128.10	1.094	0.00299	AGCCA	121.42	4.13	1.44	11131	11140
-trn0	7	TGGCT	rid1	t	578	124.88	4.039	0.00631	AGCCA	121.42	4.13	0.75	11140	11159
-trn0	8	GGCTG	rid1	t	577	115.80	2.588	0.00465	CAGCC	115.81	3.78	-0.00	11159	11173
-trn0	8	GGCTG	rid1	t	576	111.04	2.482	0.00332	CAGCC	115.81	3.78	-1.13	11173	11183
-trn0	9	GCTGA	rid1	t	575	99.95	2.843	0.00498	TCAGC	101.66	6.39	-0.24	11183	11198
+ctg1	4	AAATG	rid1	t	584	100.70	2.678	0.00664	CATTT	100.40	6.94	0.04	11061	11081
+ctg1	5	AATGG	rid1	t	583	96.55	4.060	0.00432	CCATT	98.42	2.68	-0.62	11081	11094
+ctg1	6	ATGGC	rid1	t	582	83.36	1.416	0.00332	GCCAT	84.06	2.64	-0.24	11094	11104
+ctg1	6	ATGGC	rid1	t	581	87.00	6.172	0.00299	GCCAT	84.06	2.64	0.99	11104	11113
+ctg1	7	TGGCT	rid1	t	580	121.45	4.970	0.00598	AGCCA	121.42	4.13	0.01	11113	11131
+ctg1	7	TGGCT	rid1	t	579	128.10	1.094	0.00299	AGCCA	121.42	4.13	1.44	11131	11140
+ctg1	7	TGGCT	rid1	t	578	124.88	4.039	0.00631	AGCCA	121.42	4.13	0.75	11140	11159
+ctg1	8	GGCTG	rid1	t	577	115.80	2.588	0.00465	CAGCC	115.81	3.78	-0.00	11159	11173
+ctg1	8	GGCTG	rid1	t	576	111.04	2.482	0.00332	CAGCC	115.81	3.78	-1.13	11173	11183
+ctg1	9	GCTGA	rid1	t	575	99.95	2.843	0.00498	TCAGC	101.66	6.39	-0.24	11183	11198
 
 todo: Note on splice
 todo: in ctual output in paf,, fix the reference contig len
 
 !-->
 
+## eventalign sam output
 
+Specifying `-a` will generate the output in SAM format (much smaller than the TSV output, f5c v1.3 or higher). This output SAM file will contain following two additional tags added to the S/BAM file given as the input to f5c:
 
+|Tag|Type  |Description                               |
+|--:|:----:|:-----------------------------------------|
+|si  |Z   |coordinates associated with the ss tag below (explained below)                     |
+|ss  |Z   |signal alignment string in format described [here](https://hasindu2008.github.io/f5c/docs/output#resquiggle-paf-output-format)   |
 
-
+*si* tag contains four comma separated values *start_raw*, *end_raw*, *start_kmer* and *end_kmer*, respectively. Those values have the same  as the columns 3,4,8 and 9 in the PAF format explained above when specified along with -c/
 
