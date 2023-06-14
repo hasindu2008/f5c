@@ -141,6 +141,10 @@ test_suit1 () {
 	echo "resquiggle"
 	test/test_rsq.sh -f 2> r10_hg2_resquiggle.log || die "failed"
 
+	echo "************************Doing eventalign paf tests*****************************"
+	test/test_eventalign_pafsam.sh 2> eventalign_paf.log || die "failed"
+	echo ""
+
 	echo ""
 	echo "*********************************************************************"
 	echo ""
@@ -211,7 +215,11 @@ test_suit1_cuda () {
 	test/test_eventalign.sh -f 2> r10_hg2_eventalign_cuda.log || echo "failure ignored for now until smaller diffs are accounted"
 	echo "____________________________________________________________________"
 	echo "resquiggle"
-	test/test_rsq.sh -f 2> r10_hg2_resquiggle.log || die "failed"
+	test/test_rsq.sh -f 2> r10_hg2_resquiggle_cuda.log || die "failed"
+
+	echo "************************Doing eventalign paf tests*****************************"
+	test/test_eventalign_pafsam.sh 2> eventalign_paf_cuda.log || die "failed"
+	echo ""
 
 	echo ""
 	echo "*********************************************************************"
