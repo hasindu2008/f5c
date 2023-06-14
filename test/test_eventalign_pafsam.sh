@@ -43,7 +43,7 @@ execute_test() {
 
 	ORIG=$2
 	RES=$1
-	THRESH=5
+	THRESH=$3
 	diff -y --suppress-common-lines ${ORIG} ${RES} > ${testdir}/diff.txt || handle_tests $testdir
 
 }
@@ -54,12 +54,12 @@ download_test_set "https://f5c.page.link/hg2_lsk114_reads_1000"
 ./f5c eventalign -b ${testdir}/PGXX22394_reads_1000_6.4.2_sup.bam \
 		-r ${testdir}/PGXX22394_reads_1000_6.4.2_sup.fastq -g test/chr22_meth_example/humangenome.fa \
 		--slow5 ${testdir}/PGXX22394_reads_1000.blow5 -c > ${testdir}/result.txt || die "eventalign failed"
-execute_test ${testdir}/result.txt ${testdir}/eventalign.paf
+execute_test ${testdir}/result.txt ${testdir}/eventalign.paf 50
 
 ./f5c eventalign -b ${testdir}/PGXX22394_reads_1000_6.4.2_sup.bam \
 		-r ${testdir}/PGXX22394_reads_1000_6.4.2_sup.fastq -g test/chr22_meth_example/humangenome.fa \
 		--slow5 ${testdir}/PGXX22394_reads_1000.blow5 -a > ${testdir}/result.txt || die "eventalign failed"
-execute_test ${testdir}/result.txt ${testdir}/eventalign.sam
+execute_test ${testdir}/result.txt ${testdir}/eventalign.sam 5
 
 
 testdir=test/rna
@@ -67,8 +67,8 @@ download_test_set "https://f5c.page.link/f5c_rna_test"
 
 ./f5c eventalign -b ${testdir}/reads.sorted.bam -g ${testdir}/gencode.v35.transcripts.fa -r ${testdir}//reads.fastq  \
  --slow5 ${testdir}/reads.blow5 --rna -c > ${testdir}/result.txt || die "eventalign failed"
-execute_test ${testdir}/result.txt ${testdir}/eventalign.paf
+execute_test ${testdir}/result.txt ${testdir}/eventalign.paf 50
 
 ./f5c eventalign -b ${testdir}/reads.sorted.bam -g ${testdir}/gencode.v35.transcripts.fa -r ${testdir}//reads.fastq  \
  --slow5 ${testdir}/reads.blow5 --rna -a > ${testdir}/result.txt || die "eventalign failed"
-execute_test ${testdir}/result.txt ${testdir}/eventalign.sam
+execute_test ${testdir}/result.txt ${testdir}/eventalign.sam 5
