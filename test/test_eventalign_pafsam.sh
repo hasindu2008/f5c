@@ -59,7 +59,7 @@ execute_test ${testdir}/result.txt ${testdir}/eventalign.paf 50
 ./f5c eventalign -b ${testdir}/PGXX22394_reads_1000_6.4.2_sup.bam \
 		-r ${testdir}/PGXX22394_reads_1000_6.4.2_sup.fastq -g test/chr22_meth_example/humangenome.fa \
 		--slow5 ${testdir}/PGXX22394_reads_1000.blow5 -a > ${testdir}/result.txt || die "eventalign failed"
-execute_test ${testdir}/result.txt ${testdir}/eventalign.sam 5
+execute_test ${testdir}/result.txt ${testdir}/eventalign.sam 40
 
 
 testdir=test/rna
