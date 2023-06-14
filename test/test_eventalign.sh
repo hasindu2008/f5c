@@ -98,7 +98,7 @@ execute_test() {
 	tail -n +2 ${testdir}/f5c_event_align.summary.txt | awk '{print $1"\t"$2"\t"$3"\tna\t"$5"\t"$6"\t"$7"\t"$8"\t"$9"\t"$10"\t"$11"\t"$12"\t"$13"\t"$14}' > ${testdir}/f5c.summary.txt
 	#this test still passes if f5c.summary.txt is empty, but will be caught when comparing full summaries
 	join ${testdir}/nanopolish.summary.txt ${testdir}/f5c.summary.txt > ${testdir}/joined_results.txt || echo "Join ran into an issue. Probably just a warning."
-	awk -f  scripts/test_eventalign_summary.awk ${testdir}/joined_results.txt > ${testdir}/joined_diff.txt || handle_tests "${file}"
+	awk -f  test/test_eventalign_summary.awk ${testdir}/joined_results.txt > ${testdir}/joined_diff.txt || handle_tests "${file}"
 
 	if [ $testdir = test/chr22_meth_example ]; then
 		echo "event by event test not implemented not yet implemented!"
@@ -115,7 +115,7 @@ execute_test() {
 		tail -n +2 ${testdir}/result.txt  > ${testdir}/f5c.txt
 		#todo : this must be fixed for join with two columns ideally
 		paste ${testdir}/nanopolish.txt ${testdir}/f5c.txt > ${testdir}/joined_results.txt
-		awk -f  scripts/test_eventalign.awk ${testdir}/joined_results.txt > ${testdir}/joined_diff.txt || handle_tests2 "${file}"
+		awk -f  test/test_eventalign.awk ${testdir}/joined_results.txt > ${testdir}/joined_diff.txt || handle_tests2 "${file}"
 	fi
 
 
@@ -142,6 +142,7 @@ help_msg() {
 	echo
 	echo "-c                   Uses chr22_meth_example test set."
 	echo "-e                   Uses rna test set."
+	echo "-f                   Uses hg2 datase."
 	echo "-b [bam file]        Same as f5c -b."
 	echo "-K [n]               Same as f5c -K."
 	echo "-B [n]               Same as f5c -B."
