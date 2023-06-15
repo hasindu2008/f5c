@@ -514,6 +514,7 @@ int meth_main(int argc, char* argv[], int8_t mode) {
         fprintf(fp_help,"   --signal-index             write the raw signal start and end index values for the event to the tsv output\n");
         fprintf(fp_help,"   --rna                      the dataset is direct RNA\n");
         fprintf(fp_help,"   --collapse-events          collapse events that stays on the same reference k-mer\n");
+        fprintf(fp_help,"   --sam-out-version INT      sam output version (set 1 to rever to old nanopolish style format) [%d]\n",opt.meth_out_version);
     }
         fprintf(fp_help,"   --min-recalib-events INT   minimum number of events to recalbrate (decrease if your reads are very short and could not calibrate) [%d]\n",opt.min_num_events_to_rescale);
         fprintf(fp_help,"   --pore STR                 r9 or r10\n");
