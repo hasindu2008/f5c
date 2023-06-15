@@ -8,7 +8,7 @@ title: Output
 
 f5c resquiggle aligns raw signals to basecalled reads. f5c resquiggle output is explained below. 
 
-### resquiggle tsv output format
+### resquiggle TSV output
 
 The default output is an intuitive TSV format with the following columns.
 
@@ -21,9 +21,9 @@ The default output is an intuitive TSV format with the following columns.
 
 If a corresponding base has no corresponding signal samples, a `.` will be printed.
 
-### resquiggle paf output format
+### resquiggle PAF output
 
-The above tsv output is bulky. Specifying `-c` will produce a condensed output in PAF-like format (inspired by [UNCALLED](https://github.com/skovaka/UNCALLED)) with the following columns:
+The above TSV output is bulky. Specifying `-c` will produce a condensed output in PAF-like format (inspired by [UNCALLED](https://github.com/skovaka/UNCALLED)) with the following columns:
 The query is the raw-signal and the target is the basecalled-read.
 
 |Col|Type  |Name |Description                               |
@@ -70,7 +70,7 @@ To make things further clear, given below is an illustration for an alignment of
 Each dot in the top sequence in the illustration represent a k-mer and the number above each dot is the corresponding k-mer index. If the basecalled read is `ACGGTAACTATAC` and assuming the k-mer size in the k-mer model is 6, the 0th k-mer is `ACGGTA`, 1st k-mer is `CGGTAA` ... and the 7th k-mer is `CTATAC`.
 Each dot in the bottom sequence in the illustration represent a raw-signal sample and the number below each dot is the corresponding signal index.
 
-The tsv output from resquiggle will look like below:
+The TSV output from resquiggle will look like below:
 
 |read_id|kmer_idx|start_raw_idx|end_raw_idx|
 |--:|----:|----:|------------------------:|
@@ -83,7 +83,7 @@ The tsv output from resquiggle will look like below:
 |rid0   |  6     |     12      |     14    |
 |rid0   |  7     |     14      |     17    |
 
-The paf output from resquiggle will look like below (the header is not present in the actual output):
+The PAF output from resquiggle will look like below (the header is not present in the actual output):
 
 |read_id|len_raw_signal|start_raw|end_raw|strand|read_id|len_kmer|start_kmer|end_kmer|matches|len_block|mapq| |
 |--:|----:|----:|--------:|--:|----:|----:|--------:|--:|----:|----:|--------:|--:|
@@ -98,7 +98,7 @@ Now see the illustration below for direct-RNA.
 
 Note that the RNA is sequenced 3'->5' end, so the raw signal is 3'->5' direction. As the basecaller outputs the basecalled read in 5'->3' direction, the basecalled read is reversed to be 3'->5' in the illustration (note: indices in illustration denote the actual index in the basecalled read in 5'->3' direction). If the basecalled read in 5'->3' direction is `ACGGUAACUAUA` and assuming the k-mer size in the k-mer model is 5, the 0th k-mer is `ACGGU`, 1st k-mer is `CGGUA` ... and the 7th k-mer is `CUAUA`.
 
-The tsv output will look like below:
+The TSV output will look like below:
 
 |read_id|kmer_idx|start_raw_idx|end_raw_idx|
 |--:|----:|----:|------------------------:|
@@ -111,14 +111,14 @@ The tsv output will look like below:
 |rid0   |  1     |     12      |     14    |
 |rid0   |  0     |     14      |     17    |
 
-The paf output will look like below:
+The PAF output will look like below:
 
 |read_id|len_raw_signal|start_raw|end_raw|strand|read_id|len_kmer|start_kmer|end_kmer|matches|len_block|mapq| |
 |--:|----:|----:|--------:|--:|----:|----:|--------:|--:|----:|----:|--------:|--:|
 |rid0   |20            |2        |17     |+     |rid0   | 8      |8         |0       | 6     |8       |255 |`ss:Z:2,3,2,2I1,2D2,3,` |
 
 
-### C code snippet for parsing ss tag
+### C code snippet to parse ss tag
 
 A C code snippet that converts the value in the ss tag (a readable code which is not optimised) is given below:
 
@@ -195,7 +195,7 @@ Note that the beginning of the alignment could be crude due to the adaptor and b
 
 ## eventalign
 
-### eventalign tsv output
+### eventalign TSV output
 
 The default TSV output is as below:
 
@@ -230,9 +230,9 @@ Following optional columns are controlled via command line options:
 |`--scale-events`   |float |model_stdv| Intead of scaling the model to the events, now events will be scaled to the model. column 12 becomes *level_stdv* (*level_stdv* is the second column in the pore model)|
 |`--samples`        |float,float,...|samples|  Prints the comma separated signal samples corresponding to the mapped k-mer (scaled pA current values). `scaled pA current values = (pA - scaling.shift) / scaling.scale` where `pA = (raw_signal + offset) * range / digitisation`|
 
-### eventalign paf output
+### eventalign PAF output
 
-Specifying `-c` will generate the output in a PAF-like format (much smaller than the TSV output, f5c v1.3 or higher). This is similar to the PAF output format in [f5c resquiggle](https://hasindu2008.github.io/f5c/docs/output#resquiggle-paf-output-format) with major difference being that the "basecalled read" in resquiggle is now the "refererence sequence" in eventalign. Assumming that the reader is well familiarised with the PAF output explained in resquiggle, that information is not repeated here, instead only a summary is given. Unlike in resquiggle, the strand column (column 5) can be now both '+' and '-'.  The query is the raw-signal and the target is the reference.
+Specifying `-c` will generate the output in a PAF-like format (much smaller than the TSV output, f5c v1.3 or higher). This is similar to the PAF output format in [f5c resquiggle](https://hasindu2008.github.io/f5c/docs/output#resquiggle-paf-output) with major difference being that the "basecalled read" in resquiggle is now the "refererence sequence" in eventalign. Assumming that the reader is well familiarised with the PAF output explained in resquiggle, that information is not repeated here, instead only a summary is given. Unlike in resquiggle, the strand column (column 5) can be now both '+' and '-'.  The query is the raw-signal and the target is the reference.
 
 |Col|Type  |Name |Description                               |
 |--:|:----:|:----|:-----------------------------------------|
@@ -261,7 +261,7 @@ Following optional tags are present:
 |sh  |f   |Post alignment recalibrated shift parameter                      |
 |ss  |Z   |signal alignment string in format described below   |
 
-Please refer to the explanations in [f5c resquiggle](https://hasindu2008.github.io/f5c/docs/output#resquiggle-paf-output-format) about the ss tag. Some examples are given below.
+Please refer to the explanations in [f5c resquiggle](https://hasindu2008.github.io/f5c/docs/output#resquiggle-paf-output) about the ss tag. Some examples are given below.
 
 ### DNA examples
 
@@ -272,7 +272,7 @@ Assume we have a read signal named rid0 of 1000 signal samples, mapped to a refe
 <img width="900" alt="image" src="../img/eventalign-dna-1.png">
 
 
-The tsv output from resquiggle will look like below (assume `--print-read-name` and `--signal-index are provided`):
+The TSV output from resquiggle will look like below (assume `--print-read-name` and `--signal-index are provided`):
 
 |contig	|position	|reference_kmer	|read_id	|strand	|event_index	|event_level_mean	|event_stdv	|event_length	|model_kmer	|model_mean	|model_stdv	|standardized_level	|start_idx	|end_idx|
 |:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----|
@@ -289,7 +289,7 @@ The tsv output from resquiggle will look like below (assume `--print-read-name` 
 |ctg0|18|GTGGAA|rid0|t|60|78.95|1.436|0.00100|GTGGAA|80.55|3.83|-0.38|313|317|
 
 
-The paf output from eventalign will look like below (the header is not present in the actual output):
+The PAF output from eventalign will look like below (the header is not present in the actual output):
 
 |read_id|len_raw_signal|start_raw|end_raw|strand|ref_id|len_kmer|start_kmer|end_kmer|matches|len_block|mapq| |
 |--:|----:|----:|--------:|--:|----:|----:|--------:|--:|----:|----:|--------:|--:|
@@ -317,7 +317,7 @@ Th negative strand is like:
 
 The Reverse complement is thus TTCCACCATCAAT. The 11th k-mer ATTGAT in the + strand relates to ATCAAT in the - strand,  12th k-mer TTGATG relates to CATCAA, 13th k-mer TGATGG relates to CCATC ,... , 17th k-mer GGTGGA relates to TCCACC  and 18th k-mer GTGGAA relates to TTCCAC.
 
-The tsv output from resquiggle will look like below (assume `--print-read-name` and `--signal-index are provided`):
+The TSV output from resquiggle will look like below (assume `--print-read-name` and `--signal-index are provided`):
 
 |contig	|position	|reference_kmer	|read_id	|strand	|event_index	|event_level_mean	|event_stdv	|event_length	|model_kmer	|model_mean	|model_stdv	|standardized_level	|start_idx	|end_idx|
 |:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----|
@@ -341,7 +341,7 @@ The tsv output from resquiggle will look like below (assume `--print-read-name` 
 ./f5c eventalign -b test/chr22_meth_example/reads.sorted.bam -g test/chr22_meth_example/humangenome.fa -r test/chr22_meth_example/reads.fastq -t 16 -K 256 -B 2M --print-read-name --signal-index --slow5 test/chr22_meth_example/reads.blow5 | grep 5831b66f-83e8-4d75-a576-0f75ba6a7f64
 -->
 
-The paf output from eventalign will look like below (the header is not present in the actual output):
+The PAF output from eventalign will look like below (the header is not present in the actual output):
 
 |read_id|len_raw_signal|start_raw|end_raw|strand|ref_id|len_kmer|start_kmer|end_kmer|matches|len_block|mapq| |
 |--:|----:|----:|--------:|--:|----:|----:|--------:|--:|----:|----:|--------:|--:|
@@ -361,7 +361,7 @@ Assume that the 45-56th bases (0-index; bed-like) in this transcript in 5'->3' d
 <img width="900" alt="image" src="../img/eventalign-rna-1.png">
 
 
-The tsv output from resquiggle will look like below (assume `--print-read-name` and `--signal-index are provided`):
+The TSV output from resquiggle will look like below (assume `--print-read-name` and `--signal-index are provided`):
 
 |contig	|position	|reference_kmer	|read_id	|strand	|event_index	|event_level_mean	|event_stdv	|event_length	|model_kmer	|model_mean	|model_stdv	|standardized_level	|start_idx	|end_idx|
 |:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----|
@@ -378,7 +378,7 @@ trn0|51|CCTGA|rid0|t|71|116.03|2.440|0.00631|CCTGA|109.18|4.97|1.04|1994|2013|
 trn0|51|CCTGA|rid0|t|72|101.67|1.433|0.00332|CCTGA|109.18|4.97|-1.14|1984|1994|
 
 
-The paf output from eventalign will look like below (the header is not present in the actual output):
+The PAF output from eventalign will look like below (the header is not present in the actual output):
 
 |read_id|len_raw_signal|start_raw|end_raw|strand|ref_id|len_kmer|start_kmer|end_kmer|matches|len_block|mapq| |
 |--:|----:|----:|--------:|--:|----:|----:|--------:|--:|----:|----:|--------:|--:|
@@ -409,7 +409,7 @@ Th negative strand is like:
 
 The Reverse complement is thus TCAGCCATTT. The 4th k-mer AAATG in the + strand relates to CATTT in the - strand,  5th k-mer AATGG relates to CCATT ,... , 8th k-mer GGCTG relates to CAGCC and 9th k-mer GCTGA relates to TCAGC.
 
-The tsv output from resquiggle will look like below (assume `--print-read-name` and `--signal-index are provided`):
+The TSV output from resquiggle will look like below (assume `--print-read-name` and `--signal-index are provided`):
 
 |contig	|position	|reference_kmer	|read_id	|strand	|event_index	|event_level_mean	|event_stdv	|event_length	|model_kmer	|model_mean	|model_stdv	|standardized_level	|start_idx	|end_idx|
 |:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----|
@@ -424,7 +424,7 @@ The tsv output from resquiggle will look like below (assume `--print-read-name` 
 |ctg1|8|GGCTG|rid1|t|6|111.04|2.482|0.00332|CAGCC|115.81|3.78|-1.13|173|183|
 |ctg1|9|GCTGA|rid1|t|5|99.95|2.843|0.00498|TCAGC|101.66|6.39|-0.24|183|198|
 
-The paf output from eventalign will look like below (the header is not present in the actual output):
+The PAF output from eventalign will look like below (the header is not present in the actual output):
 
 |read_id|len_raw_signal|start_raw|end_raw|strand|ref_id|len_kmer|start_kmer|end_kmer|matches|len_block|mapq| |
 |--:|----:|----:|--------:|--:|----:|----:|--------:|--:|----:|----:|--------:|--:|
@@ -447,20 +447,20 @@ ctg1	8	GGCTG	rid1	t	576	111.04	2.482	0.00332	CAGCC	115.81	3.78	-1.13	11173	11183
 ctg1	9	GCTGA	rid1	t	575	99.95	2.843	0.00498	TCAGC	101.66	6.39	-0.24	11183	11198
 
 todo: Note on splice
-todo: in ctual output in paf,, fix the reference contig len
+todo: in ctual output in PAF,, fix the reference contig len
 
 !-->
 
-### eventalign sam output
+### eventalign SAM output
 
 Specifying `-a` will generate the output in SAM format (much smaller than the TSV output, f5c v1.3 or higher). This output SAM file will contain the following two additional tags added to the S/BAM file given as the input to f5c:
 
 |Tag|Type  |Description                               |
 |--:|:----:|:-----------------------------------------|
 |si  |Z   |coordinates associated with the ss tag below (explained below)                     |
-|ss  |Z   |signal alignment string in format described under [here](https://hasindu2008.github.io/f5c/docs/output#resquiggle-paf-output-format)   |
+|ss  |Z   |signal alignment string in format described under [here](https://hasindu2008.github.io/f5c/docs/output#resquiggle-paf-output)   |
 
-*si* tag contains four comma separated values *start_raw*, *end_raw*, *start_kmer* and *end_kmer*, respectively. Those values have the same  as the columns 3,4,8 and 9 in the PAF format explained [above](https://hasindu2008.github.io/f5c/docs/output#eventalign-paf-output) when specified along with -c.
+*si* tag contains four comma separated values *start_raw*, *end_raw*, *start_kmer* and *end_kmer*, respectively. Those values have the same  as the columns 3,4,8 and 9 in the PAF format explained [above](https://hasindu2008.github.io/f5c/docs/output#eventalign-paf) when specified along with -c.
 
 
 ## call-methylation
