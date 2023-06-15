@@ -6,7 +6,7 @@ title: Output
 
 <img width="750" alt="image" src="../img/rsq.png">
 
-f5c resquiggle aligns raw signals to basecalled reads. f5c resquiggle output is explained below. Note that resquiggle is under development, the output format is a draft and may change in the future versions. When it is stable, this notice will be removed.
+f5c resquiggle aligns raw signals to basecalled reads. f5c resquiggle output is explained below. 
 
 ### resquiggle tsv output format
 
@@ -191,9 +191,9 @@ int main(){
 
 ```
 
-Note that the beginning of the alignment could be crude due to the adaptor and barcode in the raw signal. In future versions, an option for this trimming may be introduced. Until then, if there is an huge step in the alignment in the beginning, that part could be trimmed by the user.
+Note that the beginning of the alignment could be crude due to the adaptor and barcode in the raw signal. In future versions, an option for this trimming may be introduced. Until then, if there is a huge step in the alignment in the beginning, that part could be trimmed by the user.
 
-## eventalign output
+## eventalign
 
 ### eventalign tsv output
 
@@ -452,14 +452,14 @@ todo: in ctual output in paf,, fix the reference contig len
 
 ### eventalign sam output
 
-Specifying `-a` will generate the output in SAM format (much smaller than the TSV output, f5c v1.3 or higher). This output SAM file will contain following two additional tags added to the S/BAM file given as the input to f5c:
+Specifying `-a` will generate the output in SAM format (much smaller than the TSV output, f5c v1.3 or higher). This output SAM file will contain the following two additional tags added to the S/BAM file given as the input to f5c:
 
 |Tag|Type  |Description                               |
 |--:|:----:|:-----------------------------------------|
 |si  |Z   |coordinates associated with the ss tag below (explained below)                     |
-|ss  |Z   |signal alignment string in format described [here](https://hasindu2008.github.io/f5c/docs/output#resquiggle-paf-output-format)   |
+|ss  |Z   |signal alignment string in format described under [here](https://hasindu2008.github.io/f5c/docs/output#resquiggle-paf-output-format)   |
 
-*si* tag contains four comma separated values *start_raw*, *end_raw*, *start_kmer* and *end_kmer*, respectively. Those values have the same  as the columns 3,4,8 and 9 in the PAF format explained above when specified along with -c/
+*si* tag contains four comma separated values *start_raw*, *end_raw*, *start_kmer* and *end_kmer*, respectively. Those values have the same  as the columns 3,4,8 and 9 in the PAF format explained [above](https://hasindu2008.github.io/f5c/docs/output.md#eventalign-paf-output) when specified along with -c.
 
 
 ## call-methylation
