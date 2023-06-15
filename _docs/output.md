@@ -219,6 +219,7 @@ The default TSV output is as below:
 Command line options can be used to modify default columns or print additional columns. `--samples` will print two additional columns, namely start_idx and end_idx. 
 
 Following optional columns are controlled via command line options:
+
 |Command_line_Option|Type  |Name |Description                               |
 |:----------|:----|:----|:-----------------------------------------|
 |`--print-read-name`|string|read_name|Column 4 will become read_name that prints the read ID|
@@ -459,7 +460,7 @@ Specifying `-a` will generate the output in SAM format (much smaller than the TS
 |si  |Z   |coordinates associated with the ss tag below (explained below)                     |
 |ss  |Z   |signal alignment string in format described under [here](https://hasindu2008.github.io/f5c/docs/output#resquiggle-paf-output-format)   |
 
-*si* tag contains four comma separated values *start_raw*, *end_raw*, *start_kmer* and *end_kmer*, respectively. Those values have the same  as the columns 3,4,8 and 9 in the PAF format explained [above](https://hasindu2008.github.io/f5c/docs/output.md#eventalign-paf-output) when specified along with -c.
+*si* tag contains four comma separated values *start_raw*, *end_raw*, *start_kmer* and *end_kmer*, respectively. Those values have the same  as the columns 3,4,8 and 9 in the PAF format explained [above](https://hasindu2008.github.io/f5c/docs/output#eventalign-paf-output) when specified along with -c.
 
 
 ## call-methylation
