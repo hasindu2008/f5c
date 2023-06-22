@@ -1077,6 +1077,8 @@ void output_db(core_t* core, db_t* db) {
             }
         }
     }
+    fflush(stdout);
+
     //core->read_index = core->read_index + db->n_bam_rec;
     double output_end = realtime();
     core->output_time += (output_end-output_start);
