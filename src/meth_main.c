@@ -807,6 +807,7 @@ int meth_main(int argc, char* argv[], int8_t mode) {
     //free the core data structure
     free_core(core,opt);
 
+    fflush(stdout);
 
     return 0;
 }
