@@ -482,6 +482,7 @@ int meth_main(int argc, char* argv[], int8_t mode) {
         fprintf(fp_help,"   -x STR                     parameter profile to be used for better performance (always applied before other options)\n"); //Added option in help
         fprintf(fp_help,"                              e.g., laptop, desktop, hpc; see https://f5c.page.link/profiles for the full list\n");
         fprintf(fp_help,"   --iop INT                  number of I/O processes to read fast5 files [%d]\n",opt.num_iop);
+        fprintf(fp_help,"   --pore STR                 set the pore chemistry (r9 or r10) [r9]\n");
         fprintf(fp_help,"   --slow5 FILE               read from a slow5 file\n");
         fprintf(fp_help,"   --min-mapq INT             minimum mapping quality [%d]\n",opt.min_mapq);
         fprintf(fp_help,"   --secondary=yes|no         consider secondary mappings or not [%s]\n",(opt.flag&F5C_SECONDARY_YES)?"yes":"no");
@@ -505,19 +506,19 @@ int meth_main(int argc, char* argv[], int8_t mode) {
         fprintf(fp_help,"   --meth-out-version INT     methylation tsv output version (set 2 to print the strand column) [%d]\n",opt.meth_out_version);
     }
     if(mode==1){
-        fprintf(fp_help,"   -c                         output in PAF format\n");
         fprintf(fp_help,"   --summary FILE             summarise the alignment of each read/strand in FILE\n");
+        fprintf(fp_help,"   --paf                      write output in PAF format\n");
         fprintf(fp_help,"   --sam                      write output in SAM format\n");
+        fprintf(fp_help,"   --sam-out-version INT      sam output version (set 1 to revert to old nanopolish style format) [%d]\n",opt.meth_out_version);
+
         fprintf(fp_help,"   --print-read-names         print read names instead of indexes\n");
         fprintf(fp_help,"   --scale-events             scale events to the model, rather than vice-versa\n");
         fprintf(fp_help,"   --samples                  write the raw samples for the event to the tsv output\n");
         fprintf(fp_help,"   --signal-index             write the raw signal start and end index values for the event to the tsv output\n");
         fprintf(fp_help,"   --rna                      the dataset is direct RNA\n");
         fprintf(fp_help,"   --collapse-events          collapse events that stays on the same reference k-mer\n");
-        fprintf(fp_help,"   --sam-out-version INT      sam output version (set 1 to rever to old nanopolish style format) [%d]\n",opt.meth_out_version);
     }
         fprintf(fp_help,"   --min-recalib-events INT   minimum number of events to recalbrate (decrease if your reads are very short and could not calibrate) [%d]\n",opt.min_num_events_to_rescale);
-        fprintf(fp_help,"   --pore STR                 r9 or r10\n");
 
 #ifdef HAVE_CUDA
         fprintf(fp_help,"   --cuda-mem-frac FLOAT      Fraction of free GPU memory to allocate [0.9 (0.7 for tegra)]\n");
