@@ -79,7 +79,7 @@ void emit_event_alignment_tsv_header(FILE* fp, int8_t print_read_names, int8_t w
 void emit_sam_header(samFile* fp, const bam_hdr_t* hdr);
 char *emit_event_alignment_sam(char* read_name, bam_hdr_t* base_hdr, bam1_t* base_record,
                               const std::vector<event_alignment_t>& alignments, int8_t sam_out_version,
-                              event_table* et, int64_t len_raw_signal, int64_t ref_len, int8_t rna
+                              event_table* et, int64_t len_raw_signal, int64_t ref_len, int8_t rna, scalings_t scalings
                               );
 void realign_read(std::vector<event_alignment_t>* event_alignment_result, EventalignSummary *summary, FILE *summary_fp,char* ref,
                   const bam_hdr_t* hdr, const bam1_t* record, int32_t read_length,

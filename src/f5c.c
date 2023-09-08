@@ -858,7 +858,7 @@ void eventalign_single(core_t* core, db_t* db, int32_t i){
     } else if(sam_output){
         int8_t sam_out_version = core->opt.sam_out_version;
         int64_t ref_len = core->m_hdr->target_len[db->bam_rec[i]->core.tid];
-        db->event_alignment_result_str[i] = emit_event_alignment_sam(qname, core->m_hdr, db->bam_rec[i], *event_alignment_result, sam_out_version, &(db->et[i]), db->sig[i]->nsample, ref_len, rna);
+        db->event_alignment_result_str[i] = emit_event_alignment_sam(qname, core->m_hdr, db->bam_rec[i], *event_alignment_result, sam_out_version, &(db->et[i]), db->sig[i]->nsample, ref_len, rna, db->scalings[i]);
     } else {
         db->event_alignment_result_str[i] = emit_event_alignment_tsv(0,&(db->et[i]),core->model,core->kmer_size, db->scalings[i],*event_alignment_result, print_read_names, scale_events, write_samples, write_signal_index, collapse_events,
                    db->read_idx[i], qname, contig, db->sig[i]->sample_rate, db->sig[i]->rawptr);
