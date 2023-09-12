@@ -2,14 +2,16 @@
 title: Training new models for f5c using Nanopolish train
 ---
 
-*If you find mistakes or suggestions, please report at [issues](https://github.com/hasindu2008/f5c/issues).*
+*If you find mistakes or suggestions, please report them at [issues](https://github.com/hasindu2008/f5c/issues).*
 
-We wanted to train new models for R10.4.1 for use with f5c. f5c has no implementation for training new models. Given f5c relies on nanopolish models, we use nanopolish for training such models. The process of figuring out the nanopolish training for R10.4.1 was quite challenging and required considerable effort. With great help from [Jared Simpon](https://github.com/jts), we were able to figure out. Hence, we have briefly documented the process we used to train R10.4.1 with nanopolish, and hope it can benefit someone else.
+We wanted to train new models for R10.4.1 for use with f5c. f5c has no implementation for training new models. Given f5c relies on nanopolish models, we use nanopolish for training such models. The process of figuring out the nanopolish training for R10.4.1 was quite challenging and required considerable effort. With great help from [Jared Simpon](https://github.com/jts), we were able to figure it out. Hence, we have briefly documented the process we used to train R10.4.1 with nanopolish, and hope it can benefit someone else.
 
 We sequenced the human methylated and non-methylated (WGA) DNA datasets from [zymo dna methylation standards (D5013)](https://zymoresearch.eu/pages/dna-methylation-standards). One PromethION flowcell was used for each dataset and we obtained ~7X depth for the non-methylated  and ~9X for the methylated.
-The whole genome amplified non-methylated data with no base modifications is used for training neucleotide model. Both methylated (only CG methylated in this Zymo dataset) and non-methylated are needed for training a methylation model in CpG context.
+The whole genome amplified non-methylated data with no base modifications is used for training the nucleotide model. Both methylated (only CG methylated in this Zymo dataset) and non-methylated are needed for training a methylation model in CpG context. 
 
-In this example, We will be using [BLOW5](https://github.com/hasindu2008/slow5tools) files to train as BLOW5 is much faster and convienient to use. You can get the nanopolish *r10 branch* with BLOW5 support from [here](https://github.com/hiruna72/nanopolish) (commit used ce29c2da, remember to checkout to r10 branch) and compile it. The binary compiled on Ubuntu 16 is available under `slow5-nanopolish-train/` [here](https://f5c.page.link/r10train) and will work if your Linux distribution is recent.
+In this example, We will be using [BLOW5](https://github.com/hasindu2008/slow5tools) files to train as BLOW5 is much faster and more convenient. You can get the nanopolish *r10 branch* with BLOW5 support from [here](https://github.com/hiruna72/nanopolish) (commit used ce29c2da, remember to checkout to r10 branch) and compile it. The binary compiled on Ubuntu 16 is available under `slow5-nanopolish-train/ubuntu16` [here](https://f5c.page.link/r10train) and will work if your Linux distribution is recent. For older Linux distributions, try the binary under `slow5-nanopolish-train/centos7`.
+
+The data is available on ENA under [PRJEB64592](https://www.ebi.ac.uk/ena/browser/view/PRJEB64592).
 
 ## Nucleotide model
 
@@ -27,14 +29,14 @@ In this example, We will be using [BLOW5](https://github.com/hasindu2008/slow5to
     AAAAAAAAT	58.4335200897368	3.0	1	1	1	1
     AAAAAAACA	63.6599592820753	3.0	1	1	1	1
     ```
-    Though we are training a model for dna_r10.4.1_e8.2_400bps, note that in the model above we have r10_180mv_450bps_9mer as the model, to trick nanopolish train to work. For converting the levels from ONT model to pA above, we used `level*23.027081308793+96.631070539403`, with mean and std constants calculatedusing [sigtk pa](https://github.com/hasindu2008/sigtk) and datamash on a R10.4.1 dataset. Note that level_stdv is set to 3.0 for all kmers to start with. Other columns such as sd_mean are unsused, so leave them as 1.
+    Though we are training a model for dna_r10.4.1_e8.2_400bps, note that in the model above we have r10_180mv_450bps_9mer as the model, to trick nanopolish train to work. For converting the levels from ONT model to pA above, we used `level*23.027081308793+96.631070539403`, with mean and std constants calculated using [sigtk pa](https://github.com/hasindu2008/sigtk) and datamash on a R10.4.1 dataset. Note that level_stdv is set to 3.0 for all kmers to start with. Other columns such as sd_mean are unused, so leave them as 1.
 
 
 2. Assume we have the non-methylated dataset in a BLOW file called `nonmeth_reads.blow5`. Basecall the BLOW5 file with super accuracy through [buttery-eel](https://github.com/Psy-Fer/buttery-eel) using Guppy:
     ```
     buttery-eel  -g /install/ont-guppy-6.4.2/bin/  --config dna_r10.4.1_e8.2_400bps_sup.cfg  --device 'cuda:all' -i  nonmeth_reads.blow5 -q 10 -o  nonmeth.fastq --port 5555
     ```
-    This will create two files named `nonmeth.pass.fastq` and `nonmeth.fail.fastq`. We will be using  `nonmeth.pass.fastq` that contains passed reads (reads with mean qscore > 10).
+    This will create two files named `nonmeth.pass.fastq` and `nonmeth.fail.fastq`. We will use `nonmeth.pass.fastq` containing passed reads (reads with mean qscore > 10).
 
 3. Now let us use Minimap2 to map. We Used [hg38 with no alternate contigs](bit.ly/hg38noAlt) as the reference:
     ```
@@ -42,7 +44,7 @@ In this example, We will be using [BLOW5](https://github.com/hasindu2008/slow5to
     samtools index nonmeth_pass.bam
     ```
     
-4. Before running nanopolish train, we need to replaces the few 'M' IUPAC bases in the hg38noAlt.fa with 'N' bases. Otherwise Nanopolish will error out as 'M' is the symbol used to represent methylated bases in nanopolish. Assume that patched reference is named `hg38noAlt_M_replaced_N.fa` and the compressed version named `hg38noAlt_M_replaced_N.fa.gz` can be download from [here](https://f5c.page.link/r10train). Now let us do the training.
+4. Before running nanopolish train, we need to replace the few 'M' IUPAC bases in the hg38noAlt.fa with 'N' bases. Otherwise, Nanopolish will error out as 'M' is the symbol used to represent methylated bases in nanopolish. Assume that the patched reference is named `hg38noAlt_M_replaced_N.fa` and the compressed version named `hg38noAlt_M_replaced_N.fa.gz` can be download from [here](https://f5c.page.link/r10train). Now let us do the training.
     ```
     slow5-nanopolish-train/nanopolish index  nonmeth.pass.fastq --slow5 nonmeth_reads.blow5
     slow5-nanopolish-train/nanopolish train -r nonmeth.pass.fastq -g hg38noAlt_M_replaced_N.fa -b nonmeth_pass.bam  -t 72 --train-kmers=all --input-model-filename ./r10.4.1_400bps.nucleotide.9mer.model -d trained_nuc_models/
@@ -59,7 +61,7 @@ In this example, We will be using [BLOW5](https://github.com/hasindu2008/slow5to
     AAAAAAAAG	55.7136	2.52011	1	1
     AAAAAAAAT	57.2297	2.71002	1	1
     ```
-    Also there will files like `r10_450bps.nucleotide.9mer.template.roundX.summmary.tsv`. Make sure in those files, the `is_trained` coulumn is set to 1:
+    Also, there will files like `r10_450bps.nucleotide.9mer.template.roundX.summmary.tsv`. Make sure in those files, the `is_trained` column is set to 1:
     ```
     model_short_name	kmer	num_matches	num_skips	num_stays	num_events_for_training	was_trained	trained_level_mean	trained_level_stdv
     r10_450bps.t	CAAAAAAAA	0	0	0	1000	1	56.42	1.82
@@ -69,7 +71,7 @@ In this example, We will be using [BLOW5](https://github.com/hasindu2008/slow5to
     r10_450bps.t	AAAAAAAAA	0	0	0	1000	1	54.20	1.99
     ```
     If all of them are 0, that means they were not successfully trained. By default, nanopolish will require at least 100 `num_events_for_training`, so unless you have good coverage for all k-mers, some of the k-mers will not be trained. In our case, we had around ~7X depth for the human genome and 99.42% of the k-mers were trained (260631 of 262144), but not all.
-    If the outputs are empty or if all k-mers are not trained (happened to us at the beginning), it could be due to multiple reasons. I do not remeber much of those now, but these issues may help debugging: [#825](https://github.com/jts/nanopolish/issues/825), [#761](https://github.com/jts/nanopolish/issues/761),  [#1059](https://github.com/jts/nanopolish/issues/1059), [#1064](https://github.com/jts/nanopolish/issues/1064).
+    If the outputs are empty or if all k-mers are not trained (which happened to us at the beginning), it could be due to multiple reasons. I do not remember much of those now, but these issues may help with debugging: [#825](https://github.com/jts/nanopolish/issues/825), [#761](https://github.com/jts/nanopolish/issues/761),  [#1059](https://github.com/jts/nanopolish/issues/1059), [#1064](https://github.com/jts/nanopolish/issues/1064).
 
 
 5. Then we used the last model trained in step 4 above (`trained_nuc_models/r10_450bps.nucleotide.9mer.template.round4.model`) as the input to train 10 more rounds.
@@ -105,7 +107,7 @@ In this example, We will be using [BLOW5](https://github.com/hasindu2008/slow5to
     ```
     total entries: 482419, qc fail: 900, could not calibrate: 318, no alignment: 3924, bad reads: 0
     ```
-    Plots below show how each training round improved the number of successful alignments and reduced the number of failed alignments (failed alignments = qc fail + could not calibrate + no alignment; successful alignments = total entries - failed alignments).
+    The plots below show how each training round improved the number of successful alignments and reduced the number of failed alignments (failed alignments = qc fail + could not calibrate + no alignment; successful alignments = total entries - failed alignments).
     <img width="750" alt="image" src="../img/r10train_alns.svg"> 
     <img width="750" alt="image" src="../img/r10train_alnf.svg">
     
@@ -116,7 +118,7 @@ In this example, We will be using [BLOW5](https://github.com/hasindu2008/slow5to
     buttery-eel  -g /install/ont-guppy-6.4.2/bin/  --config dna_r10.4.1_e8.2_400bps_sup.cfg  --device 'cuda:all' -i  meth_reads.blow5 -q 10 -o  meth.fastq --port 5555
     ```
 
-2. Now combined passed reads from the non-methylated dataset and the methylated dataset into one single fastq file.
+2. Now combine passed reads from the non-methylated dataset and the methylated dataset into one single fastq file.
     ```
     cat nonmeth.pass.fastq meth.pass.fastq > positive_and_negative_pass.fastq
 
@@ -134,7 +136,7 @@ In this example, We will be using [BLOW5](https://github.com/hasindu2008/slow5to
     # use seqtk to create single lined FASTA and replace all CG sites with MG.  
     seqtk  seq -l0 hg38noAlt_chr_renamed_to_meth.fa | sed 's/CG/MG/g'  > hg38noAlt_chr_renamed_to_meth_methylated_cpg.fa
     ```
-    M is the nanopolish symbol for methylated bases. The boundaries (C'\n'G) will not be properly replaced if you use a multiline FASTA, that is why seqtk is used above to make it a single lined FASTA. 
+    M is the nanopolish symbol for methylated bases. The boundaries (C'\n'G) will not be properly replaced if you use a multiline FASTA, that is why seqtk is used above to make it a single-lined FASTA. 
 
 5. Map the methylated reads to the renamed reference `hg38noAlt_chr_renamed_to_meth.fa` we created in the previous step above (not the `hg38noAlt_chr_renamed_to_meth_methylated_cpg.fa`)
     ```
@@ -239,15 +241,15 @@ In this example, We will be using [BLOW5](https://github.com/hasindu2008/slow5to
     AAAAAACAM	109.249	13.1459	1	1
     AAAAAACAT	107.25	11.8888	1	1
     ```
-    Make sure that `r10_450bps.cpg.9mer.template.round9.summmary.tsv` has the column "was_trained" set to 1 for k-mers with CG and MG. If the outputs are empty or if all k-mers are not trained (happened to us at the beginning), it could be due to multiple reasons.  I had to manually replace the inbuilt .inl model in nanopolish with values from the trained nucletide model `trained_nuc_models_more/r10_450bps.nucleotide.9mer.template.round9.model` (see [here](https://github.com/hiruna72/nanopolish/commit/5c7d01372abaef2aa2de9fde7227b1b09d34ea88)).  If you are using the latest r10 branch from https://github.com/hiruna72/nanopolish/ or the binary download from [here](https://f5c.page.link/r10train) this is already done for you. 
+    Make sure that `r10_450bps.cpg.9mer.template.round9.summmary.tsv` has the column "was_trained" set to 1 for k-mers with CG and MG. If the outputs are empty or if all k-mers are not trained (which happened to us at the beginning), it could be due to multiple reasons.  I had to manually replace the inbuilt .inl model in nanopolish with values from the trained nucletide model `trained_nuc_models_more/r10_450bps.nucleotide.9mer.template.round9.model` (see [here](https://github.com/hiruna72/nanopolish/commit/5c7d01372abaef2aa2de9fde7227b1b09d34ea88)).  If you are using the latest r10 branch from https://github.com/hiruna72/nanopolish/ or the binary download from [here](https://f5c.page.link/r10train) this is already done for you. 
     These issues may help debugging if you are having troubles:  [#825](https://github.com/jts/nanopolish/issues/825), [#761](https://github.com/jts/nanopolish/issues/761),  [#1059](https://github.com/jts/nanopolish/issues/1059), [#1064](https://github.com/jts/nanopolish/issues/1064).
 
-11. To see how the training went, I used f5c call-methylation with trained methylation models from each round. For this I used a ~30X chr22 HG2 dataset.
+11. To see how the training went, I used f5c call-methylation with trained methylation models from each round. For this, I used a ~30X chr22 HG2 dataset.
     ```
     f5c call-methylation -x hpc-low -b hg2_prom_lsk114/chr22/hac/reads.bam  -r hg2_prom_lsk114/chr22/hac/reads.fastq  -g /genome/hg38noAlt.fa --slow5 hg2_prom_lsk114/chr22/PGXX22394_reads_chr22.blow5  --kmer-model trained_nuc_models_more/r10_450bps.nucleotide.9mer.template.round9.model --meth-model trained_meth_models/r10_450bps.cpg.9mer.template.round9.model > meth.tsv
     f5c meth-freq -i meth.tsv -s > meth-freq.tsv
     ```
-    Then I used the methylation comparison method described [here](https://nanopolish.readthedocs.io/en/latest/quickstart_call_methylation.html). For your convience, I have put the necessary scripts and the data to be downloaded under `eval/meth/` from [here](https://f5c.page.link/r10train).
+    Then I used the methylation comparison method described [here](https://nanopolish.readthedocs.io/en/latest/quickstart_call_methylation.html). For your convenience, I have put the necessary scripts and the data to be downloaded under `eval/meth/` from [here](https://f5c.page.link/r10train).
     ```
      echo -e "chromosome\tstart\tend\tnum_motifs_in_group\tcalled_sites\tcalled_sites_methylated\tmethylated_frequency\tgroup" > meth-freqchr22.tsv
     grep chr22 meth-freq.tsv >> meth-freqchr22.tsv
@@ -266,11 +268,11 @@ ___
 
 ## Caveats and Possible Improvements
 
-- As we used minimal data to train (the coverage for human methylated and non-methylated dataset was <10X coverage), the models are not perfect. Some k-mers did not even have enough coverage to train (<100 events)).
+- As we used minimal data to train (the coverage for human methylated and non-methylated datasets was <10X coverage), the models are not perfect. Some k-mers did not even have enough coverage to train (<100 events)).
 But the good thing is, now anyone who has better data can use the models we generated as the base models (`trained_nuc_models_more/r10_450bps.nucleotide.9mer.template.round9.model` as the base nucleotide model and `trained_meth_models/r10_450bps.cpg.9mer.template.round9.model` as the base methylation model) and train futher. 
 
 - The sequencing we did was for 400bps speed and thus the models may not work well for 260bps. Anyway, ONT is deprecating 260bps I heard.
 
-- Nanopolish train also has this `--bedmethyl=FILE` option that can infer the presence/absence of methylation sites using FILE as a map, which could be a useful feature that I am yet to explore.
+- Nanopolish train also has this `--bedmethyl=FILE` option that can infer the presence/absence of methylation sites using FILE as a map, which could be a useful feature that I have yet to explore.
 
-- Many meta parameters such as those for event detection, scaling and HMM structure used for R10 are same as for R9. These parameters could be optimised for R10 but haven't got time to explore. Thus unless a lot of more work is done, it is not possible to say whether what f5c currently give for R10 is the best that can be achieved from nanopolish-style models. 
+- Many meta parameters such as those for event detection, scaling and HMM structure used for R10 are the same as for R9. These parameters could be optimised for R10 but haven't got time to explore them. Thus unless a lot of more work is done, it is not possible to say whether what f5c currently gives for R10 is the best that can be achieved from nanopolish-style models. 
