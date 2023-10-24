@@ -1,13 +1,36 @@
+#! /usr/bin/env Rscript
+
 #---------------------------------------------------------
 # Copyright 2015 Ontario Institute for Cancer Research
 # Written by Jared Simpson (jared.simpson@oicr.on.ca)
 #---------------------------------------------------------
 # obtained from:https://nanopolish.readthedocs.io/en/latest/quickstart_call_methylation.html
+# Usage: Rscript --vanilla plot_methylation.R -i bi_vs_f5c.tsv -o bi_vs_f5c.pdf
+
+#install.packages("optparse")
+#install.packages("ggplot2")
 
 library(ggplot2)
 library(RColorBrewer)
-output <- "bul_vs_f5c.pdf"
-input <- "bul_vs_f5c.tsv"
+library(optparse)
+
+option_list = list(
+    make_option(c("-i", "--input"), type="character", default=NULL,
+              help="input methylation comparison tsv file name", metavar="character"),
+    make_option(c("-o", "--out"), type="character", default="out.pdf",
+              help="output file name [default= %default]", metavar="character")
+);
+
+opt_parser = OptionParser(option_list=option_list);
+opt = parse_args(opt_parser);
+
+if (is.null(opt$input)){
+  print_help(opt_parser)
+  stop("At least -i input.tsv must be provided.n", call.=FALSE)
+}
+
+output <- opt$out
+input <- opt$input
 pdf(file = output, width=10, height=8)
 data <- read.table(input, header=T)
 
@@ -25,4 +48,4 @@ ggplot(data, aes(frequency_1, frequency_2)) +
   ggtitle(title)
 
 dev.off()
-    
+
