@@ -45,13 +45,15 @@ For DNA reads, column 8 is a closed coordinate (inclusive) and column 9 is an op
 
 10,11 and 12 are yet to be decided. column 12 is always 255 for now.
 
-Following optional tags are present:
+Following optional tags are present, which are subsequently described in detail after the table:
 
 |Tag|Type  |Description                               |
 |--:|:----:|:-----------------------------------------|
-|sc  |f| Post alignment recalibrated scale parameter                     |
+|sc  |f    | Post alignment recalibrated scale parameter |
 |sh  |f   |Post alignment recalibrated shift parameter                      |
-|ss  |Z   |signal alignment string in format described below   |
+|ss  |Z   |signal alignment string in format   |
+
+The `sh` and `sc` tag values can be used to scale the raw signal to the pore model. This can be done as: `scaled pA current values = (pA - sh) / sc` where `pA = (raw_signal + offset) * range / digitisation)`).  
 
 #### *ss* tag
 
@@ -253,15 +255,15 @@ For DNA reads, column 8 is a closed coordinate (inclusive) and column 9 is an op
 
 10,11 and 12 are yet to be decided. column 12 is always 255 for now.
 
-Following optional tags are present:
+Following optional tags are present, which are subsequently described in detail after the table:
 
 |Tag|Type  |Description                               |
 |--:|:----:|:-----------------------------------------|
 |sc  |f| Post alignment recalibrated scale parameter                     |
 |sh  |f   |Post alignment recalibrated shift parameter                      |
-|ss  |Z   |signal alignment string in format described below   |
+|ss  |Z   |signal alignment string in format described   |
 
-Please refer to the explanations in [f5c resquiggle](https://hasindu2008.github.io/f5c/docs/output#resquiggle-paf-output) about the ss tag. Some examples are given below.
+The `sh` and `sc` tag values can be used to scale the raw signal to the pore model. This can be done as: `scaled pA current values = (pA - sh) / sc` where `pA = (raw_signal + offset) * range / digitisation)`).  Please refer to the explanations in [f5c resquiggle](https://hasindu2008.github.io/f5c/docs/output#resquiggle-paf-output) about the ss tag. Some examples are given below.
 
 ### DNA examples
 
