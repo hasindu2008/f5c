@@ -11,23 +11,28 @@ f5c(1) - Ultra-fast methylation calling and event alignment tool for nanopore se
 
 * indexing:
   ```
+  f5c index --slow5 [slow5_file] [read.fastq|fasta]  
   f5c index -d [fast5_folder] [read.fastq|fasta]
-  f5c index --slow5 [slow5_file] [read.fastq|fasta]
   ```
 * methylation calling:
   ```
-  f5c call-methylation -b [reads.sorted.bam] -g [ref.fa] -r [reads.fastq|fasta] > [meth.tsv] #specify --slow5 [slow5_file] to use a slow5 file instead of fast5.
+  f5c call-methylation -b [reads.sorted.bam] -g [ref.fa] -r [reads.fastq|fasta] --slow5 [reads.blow5] > [meth.tsv] 
+  f5c call-methylation -b [reads.sorted.bam] -g [ref.fa] -r [reads.fastq|fasta] > [meth.tsv] # for fast5 --pore r10 required if R10.4.1
   f5c meth-freq -i [meth.tsv] > [freq.tsv]
   ```
 * event alignment:
   ```
-  f5c eventalign -b [reads.sorted.bam] -g [ref.fa] -r [reads.fastq|fasta] > [events.tsv]	#specify --rna for direct RNA data. specify --slow5 [slow5_file] to use a slow5 file instead of fast5.
+  f5c eventalign -b [reads.sorted.bam] -g [ref.fa] -r [reads.fastq|fasta] --slow5 [reads.blow5]> [events.tsv]	
+  f5c eventalign -b [reads.sorted.bam] -g [ref.fa] -r [reads.fastq|fasta] > [events.tsv] # for fast5, specify --rna for direct RNA data, --pore r10 for R10.4.1 data
+* resquiggle:
+  ```
+  f5c resquiggle [OPTIONS] [reads.fastq|fasta] [reads.blow5]
   ```
 
 
 ## DESCRIPTION
 
-Given a set of base-called nanopore reads and associated raw signals, f5c call-methylation detects the methylated cytosine at genomic CpG cites and f5c eventalign aligns raw nanopore signals (events) to the reference k-mers. f5c can optionally utilise CUDA enabled NVIDIA graphics cards for acceleration. f5c is a heavily re-engineered and optimised implementation of the call-methylation and eventalign modules in Nanopolish.
+Given a set of base-called nanopore reads and associated raw signals, f5c call-methylation detects the methylated cytosine at genomic CpG cites and f5c eventalign aligns raw nanopore signals (events) to the reference k-mers. f5c can optionally utilise CUDA enabled NVIDIA graphics cards for acceleration. f5c is a heavily re-engineered and optimised implementation of the call-methylation and eventalign modules in Nanopolish. **f5c v1.2 onwards support the latest nanopore R10.4.1 chemistry (make sure to specify --pore r10 if input is FAST5, autodetected for S/BLOW5 input)**. For best performance and easy usability, it is recommended to use f5c on BLOW5 format.
 
 ## COMMANDS
 
@@ -41,15 +46,16 @@ Given a set of base-called nanopore reads and associated raw signals, f5c call-m
   Merge multiple methylation frequency tsv files.        
 * `eventalign`:  
   Align nanopore events to reference k-mers (optimised nanopolish eventalign).
-
+* `resquiggle`:
+   Align raw signals to basecalled reads.
 
 ## OPTIONS
 
 ### index
 
 ```
-f5c index [OPTIONS] -d nanopore_raw_file_directory reads.fastq
 f5c index [OPTIONS] --slow5 signals.blow5 reads.fastq
+f5c index [OPTIONS] -d nanopore_raw_file_directory reads.fastq
 ```
 
 Build an index for accessing the base sequence and raw signal for a given read IDs. f5c index is an extended and optimised version of nanopolish index by Jared Simpson. The output of f5c index (for fast5) is equivalent to that from nanopolish index.
@@ -77,8 +83,8 @@ Build an index for accessing the base sequence and raw signal for a given read I
 ### call-methylation
 
 ```
-f5c call-methylation [OPTIONS] -r reads.fa -b alignments.bam -g genome.fa
 f5c call-methylation [OPTIONS] -r reads.fa -b alignments.bam -g genome.fa --slow5 signals.blow5
+f5c call-methylation [OPTIONS] -r reads.fa -b alignments.bam -g genome.fa # for fast5 --pore r10 required if R10.4.1
 ```
 
 Classify nucleotides as methylated or not at genomic CpG cites (optimised nanopolish call-methylation). Note that the list below contains the options for both CPU-only and CPU-GPU versions of f5c.  Options related to the GPU (CUDA) do NOT apply to the CPU-only version.
@@ -107,6 +113,8 @@ Classify nucleotides as methylated or not at genomic CpG cites (optimised nanopo
   Parameter profile to be used for maximising the performance to a particular computer system. The profile parameters are always applied before other options, i.e., the user can override these parameters explicitly. Some example profiles are laptop, desktop, hpc. See [profiles](https://f5c.page.link/profiles) for the full list and details.
 * `--iop INT`:                  
   Number of I/O processes to read FAST5 files [default value: 1]. Increase this value if reading FAST5 limits the overall performance. A higher value (can be as high as 64) is always preferred for systems with multiple disks (RAID) and network file systems.
+* `--pore STR`
+   Set the pore chemistry. Specify r9 for R9.4 data and r10 for R10.4 data [default value: r9 for FAST5, autodetected for SLOW5].
 *  `--slow5 FILE`:  
   read raw signals from a slow5 file instead of fast5 files. --iop option is not required for slow5.
 * `--min-mapq INT`:             
@@ -142,6 +150,8 @@ Classify nucleotides as methylated or not at genomic CpG cites (optimised nanopo
   custom methylation k-mer model file. The file should adhere to the format in [r9.4_450bps.cpg.6mer.template.model](https://github.com/hasindu2008/f5c/blob/master/test/r9-models/r9.4_450bps.cpg.6mer.template.model). The maximum supported k-mer size is 6.
 * `--meth-out-version INT`:         
   Format version of the output Methylation tsv file. If set to 1, the columns printed adhere to the output format of Nanopolish early versions. If set to 2, adhere to the latest nanopolish output format that additionally includes the strand column and the header num_cpgs renamed to *num_motifs*) [default value: 1]
+*  `--min-recalib-events INT`:
+  Minimum number of events to recalbrate (decrease if your reads are very short and could not calibrate) [default value: 200]
 * `--cuda-mem-frac FLOAT`:         
   Fraction of free GPU memory to allocate [default value: 0.9 for non-tegra GPUs and 0.7 for tegra GPUs]. On GPUs with dedicated RAM (e.g., GeForce, Tesla and Quadro) almost all available free GPU memory can be allocated. A slightly lower value such as 0.9 is preferred instead of 1.0 to prevent unexpected crashes. In GPUs with integrated memory shared with RAM (e.g., Tegra GPUs that are in Jetson boards), this value should be at most 0.7 to allow enough free RAM for both f5c and other programmes.
 
@@ -203,11 +213,11 @@ For each methylation calling output (.tsv) file, perform meth-freq separately (w
 ### eventalign
 
 ```
-f5c eventalign [OPTIONS] -r reads.fa -b alignments.bam -g genome.fa
-f5c eventalign [OPTIONS] -r reads.fa -b alignments.bam -g genome.fa --slow5 signals.blow
+f5c eventalign [OPTIONS] -r reads.fa -b alignments.bam -g genome.fa --slow5 signals.blow5
+f5c eventalign [OPTIONS] -r reads.fa -b alignments.bam -g genome.fa # for fast5, specify --rna for direct RNA data, --pore r10 for R10.4.1 data
 ```
 
-Align nanopore events to reference k-mers (optimised nanopolish eventalign). Note that the list below contains the options for both CPU-only and CPU-GPU versions of f5c.  Options related to the GPU (CUDA) do NOT apply to the CPU-only version. As most
+Align nanopore events to reference k-mers (optimised nanopolish eventalign). Note that the list below contains the options for both CPU-only and CPU-GPU versions of f5c.  Options related to the GPU (CUDA) do NOT apply to the CPU-only version. 
 
 #### basic options:
 
@@ -225,18 +235,26 @@ Align nanopore events to reference k-mers (optimised nanopolish eventalign). Not
    Same as for call-methylation.
 * `--summary FILE`:     
    Write the summaries of the alignment of each read to the file specified.
+* `--paf`:
+   write output in PAF format.  
 * `--sam`:      
    Write the alignment output in SAM format instead of tsv.
+* `--sam-out-version INT`
+   Sam output version (set 1 to revert to old nanopolish style format) [default: 2]  
 *  `--print-read-names`:      
    Print read IDs instead of indexes.
 * `--scale-events`:     
    Scale events to the model, rather than vice-versa.
 * `--samples`:      
-   Write the raw samples for the event to the tsv output.
-* `--rna`:      
-   Specify that this dataset is direct RNA.		
+   Write the raw samples for the event to the tsv output.	
 * `--signal-index`:  
    Write the raw signal start and end index values for the event to the tsv output.
+* `--rna`:      
+   Specify that this dataset is direct RNA.
+* `--collapse-events`:
+   Collapse events that stays on the same reference k-mer/
+*  `--min-recalib-events INT`:
+   Same as for call-methylation.
 * `--cuda-mem-frac FLOAT`:           
    Same as for call-methylation.
 
@@ -244,6 +262,41 @@ Align nanopore events to reference k-mers (optimised nanopolish eventalign). Not
 #### developer options:
 
 	Same as those for call-methylation and thus not repeated here.
+
+
+### resquiggle
+
+```
+ f5c resquiggle [OPTIONS] reads.fastq signals.blow5
+```
+Align raw signals to basecalled reads.
+
+#### ptions 
+
+* `-t INT`:
+  Same as for call-methylation.
+* `-K INT`:
+  Same as for call-methylation.
+* `-B FLOAT[K/M/G]`:
+  Same as for call-methylation.
+* `-h`:
+  Same as for call-methylation.                   
+* `-o FILE`:
+  Same as for call-methylation.
+* `-x STR`:
+  Same as for call-methylation.
+* `-c`:
+  Print in paf format
+*  `--verbose INT`
+   Same as for call-methylation.           
+*  `--version`
+   Same as for call-methylation.                  
+*  `--kmer-model FILE`
+   Same as for call-methylation.       
+* `--rna`
+   the dataset is direct RNA
+* `--pore STR`                
+   r9 or r10
 
 
 ## EXAMPLES
