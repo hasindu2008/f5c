@@ -34,7 +34,7 @@ int8_t drna_detect(slow5_file_t *sp);
 int8_t pore_detect(slow5_file_t *sp);
 
 static void print_help_msg(FILE *fp_help, opt_t opt){
-    fprintf(fp_help,"Usage: f5c [OPTIONS] reads.fastq signals.blow5\n");
+    fprintf(fp_help,"Usage: f5c resquiggle [OPTIONS] reads.fastq signals.blow5\n");
     fprintf(fp_help,"\noptions:\n");
     fprintf(fp_help,"   -t INT                     number of processing threads [%d]\n",opt.num_thread);
     fprintf(fp_help,"   -K INT                     batch size (max number of reads loaded at once) [%d]\n",opt.batch_size);
