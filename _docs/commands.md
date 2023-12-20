@@ -47,7 +47,7 @@ Given a set of base-called nanopore reads and associated raw signals, f5c call-m
 * `eventalign`:  
   Align nanopore events to reference k-mers (optimised nanopolish eventalign).
 * `resquiggle`:
-   Align raw signals to basecalled reads.
+   Align raw signals to basecalled reads. Introduced in f5c v1.1.
 
 ## OPTIONS
 
@@ -73,7 +73,9 @@ Build an index for accessing the base sequence and raw signal for a given read I
 *  `--iop INT`:  
     Number of I/O processes to read fast5 files [default value: 1]. Increasing the number of I/O processes makes indexing significantly faster, especially on HPC with RAID systems (multiple disks) where this can be as high as 64. Note that unless value of iop is 1, options -s and -f  are ignored.
 *  `--slow5 FILE`:    
-    slow5 file containing raw signals. -d, -s, -f and --iop options are not required when indexing using a slow5 file.
+  slow5 file containing raw signals. -d, -s, -f and --iop options are not required when indexing using a slow5 file.
+* `--skip-slow-idx`:  
+    Do not build the .idx for the slow5 file (useful when a slow5 index is already available). Introduced in f5c v1.1.    
 *  `--verbose INT`:  
     Verbosity level for the log messages [default value: 0].
 *  `--version`:  
@@ -114,7 +116,7 @@ Classify nucleotides as methylated or not at genomic CpG cites (optimised nanopo
 * `--iop INT`:                  
   Number of I/O processes to read FAST5 files [default value: 1]. Increase this value if reading FAST5 limits the overall performance. A higher value (can be as high as 64) is always preferred for systems with multiple disks (RAID) and network file systems.
 * `--pore STR`
-   Set the pore chemistry. Specify r9 for R9.4 data and r10 for R10.4 data [default value: r9 for FAST5, autodetected for SLOW5].
+   Set the pore chemistry. Specify r9 for R9.4 data and r10 for R10.4 data [default value: r9 for FAST5, autodetected for SLOW5]. Introduced in f5c v1.2.
 *  `--slow5 FILE`:  
   read raw signals from a slow5 file instead of fast5 files. --iop option is not required for slow5.
 * `--min-mapq INT`:             
@@ -151,7 +153,7 @@ Classify nucleotides as methylated or not at genomic CpG cites (optimised nanopo
 * `--meth-out-version INT`:         
   Format version of the output Methylation tsv file. If set to 1, the columns printed adhere to the output format of Nanopolish early versions. If set to 2, adhere to the latest nanopolish output format that additionally includes the strand column and the header num_cpgs renamed to *num_motifs*) [default value: 1]
 *  `--min-recalib-events INT`:
-  Minimum number of events to recalbrate (decrease if your reads are very short and could not calibrate) [default value: 200]
+  Minimum number of events to recalbrate (decrease if your reads are very short and could not calibrate) [default value: 200]. Introduced in f5c v0.8.
 * `--cuda-mem-frac FLOAT`:         
   Fraction of free GPU memory to allocate [default value: 0.9 for non-tegra GPUs and 0.7 for tegra GPUs]. On GPUs with dedicated RAM (e.g., GeForce, Tesla and Quadro) almost all available free GPU memory can be allocated. A slightly lower value such as 0.9 is preferred instead of 1.0 to prevent unexpected crashes. In GPUs with integrated memory shared with RAM (e.g., Tegra GPUs that are in Jetson boards), this value should be at most 0.7 to allow enough free RAM for both f5c and other programmes.
 
@@ -235,12 +237,12 @@ Align nanopore events to reference k-mers (optimised nanopolish eventalign). Not
    Same as for call-methylation.
 * `--summary FILE`:     
    Write the summaries of the alignment of each read to the file specified.
-* `--paf`:
-   write output in PAF format.  
+* `--paf`:  
+   Write output in PAF format.  Introduced in f5c v1.3. Output explained in https://hasindu2008.github.io/f5c/docs/output.
 * `--sam`:      
    Write the alignment output in SAM format instead of tsv.
-* `--sam-out-version INT`
-   Sam output version (set 1 to revert to old nanopolish style format) [default: 2]  
+* `--sam-out-version INT`  
+   Sam output version (set 1 to revert to old nanopolish style format) [default: 2]. Introduced in f5c v1.3. New SAM output is explained in https://hasindu2008.github.io/f5c/docs/output. 
 *  `--print-read-names`:      
    Print read IDs instead of indexes.
 * `--scale-events`:     
@@ -251,9 +253,9 @@ Align nanopore events to reference k-mers (optimised nanopolish eventalign). Not
    Write the raw signal start and end index values for the event to the tsv output.
 * `--rna`:      
    Specify that this dataset is direct RNA.
-* `--collapse-events`:
-   Collapse events that stays on the same reference k-mer/
-*  `--min-recalib-events INT`:
+* `--collapse-events`:  
+   Collapse events that stays on the same reference k-mer.  Introduced in f5c v0.8.
+*  `--min-recalib-events INT`:  
    Same as for call-methylation.
 * `--cuda-mem-frac FLOAT`:           
    Same as for call-methylation.
@@ -269,35 +271,41 @@ Align nanopore events to reference k-mers (optimised nanopolish eventalign). Not
 ```
  f5c resquiggle [OPTIONS] reads.fastq signals.blow5
 ```
-Align raw signals to basecalled reads.
+Align raw signals to basecalled reads. Introduced in f5c v1.1. Output format is explained in https://hasindu2008.github.io/f5c/docs/output.
 
-#### ptions 
+#### options 
 
-* `-t INT`:
+* `-t INT`:  
   Same as for call-methylation.
-* `-K INT`:
+* `-K INT`:  
   Same as for call-methylation.
-* `-B FLOAT[K/M/G]`:
+* `-B FLOAT[K/M/G]`:  
   Same as for call-methylation.
-* `-h`:
+* `-h`:  
   Same as for call-methylation.                   
-* `-o FILE`:
+* `-o FILE`:  
   Same as for call-methylation.
-* `-x STR`:
+* `-x STR`:    
   Same as for call-methylation.
-* `-c`:
+* `-c`:  
   Print in paf format
-*  `--verbose INT`
+*  `--verbose INT`  
    Same as for call-methylation.           
-*  `--version`
+*  `--version`  
    Same as for call-methylation.                  
-*  `--kmer-model FILE`
+*  `--kmer-model FILE`  
    Same as for call-methylation.       
-* `--rna`
-   the dataset is direct RNA
+* `--rna`   
+   The dataset is direct RNA.
 * `--pore STR`                
-   r9 or r10
-
+   Same as for call-methylation.
+* `--disable-cuda=yes|no`:  
+   Same as for call-methylation.    
+* `--cuda-dev-id INT`:  
+   Same as for call-methylation.
+* ` --cuda-mem-frac FLOAT`:  
+   Same as for call-methylation.
+   
 
 ## EXAMPLES
 
