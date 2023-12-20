@@ -133,7 +133,7 @@ f5c eventalign -b [reads.sorted.bam] -g [ref.fa] -r [reads.fastq|fasta] --rna > 
 f5c eventalign -b [reads.sorted.bam] -g [ref.fa] -r [reads.fastq|fasta] --pore r10 > [events.tsv]
 ```
 
-Visit the [man page](https://hasindu2008.github.io/f5c/docs/commands) for all the commands and options.
+Visit the [man page](https://hasindu2008.github.io/f5c/docs/commands) for all the commands and options. See [here](https://hasindu2008.github.io/f5c/docs/output) for description of output formats.
 
 ### Example
 
@@ -165,6 +165,8 @@ f5c eventalign -b chr22_meth_example/reads.sorted.bam -g chr22_meth_example/huma
 #### NOTE: If you are using FAST5 format, make sure to specify --pore r10 for R10.4.1 data and --rna for RNA data. These are autodetected for S/BLOW5 in latest f5c.
 
 ```
+
+More examples can be found [here](https://hasindu2008.github.io/f5c/docs/example-usage).
 
 ## Acknowledgement
 This reuses code and methods from [Nanopolish](https://github.com/jts/nanopolish).
