@@ -1,6 +1,6 @@
 # f5c
 
-An optimised re-implementation of the *index*, *call-methylation* and *eventalign* modules in [Nanopolish](https://github.com/jts/nanopolish). Given a set of basecalled Nanopore reads and the raw signals, *f5c call-methylation* detects the methylated cytosine and *f5c eventalign* aligns raw nanopore signals (events) to the reference k-mers. *f5c* can optionally utilise NVIDIA graphics cards for acceleration. f5c v1.2 onwards support the latest nanopore R10.4.1 chemistry.
+An optimised re-implementation of the *index*, *call-methylation* and *eventalign* modules in [Nanopolish](https://github.com/jts/nanopolish). Given a set of basecalled Nanopore reads and the raw signals, *f5c call-methylation* detects the methylated cytosine and *f5c eventalign* aligns raw nanopore signals (events) to the reference k-mers. *f5c* can optionally utilise NVIDIA graphics cards for acceleration. **f5c v1.2 onwards support the latest nanopore R10.4.1 chemistry (make sure to specify --pore r10 if input is FAST5, autodetected for S/BLOW5 input)**. For best performance and easy usability, it is recommended to use f5c on [BLOW5 format](https://www.nature.com/articles/s41587-021-01147-4). Use [slow5tools](https://github.com/hasindu2008/slow5tools) for FAST5->BLOW5 conversion and [blue-crab](https://github.com/Psy-Fer/blue-crab) for POD5->BLOW5 conversion.
 
 First, the reads have to be indexed using `f5c index`. Then, invoke `f5c call-methylation` to detect methylated cytosine bases. Finally, you may use `f5c meth-freq` to obtain methylation frequencies. Alternatively, invoke `f5c eventalign` to perform event alignment. The results are almost the same as from nanopolish except a few differences due to floating point approximations.
 
@@ -105,10 +105,32 @@ Visit [here](https://hasindu2008.github.io/f5c/docs/cuda-troubleshoot) for troub
 ## Usage
 
 ```sh
-f5c index -d [fast5_folder] [read.fastq|fasta] # or f5c index --slow5 [slow5_file] [read.fastq|fasta]
-f5c call-methylation -b [reads.sorted.bam] -g [ref.fa] -r [reads.fastq|fasta] > [meth.tsv] #specify --slow5 [slow5_file] to use a slow5 file instead of fast5
+# indexing #
+
+f5c index -d [fast5_folder] [read.fastq|fasta] 		# for FAST5
+f5c index --slow5 [slow5_file] [read.fastq|fasta]	# for S/BLOW5
+
+# methylation calling #
+
+# for S/BLOW5 (R9.4 or R10.4 DNA data)
+f5c call-methylation -b [reads.sorted.bam] -g [ref.fa] -r [reads.fastq|fasta] --slow5 [slow5_file] > [meth.tsv]
+# for FAST5, R9.4 DNA data
+f5c call-methylation -b [reads.sorted.bam] -g [ref.fa] -r [reads.fastq|fasta] > [meth.tsv] 
+# for FAST5, R10.4 DNA data
+f5c call-methylation -b [reads.sorted.bam] -g [ref.fa] -r [reads.fastq|fasta] --pore r10 > [meth.tsv]
+# methylation frequency
 f5c meth-freq -i [meth.tsv] > [freq.tsv]
-f5c eventalign -b [reads.sorted.bam] -g [ref.fa] -r [reads.fastq|fasta] > [events.tsv]    #specify --rna for direct RNA data, --slow5 [slow5_file] to use a slow5 file, --pore r10 for R10.4.1 data
+
+# event align #
+
+# for S/BLOW5 (R9.4 DNA/RNA or R10.4 DNA data)
+f5c eventalign -b [reads.sorted.bam] -g [ref.fa] -r [reads.fastq|fasta] --slow5 [slow5_file] > [events.tsv]
+# for FAST5 (R9.4 DNA data)
+f5c eventalign -b [reads.sorted.bam] -g [ref.fa] -r [reads.fastq|fasta]  > [events.tsv]
+# for FAST5 (R9.4 RNA data)
+f5c eventalign -b [reads.sorted.bam] -g [ref.fa] -r [reads.fastq|fasta] --rna > [events.tsv]
+# for FAST5 (R10.4 DNA data)
+f5c eventalign -b [reads.sorted.bam] -g [ref.fa] -r [reads.fastq|fasta] --pore r10 > [events.tsv]
 ```
 
 Visit the [man page](https://hasindu2008.github.io/f5c/docs/commands) for all the commands and options.
@@ -121,6 +143,16 @@ Follow the same steps as in [Nanopolish tutorial](https://nanopolish.readthedocs
 wget -O f5c_na12878_test.tgz "https://f5c.page.link/f5c_na12878_test"
 tar xf f5c_na12878_test.tgz
 
+###### Using S/BLOW5 as input (recommended) ######
+
+#index, call methylation and get methylation frequencies
+f5c index --slow5 chr22_meth_example/reads.blow5 chr22_meth_example/reads.fastq
+f5c call-methylation --slow5 chr22_meth_example/reads.blow5 -b chr22_meth_example/reads.sorted.bam -g chr22_meth_example/humangenome.fa -r chr22_meth_example/reads.fastq > chr22_meth_example/result.tsv
+f5c meth-freq -i chr22_meth_example/result.tsv > chr22_meth_example/freq.tsv
+#event alignment
+f5c eventalign --slow5 chr22_meth_example/reads.blow5 -b chr22_meth_example/reads.sorted.bam -g chr22_meth_example/humangenome.fa -r chr22_meth_example/reads.fastq > chr22_meth_example/events.tsv
+
+
 ###### Using FAST5 as input ######
 
 #index, call methylation and get methylation frequencies
@@ -130,15 +162,7 @@ f5c meth-freq -i chr22_meth_example/result.tsv > chr22_meth_example/freq.tsv
 #event alignment
 f5c eventalign -b chr22_meth_example/reads.sorted.bam -g chr22_meth_example/humangenome.fa -r chr22_meth_example/reads.fastq > chr22_meth_example/events.tsv
 
-###### Using SLOW5 as input ######
-
-#index, call methylation and get methylation frequencies
-f5c index --slow5 chr22_meth_example/reads.blow5 chr22_meth_example/reads.fastq
-f5c call-methylation --slow5 chr22_meth_example/reads.blow5 -b chr22_meth_example/reads.sorted.bam -g chr22_meth_example/humangenome.fa -r chr22_meth_example/reads.fastq > chr22_meth_example/result.tsv
-f5c meth-freq -i chr22_meth_example/result.tsv > chr22_meth_example/freq.tsv
-#event alignment
-f5c eventalign --slow5 chr22_meth_example/reads.blow5 -b chr22_meth_example/reads.sorted.bam -g chr22_meth_example/humangenome.fa -r chr22_meth_example/reads.fastq > chr22_meth_example/events.tsv
-
+#### NOTE: If you are using FAST5 format, make sure to specify --pore r10 for R10.4.1 data and --rna for RNA data. These are autodetected for S/BLOW5 in latest f5c.
 
 ```
 
