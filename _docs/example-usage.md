@@ -10,24 +10,26 @@ Follow the same steps as in [Nanopolish tutorial](https://nanopolish.readthedocs
 wget -O f5c_na12878_test.tgz "https://f5c.page.link/f5c_na12878_test"
 tar xf f5c_na12878_test.tgz
 
-###### Using FAST5 as input ######
-
-#index, call methylation and get methylation frequencies
-f5c index -d chr22_meth_example/fast5_files chr22_meth_example/reads.fastq
-f5c call-methylation -b chr22_meth_example/reads.sorted.bam -g chr22_meth_example/humangenome.fa -r chr22_meth_example/reads.fastq > chr22_meth_example/result.tsv
-
-#event alignment
-f5c eventalign -b chr22_meth_example/reads.sorted.bam -g chr22_meth_example/humangenome.fa -r chr22_meth_example/reads.fastq > chr22_meth_example/events.tsv
-
-###### Using SLOW5 as input ######
+###### Using S/BLOW5 as input (recommended) ######
 
 #index, call methylation and get methylation frequencies
 f5c index --slow5 chr22_meth_example/reads.blow5 chr22_meth_example/reads.fastq
 f5c call-methylation --slow5 chr22_meth_example/reads.blow5 -b chr22_meth_example/reads.sorted.bam -g chr22_meth_example/humangenome.fa -r chr22_meth_example/reads.fastq > chr22_meth_example/result.tsv
 f5c meth-freq -i chr22_meth_example/result.tsv > chr22_meth_example/freq.tsv
-
 #event alignment
 f5c eventalign --slow5 chr22_meth_example/reads.blow5 -b chr22_meth_example/reads.sorted.bam -g chr22_meth_example/humangenome.fa -r chr22_meth_example/reads.fastq > chr22_meth_example/events.tsv
+
+
+###### Using FAST5 as input ######
+
+#index, call methylation and get methylation frequencies
+f5c index -d chr22_meth_example/fast5_files chr22_meth_example/reads.fastq
+f5c call-methylation -b chr22_meth_example/reads.sorted.bam -g chr22_meth_example/humangenome.fa -r chr22_meth_example/reads.fastq > chr22_meth_example/result.tsv
+f5c meth-freq -i chr22_meth_example/result.tsv > chr22_meth_example/freq.tsv
+#event alignment
+f5c eventalign -b chr22_meth_example/reads.sorted.bam -g chr22_meth_example/humangenome.fa -r chr22_meth_example/reads.fastq > chr22_meth_example/events.tsv
+
+#### NOTE: If you are using FAST5 format, make sure to specify --pore r10 for R10.4.1 data and --rna for RNA data. These are autodetected for S/BLOW5 in latest f5c.
 ```
 
 ## Generic methylation calling workflow
