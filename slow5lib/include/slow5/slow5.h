@@ -628,7 +628,7 @@ void slow5_set_exit_condition(enum slow5_exit_condition_opt exit_condition);
 //get the list of hdr data keys in sorted order (only the returned pointer must be freed, not the ones inside - subjet to change)
 //len is the numberof elements
 //returns null if no attributes
-const char **slow5_get_hdr_keys(const slow5_hdr_t *header,uint64_t *len);
+const char **slow5_get_hdr_keys(const slow5_hdr_t *header, uint64_t *len);
 
 //gets the list of read ids from the SLOW5 index
 //the list of read is is a pointer and must not be freed by user
@@ -637,7 +637,7 @@ const char **slow5_get_hdr_keys(const slow5_hdr_t *header,uint64_t *len);
 char **slow5_get_rids(const slow5_file_t *s5p, uint64_t *len);
 
 //get the pointer to auxilliary field names
-char **slow5_get_aux_names(const slow5_hdr_t *header,uint64_t *len);
+char **slow5_get_aux_names(const slow5_hdr_t *header, uint64_t *len);
 //get the pointer to auxilliary field types
 enum slow5_aux_type *slow5_get_aux_types(const slow5_hdr_t *header,uint64_t *len);
 /**
@@ -651,13 +651,15 @@ enum slow5_aux_type *slow5_get_aux_types(const slow5_hdr_t *header,uint64_t *len
  */
 char **slow5_get_aux_enum_labels(const slow5_hdr_t *header, const char *field, uint8_t *n);
 
-int slow5_get_next_bytes(void **mem, size_t *bytes, slow5_file_t *s5p);
+int slow5_get_next_bytes(char **mem, size_t *bytes, slow5_file_t *s5p);
 
-int slow_decode(void **mem, size_t *bytes, slow5_rec_t **read, slow5_file_t *s5p);
+int slow5_decode(char **mem, size_t *bytes, slow5_rec_t **read, slow5_file_t *s5p);
 
-int slow5_encode(void **mem, size_t *bytes, slow5_rec_t *read, slow5_file_t *s5p);
+int slow5_encode(char **mem, size_t *bytes, slow5_rec_t *read, slow5_file_t *s5p);
 
-int slow5_write_bytes(void *mem, size_t bytes, slow5_file_t *s5p);
+int slow5_write_bytes(char *mem, size_t bytes, slow5_file_t *s5p);
+
+int slow5_aux_add_enum(const char *field, const char **enum_labels, uint8_t num_labels, slow5_hdr_t *header);
 
 /*
 IMPORTANT: The following low-level API functions are not yet finalised or documented, until someone requests.
@@ -683,6 +685,19 @@ these functions are used by slow5tools and pyslow5 - so any change to a function
  * @return              slow5 file structure
  */
 slow5_file_t *slow5_open_with(const char *pathname, const char *mode, enum slow5_fmt format);
+
+/**
+ * Loads the index file for slow5 file given it's pathname.
+ * Will not create the index if not found.
+ *
+ * Return -1 on error,
+ * 0 on success.
+ *
+ * @param   s5p slow5 file structure
+ * @param   pathname    relative or absolute path to slow5 file
+ * @return  error codes described above
+ */
+int slow5_idx_load_with(slow5_file_t *s5p, const char *pathname);
 
 /**
  * Add a new header data attribute.

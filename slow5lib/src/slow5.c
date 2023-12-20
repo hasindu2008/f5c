@@ -263,10 +263,14 @@ struct slow5_file *slow5_init_empty(FILE *fp, const char *pathname, enum slow5_f
     }
     s5p->meta.pathname = pathname;
     if ((s5p->meta.start_rec_offset = ftello(fp)) == -1) {
-        SLOW5_ERROR("Obtaining file offset with ftello() failed: %s.", strerror(errno));
-        slow5_errno = SLOW5_ERR_IO;
-        slow5_close(s5p);
-        s5p = NULL;
+        if(s5p->meta.fd == 1){
+            SLOW5_VERBOSE("%s.", "Initialised an empty SLOW5 on stdout. Seeking won't be available");
+        } else {
+            SLOW5_ERROR("Obtaining file offset with ftello() failed: %s.", strerror(errno));
+            slow5_errno = SLOW5_ERR_IO;
+            slow5_close(s5p);
+            s5p = NULL;
+        }
     }
 
     return s5p;
@@ -2086,7 +2090,7 @@ char **slow5_aux_meta_enum_parse(char *tok, enum slow5_aux_type type, uint8_t *n
 
     uint8_t num = 0;
     uint16_t cap = SLOW5_AUX_ENUM_LABELS_CAP_INIT;
-    char **labels = malloc(cap * sizeof *labels);
+    char **labels = (char **)malloc(cap * sizeof *labels);
     if (!labels) {
         SLOW5_MALLOC_ERROR();
         return NULL;
@@ -2139,7 +2143,7 @@ char **slow5_aux_meta_enum_parse(char *tok, enum slow5_aux_type type, uint8_t *n
 
         if (num >= cap) {
             cap = cap << 1;
-            char **labels_tmp = realloc(labels, cap * sizeof *labels);
+            char **labels_tmp = (char **)realloc(labels, cap * sizeof *labels);
             if (!labels_tmp) { /* memory allocation error */
                 SLOW5_MALLOC_ERROR();
                 for (uint16_t i = 0; i < num; ++ i) {
@@ -2234,7 +2238,7 @@ int slow5_aux_meta_add_enum(struct slow5_aux_meta *aux_meta, const char *attr, e
     }
 
     /* hard copy enum_labels */
-    char **enum_labels_cp = malloc(enum_num_labels * sizeof *enum_labels_cp);
+    char **enum_labels_cp = (char **)malloc(enum_num_labels * sizeof *enum_labels_cp);
     if (!enum_labels_cp) { /* mem allocation error */
         SLOW5_MALLOC_ERROR();
         return -2;
@@ -2320,6 +2324,11 @@ int slow5_aux_meta_add_enum(struct slow5_aux_meta *aux_meta, const char *attr, e
     ++ aux_meta->num;
 
     return 0;
+}
+
+int  slow5_aux_add_enum(const char *field, const char **enum_labels, uint8_t num_labels, slow5_hdr_t *header){
+    int ret = slow5_aux_meta_add_enum(header->aux_meta, field, SLOW5_ENUM, enum_labels, num_labels);
+    return ret;
 }
 
 void slow5_aux_meta_free(struct slow5_aux_meta *aux_meta) {
@@ -2512,7 +2521,7 @@ int slow5_get(const char *read_id, struct slow5_rec **read, struct slow5_file *s
 
     size_t bytes;
     char *mem;
-    if (!(mem = slow5_get_mem(read_id, &bytes, s5p))) {
+    if (!(mem = (char *)slow5_get_mem(read_id, &bytes, s5p))) {
         SLOW5_EXIT_IF_ON_ERR();
         return slow5_errno;
     }
@@ -2596,7 +2605,7 @@ int slow5_rec_depress_parse(char **mem, size_t *bytes, const char *read_id, stru
     return 0;
 }
 
-int slow_decode(void **mem, size_t *bytes, slow5_rec_t **read, slow5_file_t *s5p){
+int slow5_decode(char **mem, size_t *bytes, slow5_rec_t **read, slow5_file_t *s5p){
     return slow5_rec_depress_parse((char **)mem, bytes, NULL, read, s5p);
 }
 
@@ -3274,8 +3283,8 @@ void *slow5_get_next_mem(size_t *n, const struct slow5_file *s5p) {
 }
 
 
-int slow5_get_next_bytes(void **mem, size_t *bytes, slow5_file_t *s5p){
-    *mem = slow5_get_next_mem(bytes, s5p);
+int slow5_get_next_bytes(char **mem, size_t *bytes, slow5_file_t *s5p){
+    *mem = (char *) slow5_get_next_mem(bytes, s5p);
     if (*mem == NULL) {
         return -1;
     } else {
@@ -3319,7 +3328,7 @@ int slow5_get_next(struct slow5_rec **read, struct slow5_file *s5p) {
 
     size_t bytes;
     char *mem;
-    if (!(mem = slow5_get_next_mem(&bytes, s5p))) {
+    if (!(mem = (char *)slow5_get_next_mem(&bytes, s5p))) {
         if (slow5_errno != SLOW5_ERR_EOF) {
             SLOW5_EXIT_IF_ON_ERR();
         }
@@ -3757,7 +3766,7 @@ int slow5_rec_fwrite(FILE *fp, struct slow5_rec *read, struct slow5_aux_meta *au
     return ret;
 }
 
-int slow5_write_bytes(void *mem, size_t bytes, slow5_file_t *s5p){
+int slow5_write_bytes(char *mem, size_t bytes, slow5_file_t *s5p){
     size_t n = fwrite(mem, bytes, 1, s5p->fp);
     int ret;
     if (n != 1) {
@@ -4047,7 +4056,7 @@ void *slow5_rec_to_mem(struct slow5_rec *read, struct slow5_aux_meta *aux_meta, 
     return (void *) mem;
 }
 
-int slow5_encode(void **mem, size_t *bytes, slow5_rec_t *read, slow5_file_t *s5p){
+int slow5_encode(char **mem, size_t *bytes, slow5_rec_t *read, slow5_file_t *s5p){
 
     slow5_press_t *press_ptr = NULL;
 
@@ -4065,7 +4074,7 @@ int slow5_encode(void **mem, size_t *bytes, slow5_rec_t *read, slow5_file_t *s5p
         }
     }
 
-    *mem = slow5_rec_to_mem(read, s5p->header->aux_meta, s5p->format, press_ptr, bytes);
+    *mem = (char *)slow5_rec_to_mem(read, s5p->header->aux_meta, s5p->format, press_ptr, bytes);
     slow5_press_free(press_ptr);
 
     if(*mem == NULL){
@@ -4128,6 +4137,26 @@ int slow5_idx_create(struct slow5_file *s5p) {
  */
 int slow5_idx_load(struct slow5_file *s5p) {
     s5p->index = slow5_idx_init(s5p);
+    if (s5p->index) {
+        return 0;
+    } else {
+        return -1;
+    }
+}
+
+/**
+ * Loads the index file for slow5 file given it's pathname.
+ * Will not create the index if not found.
+ *
+ * Return -1 on error,
+ * 0 on success.
+ *
+ * @param   s5p slow5 file structure
+ * @param   pathname    relative or absolute path to slow5 file
+ * @return  error codes described above
+ */
+int slow5_idx_load_with(slow5_file_t *s5p, const char *pathname){
+    s5p->index = slow5_idx_init_with(s5p, pathname);
     if (s5p->index) {
         return 0;
     } else {
@@ -4225,7 +4254,11 @@ const char *slow5_fmt_get_name(enum slow5_fmt format) {
 char *slow5_get_idx_path(const char *path) {
     size_t new_len = strlen(path) + strlen(SLOW5_INDEX_EXTENSION);
     char *str = (char *) malloc((new_len + 1) * sizeof *str); // +1 for '\0'
-    SLOW5_MALLOC_CHK(str);
+    if (!str) {
+        SLOW5_MALLOC_ERROR();
+        slow5_errno = SLOW5_ERR_MEM;
+        return NULL;
+    }
     memcpy(str, path, strlen(path));
     strcpy(str + strlen(path), SLOW5_INDEX_EXTENSION);
 
@@ -4397,7 +4430,7 @@ void slow5_memcpy_null_type(uint8_t *data, enum slow5_aux_type type) {
  * on malloc error sets *len to -1 and returns NULL
  */
 static char *get_missing_str(size_t *len) {
-    char *str = malloc(2 * sizeof *str);
+    char *str = (char *) malloc(2 * sizeof *str);
     SLOW5_MALLOC_CHK(str);
     if (str == NULL) {
         *len = -1;

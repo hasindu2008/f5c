@@ -14,24 +14,94 @@ extern enum slow5_exit_condition_opt  slow5_exit_condition;
 #define BUF_INIT_CAP (20*1024*1024)
 #define SLOW5_INDEX_BUF_INIT_CAP (64) // 2^6 TODO is this too little?
 
-static inline struct slow5_idx *slow5_idx_init_empty(void);
-static int slow5_idx_build(struct slow5_idx *index, struct slow5_file *s5p);
-static int slow5_idx_read(struct slow5_idx *index);
 
-static inline struct slow5_idx *slow5_idx_init_empty(void) {
+static int slow5_idx_build(struct slow5_idx *index, struct slow5_file *s5p);
+int slow5_idx_read(struct slow5_idx *index);
+
+struct slow5_idx *slow5_idx_init_empty(void) {
 
     struct slow5_idx *index = (struct slow5_idx *) calloc(1, sizeof *index);
-    SLOW5_MALLOC_CHK(index);
+    if(!index){
+        SLOW5_MALLOC_ERROR();
+        slow5_errno = SLOW5_ERR_MEM;
+        return NULL;
+    }
     index->hash = kh_init(slow5_s2i);
 
     return index;
 }
+
+static inline int slow5_idx_load_fp(struct slow5_idx *index, struct slow5_file *s5p, FILE *index_fp, int8_t check_ts) {
+
+    index->fp = index_fp;
+
+    if(check_ts){
+        int err;
+        if (slow5_filestamps_cmp(index->pathname, s5p->meta.pathname, &err) < 0.0) {
+            SLOW5_WARNING("Index file '%s' is older than slow5 file '%s'.",
+                    index->pathname, s5p->meta.pathname);
+        }
+        if (err == -1) {
+            return -1;
+        }
+    } else {
+        SLOW5_INFO("Custom index file '%s' is being used. Time stamps not checked.", index->pathname);
+    }
+
+    if (slow5_idx_read(index) != 0) {
+        return -1;
+    }
+    if (index->version.major != s5p->header->version.major ||
+            index->version.minor != s5p->header->version.minor ||
+            index->version.patch != s5p->header->version.patch) {
+        SLOW5_ERROR("Index file version '" SLOW5_VERSION_STRING_FORMAT "' is different to slow5 file version '" SLOW5_VERSION_STRING_FORMAT "'. Please re-index.",
+                index->version.major, index->version.minor, index->version.patch,
+                s5p->header->version.major, s5p->header->version.minor, s5p->header->version.patch);
+        return -1;
+    }
+
+    return 0;
+}
+
+struct slow5_idx *slow5_idx_init_with(struct slow5_file *s5p, const char *pathname) {
+
+    struct slow5_idx *index = slow5_idx_init_empty();
+    if (!index) {
+        SLOW5_MALLOC_ERROR();
+        slow5_errno = SLOW5_ERR_MEM;
+        return NULL;
+    }
+    index->pathname = strdup(pathname);
+    if (!index->pathname) {
+        slow5_idx_free(index);
+        return NULL;
+    }
+
+    FILE *index_fp;
+
+    if ((index_fp = fopen(index->pathname, "r")) == NULL) { // If file doesn't exist
+        SLOW5_ERROR("Index file not found at '%s'.", index->pathname)
+        slow5_errno =  SLOW5_ERR_NOIDX;
+        slow5_idx_free(index);
+        return NULL;
+    } else {
+        if (slow5_idx_load_fp(index, s5p, index_fp, 0) != 0) {
+            slow5_idx_free(index);
+            return NULL;
+        }
+    }
+
+    return index;
+}
+
 
 // TODO return NULL if idx_init fails
 struct slow5_idx *slow5_idx_init(struct slow5_file *s5p) {
 
     struct slow5_idx *index = slow5_idx_init_empty();
     if (!index) {
+        SLOW5_MALLOC_ERROR();
+        slow5_errno = SLOW5_ERR_MEM;
         return NULL;
     }
     index->pathname = slow5_get_idx_path(s5p->meta.pathname);
@@ -50,6 +120,12 @@ struct slow5_idx *slow5_idx_init(struct slow5_file *s5p) {
             return NULL;
         }
         index->fp = fopen(index->pathname, "w");
+        if(!index->fp){
+            SLOW5_ERROR("Error opening file '%s' for writing: %s.", index->pathname, strerror(errno));
+            slow5_errno = SLOW5_ERR_IO;
+            slow5_idx_free(index);
+            return NULL;
+        }
         if (slow5_idx_write(index, s5p->header->version) != 0) {
             slow5_idx_free(index);
             return NULL;
@@ -57,26 +133,7 @@ struct slow5_idx *slow5_idx_init(struct slow5_file *s5p) {
         fclose(index->fp);
         index->fp = NULL;
     } else {
-        index->fp = index_fp;
-        int err;
-        if (slow5_filestamps_cmp(index->pathname, s5p->meta.pathname, &err) < 0.0) {
-            SLOW5_WARNING("Index file '%s' is older than slow5 file '%s'.",
-                    index->pathname, s5p->meta.pathname);
-        }
-        if (err == -1) {
-            slow5_idx_free(index);
-            return NULL;
-        }
-        if (slow5_idx_read(index) != 0) {
-            slow5_idx_free(index);
-            return NULL;
-        }
-        if (index->version.major != s5p->header->version.major ||
-                index->version.minor != s5p->header->version.minor ||
-                index->version.patch != s5p->header->version.patch) {
-            SLOW5_ERROR("Index file version '" SLOW5_VERSION_STRING_FORMAT "' is different to slow5 file version '" SLOW5_VERSION_STRING_FORMAT "'. Please re-index.",
-                    index->version.major, index->version.minor, index->version.patch,
-                    s5p->header->version.major, s5p->header->version.minor, s5p->header->version.patch);
+        if (slow5_idx_load_fp(index, s5p, index_fp, 1) != 0) {
             slow5_idx_free(index);
             return NULL;
         }
@@ -102,6 +159,13 @@ int slow5_idx_to(struct slow5_file *s5p, const char *pathname) {
     }
 
     index->fp = fopen(pathname, "w");
+    if(!index->fp){
+        SLOW5_ERROR("Error opening file '%s' for writing: %s.", pathname, strerror(errno));
+        slow5_errno = SLOW5_ERR_IO;
+        slow5_idx_free(index);
+        return -1;
+    }
+
     if (slow5_idx_write(index, s5p->header->version) != 0) {
         slow5_idx_free(index);
         return -1;
@@ -119,7 +183,15 @@ int slow5_idx_to(struct slow5_file *s5p, const char *pathname) {
 static int slow5_idx_build(struct slow5_idx *index, struct slow5_file *s5p) {
 
     uint64_t curr_offset = ftello(s5p->fp);
+    if(curr_offset == -1){
+        SLOW5_ERROR("Could not ftell SLOW5 file: %s.", strerror(errno));
+        slow5_errno = SLOW5_ERR_IO;
+        return -1;
+    }
+
     if (fseeko(s5p->fp, s5p->meta.start_rec_offset, SEEK_SET != 0)) {
+        SLOW5_ERROR("Could not fseek SLOW5 file: %s.", strerror(errno));
+        slow5_errno = SLOW5_ERR_IO;
         return -1;
     }
 
@@ -129,11 +201,21 @@ static int slow5_idx_build(struct slow5_idx *index, struct slow5_file *s5p) {
     if (s5p->format == SLOW5_FORMAT_ASCII) {
         size_t cap = BUF_INIT_CAP;
         char *buf = (char *) malloc(cap * sizeof *buf);
-        SLOW5_MALLOC_CHK(buf);
+        if(!buf){
+            SLOW5_MALLOC_ERROR();
+            slow5_errno = SLOW5_ERR_MEM;
+            return -1;
+        }
         ssize_t buf_len;
         char *bufp;
 
         offset = ftello(s5p->fp);
+        if(offset == -1){
+            SLOW5_ERROR("Could not ftell SLOW5 file: %s.", strerror(errno));
+            slow5_errno = SLOW5_ERR_IO;
+            return -1;
+        }
+
         while ((buf_len = getline(&buf, &cap, s5p->fp)) != -1) { // TODO this return is closer int64_t not unsigned
             bufp = buf;
             char *read_id = strdup(slow5_strsep(&bufp, SLOW5_SEP_COL));
@@ -154,6 +236,11 @@ static int slow5_idx_build(struct slow5_idx *index, struct slow5_file *s5p) {
         while (1) {
             // Set start offset
             offset = ftello(s5p->fp);
+            if(offset == -1){
+                SLOW5_ERROR("Could not ftell SLOW5 file: %s.", strerror(errno));
+                slow5_errno = SLOW5_ERR_IO;
+                return -1;
+            }
 
             // Get record size
             slow5_rec_size_t record_size;
@@ -317,7 +404,7 @@ int slow5_idx_write(struct slow5_idx *index, struct slow5_version version) {
     return 0;
 }
 
-static int slow5_idx_read(struct slow5_idx *index) {
+int slow5_idx_read(struct slow5_idx *index) {
 
     struct slow5_version max_supported = SLOW5_VERSION_ARRAY;
     const char magic[] = SLOW5_INDEX_MAGIC_NUMBER;
