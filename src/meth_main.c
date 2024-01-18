@@ -482,7 +482,7 @@ int meth_main(int argc, char* argv[], int8_t mode) {
         fprintf(fp_help,"   -x STR                     parameter profile to be used for better performance (always applied before other options)\n"); //Added option in help
         fprintf(fp_help,"                              e.g., laptop, desktop, hpc; see https://f5c.page.link/profiles for the full list\n");
         fprintf(fp_help,"   --iop INT                  number of I/O processes to read fast5 files [%d]\n",opt.num_iop);
-        fprintf(fp_help,"   --pore STR                 set the pore chemistry (r9 or r10) [r9]\n");
+        fprintf(fp_help,"   --pore STR                 set the pore chemistry (r9, r10 or rna004) [r9]\n");
         fprintf(fp_help,"   --slow5 FILE               read from a slow5 file\n");
         fprintf(fp_help,"   --min-mapq INT             minimum mapping quality [%d]\n",opt.min_mapq);
         fprintf(fp_help,"   --secondary=yes|no         consider secondary mappings or not [%s]\n",(opt.flag&F5C_SECONDARY_YES)?"yes":"no");

@@ -27,6 +27,7 @@
 #define MODEL_ID_RNA_R9_NUCLEOTIDE 3
 #define MODEL_ID_DNA_R10_NUCLEOTIDE 4
 #define MODEL_ID_DNA_R10_CPG 5
+#define MODEL_ID_RNA_RNA004_NUCLEOTIDE 6
 
 
 // Flags to modify the behaviour of the HMM
