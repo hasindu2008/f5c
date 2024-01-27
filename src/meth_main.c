@@ -426,11 +426,14 @@ int meth_main(int argc, char* argv[], int8_t mode) {
             yes_or_no(&opt, F5C_COLLAPSE_EVENTS, longindex, "yes", 1);
         } else if (c==0 && longindex == 46){ //pore
             opt.pore = optarg;
-            if(!(strcmp(opt.pore,"r9")==0 || strcmp(opt.pore,"r10")==0)){
-                ERROR("%s","Pore model should be r9 or r10");
+            if(!(strcmp(opt.pore,"r9")==0 || strcmp(opt.pore,"r10")==0 || strcmp(opt.pore,"rna004")==0)){
+                ERROR("%s","Pore model should be r9, r10 or rna004");
                 exit(EXIT_FAILURE);
             }
             if(strcmp(opt.pore,"r10")==0){
+                opt.flag |= F5C_R10;
+            } else if (strcmp(opt.pore,"rna004")==0){
+                opt.flag |= F5C_RNA;
                 opt.flag |= F5C_R10;
             }
         } else if (c == 0 && longindex == 48){ //specify the version of the sam output for eventalign (eventalign only)
