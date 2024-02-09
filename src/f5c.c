@@ -125,7 +125,7 @@ int8_t pore_detect(slow5_file_t *sp){
         return 0;
     }
     if (strstr(kit,"114")!=NULL){
-        pore = OPT_PORE_RNA004;
+        pore = OPT_PORE_R10;
     } else if (strstr(kit,"rna004")!=NULL){
         pore = OPT_PORE_RNA004;
     } else {
