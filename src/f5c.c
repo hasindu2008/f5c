@@ -118,18 +118,18 @@ int8_t drna_detect(slow5_file_t *sp){
 int8_t pore_detect(slow5_file_t *sp){
 
     const slow5_hdr_t* hdr = sp->header;
-    int8_t pore = 0;
+    int8_t pore = OPT_PORE_R9;
     char *kit =slow5_hdr_get("sequencing_kit", 0, hdr);
     if(kit==NULL){
         WARNING("%s","sequencing_kit not found in SLOW5 header. Assuming R9.4.1");
         return 0;
     }
     if (strstr(kit,"114")!=NULL){
-        pore = 1;
+        pore = OPT_PORE_RNA004;
     } else if (strstr(kit,"rna004")!=NULL){
-        pore = 2;
+        pore = OPT_PORE_RNA004;
     } else {
-        pore = 0;
+        pore = OPT_PORE_R9;
     }
 
     for(uint32_t  i=1; i < hdr->num_read_groups; i++){
@@ -263,9 +263,9 @@ core_t* init_core(const char* bamfilename, const char* fastafile,
             if(pore){
                 opt.flag |= F5C_R10;
                 if(opt.verbosity > 1) {
-                    if (pore == 1) fprintf(stderr,"Detected R10 data. --pore r10 was set automatically.\n");
-                    if (pore == 2) fprintf(stderr,"Detected RNA004 data. --pore rna004 was set automatically.\n");
-                    if (pore == 1 && (opt.flag & F5C_RNA)){
+                    if (pore == OPT_PORE_R10) fprintf(stderr,"Detected R10 data. --pore r10 was set automatically.\n");
+                    if (pore == OPT_PORE_RNA004) fprintf(stderr,"Detected RNA004 data. --pore rna004 was set automatically.\n");
+                    if (pore == OPT_PORE_R10 && (opt.flag & F5C_RNA)){
                         ERROR("%s","R10 RNA data does not exist! But header header indicates that the data is R10 RNA.");
                         exit(EXIT_FAILURE);
                     }

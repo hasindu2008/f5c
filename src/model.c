@@ -6,13 +6,13 @@
 ** @@
 ******************************************************************************/
 
-#include "model.h"
-#include "f5c.h"
-#include "f5cmisc.h"
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+#include "f5c.h"
+#include "f5cmisc.h"
+#include "model.h"
 
 //#define DEBUG_MODEL_PRINT 1
 

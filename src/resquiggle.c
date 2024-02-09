@@ -105,7 +105,7 @@ core_t* init_core_rsq(opt_t opt, const char *slow5file, double realtime0) {
         if(pore){
             core->opt.flag |= F5C_R10;
             opt.flag |= F5C_R10;
-            if (pore == 1 && (opt.flag & F5C_RNA)){
+            if (pore == OPT_PORE_R10 && (opt.flag & F5C_RNA)){
                 ERROR("%s","R10 RNA data does not exist! But header header indicates that the data is R10 RNA.");
                 exit(EXIT_FAILURE);
             }

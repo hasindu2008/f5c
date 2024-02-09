@@ -29,6 +29,10 @@
 #define MODEL_ID_DNA_R10_CPG 5
 #define MODEL_ID_RNA_RNA004_NUCLEOTIDE 6
 
+///opts for autodetect
+#define OPT_PORE_R9 0
+#define OPT_PORE_R10 1
+#define OPT_PORE_RNA004 2
 
 // Flags to modify the behaviour of the HMM
 enum HMMAlignmentFlags
