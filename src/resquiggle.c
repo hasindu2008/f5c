@@ -42,7 +42,7 @@ static void print_help_msg(FILE *fp_help, opt_t opt){
     fprintf(fp_help,"   -h                         help\n");
     fprintf(fp_help,"   -o FILE                    output to file [stdout]\n");
     fprintf(fp_help,"   -x STR                     parameter profile to be used for better performance (always applied before other options)\n"); //Added option in help
-    fprintf(fp_help,"                              e.g., laptop, desktop, hpc; see https://f5c.page.link/profiles for the full list\n");
+    fprintf(fp_help,"                              e.g., laptop, desktop, hpc; see https://f5c.bioinf.science/profiles for the full list\n");
     fprintf(fp_help,"   -c                         print in paf format\n");
     fprintf(fp_help,"   --verbose INT              verbosity level [%d]\n",opt.verbosity);
     fprintf(fp_help,"   --version                  print version\n");

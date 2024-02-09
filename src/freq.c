@@ -34,7 +34,7 @@ static const char usage[] = "Usage: %s [OPTIONS] -i methcalls.tsv\n"
                             "  -s              split groups\n"
                             "  -h              help\n"
                             "  --version       print version\n"
-                            "\nSee the manual page for details (`man ./docs/f5c.1' or https://f5c.page.link/man).\n"
+                            "\nSee the manual page for details (`man ./docs/f5c.1' or https://f5c.bioinf.science/man).\n"
                             ;
 
 struct site_stats {

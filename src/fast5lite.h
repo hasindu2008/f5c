@@ -294,7 +294,7 @@ static inline int32_t fast5_read_multi_fast5(fast5_file_t fh, signal_t* sig, std
     if (status < 0) {
         free(sig->rawptr);
         if(fast5_is_vbz_compressed(fh, read_id) == 1) {
-            ERROR("%s","The fast5 file is compressed with VBZ but the required plugin is not loaded. See https://f5c.page.link/troubleshoot for instructions.\n");
+            ERROR("%s","The fast5 file is compressed with VBZ but the required plugin is not loaded. See https://f5c.bioinf.science/troubleshoot for instructions.\n");
         }
         WARNING("Failed to read raw data from dataset %s.", signal_path);
         H5Sclose(space);

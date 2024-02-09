@@ -145,7 +145,7 @@ Visit the [man page](https://hasindu2008.github.io/f5c/docs/commands) for all th
 Follow the same steps as in [Nanopolish tutorial](https://nanopolish.readthedocs.io/en/latest/quickstart_call_methylation.html) while replacing `nanopolish` with `f5c`. If you only want to perform a quick test of f5c :
 ```sh
 #download and extract the dataset including sorted alignments
-wget -O f5c_na12878_test.tgz "https://f5c.page.link/f5c_na12878_test"
+wget -O f5c_na12878_test.tgz "https://f5c.bioinf.science/f5c_na12878_test"
 tar xf f5c_na12878_test.tgz
 
 ###### Using S/BLOW5 as input (recommended) ######

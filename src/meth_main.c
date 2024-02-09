@@ -483,7 +483,7 @@ int meth_main(int argc, char* argv[], int8_t mode) {
         fprintf(fp_help,"   -h                         help\n");
         fprintf(fp_help,"   -o FILE                    output to file [stdout]\n");
         fprintf(fp_help,"   -x STR                     parameter profile to be used for better performance (always applied before other options)\n"); //Added option in help
-        fprintf(fp_help,"                              e.g., laptop, desktop, hpc; see https://f5c.page.link/profiles for the full list\n");
+        fprintf(fp_help,"                              e.g., laptop, desktop, hpc; see https://f5c.bioinf.science/profiles for the full list\n");
         fprintf(fp_help,"   --iop INT                  number of I/O processes to read fast5 files [%d]\n",opt.num_iop);
         fprintf(fp_help,"   --pore STR                 set the pore chemistry (r9, r10 or rna004) [r9]\n");
         fprintf(fp_help,"   --slow5 FILE               read from a slow5 file\n");
@@ -536,7 +536,7 @@ int meth_main(int argc, char* argv[], int8_t mode) {
         fprintf(fp_help,"   --profile-cpu=yes|no       process section by section (used for profiling on CPU)\n");
         fprintf(fp_help,"   --write-dump=yes|no        write the fast5 dump to a file or not\n");
         fprintf(fp_help,"   --read-dump=yes|no         read from a fast5 dump file or not\n");
-        fprintf(fp_help,"\nSee the manual page for details (`man ./docs/f5c.1' or https://f5c.page.link/man).\n");
+        fprintf(fp_help,"\nSee the manual page for details (`man ./docs/f5c.1' or https://f5c.bioinf.science/man).\n");
         if(fp_help == stdout){
             exit(EXIT_SUCCESS);
         }

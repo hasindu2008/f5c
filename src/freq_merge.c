@@ -136,7 +136,7 @@ static const char *MAP_REDUCE_USAGE_MESSAGE =
         "   -o FILE         output file. Write to stdout if not specified\n"
         "   -h              help\n"
         "   --version       print version\n"
-        "\nSee the manual page for details (`man ./docs/f5c.1' or https://f5c.page.link/man)."
+        "\nSee the manual page for details (`man ./docs/f5c.1' or https://f5c.bioinf.science/man)."
         "\n\n"
 ;
 
