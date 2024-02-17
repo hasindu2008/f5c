@@ -1878,7 +1878,7 @@ char *emit_event_alignment_sam(char* read_name,
                               bam_hdr_t* base_hdr,
                               bam1_t* base_record,
                               const std::vector<event_alignment_t>& alignments, int8_t sam_out_version,
-                              event_table* et, int64_t len_raw_signal, int64_t ref_len, int8_t rna
+                              event_table* et, int64_t len_raw_signal, int64_t ref_len, int8_t rna, scalings_t scalings
                               )
 {
 
@@ -1957,6 +1957,12 @@ char *emit_event_alignment_sam(char* read_name,
             int ret_sw = bam_aux_append(base_record, "si", 'Z', strlen(si)+1, (uint8_t*)si); //todo is +1 needed?
             NEG_CHK(ret_sw);
             ret_sw = bam_aux_append(base_record, "ss", 'Z', strlen(f5c_ss.ss)+1, (uint8_t*)f5c_ss.ss);
+            NEG_CHK(ret_sw);
+            float sc = scalings.scale;
+            ret_sw = bam_aux_append(base_record, "sc", 'f', 4, (uint8_t*)(&sc));
+            NEG_CHK(ret_sw);
+            float sh = scalings.shift;
+            ret_sw = bam_aux_append(base_record, "sh", 'f', 4, (uint8_t*)(&sh));
             NEG_CHK(ret_sw);
             ret_sw = sam_format1(base_hdr, base_record, sp);
             NEG_CHK(ret_sw);

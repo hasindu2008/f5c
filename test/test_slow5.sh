@@ -22,8 +22,8 @@ else
 fi
 # execution mode (valgrind/gdb/cpu/cuda/echo)
 mode=
-testset_url="https://f5c.page.link/f5c_ecoli_2kb_region_test"
-fallback_url="https://f5c.page.link/f5c_ecoli_2kb_region_test_fallback"
+testset_url="https://f5c.bioinf.science/f5c_ecoli_2kb_region_test"
+fallback_url="https://f5c.bioinf.science/f5c_ecoli_2kb_region_test_fallback"
 
 # download test set given url
 #
@@ -126,11 +126,11 @@ do
 		   ref=${testdir}/humangenome.fa
 		   reads=${testdir}/reads.fastq
 		   slow5=${testdir}/reads.blow5
-		   testset_url="https://f5c.page.link/f5c_na12878_test"
-		   fallback_url="https://f5c.page.link/f5c_na12878_test_fallback";;
+		   testset_url="https://f5c.bioinf.science/f5c_na12878_test"
+		   fallback_url="https://f5c.bioinf.science/f5c_na12878_test_fallback";;
 		K) batchsize="$OPTARG";;
 		B) max_bases="$OPTARG";;
-		d) download_test_set "https://f5c.page.link/f5c_na12878_test" "https://f5c.page.link/f5c_na12878_test_fallback"
+		d) download_test_set "https://f5c.bioinf.science/f5c_na12878_test" "https://f5c.bioinf.science/f5c_na12878_test_fallback"
 		   exit 0;;
 		h) help_msg
 		   exit 0;;

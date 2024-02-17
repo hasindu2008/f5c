@@ -21,8 +21,8 @@ else
 fi
 # execution mode (valgrind/gdb/cpu/cuda/echo)
 mode=
-testset_url="https://f5c.page.link/f5c_ecoli_2kb_region_test"
-fallback_url="https://f5c.page.link/f5c_ecoli_2kb_region_test_fallback"
+testset_url="https://f5c.bioinf.science/f5c_ecoli_2kb_region_test"
+fallback_url="https://f5c.bioinf.science/f5c_ecoli_2kb_region_test_fallback"
 
 # download test set given url
 #
@@ -111,6 +111,8 @@ help_msg() {
 	echo
 	echo "-c                   Uses chr22_meth_example test set."
 	echo "-e                   Uses rna test set."
+	echo "-f                   Uses hg2 dna r10 test set."
+	echo "-z                   Uses uhr rna004 test set."
 	echo "-K [n]               Same as f5c -K."
 	echo "-B [n]               Same as f5c -B."
 	echo "-r [read file]       Same as f5c -r."
@@ -120,7 +122,7 @@ help_msg() {
 }
 
 # parse options
-while getopts b:g:r:t:K:B:cdhef opt
+while getopts b:g:r:t:K:B:cdhefz opt
 do
 	case $opt in
 		r) reads="$OPTARG";;
@@ -128,24 +130,28 @@ do
 		c) testdir=test/chr22_meth_example
 		   reads=${testdir}/reads.fastq
 		   slow5=${testdir}/reads.blow5
-		   testset_url="https://f5c.page.link/f5c_na12878_test"
-		   fallback_url="https://f5c.page.link/f5c_na12878_test_fallback";;
+		   testset_url="https://f5c.bioinf.science/f5c_na12878_test"
+		   fallback_url="https://f5c.bioinf.science/f5c_na12878_test_fallback";;
 		e) testdir=test/rna
 		   reads=${testdir}/reads.fastq
 		   slow5=${testdir}/reads.blow5
-		   testset_url="https://f5c.page.link/f5c_rna_test"
-		   fallback_url="https://f5c.page.link/f5c_rna_test_fallback";;
+		   testset_url="https://f5c.bioinf.science/f5c_rna_test"
+		   fallback_url="https://f5c.bioinf.science/f5c_rna_test_fallback";;
 		f) testdir=test/hg2_lsk114_reads_1000
 		   reads=${testdir}/PGXX22394_reads_1000_6.4.2_sup.fastq
 		   slow5=${testdir}/PGXX22394_reads_1000.blow5
-		   testset_url="https://f5c.page.link/hg2_lsk114_reads_1000";;
+		   testset_url="https://f5c.bioinf.science/hg2_lsk114_reads_1000";;
+		z) testdir=test/uhr_rna004_1k
+		   reads=${testdir}/PNXRXX240011_reads_1k.fastq
+		   slow5=${testdir}/PNXRXX240011_reads_1k.blow5
+		   testset_url="https://f5c.bioinf.science/uhr_rna004_1k";;
 		K) batchsize="$OPTARG";;
 		B) max_bases="$OPTARG";;
-		d) download_test_set "https://f5c.page.link/f5c_na12878_test" "https://f5c.page.link/f5c_na12878_test_fallback"
+		d) download_test_set "https://f5c.bioinf.science/f5c_na12878_test" "https://f5c.bioinf.science/f5c_na12878_test_fallback"
 		   exit 0;;
 		h) help_msg
 		   exit 0;;
-		?) printf "Usage: %s [-c] [-b bam file] [-g reference genome] [-r fastq/fasta read] args" "$0"
+		?) printf "Usage: %s [-c/-e/-f/-z] [-b bam file] [-g reference genome] [-r fastq/fasta read] args" "$0"
 		   exit 2;;
 	esac
 done

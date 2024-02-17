@@ -6,7 +6,8 @@
 #
 .SUFFIXES: .cpp .o .c .h
 
-PROCESSOR:=$(shell uname -m)
+PROC_AUTO:=$(shell uname -m)
+PROCESSOR ?= $(PROC_AUTO)
 
 ifeq ($(no_simd),1) #if no_simd is set
 CFLAGS = -fPIC -std=c99 -O3 -Wall -Wextra -pedantic -Wshadow
@@ -23,7 +24,7 @@ else
 CFLAGS = -fPIC -std=c99 -O3 -Wall -Wextra -pedantic -Wshadow
 endif
 endif
-
+# note that on macos, it is arm64 instead of aarch64. however, for now we just let it compile without simd
 
 #LDFLAGS = -shared
 LIBNAME=libstreamvbyte.so.0.0.1
@@ -32,38 +33,38 @@ STATICLIB=libstreamvbyte.a
 # all:  $(LIBNAME) $(STATICLIB)
 all: $(STATICLIB)
 
-#HEADERS=./include/streamvbyte.h ./include/streamvbytedelta.h ./include/streamvbyte_zigzag.h
-HEADERS=./include/streamvbyte.h ./include/streamvbyte_zigzag.h
+#SVB_HEADERS=./include/streamvbyte.h ./include/streamvbytedelta.h ./include/streamvbyte_zigzag.h
+SVB_HEADERS=./include/streamvbyte.h ./include/streamvbyte_zigzag.h
 
-#OBJECTS= streamvbyte_decode.o streamvbyte_encode.o streamvbytedelta_decode.o streamvbytedelta_encode.o streamvbyte_0124_encode.o  streamvbyte_0124_decode.o streamvbyte_zigzag.o
-OBJECTS= streamvbyte_decode.o streamvbyte_encode.o streamvbyte_zigzag.o
+#SVB_OBJECTS= streamvbyte_decode.o streamvbyte_encode.o streamvbytedelta_decode.o streamvbytedelta_encode.o streamvbyte_0124_encode.o  streamvbyte_0124_decode.o streamvbyte_zigzag.o
+SVB_OBJECTS= streamvbyte_decode.o streamvbyte_encode.o streamvbyte_zigzag.o
 
-streamvbyte_zigzag.o: ./src/streamvbyte_zigzag.c $(HEADERS)
+streamvbyte_zigzag.o: ./src/streamvbyte_zigzag.c $(SVB_HEADERS)
 	$(CC) $(CFLAGS) -c ./src/streamvbyte_zigzag.c -Iinclude
 
 
-# streamvbytedelta_encode.o: ./src/streamvbytedelta_encode.c $(HEADERS)
+# streamvbytedelta_encode.o: ./src/streamvbytedelta_encode.c $(SVB_HEADERS)
 # 	$(CC) $(CFLAGS) -c ./src/streamvbytedelta_encode.c -Iinclude
 
-# streamvbytedelta_decode.o: ./src/streamvbytedelta_decode.c $(HEADERS)
+# streamvbytedelta_decode.o: ./src/streamvbytedelta_decode.c $(SVB_HEADERS)
 # 	$(CC) $(CFLAGS) -c ./src/streamvbytedelta_decode.c -Iinclude
 
-# streamvbyte_0124_encode.o: ./src/streamvbyte_0124_encode.c $(HEADERS)
+# streamvbyte_0124_encode.o: ./src/streamvbyte_0124_encode.c $(SVB_HEADERS)
 # 	$(CC) $(CFLAGS) -c ./src/streamvbyte_0124_encode.c -Iinclude
 
-# streamvbyte_0124_decode.o: ./src/streamvbyte_0124_decode.c $(HEADERS)
+# streamvbyte_0124_decode.o: ./src/streamvbyte_0124_decode.c $(SVB_HEADERS)
 # 	$(CC) $(CFLAGS) -c ./src/streamvbyte_0124_decode.c -Iinclude
 
-streamvbyte_decode.o: ./src/streamvbyte_decode.c $(HEADERS)
+streamvbyte_decode.o: ./src/streamvbyte_decode.c $(SVB_HEADERS)
 	$(CC) $(CFLAGS) -c ./src/streamvbyte_decode.c -Iinclude
 
-streamvbyte_encode.o: ./src/streamvbyte_encode.c $(HEADERS)
+streamvbyte_encode.o: ./src/streamvbyte_encode.c $(SVB_HEADERS)
 	$(CC) $(CFLAGS) -c ./src/streamvbyte_encode.c -Iinclude
 
-# $(LIBNAME): $(OBJECTS)
-# 	$(CC) $(CFLAGS) -o $(LIBNAME) $(OBJECTS)  $(LDFLAGS)
+# $(LIBNAME): $(SVB_OBJECTS)
+# 	$(CC) $(CFLAGS) -o $(LIBNAME) $(SVB_OBJECTS)  $(LDFLAGS)
 
-$(STATICLIB): $(OBJECTS)
+$(STATICLIB): $(SVB_OBJECTS)
 	ar rcs $@ $^
 
 # $(LNLIBNAME): $(LIBNAME)

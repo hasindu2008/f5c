@@ -34,7 +34,7 @@ int8_t drna_detect(slow5_file_t *sp);
 int8_t pore_detect(slow5_file_t *sp);
 
 static void print_help_msg(FILE *fp_help, opt_t opt){
-    fprintf(fp_help,"Usage: f5c [OPTIONS] reads.fastq signals.blow5\n");
+    fprintf(fp_help,"Usage: f5c resquiggle [OPTIONS] reads.fastq signals.blow5\n");
     fprintf(fp_help,"\noptions:\n");
     fprintf(fp_help,"   -t INT                     number of processing threads [%d]\n",opt.num_thread);
     fprintf(fp_help,"   -K INT                     batch size (max number of reads loaded at once) [%d]\n",opt.batch_size);
@@ -42,13 +42,13 @@ static void print_help_msg(FILE *fp_help, opt_t opt){
     fprintf(fp_help,"   -h                         help\n");
     fprintf(fp_help,"   -o FILE                    output to file [stdout]\n");
     fprintf(fp_help,"   -x STR                     parameter profile to be used for better performance (always applied before other options)\n"); //Added option in help
-    fprintf(fp_help,"                              e.g., laptop, desktop, hpc; see https://f5c.page.link/profiles for the full list\n");
+    fprintf(fp_help,"                              e.g., laptop, desktop, hpc; see https://f5c.bioinf.science/profiles for the full list\n");
     fprintf(fp_help,"   -c                         print in paf format\n");
     fprintf(fp_help,"   --verbose INT              verbosity level [%d]\n",opt.verbosity);
     fprintf(fp_help,"   --version                  print version\n");
     fprintf(fp_help,"   --kmer-model FILE          custom nucleotide k-mer model file (format similar to test/r9-models/r9.4_450bps.nucleotide.6mer.template.model)\n");
     fprintf(fp_help,"   --rna                      the dataset is direct RNA\n");
-    fprintf(fp_help,"   --pore STR                 r9 or r10\n");
+    fprintf(fp_help,"   --pore STR                 r9, r10 or rna004\n");
 #ifdef HAVE_CUDA
         fprintf(fp_help,"   --disable-cuda=yes|no      disable running on CUDA [%s]\n",(opt.flag&F5C_DISABLE_CUDA?"yes":"no"));
         fprintf(fp_help,"   --cuda-dev-id INT          CUDA device ID to run kernels on [%d]\n",opt.cuda_dev_id);
@@ -99,9 +99,17 @@ core_t* init_core_rsq(opt_t opt, const char *slow5file, double realtime0) {
         core->opt.flag |= F5C_RNA;
         opt.flag |= F5C_RNA;
     }
-    if(core->opt.pore==NULL && pore_detect(core->sf)) {
-        core->opt.flag |= F5C_R10;
-        opt.flag |= F5C_R10;
+
+    if(core->opt.pore==NULL) {
+        int8_t pore = pore_detect(core->sf);
+        if(pore){
+            core->opt.flag |= F5C_R10;
+            opt.flag |= F5C_R10;
+            if (pore == OPT_PORE_R10 && (opt.flag & F5C_RNA)){
+                ERROR("%s","R10 RNA data does not exist! But header header indicates that the data is R10 RNA.");
+                exit(EXIT_FAILURE);
+            }
+        }
     }
 
     //model
@@ -112,11 +120,11 @@ core_t* init_core_rsq(opt_t opt, const char *slow5file, double realtime0) {
     uint32_t kmer_size=0;
     if (opt.model_file) {
         kmer_size=read_model(core->model, opt.model_file, MODEL_TYPE_NUCLEOTIDE);
-    } else {
+    } else { // todo, reused in f5c.c so can be modularised
         if(opt.flag & F5C_RNA){
             if(opt.flag & F5C_R10){
-                ERROR("%s","RNA R10 model is not available");
-                exit(EXIT_FAILURE);
+                INFO("%s","builtin RNA004 nucleotide model loaded");
+                kmer_size=set_model(core->model, MODEL_ID_RNA_RNA004_NUCLEOTIDE);
             } else {
                 INFO("%s","builtin RNA R9 nucleotide model loaded");
                 kmer_size=set_model(core->model, MODEL_ID_RNA_R9_NUCLEOTIDE);
@@ -663,11 +671,14 @@ int resquiggle_main(int argc, char **argv) {
             opt.cuda_mem_frac = atof(optarg);
         } else if(c == 0 && longindex == 14){ //pore
             opt.pore = optarg;
-            if(!(strcmp(opt.pore,"r9")==0 || strcmp(opt.pore,"r10")==0)){
-                ERROR("%s","Pore model should be r9 or r10");
+            if(!(strcmp(opt.pore,"r9")==0 || strcmp(opt.pore,"r10")==0 || strcmp(opt.pore,"rna004")==0)){
+                ERROR("%s","Pore model should be r9, r10 or rna004");
                 exit(EXIT_FAILURE);
             }
             if(strcmp(opt.pore,"r10")==0){
+                opt.flag |= F5C_R10;
+            } else if (strcmp(opt.pore,"rna004")==0){
+                opt.flag |= F5C_RNA;
                 opt.flag |= F5C_R10;
             }
         }

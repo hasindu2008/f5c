@@ -33,6 +33,9 @@ int slow5_version_cmp(struct slow5_version x, struct slow5_version y);
 // file_version: what is currently in the file
 // max_supported: maximum slow5 version supported by this library
 static inline int slow5_is_version_compatible(struct slow5_version file_version, struct slow5_version max_supported) {
+    if(max_supported.major == 0 && max_supported.minor == 2 && max_supported.patch == 0) { //forward compatibility (file version 0.2.0 is same as 1.0.0)
+        max_supported.major=1; max_supported.minor=0; max_supported.patch=0;
+    }
     if (slow5_version_cmp(file_version, max_supported) > 0) {
         return 0;
     } else {

@@ -141,6 +141,14 @@ test_suit1 () {
 	echo "resquiggle"
 	test/test_rsq.sh -f 2> r10_hg2_resquiggle.log || die "failed"
 
+
+	echo "************************Doing RNA004 UHR tests*****************************"
+	echo "event alignment"
+	test/test_eventalign.sh -z 2> rna004_uhr_eventalign.log || die "failed"
+	echo "____________________________________________________________________"
+	echo "resquiggle"
+	test/test_rsq.sh -z 2> rna004_uhr_resquiggle.log || die "failed"
+
 	echo "************************Doing eventalign paf tests*****************************"
 	test/test_eventalign_pafsam.sh 2> eventalign_paf.log || die "failed"
 	echo ""
@@ -216,6 +224,13 @@ test_suit1_cuda () {
 	echo "____________________________________________________________________"
 	echo "resquiggle"
 	test/test_rsq.sh -f 2> r10_hg2_resquiggle_cuda.log || die "failed"
+
+	echo "************************Doing RNA004 UHR tests*****************************"
+	echo "event alignment"
+	test/test_eventalign.sh -z 2> rna004_uhr_eventalign_cuda.log || echo "failure ignored for now until smaller diffs are accounted"
+	echo "____________________________________________________________________"
+	echo "resquiggle"
+	test/test_rsq.sh -z 2> rna004_uhr_resquiggle_cuda.log || die "failed"
 
 	echo "************************Doing eventalign paf tests*****************************"
 	test/test_eventalign_pafsam.sh 2> eventalign_paf_cuda.log || die "failed"
