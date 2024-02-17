@@ -1,27 +1,31 @@
 .\" generated with Ronn/v0.7.3
 .\" http://github.com/rtomayko/ronn/tree/0.7.3
 .
-.TH "F5C" "1" "August 2021" "" ""
+.TH "F5C" "1" "2024-02-18" "" ""
 .
 .SH "NAME"
-\fBf5c\fR \- Ultra\-fast methylation calling and event alignment tool for nanopore sequencing data with optional CUDA acceleration
+\fBf5c\fR \- Ultra\-fast methylation calling and event alignment tool for nanopore sequencing data with optional GPU (CUDA) acceleration
 .
 .SH "SYNOPSIS"
 .
 .TP
 indexing
-\fBf5c index \-d [fast5_folder] [read\.fastq|fasta] f5c index \-\-slow5 [slow5_file] [read\.fastq|fasta]\fR
+\fBf5c index \-\-slow5 [slow5_file] [read\.fastq|fasta] f5c index \-d [fast5_folder] [read\.fastq|fasta]\fR
 .
 .TP
 methylation calling
-\fBf5c call\-methylation \-b [reads\.sorted\.bam] \-g [ref\.fa] \-r [reads\.fastq|fasta] > [meth\.tsv] #specify \-\-slow5 [slow5_file] to use a slow5 file instead of fast5\. f5c meth\-freq \-i [meth\.tsv] > [freq\.tsv]\fR
+\fBf5c call\-methylation \-b [reads\.sorted\.bam] \-g [ref\.fa] \-r [reads\.fastq|fasta] \-\-slow5 [reads\.blow5] > [meth\.tsv] f5c call\-methylation \-b [reads\.sorted\.bam] \-g [ref\.fa] \-r [reads\.fastq|fasta] > [meth\.tsv] # for fast5 \-\-pore r10 required if R10\.4\.1 f5c meth\-freq \-i [meth\.tsv] > [freq\.tsv]\fR
 .
 .TP
 event alignment
-\fBf5c eventalign \-b [reads\.sorted\.bam] \-g [ref\.fa] \-r [reads\.fastq|fasta] > [events\.tsv] #specify \-\-rna for direct RNA data\. specify \-\-slow5 [slow5_file] to use a slow5 file instead of fast5\.\fR
+\fBf5c eventalign \-b [reads\.sorted\.bam] \-g [ref\.fa] \-r [reads\.fastq|fasta] \-\-slow5 [reads\.blow5]> [events\.tsv] f5c eventalign \-b [reads\.sorted\.bam] \-g [ref\.fa] \-r [reads\.fastq|fasta] > [events\.tsv] # for fast5, specify \-\-rna for direct RNA data, \-\-pore r10 for R10\.4\.1 data\fR
+.
+.TP
+resquiggle
+\fBf5c resquiggle [OPTIONS] [reads\.fastq|fasta] [reads\.blow5]\fR
 .
 .SH "DESCRIPTION"
-Given a set of base\-called nanopore reads and associated raw signals, f5c call\-methylation detects the methylated cytosine at genomic CpG cites and f5c eventalign aligns raw nanopore signals (events) to the reference k\-mers\. f5c can optionally utilise CUDA enabled NVIDIA graphics cards for acceleration\. f5c is a heavily re\-engineered and optimised implementation of the call\-methylation and eventalign modules in Nanopolish\.
+Given a set of base\-called nanopore reads and associated raw signals, f5c call\-methylation detects the methylated cytosine at genomic CpG cites and f5c eventalign aligns raw nanopore signals (events) to the reference k\-mers\. f5c can optionally utilise CUDA enabled NVIDIA graphics cards for acceleration\. f5c is a heavily re\-engineered and optimised implementation of the call\-methylation and eventalign modules in Nanopolish\. \fBf5c v1\.2 onwards support the latest nanopore R10\.4\.1 chemistry (make sure to specify \-\-pore r10 if input is FAST5, autodetected for S/BLOW5 input)\fR\. For best performance and easy usability, it is recommended to use f5c on BLOW5 format\.
 .
 .SH "COMMANDS"
 .
@@ -60,14 +64,18 @@ Merge multiple methylation frequency tsv files\.
 Align nanopore events to reference k\-mers (optimised nanopolish eventalign)\.
 
 .
+.TP
+\fBresquiggle\fR
+Align raw signals to basecalled reads\. Introduced in f5c v1\.1\.
+.
 .SH "OPTIONS"
 .
 .SS "index"
 .
 .nf
 
-f5c index [OPTIONS] \-d nanopore_raw_file_directory reads\.fastq
 f5c index [OPTIONS] \-\-slow5 signals\.blow5 reads\.fastq
+f5c index [OPTIONS] \-d nanopore_raw_file_directory reads\.fastq
 .
 .fi
 .
@@ -117,6 +125,12 @@ Number of I/O processes to read fast5 files [default value: 1]\. Increasing the 
 slow5 file containing raw signals\. \-d, \-s, \-f and \-\-iop options are not required when indexing using a slow5 file\.
 .
 .IP "\(bu" 4
+\fB\-\-skip\-slow\-idx\fR:
+.
+.br
+Do not build the \.idx for the slow5 file (useful when a slow5 index is already available)\. Introduced in f5c v1\.1\.
+.
+.IP "\(bu" 4
 \fB\-\-verbose INT\fR:
 .
 .br
@@ -134,8 +148,8 @@ Print the version number to the standard out\.
 .
 .nf
 
-f5c call\-methylation [OPTIONS] \-r reads\.fa \-b alignments\.bam \-g genome\.fa
 f5c call\-methylation [OPTIONS] \-r reads\.fa \-b alignments\.bam \-g genome\.fa \-\-slow5 signals\.blow5
+f5c call\-methylation [OPTIONS] \-r reads\.fa \-b alignments\.bam \-g genome\.fa # for fast5 \-\-pore r10 required if R10\.4\.1
 .
 .fi
 .
@@ -167,7 +181,7 @@ The file containing the reference genome in FASTA format\.
 \fB\-w STR\fR:
 .
 .br
-Only process the specified genomic region STR\. STR should be in the format \fIchr:start\-end\fR\. Currently, multiple region strings are not supported\. If this option is not specified, the whole genome will be processed\.
+Only process the specified genomic region STR\. STR should be in the format \fIchr:start\-end\fR\. From v0\.7 onwards, STR can be a bed file (\.bed extension) containing multiple regions\. If this option is not specified, the whole genome will be processed\.
 .
 .IP "\(bu" 4
 \fB\-t INT\fR:
@@ -210,6 +224,9 @@ Parameter profile to be used for maximising the performance to a particular comp
 .
 .br
 Number of I/O processes to read FAST5 files [default value: 1]\. Increase this value if reading FAST5 limits the overall performance\. A higher value (can be as high as 64) is always preferred for systems with multiple disks (RAID) and network file systems\.
+.
+.IP "\(bu" 4
+\fB\-\-pore STR\fR Set the pore chemistry\. Specify r9 for R9\.4 data and r10 for R10\.4 data [default value: r9 for FAST5, autodetected for SLOW5]\. Introduced in f5c v1\.2\.
 .
 .IP "\(bu" 4
 \fB\-\-slow5 FILE\fR:
@@ -311,6 +328,9 @@ custom methylation k\-mer model file\. The file should adhere to the format in r
 .
 .br
 Format version of the output Methylation tsv file\. If set to 1, the columns printed adhere to the output format of Nanopolish early versions\. If set to 2, adhere to the latest nanopolish output format that additionally includes the strand column and the header num_cpgs renamed to \fInum_motifs\fR) [default value: 1]
+.
+.IP "\(bu" 4
+\fB\-\-min\-recalib\-events INT\fR: Minimum number of events to recalbrate (decrease if your reads are very short and could not calibrate) [default value: 200]\. Introduced in f5c v0\.8\.
 .
 .IP "\(bu" 4
 \fB\-\-cuda\-mem\-frac FLOAT\fR:
@@ -450,13 +470,13 @@ Print the version number to the standard out\.
 .
 .nf
 
-f5c eventalign [OPTIONS] \-r reads\.fa \-b alignments\.bam \-g genome\.fa
-f5c eventalign [OPTIONS] \-r reads\.fa \-b alignments\.bam \-g genome\.fa \-\-slow5 signals\.blow
+f5c eventalign [OPTIONS] \-r reads\.fa \-b alignments\.bam \-g genome\.fa \-\-slow5 signals\.blow5
+f5c eventalign [OPTIONS] \-r reads\.fa \-b alignments\.bam \-g genome\.fa # for fast5, specify \-\-rna for direct RNA data, \-\-pore r10 for R10\.4\.1 data
 .
 .fi
 .
 .P
-Align nanopore events to reference k\-mers (optimised nanopolish eventalign)\. Note that the list below contains the options for both CPU\-only and CPU\-GPU versions of f5c\. Options related to the GPU (CUDA) do NOT apply to the CPU\-only version\. As most
+Align nanopore events to reference k\-mers (optimised nanopolish eventalign)\. Note that the list below contains the options for both CPU\-only and CPU\-GPU versions of f5c\. Options related to the GPU (CUDA) do NOT apply to the CPU\-only version\.
 .
 .P
 basic options:
@@ -505,10 +525,22 @@ Same as for call\-methylation\.
 Write the summaries of the alignment of each read to the file specified\.
 .
 .IP "\(bu" 4
+\fB\-\-paf\fR:
+.
+.br
+Write output in PAF format\. Introduced in f5c v1\.3\. Output explained in https://hasindu2008\.github\.io/f5c/docs/output\.
+.
+.IP "\(bu" 4
 \fB\-\-sam\fR:
 .
 .br
 Write the alignment output in SAM format instead of tsv\.
+.
+.IP "\(bu" 4
+\fB\-\-sam\-out\-version INT\fR
+.
+.br
+Sam output version (set 1 to revert to old nanopolish style format) [default: 2]\. Introduced in f5c v1\.3\. New SAM output is explained in https://hasindu2008\.github\.io/f5c/docs/output\.
 .
 .IP "\(bu" 4
 \fB\-\-print\-read\-names\fR:
@@ -529,16 +561,28 @@ Scale events to the model, rather than vice\-versa\.
 Write the raw samples for the event to the tsv output\.
 .
 .IP "\(bu" 4
+\fB\-\-signal\-index\fR:
+.
+.br
+Write the raw signal start and end index values for the event to the tsv output\.
+.
+.IP "\(bu" 4
 \fB\-\-rna\fR:
 .
 .br
 Specify that this dataset is direct RNA\.
 .
 .IP "\(bu" 4
-\fB\-\-signal\-index\fR:
+\fB\-\-collapse\-events\fR:
 .
 .br
-Write the raw signal start and end index values for the event to the tsv output\.
+Collapse events that stays on the same reference k\-mer\. Introduced in f5c v0\.8\.
+.
+.IP "\(bu" 4
+\fB\-\-min\-recalib\-events INT\fR:
+.
+.br
+Same as for call\-methylation\.
 .
 .IP "\(bu" 4
 \fB\-\-cuda\-mem\-frac FLOAT\fR:
@@ -558,6 +602,112 @@ developer options:
 Same as those for call\-methylation and thus not repeated here\.
 .
 .fi
+.
+.IP "" 0
+.
+.SS "resquiggle"
+.
+.nf
+
+ f5c resquiggle [OPTIONS] reads\.fastq signals\.blow5
+.
+.fi
+.
+.P
+Align raw signals to basecalled reads\. Introduced in f5c v1\.1\. Output format is explained in https://hasindu2008\.github\.io/f5c/docs/output\.
+.
+.P
+options
+.
+.IP "\(bu" 4
+\fB\-t INT\fR:
+.
+.br
+Same as for call\-methylation\.
+.
+.IP "\(bu" 4
+\fB\-K INT\fR:
+.
+.br
+Same as for call\-methylation\.
+.
+.IP "\(bu" 4
+\fB\-B FLOAT[K/M/G]\fR:
+.
+.br
+Same as for call\-methylation\.
+.
+.IP "\(bu" 4
+\fB\-h\fR:
+.
+.br
+Same as for call\-methylation\.
+.
+.IP "\(bu" 4
+\fB\-o FILE\fR:
+.
+.br
+Same as for call\-methylation\.
+.
+.IP "\(bu" 4
+\fB\-x STR\fR:
+.
+.br
+Same as for call\-methylation\.
+.
+.IP "\(bu" 4
+\fB\-c\fR:
+.
+.br
+Print in paf format
+.
+.IP "\(bu" 4
+\fB\-\-verbose INT\fR
+.
+.br
+Same as for call\-methylation\.
+.
+.IP "\(bu" 4
+\fB\-\-version\fR
+.
+.br
+Same as for call\-methylation\.
+.
+.IP "\(bu" 4
+\fB\-\-kmer\-model FILE\fR
+.
+.br
+Same as for call\-methylation\.
+.
+.IP "\(bu" 4
+\fB\-\-rna\fR
+.
+.br
+The dataset is direct RNA\.
+.
+.IP "\(bu" 4
+\fB\-\-pore STR\fR
+.
+.br
+Same as for call\-methylation\.
+.
+.IP "\(bu" 4
+\fB\-\-disable\-cuda=yes|no\fR:
+.
+.br
+Same as for call\-methylation\.
+.
+.IP "\(bu" 4
+\fB\-\-cuda\-dev\-id INT\fR:
+.
+.br
+Same as for call\-methylation\.
+.
+.IP "\(bu" 4
+\fB\-\-cuda\-mem\-frac FLOAT\fR:
+.
+.br
+Same as for call\-methylation\.
 .
 .IP "" 0
 .
