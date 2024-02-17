@@ -74,7 +74,7 @@ execute_test ${testdir}/result.txt ${testdir}/eventalign.paf 50
 execute_test ${testdir}/result.txt ${testdir}/eventalign.sam 5
 
 testdir=test/uhr_rna004_1k
-download_test_set "https://f5c.bioinf.science/uhr_rna004_reads_1k"
+download_test_set "https://f5c.bioinf.science/uhr_rna004_1k"
 
 ./f5c eventalign -b ${testdir}/PNXRXX240011_reads_1k.bam -g ${testdir}/gencode.v40.transcripts.fa -r ${testdir}/PNXRXX240011_reads_1k.fastq  \
  --slow5 ${testdir}/PNXRXX240011_reads_1k.blow5 --rna -c > ${testdir}/result.txt || die "eventalign failed"
