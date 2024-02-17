@@ -24,7 +24,7 @@ fi
 download_ecoli_2kb_region_big_testresults() {
 	mkdir -p test
 	tar_path=test/data.tgz
-	wget -O $tar_path "https://f5c.page.link/f5c_ecoli_2kb_region_big_testresults" || rm -rf $tar_path ${testdir}_big_testresults
+	wget -O $tar_path "https://f5c.bioinf.science/f5c_ecoli_2kb_region_big_testresults" || rm -rf $tar_path ${testdir}_big_testresults
 	echo "Extracting. Please wait."
 	tar -xf $tar_path -C test || rm -rf $tar_path ${testdir}_big_testresults
 	rm -f $tar_path

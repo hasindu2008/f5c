@@ -49,7 +49,7 @@ execute_test() {
 }
 
 testdir=test/hg2_lsk114_reads_1000
-download_test_set "https://f5c.page.link/hg2_lsk114_reads_1000"
+download_test_set "https://f5c.bioinf.science/hg2_lsk114_reads_1000"
 
 ./f5c eventalign -b ${testdir}/PGXX22394_reads_1000_6.4.2_sup.bam \
 		-r ${testdir}/PGXX22394_reads_1000_6.4.2_sup.fastq -g test/chr22_meth_example/humangenome.fa \
@@ -63,7 +63,7 @@ execute_test ${testdir}/result.txt ${testdir}/eventalign.sam 50
 
 
 testdir=test/rna
-download_test_set "https://f5c.page.link/f5c_rna_test"
+download_test_set "https://f5c.bioinf.science/f5c_rna_test"
 
 ./f5c eventalign -b ${testdir}/reads.sorted.bam -g ${testdir}/gencode.v35.transcripts.fa -r ${testdir}//reads.fastq  \
  --slow5 ${testdir}/reads.blow5 --rna -c > ${testdir}/result.txt || die "eventalign failed"
@@ -71,4 +71,15 @@ execute_test ${testdir}/result.txt ${testdir}/eventalign.paf 50
 
 ./f5c eventalign -b ${testdir}/reads.sorted.bam -g ${testdir}/gencode.v35.transcripts.fa -r ${testdir}//reads.fastq  \
  --slow5 ${testdir}/reads.blow5 --rna -a > ${testdir}/result.txt || die "eventalign failed"
+execute_test ${testdir}/result.txt ${testdir}/eventalign.sam 5
+
+testdir=test/uhr_rna004_1k
+download_test_set "https://f5c.bioinf.science/uhr_rna004_reads_1k"
+
+./f5c eventalign -b ${testdir}/PNXRXX240011_reads_1k.bam -g ${testdir}/gencode.v40.transcripts.fa -r ${testdir}/PNXRXX240011_reads_1k.fastq  \
+ --slow5 ${testdir}/PNXRXX240011_reads_1k.blow5 --rna -c > ${testdir}/result.txt || die "eventalign failed"
+execute_test ${testdir}/result.txt ${testdir}/eventalign.paf 50
+
+./f5c eventalign -b ${testdir}/PNXRXX240011_reads_1k.bam -g ${testdir}/gencode.v40.transcripts.fa -r ${testdir}/PNXRXX240011_reads_1k.fastq  \
+ --slow5 ${testdir}/PNXRXX240011_reads_1k.blow5  --rna -a > ${testdir}/result.txt || die "eventalign failed"
 execute_test ${testdir}/result.txt ${testdir}/eventalign.sam 5

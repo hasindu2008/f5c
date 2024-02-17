@@ -21,8 +21,8 @@ else
 fi
 # execution mode (valgrind/gdb/cpu/cuda/echo)
 mode=
-testset_url="https://f5c.page.link/f5c_ecoli_2kb_region_test"
-fallback_url="https://f5c.page.link/f5c_ecoli_2kb_region_test_fallback"
+testset_url="https://f5c.bioinf.science/f5c_ecoli_2kb_region_test"
+fallback_url="https://f5c.bioinf.science/f5c_ecoli_2kb_region_test_fallback"
 
 
 #############################################################################################
@@ -49,7 +49,7 @@ download_test_set() {
 download_ecoli_2kb_region_big_testresults() {
 	mkdir -p test
 	tar_path=test/data.tgz
-	wget -O $tar_path "https://f5c.page.link/f5c_ecoli_2kb_region_big_testresults" || rm -rf $tar_path ${testdir}_big_testresults
+	wget -O $tar_path "https://f5c.bioinf.science/f5c_ecoli_2kb_region_big_testresults" || rm -rf $tar_path ${testdir}_big_testresults
 	echo "Extracting. Please wait."
 	tar -xf $tar_path -C test || rm -rf $tar_path ${testdir}_big_testresults
 	rm -f $tar_path
@@ -136,13 +136,14 @@ mode_test() {
 
 help_msg() {
 	echo "Test script for f5c."
-	echo "Usage: f5c_dir/script/test_eventalign.sh [-c/-e] [-b bam file] [-g reference genome] [-r fastq/fasta read] mode"
+	echo "Usage: f5c_dir/script/test_eventalign.sh [-c/-e/-f/-z] [-b bam file] [-g reference genome] [-r fastq/fasta read] mode"
 	echo
 	echo "mode                 one of: valgrind/gdb/cpu/cuda/echo"
 	echo
 	echo "-c                   Uses chr22_meth_example test set."
 	echo "-e                   Uses rna test set."
-	echo "-f                   Uses hg2 datase."
+	echo "-f                   Uses hg2 dna r10 test set."
+	echo "-z                   Uses uhr rna004 test set."
 	echo "-b [bam file]        Same as f5c -b."
 	echo "-K [n]               Same as f5c -K."
 	echo "-B [n]               Same as f5c -B."
@@ -155,7 +156,7 @@ help_msg() {
 
 #############################################################################################
 # parse options and change defaults if necessary
-while getopts b:g:r:t:K:B:cdhef opt
+while getopts b:g:r:t:K:B:cdhefz opt
 do
 	case $opt in
 		b) bamfile="$OPTARG";;
@@ -166,27 +167,32 @@ do
 		   bamfile=${testdir}/reads.sorted.bam
 		   ref=${testdir}/humangenome.fa
 		   reads=${testdir}/reads.fastq
-		   testset_url="https://f5c.page.link/f5c_na12878_test"
-		   fallback_url="https://f5c.page.link/f5c_na12878_test_fallback";;
+		   testset_url="https://f5c.bioinf.science/f5c_na12878_test"
+		   fallback_url="https://f5c.bioinf.science/f5c_na12878_test_fallback";;
 		e) testdir=test/rna
 		   bamfile=${testdir}/reads.sorted.bam
 		   ref=${testdir}/gencode.v35.transcripts.fa
 		   reads=${testdir}/reads.fastq
-		   testset_url="https://f5c.page.link/f5c_rna_test"
-		   fallback_url="https://f5c.page.link/f5c_rna_test_fallback";;
+		   testset_url="https://f5c.bioinf.science/f5c_rna_test";;
 		f) testdir=test/hg2_lsk114_reads_1000
 		   reads=${testdir}/PGXX22394_reads_1000_6.4.2_sup.fastq
 		   slow5=${testdir}/PGXX22394_reads_1000.blow5
 		   ref=test/chr22_meth_example/humangenome.fa
 		   bamfile=${testdir}/PGXX22394_reads_1000_6.4.2_sup.bam
-		   testset_url="https://f5c.page.link/hg2_lsk114_reads_1000";;
+		   testset_url="https://f5c.bioinf.science/hg2_lsk114_reads_1000";;
+		z) testdir=test/uhr_rna004_1k
+		   reads=${testdir}/PNXRXX240011_reads_1k.fastq
+		   slow5=${testdir}/PNXRXX240011_reads_1k.blow5
+		   ref=${testdir}/gencode.v40.transcripts.fa
+		   bamfile=${testdir}/PNXRXX240011_reads_1k.bam
+		   testset_url="https://f5c.bioinf.science/uhr_rna004_1k";;
 		K) batchsize="$OPTARG";;
 		B) max_bases="$OPTARG";;
-		d) download_test_set "https://f5c.page.link/f5c_na12878_test" "https://f5c.page.link/f5c_na12878_test_fallback"
+		d) download_test_set "https://f5c.bioinf.science/f5c_na12878_test" "https://f5c.bioinf.science/f5c_na12878_test_fallback"
 		   exit 0;;
 		h) help_msg
 		   exit 0;;
-		?) printf "Usage: %s [-c] [-b bam file] [-g reference genome] [-r fastq/fasta read] args" "$0"
+		?) printf "Usage: %s [-c/-e/-f/-z] [-b bam file] [-g reference genome] [-r fastq/fasta read] args" "$0"
 		   exit 2;;
 	esac
 done
@@ -206,7 +212,7 @@ cmd="${exepath} eventalign -b ${bamfile} -g ${ref} -r ${reads} -t ${threads} -K 
 if [ $testdir = test/rna ]; then
 	${exepath} index -d ${testdir}/fast5_files ${reads}
 	cmd="${cmd}"" --rna"
-elif [ $testdir = test/hg2_lsk114_reads_1000 ]; then
+elif [ $testdir = test/hg2_lsk114_reads_1000 ] || [ $testdir = test/uhr_rna004_1k ] ; then
 	${exepath} index -t12 --slow5 ${slow5} ${reads}
 	cmd="${cmd}"" --slow5 ${slow5}"
 fi
@@ -216,7 +222,7 @@ if [ -z "$mode" ]; then
 	if [ $testdir = test/chr22_meth_example ]; then
 		${exepath} index -t12 --iop 12 -d ${testdir}/fast5_files/ ${reads}
 		${cmd} > /dev/null
-	elif [ $testdir = test/hg2_lsk114_reads_1000 ]; then
+	elif [ $testdir = test/hg2_lsk114_reads_1000 ] || [ $testdir = test/uhr_rna004_1k ] ; then
 		${exepath} index -t12 --slow5 ${slow5} ${reads}
 		${cmd} > ${testdir}/result.txt
 	else

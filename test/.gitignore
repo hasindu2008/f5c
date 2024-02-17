@@ -11,3 +11,5 @@ test/
 ecoli_2kb_region/reads.blow5.idx
 ecoli_2kb_region_vbz/
 rna-spliced/
+uhr_rna004_1k/
+hg2_lsk114_reads_1000/
