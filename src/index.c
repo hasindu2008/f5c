@@ -76,7 +76,7 @@ static const char *INDEX_USAGE_MESSAGE =
 "  --skip-slow5-idx  do not build the .idx for the slow5 file (useful when a slow5 index is already available)\n"
 "  --verbose INT     verbosity level\n"
 "  --version         print version\n"
-"\nSee the manual page for details (`man ./docs/f5c.1' or https://f5c.page.link/man)."
+"\nSee the manual page for details (`man ./docs/f5c.1' or https://f5c.bioinf.science/man)."
 "\n\n"
 ;
 

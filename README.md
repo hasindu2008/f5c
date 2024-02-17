@@ -1,8 +1,11 @@
 # f5c
 
-An optimised re-implementation of the *index*, *call-methylation* and *eventalign* modules in [Nanopolish](https://github.com/jts/nanopolish). Given a set of basecalled Nanopore reads and the raw signals, *f5c call-methylation* detects the methylated cytosine and *f5c eventalign* aligns raw nanopore signals (events) to the reference k-mers. *f5c* can optionally utilise NVIDIA graphics cards for acceleration. **f5c v1.2 onwards support the latest nanopore R10.4.1 chemistry (make sure to specify --pore r10 if input is FAST5, autodetected for S/BLOW5 input)**. For best performance and easy usability, it is recommended to use f5c on [BLOW5 format](https://www.nature.com/articles/s41587-021-01147-4). Use [slow5tools](https://github.com/hasindu2008/slow5tools) for FAST5->BLOW5 conversion and [blue-crab](https://github.com/Psy-Fer/blue-crab) for POD5->BLOW5 conversion.
+An optimised re-implementation of the *index*, *call-methylation* and *eventalign* modules in [Nanopolish](https://github.com/jts/nanopolish). Given a set of basecalled Nanopore reads and the raw signals, *f5c call-methylation* detects the methylated cytosine and *f5c eventalign* aligns raw nanopore signals (events) to the reference k-mers. *f5c* can optionally utilise NVIDIA graphics cards for acceleration. For best performance and easy usability, it is recommended to use f5c on [BLOW5 format](https://www.nature.com/articles/s41587-021-01147-4). Use [slow5tools](https://github.com/hasindu2008/slow5tools) for FAST5->BLOW5 conversion and [blue-crab](https://github.com/Psy-Fer/blue-crab) for POD5->BLOW5 conversion.
 
 First, the reads have to be indexed using `f5c index`. Then, invoke `f5c call-methylation` to detect methylated cytosine bases. Finally, you may use `f5c meth-freq` to obtain methylation frequencies. Alternatively, invoke `f5c eventalign` to perform event alignment. The results are almost the same as from nanopolish except a few differences due to floating point approximations.
+
+- **f5c v1.2 onwards support nanopore R10.4.1 chemistry (must specify --pore r10 if FAST5 input, autodetected for S/BLOW5 input)**.
+- **f5c v1.4 onwards support nanopore RNA004 chemistry (make specify --pore rna004 if FAST5 input, autodetected for S/BLOW5 input)**.
 
 *Full Documentation* : [https://hasindu2008.github.io/f5c/docs/overview](https://hasindu2008.github.io/f5c/docs/overview)<br/>
 *Latest release* : [https://github.com/hasindu2008/f5c/releases/latest](https://github.com/hasindu2008/f5c/releases/latest)<br/>
@@ -115,7 +118,7 @@ f5c index --slow5 [slow5_file] [read.fastq|fasta]	# for S/BLOW5
 # for S/BLOW5 (R9.4 or R10.4 DNA data)
 f5c call-methylation -b [reads.sorted.bam] -g [ref.fa] -r [reads.fastq|fasta] --slow5 [slow5_file] > [meth.tsv]
 # for FAST5, R9.4 DNA data
-f5c call-methylation -b [reads.sorted.bam] -g [ref.fa] -r [reads.fastq|fasta] > [meth.tsv] 
+f5c call-methylation -b [reads.sorted.bam] -g [ref.fa] -r [reads.fastq|fasta] > [meth.tsv]
 # for FAST5, R10.4 DNA data
 f5c call-methylation -b [reads.sorted.bam] -g [ref.fa] -r [reads.fastq|fasta] --pore r10 > [meth.tsv]
 # methylation frequency
@@ -131,6 +134,8 @@ f5c eventalign -b [reads.sorted.bam] -g [ref.fa] -r [reads.fastq|fasta]  > [even
 f5c eventalign -b [reads.sorted.bam] -g [ref.fa] -r [reads.fastq|fasta] --rna > [events.tsv]
 # for FAST5 (R10.4 DNA data)
 f5c eventalign -b [reads.sorted.bam] -g [ref.fa] -r [reads.fastq|fasta] --pore r10 > [events.tsv]
+# for FAST5 (RNA004 RNA data)
+f5c eventalign -b [reads.sorted.bam] -g [ref.fa] -r [reads.fastq|fasta] --pore rna004 --rna > [events.tsv]
 ```
 
 Visit the [man page](https://hasindu2008.github.io/f5c/docs/commands) for all the commands and options.
@@ -140,7 +145,7 @@ Visit the [man page](https://hasindu2008.github.io/f5c/docs/commands) for all th
 Follow the same steps as in [Nanopolish tutorial](https://nanopolish.readthedocs.io/en/latest/quickstart_call_methylation.html) while replacing `nanopolish` with `f5c`. If you only want to perform a quick test of f5c :
 ```sh
 #download and extract the dataset including sorted alignments
-wget -O f5c_na12878_test.tgz "https://f5c.page.link/f5c_na12878_test"
+wget -O f5c_na12878_test.tgz "https://f5c.bioinf.science/f5c_na12878_test"
 tar xf f5c_na12878_test.tgz
 
 ###### Using S/BLOW5 as input (recommended) ######

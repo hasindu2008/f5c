@@ -6,13 +6,13 @@
 ** @@
 ******************************************************************************/
 
-#include "model.h"
-#include "f5c.h"
-#include "f5cmisc.h"
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+#include "f5c.h"
+#include "f5cmisc.h"
+#include "model.h"
 
 //#define DEBUG_MODEL_PRINT 1
 
@@ -163,8 +163,12 @@ uint32_t set_model(model_t* model, uint32_t model_id) {
         num_kmer=1953125;
         inbuilt_model=r10_4_400bps_cpg_9mer_template_model_builtin_data;
         assert(num_kmer == (uint32_t)pow(5,kmer_size)); //num_kmer should be 5^kmer_size
-    }
-    else{
+    } else if (model_id==MODEL_ID_RNA_RNA004_NUCLEOTIDE){
+        kmer_size=9;
+        num_kmer=262144;
+        inbuilt_model=rna004_130bps_u_to_t_rna_9mer_template_model_builtin_data;
+        assert(num_kmer == (uint32_t)(1 << 2*kmer_size)); //num_kmer should be 4^kmer_size
+    } else{
         assert(0);
     }
 

@@ -56,7 +56,7 @@ int print_usage(FILE *fp_help){
     fprintf(fp_help,"         eventalign          Align nanopore events to reference k-mers (optimised nanopolish eventalign)\n");
     fprintf(fp_help,"         freq-merge          Merge calculated methylation frequency tsv files\n");
     fprintf(fp_help,"         resquiggle          Align raw signals to basecalled reads\n");
-    fprintf(fp_help,"\nSee the manual page for details (`man ./docs/f5c.1' or https://f5c.page.link/man).\n");
+    fprintf(fp_help,"\nSee the manual page for details (`man ./docs/f5c.1' or https://f5c.bioinf.science/man).\n");
     if(fp_help==stderr){
         exit(EXIT_FAILURE);
     }

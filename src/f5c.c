@@ -118,16 +118,18 @@ int8_t drna_detect(slow5_file_t *sp){
 int8_t pore_detect(slow5_file_t *sp){
 
     const slow5_hdr_t* hdr = sp->header;
-    int8_t r10 = 0;
+    int8_t pore = OPT_PORE_R9;
     char *kit =slow5_hdr_get("sequencing_kit", 0, hdr);
     if(kit==NULL){
         WARNING("%s","sequencing_kit not found in SLOW5 header. Assuming R9.4.1");
         return 0;
     }
-    if (strstr(kit,"114")==NULL){
-        r10 = 0;
+    if (strstr(kit,"114")!=NULL){
+        pore = OPT_PORE_R10;
+    } else if (strstr(kit,"rna004")!=NULL){
+        pore = OPT_PORE_RNA004;
     } else {
-        r10 = 1;
+        pore = OPT_PORE_R9;
     }
 
     for(uint32_t  i=1; i < hdr->num_read_groups; i++){
@@ -136,7 +138,7 @@ int8_t pore_detect(slow5_file_t *sp){
             WARNING("sequencing_kit type mismatch: %s != %s in read group %d. Defaulted to %s", curr, kit, i, kit);
         }
     }
-    return r10;
+    return pore;
 }
 
 /* initialise the core data structure */
@@ -255,9 +257,20 @@ core_t* init_core(const char* bamfilename, const char* fastafile,
             }
         }
 
-        if(opt.pore==NULL && pore_detect(core->sf)){
-            opt.flag |= F5C_R10;
-            if(opt.verbosity > 1) fprintf(stderr,"Detected R10 data. --pore r10 was set automatically.\n");
+
+        if(opt.pore==NULL){
+            int8_t pore = pore_detect(core->sf);
+            if(pore){
+                opt.flag |= F5C_R10;
+                if(opt.verbosity > 1) {
+                    if (pore == OPT_PORE_R10) fprintf(stderr,"Detected R10 data. --pore r10 was set automatically.\n");
+                    if (pore == OPT_PORE_RNA004) fprintf(stderr,"Detected RNA004 data. --pore rna004 was set automatically.\n");
+                    if (pore == OPT_PORE_R10 && (opt.flag & F5C_RNA)){
+                        ERROR("%s","R10 RNA data does not exist! But header header indicates that the data is R10 RNA.");
+                        exit(EXIT_FAILURE);
+                    }
+                }
+            }
         }
     }
 
@@ -287,8 +300,8 @@ core_t* init_core(const char* bamfilename, const char* fastafile,
     } else {
         if(opt.flag & F5C_RNA){
             if(opt.flag & F5C_R10){
-                ERROR("%s","RNA R10 model is not available");
-                exit(EXIT_FAILURE);
+                INFO("%s","builtin RNA004 nucleotide model loaded");
+                kmer_size=set_model(core->model, MODEL_ID_RNA_RNA004_NUCLEOTIDE);
             } else {
                 INFO("%s","builtin RNA R9 nucleotide model loaded");
                 kmer_size=set_model(core->model, MODEL_ID_RNA_R9_NUCLEOTIDE);

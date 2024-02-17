@@ -21,7 +21,7 @@ print() {
     echo -e "${GREEN}$1${NC}" >&2
 }
 
-MANUAL_LINK="https://f5c.page.link/troubleshoot"
+MANUAL_LINK="https://f5c.bioinf.science/troubleshoot"
 
 uname -o || die "Could not determine the O/S. See ${MANUAL_LINK}"
 uname -m || die "Could not determine the architecture. See ${MANUAL_LINK}"
