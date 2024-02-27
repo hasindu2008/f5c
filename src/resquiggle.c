@@ -339,6 +339,7 @@ void output_db_rsq(core_t* core, db_t* db, int8_t fmt) {
             int8_t ff = 1; //first start flag
             int matches = 0;
             int8_t rna = core->opt.flag & F5C_RNA;
+            int64_t count_samples = 0;
 
             if (rna){
                 for (int j = 0; j < n_kmers/2; ++j) {
@@ -372,6 +373,7 @@ void output_db_rsq(core_t* core, db_t* db, int8_t fmt) {
                     if(ff) {
                         signal_start_point2 = signal_start_point;
                         read_start = j;
+                        ci = signal_start_point;
                         ff=0;
                     }
                     signal_end_point2=signal_end_point = et.event[end_event_idx].start + (int)et.event[end_event_idx].length; //non-inclusive
@@ -383,12 +385,16 @@ void output_db_rsq(core_t* core, db_t* db, int8_t fmt) {
                         }
                         if(j==0) ci = signal_start_point;
                         ci += (mi =  signal_start_point - ci);
-                        if(mi) sprintf_append(sp,"%dI",(int)mi);
+                        if(mi) {
+                            sprintf_append(sp, "%dI", (int)mi);
+                            count_samples += mi;
+                        }
                         ci += (mi = signal_end_point-signal_start_point);
 
                         if(mi) {
                             matches++;
                             sprintf_append(sp,"%d,",(int)mi);
+                            count_samples += mi;
                         }
                     }
 
@@ -420,7 +426,7 @@ void output_db_rsq(core_t* core, db_t* db, int8_t fmt) {
             }
 
             if(fmt==1){
-
+                assert(count_samples==(signal_end_point2-signal_start_point2));
                 assert(n_kmers>0);
                 str.s[str.l] = '\0';
 
