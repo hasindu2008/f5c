@@ -2222,8 +2222,8 @@ char *emit_event_alignment_tsv_m6anet(uint32_t strand_idx,
             model_stdv = model1.level_stdv;
         }
 
-        //uint64_t start_idx = (et->event)[ea.event_idx].start; //inclusive
-        //uint64_t end_idx = (et->event)[ea.event_idx].start + (uint64_t)((et->event)[ea.event_idx].length); //non-inclusive
+        uint64_t start_idx = (et->event)[ea.event_idx].start; //inclusive
+        uint64_t end_idx = (et->event)[ea.event_idx].start + (uint64_t)((et->event)[ea.event_idx].length); //non-inclusive
 
 
         n_collapse = 0;
@@ -2248,27 +2248,7 @@ char *emit_event_alignment_tsv_m6anet(uint32_t strand_idx,
         event_stdv /= length;
         event_duration /= length;
 
-        // if(scale_events) {
 
-        //     // scale reads to the model
-        //     event_mean = get_fully_scaled_level(event_mean, scalings);
-
-        //     // unscaled model parameters
-        //     if(ea.hmm_state != 'B') {
-        //         model_t model1 = model[rank];
-        //         model_mean = model1.level_mean;
-        //         model_stdv = model1.level_stdv;
-        //     }
-        // } else {
-
-        //     // scale model to the reads
-        //     if(ea.hmm_state != 'B') {
-
-        //         model_t model1 = get_scaled_gaussian_from_pore_model_state(model, scalings, rank);
-        //         model_mean = model1.level_mean;
-        //         model_stdv = model1.level_stdv;
-        //     }
-        // }
 
         float standard_level = (event_mean - model_mean) / (sqrt(scalings.var) * model_stdv);
         sprintf_append(sp, "%d\t%.2f\t%.3f\t%.5f\t", ea.event_idx, event_mean, event_stdv, event_duration);
@@ -2277,20 +2257,23 @@ char *emit_event_alignment_tsv_m6anet(uint32_t strand_idx,
                                                model_stdv,
                                                standard_level);
 
-        // if(write_signal_index) {
-        //     sprintf_append(sp, "\t%lu\t%lu", start_idx, end_idx);
-        // }
+        if(write_signal_index) {
+            if(n_collapse > 1){
+                uint64_t start_idx1 = start_idx;
+                uint64_t end_idx1 = end_idx;
 
-        // if(write_samples) {
-        //     std::vector<float> samples = get_scaled_samples(rawptr, start_idx, end_idx, scalings);
-        //     std::stringstream sample_ss;
-        //     std::copy(samples.begin(), samples.end(), std::ostream_iterator<float>(sample_ss, ","));
+                const event_alignment_t& ea2 = alignments[i+n_collapse-1];
+                uint64_t start_idx2 =  (et->event)[ea2.event_idx].start;
+                uint64_t end_idx2 = (et->event)[ea2.event_idx].start + (uint64_t)((et->event)[ea2.event_idx].length);
 
-        //     // remove trailing comma
-        //     std::string sample_str = sample_ss.str();
-        //     sample_str.resize(sample_str.size() - 1);
-        //     sprintf_append(sp, "\t%s", sample_str.c_str());
-        // }
+                //min
+                start_idx =  start_idx1 < start_idx2 ? start_idx1 : start_idx2;
+                //max
+                end_idx = end_idx1 > end_idx2 ? end_idx1 : end_idx2;
+            }
+            sprintf_append(sp, "\t%lu\t%lu", start_idx, end_idx);
+        }
+
         sprintf_append(sp, "\n");
     }
 

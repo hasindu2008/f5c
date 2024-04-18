@@ -601,7 +601,7 @@ int meth_main(int argc, char* argv[], int8_t mode) {
         } else if (paf_output){
             //none
         } else if (m6anet_output){
-            emit_event_alignment_tsv_header(stdout, 0, 0, 0);
+            emit_event_alignment_tsv_header(stdout, print_read_names, 0, write_signal_index);
         } else{
             emit_event_alignment_tsv_header(stdout, print_read_names, write_samples, write_signal_index);
         }
