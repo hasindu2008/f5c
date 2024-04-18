@@ -863,6 +863,7 @@ void eventalign_single(core_t* core, db_t* db, int32_t i){
     int8_t write_signal_index = (core->opt.flag & F5C_PRINT_SIGNAL_INDEX) ? 1 : 0;
     int8_t sam_output = (core->opt.flag & F5C_SAM) ? 1 : 0;
     int8_t paf_output = (core->opt.flag & F5C_PAF) ? 1 : 0;
+    int8_t m6anet_output = (core->opt.flag & F5C_M6ANET) ? 1 : 0;
     int8_t rna = (core->opt.flag & F5C_RNA) ? 1 : 0;
 
     if(paf_output){
@@ -872,6 +873,9 @@ void eventalign_single(core_t* core, db_t* db, int32_t i){
         int8_t sam_out_version = core->opt.sam_out_version;
         int64_t ref_len = core->m_hdr->target_len[db->bam_rec[i]->core.tid];
         db->event_alignment_result_str[i] = emit_event_alignment_sam(qname, core->m_hdr, db->bam_rec[i], *event_alignment_result, sam_out_version, &(db->et[i]), db->sig[i]->nsample, ref_len, rna, db->scalings[i]);
+    } else if (m6anet_output){
+        db->event_alignment_result_str[i] = emit_event_alignment_tsv_m6anet(0,&(db->et[i]),core->model,core->kmer_size, db->scalings[i],*event_alignment_result, print_read_names, scale_events, write_samples, write_signal_index, collapse_events,
+                   db->read_idx[i], qname, contig, db->sig[i]->sample_rate, db->sig[i]->rawptr);
     } else {
         db->event_alignment_result_str[i] = emit_event_alignment_tsv(0,&(db->et[i]),core->model,core->kmer_size, db->scalings[i],*event_alignment_result, print_read_names, scale_events, write_samples, write_signal_index, collapse_events,
                    db->read_idx[i], qname, contig, db->sig[i]->sample_rate, db->sig[i]->rawptr);

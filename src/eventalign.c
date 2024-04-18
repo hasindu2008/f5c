@@ -2161,6 +2161,144 @@ char *emit_event_alignment_tsv(uint32_t strand_idx,
     return sp->s;
 }
 
+//cleanup unused function param shit
+char *emit_event_alignment_tsv_m6anet(uint32_t strand_idx,
+                              const event_table* et, model_t* model, uint32_t kmer_size, scalings_t scalings,
+                              const std::vector<event_alignment_t>& alignments,
+                              int8_t print_read_names, int8_t scale_events, int8_t write_samples, int8_t write_signal_index, int8_t collapse,
+                              int64_t read_index, char* read_name, char *ref_name,float sample_rate, float *rawptr)
+{
+
+    kstring_t str;
+    kstring_t *sp = &str;
+    str_init(sp, sizeof(char)*alignments.size()*120);
+
+    size_t n_collapse = 1;
+    for(size_t i = 0; i < alignments.size(); i+=n_collapse) {
+
+        const event_alignment_t& ea = alignments[i];
+
+        // basic information
+        if (!print_read_names)
+        {
+            sprintf_append(sp, "%s\t%d\t%s\t%ld\t%c\t",
+                    ref_name, //ea.ref_name.c_str(),
+                    ea.ref_position,
+                    ea.ref_kmer,
+                    (long)read_index,
+                    't'); //"tc"[ea.strand_idx]);
+        }
+        else
+        {
+            sprintf_append(sp, "%s\t%d\t%s\t%s\t%c\t",
+                    ref_name, //ea.ref_name.c_str(),
+                    ea.ref_position,
+                    ea.ref_kmer,
+                    read_name, //sr.read_name.c_str(),
+                    't'); //"tc"[ea.strand_idx]);
+        }
+
+        // event information
+        uint64_t length = 0;
+        float event_mean = 0;
+        float event_stdv = 0;
+        float event_duration = 0;
+
+        // if(strcmp(ea.ref_kmer,ea.model_kmer)==0){ //the ref and model kmers should match
+        //     uint64_t len_curr = (uint64_t)((et->event)[ea.event_idx].length);
+        //     length += len_curr;
+        //     event_mean += get_fully_scaled_level((et->event)[ea.event_idx].mean,scalings) * len_curr;
+        //     event_stdv += (et->event)[ea.event_idx].stdv * len_curr;
+        //     event_duration += get_duration_seconds(et, ea.event_idx, sample_rate) * len_curr;
+        // }
+
+        uint32_t rank = get_kmer_rank(ea.model_kmer, kmer_size);
+        float model_mean = 0.0;
+        float model_stdv = 0.0;
+        // unscaled model parameters
+        if(ea.hmm_state != 'B') {
+            model_t model1 = model[rank];
+            model_mean = model1.level_mean;
+            model_stdv = model1.level_stdv;
+        }
+
+        //uint64_t start_idx = (et->event)[ea.event_idx].start; //inclusive
+        //uint64_t end_idx = (et->event)[ea.event_idx].start + (uint64_t)((et->event)[ea.event_idx].length); //non-inclusive
+
+
+        n_collapse = 0;
+        while (i + n_collapse < alignments.size() && ea.ref_position ==  alignments[i+n_collapse].ref_position){
+            assert(strcmp(ea.ref_kmer,alignments[i+n_collapse].ref_kmer)==0);
+            // if(strcmp(ea.model_kmer,alignments[i+n_collapse].model_kmer)!=0){ //TODO: NNNN kmers must be handled
+            //     fprintf(stderr, "model kmer does not match! %s vs %s\n",ea.model_kmer,alignments[i+n_collapse].model_kmer);
+            // }
+            const event_alignment_t& ea_curr = alignments[i+n_collapse];
+
+            if(strcmp(ea_curr.ref_kmer,ea_curr.model_kmer)==0){ //the ref and model kmers should match
+                uint64_t len_curr = (uint64_t)((et->event)[ea_curr.event_idx].length);
+                length += len_curr;
+                event_mean += get_fully_scaled_level((et->event)[ea_curr.event_idx].mean,scalings) * len_curr;
+                event_stdv += (et->event)[ea_curr.event_idx].stdv * len_curr;
+                event_duration += get_duration_seconds(et, ea_curr.event_idx, sample_rate) * len_curr;
+            }
+
+            n_collapse++;
+        }
+        event_mean /= length;
+        event_stdv /= length;
+        event_duration /= length;
+
+        // if(scale_events) {
+
+        //     // scale reads to the model
+        //     event_mean = get_fully_scaled_level(event_mean, scalings);
+
+        //     // unscaled model parameters
+        //     if(ea.hmm_state != 'B') {
+        //         model_t model1 = model[rank];
+        //         model_mean = model1.level_mean;
+        //         model_stdv = model1.level_stdv;
+        //     }
+        // } else {
+
+        //     // scale model to the reads
+        //     if(ea.hmm_state != 'B') {
+
+        //         model_t model1 = get_scaled_gaussian_from_pore_model_state(model, scalings, rank);
+        //         model_mean = model1.level_mean;
+        //         model_stdv = model1.level_stdv;
+        //     }
+        // }
+
+        float standard_level = (event_mean - model_mean) / (sqrt(scalings.var) * model_stdv);
+        sprintf_append(sp, "%d\t%.2f\t%.3f\t%.5f\t", ea.event_idx, event_mean, event_stdv, event_duration);
+        sprintf_append(sp, "%s\t%.2f\t%.2f\t%.2f", ea.model_kmer,
+                                               model_mean,
+                                               model_stdv,
+                                               standard_level);
+
+        // if(write_signal_index) {
+        //     sprintf_append(sp, "\t%lu\t%lu", start_idx, end_idx);
+        // }
+
+        // if(write_samples) {
+        //     std::vector<float> samples = get_scaled_samples(rawptr, start_idx, end_idx, scalings);
+        //     std::stringstream sample_ss;
+        //     std::copy(samples.begin(), samples.end(), std::ostream_iterator<float>(sample_ss, ","));
+
+        //     // remove trailing comma
+        //     std::string sample_str = sample_ss.str();
+        //     sample_str.resize(sample_str.size() - 1);
+        //     sprintf_append(sp, "\t%s", sample_str.c_str());
+        // }
+        sprintf_append(sp, "\n");
+    }
+
+
+    //str_free(sp); //freeing is later done in free_db_tmp()
+    return sp->s;
+}
+
 
 char *emit_event_alignment_paf(const event_table* et,  int64_t len_raw_signal, int64_t ref_len, uint32_t kmer_size, scalings_t scalings,
                               const std::vector<event_alignment_t>& alignments, bam1_t* bam_record, char* read_name, char *ref_name, int8_t rna)

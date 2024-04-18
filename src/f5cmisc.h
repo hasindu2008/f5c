@@ -80,6 +80,11 @@ char *emit_event_alignment_tsv(uint32_t strand_idx,
                               const std::vector<event_alignment_t>& alignments,
                               int8_t print_read_names, int8_t scale_events, int8_t write_samples, int8_t write_signal_index, int8_t collapse,
                               int64_t read_index, char* read_name, char *ref_name, float sample_rate, float *samples);
+char *emit_event_alignment_tsv_m6anet(uint32_t strand_idx,
+                              const event_table* et, model_t* model, uint32_t kmer_size,  scalings_t scalings,
+                              const std::vector<event_alignment_t>& alignments,
+                              int8_t print_read_names, int8_t scale_events, int8_t write_samples, int8_t write_signal_index, int8_t collapse,
+                              int64_t read_index, char* read_name, char *ref_name, float sample_rate, float *samples);
 void emit_event_alignment_tsv_header(FILE* fp, int8_t print_read_names, int8_t write_samples, int8_t write_signal_index);
 void emit_sam_header(samFile* fp, const bam_hdr_t* hdr);
 char *emit_event_alignment_sam(char* read_name, bam_hdr_t* base_hdr, bam1_t* base_record,
