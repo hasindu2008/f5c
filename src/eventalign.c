@@ -1659,6 +1659,20 @@ void emit_event_alignment_tsv_header(FILE* fp, int8_t print_read_names, int8_t w
     fprintf(fp, "\n");
 }
 
+// Note: reference_kmer will be same as the model_kmer in this mode
+// Also, event_level_mean and event_stdv are always scaled to the model (--scale-events is implicit)
+void emit_event_alignment_tsv_m6anet_header(FILE* fp, int8_t print_read_names, int8_t write_signal_index)
+{
+    fprintf(fp, "%s\t%s\t%s\t%s\t", "contig", "position", "reference_kmer",
+            (print_read_names? "read_name" : "read_index"));
+    fprintf(fp, "%s\t%s\t%s\t", "event_level_mean", "event_stdv", "event_length");
+
+    if(write_signal_index) {
+        fprintf(fp, "\t%s\t%s", "start_idx", "end_idx");
+    }
+
+    fprintf(fp, "\n");
+}
 
 typedef struct {
     uint64_t start_raw;
@@ -2161,6 +2175,13 @@ char *emit_event_alignment_tsv(uint32_t strand_idx,
     return sp->s;
 }
 
+// algo:
+// 1. Remove rows in eventalign.tsv where reference kmer does not match model kmer
+// 2. For each row in eventalign.tsv, length of each event = end_idx - start_idx
+// 3. Group by each read and each reference position
+//    - collapsed_event_level_mean = sum(event_level_mean * length) / sum(length)
+//    - collapsed_event_stdv = sum(event_stdv * length) / sum(length)
+//    - collapsed_event_duration = sum(event_duration * length) / sum(length)
 //cleanup unused function param shit
 char *emit_event_alignment_tsv_m6anet(uint32_t strand_idx,
                               const event_table* et, model_t* model, uint32_t kmer_size, scalings_t scalings,
@@ -2181,21 +2202,20 @@ char *emit_event_alignment_tsv_m6anet(uint32_t strand_idx,
         // basic information
         if (!print_read_names)
         {
-            sprintf_append(sp, "%s\t%d\t%s\t%ld\t%c\t",
+            sprintf_append(sp, "%s\t%d\t%s\t%ld\t",
                     ref_name, //ea.ref_name.c_str(),
                     ea.ref_position,
                     ea.ref_kmer,
-                    (long)read_index,
-                    't'); //"tc"[ea.strand_idx]);
+                    (long)read_index);
         }
         else
         {
-            sprintf_append(sp, "%s\t%d\t%s\t%s\t%c\t",
+            sprintf_append(sp, "%s\t%d\t%s\t%s\t",
                     ref_name, //ea.ref_name.c_str(),
                     ea.ref_position,
                     ea.ref_kmer,
-                    read_name, //sr.read_name.c_str(),
-                    't'); //"tc"[ea.strand_idx]);
+                    read_name //sr.read_name.c_str(),
+                    );
         }
 
         // event information
@@ -2212,15 +2232,15 @@ char *emit_event_alignment_tsv_m6anet(uint32_t strand_idx,
         //     event_duration += get_duration_seconds(et, ea.event_idx, sample_rate) * len_curr;
         // }
 
-        uint32_t rank = get_kmer_rank(ea.model_kmer, kmer_size);
-        float model_mean = 0.0;
-        float model_stdv = 0.0;
-        // unscaled model parameters
-        if(ea.hmm_state != 'B') {
-            model_t model1 = model[rank];
-            model_mean = model1.level_mean;
-            model_stdv = model1.level_stdv;
-        }
+        // uint32_t rank = get_kmer_rank(ea.model_kmer, kmer_size);
+        // float model_mean = 0.0;
+        // float model_stdv = 0.0;
+        // // unscaled model parameters
+        // if(ea.hmm_state != 'B') {
+        //     model_t model1 = model[rank];
+        //     model_mean = model1.level_mean;
+        //     model_stdv = model1.level_stdv;
+        // }
 
         uint64_t start_idx = (et->event)[ea.event_idx].start; //inclusive
         uint64_t end_idx = (et->event)[ea.event_idx].start + (uint64_t)((et->event)[ea.event_idx].length); //non-inclusive
@@ -2249,13 +2269,12 @@ char *emit_event_alignment_tsv_m6anet(uint32_t strand_idx,
         event_duration /= length;
 
 
-
-        float standard_level = (event_mean - model_mean) / (sqrt(scalings.var) * model_stdv);
-        sprintf_append(sp, "%d\t%.2f\t%.3f\t%.5f\t", ea.event_idx, event_mean, event_stdv, event_duration);
-        sprintf_append(sp, "%s\t%.2f\t%.2f\t%.2f", ea.model_kmer,
-                                               model_mean,
-                                               model_stdv,
-                                               standard_level);
+        // float standard_level = (event_mean - model_mean) / (sqrt(scalings.var) * model_stdv);
+        sprintf_append(sp, "%.2f\t%.3f\t%.5f\t", event_mean, event_stdv, event_duration);
+        // sprintf_append(sp, "%s\t%.2f\t%.2f\t%.2f", ea.model_kmer,
+        //                                        model_mean,
+        //                                        model_stdv,
+        //                                        standard_level);
 
         if(write_signal_index) {
             if(n_collapse > 1){
