@@ -722,7 +722,7 @@ void event_single(core_t* core,db_t* db, int32_t i) {
 
         //allocate memory for the next alignment step
         db->event_align_pairs[i] = (AlignedPair*)malloc(
-                    sizeof(AlignedPair) * db->et[i].n * 2); //todo : find a good heuristic to save memory
+                    sizeof(AlignedPair) * (db->et[i].n + db->read_len[i]));
         MALLOC_CHK(db->event_align_pairs[i]);
     }
     else{
