@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: '**'
 
+env:
+  ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
+
 jobs:
   ubuntu_14_local_hts:
     name: ubuntu 14 local hts
@@ -103,9 +106,9 @@ jobs:
       run: export PATH=/usr/local/cuda/bin:${PATH} && autoreconf && ./scripts/install-hts.sh && ./configure && make cuda=1 -j8
     - name: test
       run: make test || scripts/test.sh custom --disable-cuda=yes
-  os_x_11:
-    name: OSX 11
-    runs-on: macos-11
+  os_x_12:
+    name: OSX 12
+    runs-on: macos-12
     steps:
     - uses: actions/checkout@v2
     - name: install packages
@@ -114,9 +117,9 @@ jobs:
       run: autoreconf --install && ./scripts/install-hts.sh && ./configure && make -j8
     - name: test
       run: make test
-  os_x_11_2:
-    name: OSX 11 hdf5 install script
-    runs-on: macos-11
+  os_x_12_2:
+    name: OSX 12 hdf5 install script
+    runs-on: macos-12
     steps:
     - uses: actions/checkout@v2
     - name: install packages

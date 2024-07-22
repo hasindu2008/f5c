@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [ dev ]
 
+env:
+  ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
+
 jobs:
   ubuntu_14:
     name: ubuntu_14
