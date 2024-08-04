@@ -86,6 +86,19 @@ jobs:
       run: autoreconf --install && ./scripts/install-hts.sh && ./configure --disable-hdf5 && make -j8 disable_hdf5=1
     - name: test
       run: test/test_slow5.sh
+  ubuntu_24:
+    name: Ubuntu 24
+    runs-on: ubuntu-24.04
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        submodules: recursive
+    - name: install packages
+      run: sudo apt-get update && sudo apt-get install -y zlib1g-dev
+    - name: build
+      run: autoreconf --install && ./scripts/install-hts.sh && ./configure --disable-hdf5 && make -j8 disable_hdf5=1
+    - name: test
+      run: test/test_slow5.sh
   ubuntu_14_cuda_6_5:
     name: Ubuntu 14 cuda 6.5
     runs-on: ubuntu-20.04
@@ -128,6 +141,28 @@ jobs:
       run: autoreconf --install && CC=gcc CXX=g++ CFLAGS="-Wno-implicit-function-declaration" ./scripts/install-hdf5.sh  && ./scripts/install-hts.sh && ./configure --enable-localhdf5  && make -j8
     - name: test
       run: make test
+  os_x_13:
+    name: OSX 13
+    runs-on: macos-13
+    steps:
+    - uses: actions/checkout@v2
+    - name: install packages
+      run: brew install hdf5 autoconf automake
+    - name: build
+      run: autoreconf --install && ./scripts/install-hts.sh && ./configure && make -j8
+    - name: test
+      run: make test
+  os_x_14:
+    name: OSX 14
+    runs-on: macos-14
+    steps:
+    - uses: actions/checkout@v2
+    - name: install packages
+      run: brew install hdf5 autoconf automake
+    - name: build
+      run: autoreconf --install && ./scripts/install-hts.sh && ./configure && make -j8 disable_hdf5=1
+    - name: test
+      run: test/test_slow5.sh
   ubuntu_arm:
     name: ubuntu arm
     runs-on: ubuntu-latest

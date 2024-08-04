@@ -17,6 +17,7 @@
 
 extern enum slow5_log_level_opt  slow5_log_level;
 extern enum slow5_exit_condition_opt  slow5_exit_condition;
+extern int8_t slow5_bigend;
 
 /* zlib */
 static int zlib_init_deflate(z_stream *strm);
@@ -1052,6 +1053,11 @@ static uint8_t *ptr_compress_svb(const uint32_t *ptr, size_t count, size_t *n) {
 
 /* return NULL on malloc error, n cannot be NULL */
 static uint8_t *ptr_compress_svb_zd(const int16_t *ptr, size_t count, size_t *n) {
+
+    if(slow5_bigend){
+        SLOW5_ERROR_EXIT("%s","Compression of SVB-ZD on big-endian architectures is not supported yet.");
+    }
+
     uint32_t length = count / sizeof *ptr;
     int32_t *in = (int32_t *) malloc(length * sizeof *in);
     if (!in) {
@@ -1108,6 +1114,10 @@ static uint32_t *ptr_depress_svb(const uint8_t *ptr, size_t count, size_t *n) {
 
 /* return NULL on malloc error, n cannot be NULL */
 static int16_t *ptr_depress_svb_zd(const uint8_t *ptr, size_t count, size_t *n) {
+
+    if(slow5_bigend){
+        SLOW5_ERROR_EXIT("%s","Decompression of SVB-ZD on big-endian architectures is not supported yet.");
+    }
 
     uint32_t *diff = ptr_depress_svb(ptr, count, n);
     if (!diff) {

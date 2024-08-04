@@ -624,6 +624,10 @@ void slow5_set_log_level(enum slow5_log_level_opt log_level);
 //sets a global variable, so not thread safe
 void slow5_set_exit_condition(enum slow5_exit_condition_opt exit_condition);
 
+//experimental
+/* no error messages printed and not exit when a requested read ID is not found in index*/
+// being tested, do not use until added to documentation
+void slow5_set_skip_rid();
 
 //get the list of hdr data keys in sorted order (only the returned pointer must be freed, not the ones inside - subjet to change)
 //len is the numberof elements

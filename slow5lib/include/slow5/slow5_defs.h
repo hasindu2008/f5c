@@ -44,7 +44,7 @@ The API documentation is available at https://hasindu2008.github.io/slow5tools/
 */
 
 // library version
-#define SLOW5_LIB_VERSION "1.2.0-beta"
+#define SLOW5_LIB_VERSION "1.2.0"
 
 // maximum file version supported by this library - independent of slow5 library version above
 // if updating change all 4 below

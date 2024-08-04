@@ -6,10 +6,13 @@
 //#include "slow5.h"
 #include "slow5_extra.h"
 #include "slow5_misc.h"
+#include "slow5_byte.h"
 //#include "slow5_error.h"
 
 extern enum slow5_log_level_opt  slow5_log_level;
 extern enum slow5_exit_condition_opt  slow5_exit_condition;
+extern int8_t slow5_bigend;
+extern int8_t slow5_skip_rid;
 
 #define BUF_INIT_CAP (20*1024*1024)
 #define SLOW5_INDEX_BUF_INIT_CAP (64) // 2^6 TODO is this too little?
@@ -270,6 +273,7 @@ static int slow5_idx_build(struct slow5_idx *index, struct slow5_file *s5p) {
                 }
                 return slow5_errno;
             }
+            SLOW5_BYTE_SWAP(&record_size); //if bigendian
 
             size = sizeof record_size + record_size;
 
@@ -388,10 +392,16 @@ int slow5_idx_write(struct slow5_idx *index, struct slow5_version version) {
         struct slow5_rec_idx read_index = kh_value(index->hash, pos);
 
         slow5_rid_len_t read_id_len = strlen(index->ids[i]);
-        if (fwrite(&read_id_len, sizeof read_id_len, 1, index->fp) != 1 ||
-                fwrite(index->ids[i], sizeof *index->ids[i], read_id_len, index->fp) != read_id_len ||
-                fwrite(&read_index.offset, sizeof read_index.offset, 1, index->fp) != 1 ||
-                fwrite(&read_index.size, sizeof read_index.size, 1, index->fp) != 1) {
+        if (SLOW5_FWRITE(&read_id_len, sizeof read_id_len, 1, index->fp) != 1){
+            return SLOW5_ERR_IO;
+        }
+        if (fwrite(index->ids[i], sizeof *index->ids[i], read_id_len, index->fp) != read_id_len){
+            return SLOW5_ERR_IO;
+        }
+        if (SLOW5_FWRITE(&read_index.offset, sizeof read_index.offset, 1, index->fp) != 1 ){
+            return SLOW5_ERR_IO;
+        }
+        if (SLOW5_FWRITE(&read_index.size, sizeof read_index.size, 1, index->fp) != 1) {
             return SLOW5_ERR_IO;
         }
     }
@@ -434,7 +444,7 @@ int slow5_idx_read(struct slow5_idx *index) {
 
     while (1) {
         slow5_rid_len_t read_id_len;
-        if (fread(&read_id_len, sizeof read_id_len, 1, index->fp) != 1) {
+        if (SLOW5_FREAD(&read_id_len, sizeof read_id_len, 1, index->fp) != 1) {
             SLOW5_ERROR("Malformed slow5 index. Failed to read the read ID length.%s", feof(index->fp) ? " Missing index end of file marker." : "");
             if (feof(index->fp)) {
                 slow5_errno = SLOW5_ERR_TRUNC;
@@ -472,8 +482,8 @@ int slow5_idx_read(struct slow5_idx *index) {
         uint64_t offset;
         uint64_t size;
 
-        if (fread(&offset, sizeof offset, 1, index->fp) != 1 ||
-                fread(&size, sizeof size, 1, index->fp) != 1) {
+        if (SLOW5_FREAD(&offset, sizeof offset, 1, index->fp) != 1 ||
+                SLOW5_FREAD(&size, sizeof size, 1, index->fp) != 1) {
             return SLOW5_ERR_IO;
         }
 
@@ -526,7 +536,9 @@ int slow5_idx_get(struct slow5_idx *index, const char *read_id, struct slow5_rec
 
     khint_t pos = kh_get(slow5_s2i, index->hash, read_id);
     if (pos == kh_end(index->hash)) {
-        SLOW5_ERROR("Read ID '%s' was not found.", read_id)
+        if (slow5_skip_rid == 0) {
+            SLOW5_ERROR("Read ID '%s' was not found.", read_id)
+        }
         ret = -1;
     } else if (read_index) {
         *read_index = kh_value(index->hash, pos);

@@ -12,8 +12,6 @@ extern "C" {
  ***  Easy Multi-thread API *************************************************************************
  **************************************************************************************************/
 
-/**************** This API is still in beta stage, there could be bugs *************************/
-
 /*
 This is a easy multi-thread API that can fetch a batch of slow5 records using multiple threads in parallel.
 This API uses a fork-join thread model. It is not meant to be used by a programmer who has the expertise to write multi-threaded code and use the slow5 low-level API directly.

@@ -11,8 +11,8 @@ extern "C" {
 #endif
 
 /*
-IMPORTANT: The low-level API is not yet finalised or documented and is only for internal use.
-If anyone is interested, please open a GitHub issue, rather than trying to figure out from the code.
+IMPORTANT: These are functions for internal use.
+If anyone is interested in getting any of these functions exposed, please open a GitHub issue.
 Function prototypes can be changed without notice or completely removed. So do NOT use these functions in your code.
 these functions are used by slow5tools and pyslow5 - so any change to a function here means slow5tools and pyslow5 must be fixed.
 */
