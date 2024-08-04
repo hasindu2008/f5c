@@ -57,6 +57,7 @@
 #define F5C_COLLAPSE_EVENTS 0x20000 //collapse events
 #define F5C_R10 0x40000 //r10
 #define F5C_PAF 0x80000 //paf (eventalign only)
+#define F5C_M6ANET 0x100000 //m6anet (eventalign only)
 
 /*************************************************************
  * flags for a read status (related to db_t->read_stat_flag) *

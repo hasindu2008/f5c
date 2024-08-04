@@ -105,6 +105,7 @@ static struct option long_options[] = {
     {"pore",required_argument,0,0},                //46 pore
     {"paf",no_argument,0,'c'},                     //47 if print in paf format (only for eventalign)
     {"sam-out-version",required_argument,0,0},     //48 specify the version of the sam output for eventalign (eventalign only)
+    {"m6anet",no_argument,0,0},                    //49 m6anet output (eventalign only)
     {0, 0, 0, 0}};
 
 
@@ -447,6 +448,12 @@ int meth_main(int argc, char* argv[], int8_t mode) {
                 exit(EXIT_FAILURE);
             }
             is_sam_out_version_set = 1;
+        } else if (c == 0 && longindex == 49){ //m6anet output
+            if(mode!=1){
+                ERROR("%s","Option --m6anet is available only in eventalign");
+                exit(EXIT_FAILURE);
+            }
+            yes_or_no(&opt, F5C_M6ANET, longindex, "yes", 1);
         }
     }
 
@@ -513,6 +520,7 @@ int meth_main(int argc, char* argv[], int8_t mode) {
         fprintf(fp_help,"   --paf                      write output in PAF format\n");
         fprintf(fp_help,"   --sam                      write output in SAM format\n");
         fprintf(fp_help,"   --sam-out-version INT      sam output version (set 1 to revert to old nanopolish style format) [%d]\n",opt.meth_out_version);
+        fprintf(fp_help,"   --m6anet                   write output in m6anet format\n");
 
         fprintf(fp_help,"   --print-read-names         print read names instead of indexes\n");
         fprintf(fp_help,"   --scale-events             scale events to the model, rather than vice-versa\n");
@@ -573,9 +581,18 @@ int meth_main(int argc, char* argv[], int8_t mode) {
         int8_t write_signal_index = (core->opt.flag & F5C_PRINT_SIGNAL_INDEX) ? 1 : 0;
         int8_t sam_output =  (core->opt.flag & F5C_SAM) ? 1 : 0 ;
         int8_t paf_output =  (core->opt.flag & F5C_PAF) ? 1 : 0 ;
+        int8_t m6anet_output =  (core->opt.flag & F5C_M6ANET) ? 1 : 0 ;
 
         if(sam_output && paf_output){
             ERROR("%s","-c and --sam cannot be used together");
+            exit(EXIT_FAILURE);
+        }
+        if(sam_output && m6anet_output){
+            ERROR("%s","-c and --m6anet cannot be used together");
+            exit(EXIT_FAILURE);
+        }
+        if(paf_output && m6anet_output){
+            ERROR("%s","--paf and --m6anet cannot be used together");
             exit(EXIT_FAILURE);
         }
 
@@ -583,6 +600,8 @@ int meth_main(int argc, char* argv[], int8_t mode) {
             emit_sam_header(core->sam_output, core->m_hdr);
         } else if (paf_output){
             //none
+        } else if (m6anet_output){
+            emit_event_alignment_tsv_m6anet_header(stdout, print_read_names, write_signal_index);
         } else{
             emit_event_alignment_tsv_header(stdout, print_read_names, write_samples, write_signal_index);
         }

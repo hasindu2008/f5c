@@ -1659,6 +1659,20 @@ void emit_event_alignment_tsv_header(FILE* fp, int8_t print_read_names, int8_t w
     fprintf(fp, "\n");
 }
 
+// Note: reference_kmer will be same as the model_kmer in this mode
+// Also, event_level_mean and event_stdv are always scaled to the model (--scale-events is implicit)
+void emit_event_alignment_tsv_m6anet_header(FILE* fp, int8_t print_read_names, int8_t write_signal_index)
+{
+    fprintf(fp, "%s\t%s\t%s\t%s\t", "contig", "position", "reference_kmer",
+            (print_read_names? "read_name" : "read_index"));
+    fprintf(fp, "%s\t%s\t%s\t", "event_level_mean", "event_stdv", "event_length");
+
+    if(write_signal_index) {
+        fprintf(fp, "\t%s\t%s", "start_idx", "end_idx");
+    }
+
+    fprintf(fp, "\n");
+}
 
 typedef struct {
     uint64_t start_raw;
@@ -2153,6 +2167,132 @@ char *emit_event_alignment_tsv(uint32_t strand_idx,
             sample_str.resize(sample_str.size() - 1);
             sprintf_append(sp, "\t%s", sample_str.c_str());
         }
+        sprintf_append(sp, "\n");
+    }
+
+
+    //str_free(sp); //freeing is later done in free_db_tmp()
+    return sp->s;
+}
+
+// algo:
+// 1. Remove rows in eventalign.tsv where reference kmer does not match model kmer
+// 2. For each row in eventalign.tsv, length of each event = end_idx - start_idx
+// 3. Group by each read and each reference position
+//    - collapsed_event_level_mean = sum(event_level_mean * length) / sum(length)
+//    - collapsed_event_stdv = sum(event_stdv * length) / sum(length)
+//    - collapsed_event_duration = sum(event_duration * length) / sum(length)
+//cleanup unused function param shit
+char *emit_event_alignment_tsv_m6anet(uint32_t strand_idx,
+                              const event_table* et, model_t* model, uint32_t kmer_size, scalings_t scalings,
+                              const std::vector<event_alignment_t>& alignments,
+                              int8_t print_read_names, int8_t scale_events, int8_t write_samples, int8_t write_signal_index, int8_t collapse,
+                              int64_t read_index, char* read_name, char *ref_name,float sample_rate, float *rawptr)
+{
+
+    kstring_t str;
+    kstring_t *sp = &str;
+    str_init(sp, sizeof(char)*alignments.size()*120);
+
+    size_t n_collapse = 1;
+    for(size_t i = 0; i < alignments.size(); i+=n_collapse) {
+
+        const event_alignment_t& ea = alignments[i];
+
+        // basic information
+        if (!print_read_names)
+        {
+            sprintf_append(sp, "%s\t%d\t%s\t%ld\t",
+                    ref_name, //ea.ref_name.c_str(),
+                    ea.ref_position,
+                    ea.ref_kmer,
+                    (long)read_index);
+        }
+        else
+        {
+            sprintf_append(sp, "%s\t%d\t%s\t%s\t",
+                    ref_name, //ea.ref_name.c_str(),
+                    ea.ref_position,
+                    ea.ref_kmer,
+                    read_name //sr.read_name.c_str(),
+                    );
+        }
+
+        // event information
+        uint64_t length = 0;
+        float event_mean = 0;
+        float event_stdv = 0;
+        float event_duration = 0;
+
+        // if(strcmp(ea.ref_kmer,ea.model_kmer)==0){ //the ref and model kmers should match
+        //     uint64_t len_curr = (uint64_t)((et->event)[ea.event_idx].length);
+        //     length += len_curr;
+        //     event_mean += get_fully_scaled_level((et->event)[ea.event_idx].mean,scalings) * len_curr;
+        //     event_stdv += (et->event)[ea.event_idx].stdv * len_curr;
+        //     event_duration += get_duration_seconds(et, ea.event_idx, sample_rate) * len_curr;
+        // }
+
+        // uint32_t rank = get_kmer_rank(ea.model_kmer, kmer_size);
+        // float model_mean = 0.0;
+        // float model_stdv = 0.0;
+        // // unscaled model parameters
+        // if(ea.hmm_state != 'B') {
+        //     model_t model1 = model[rank];
+        //     model_mean = model1.level_mean;
+        //     model_stdv = model1.level_stdv;
+        // }
+
+        uint64_t start_idx = (et->event)[ea.event_idx].start; //inclusive
+        uint64_t end_idx = (et->event)[ea.event_idx].start + (uint64_t)((et->event)[ea.event_idx].length); //non-inclusive
+
+
+        n_collapse = 0;
+        while (i + n_collapse < alignments.size() && ea.ref_position ==  alignments[i+n_collapse].ref_position){
+            assert(strcmp(ea.ref_kmer,alignments[i+n_collapse].ref_kmer)==0);
+            // if(strcmp(ea.model_kmer,alignments[i+n_collapse].model_kmer)!=0){ //TODO: NNNN kmers must be handled
+            //     fprintf(stderr, "model kmer does not match! %s vs %s\n",ea.model_kmer,alignments[i+n_collapse].model_kmer);
+            // }
+            const event_alignment_t& ea_curr = alignments[i+n_collapse];
+
+            if(strcmp(ea_curr.ref_kmer,ea_curr.model_kmer)==0){ //the ref and model kmers should match
+                uint64_t len_curr = (uint64_t)((et->event)[ea_curr.event_idx].length);
+                length += len_curr;
+                event_mean += get_fully_scaled_level((et->event)[ea_curr.event_idx].mean,scalings) * len_curr;
+                event_stdv += (et->event)[ea_curr.event_idx].stdv * len_curr;
+                event_duration += get_duration_seconds(et, ea_curr.event_idx, sample_rate) * len_curr;
+            }
+
+            n_collapse++;
+        }
+        event_mean /= length;
+        event_stdv /= length;
+        event_duration /= length;
+
+
+        // float standard_level = (event_mean - model_mean) / (sqrt(scalings.var) * model_stdv);
+        sprintf_append(sp, "%.2f\t%.3f\t%.5f\t", event_mean, event_stdv, event_duration);
+        // sprintf_append(sp, "%s\t%.2f\t%.2f\t%.2f", ea.model_kmer,
+        //                                        model_mean,
+        //                                        model_stdv,
+        //                                        standard_level);
+
+        if(write_signal_index) {
+            if(n_collapse > 1){
+                uint64_t start_idx1 = start_idx;
+                uint64_t end_idx1 = end_idx;
+
+                const event_alignment_t& ea2 = alignments[i+n_collapse-1];
+                uint64_t start_idx2 =  (et->event)[ea2.event_idx].start;
+                uint64_t end_idx2 = (et->event)[ea2.event_idx].start + (uint64_t)((et->event)[ea2.event_idx].length);
+
+                //min
+                start_idx =  start_idx1 < start_idx2 ? start_idx1 : start_idx2;
+                //max
+                end_idx = end_idx1 > end_idx2 ? end_idx1 : end_idx2;
+            }
+            sprintf_append(sp, "\t%lu\t%lu", start_idx, end_idx);
+        }
+
         sprintf_append(sp, "\n");
     }
 
