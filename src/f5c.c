@@ -247,6 +247,7 @@ core_t* init_core(const char* bamfilename, const char* fastafile,
             STDERR("Error in loading SLOW5 index for %s\n",slow5file);
             exit(EXIT_FAILURE);
         }
+        slow5_set_skip_rid();
 
         if(drna_detect(core->sf)) {
             opt.flag |= F5C_RNA;

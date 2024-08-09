@@ -826,7 +826,17 @@ int meth_main(int argc, char* argv[], int8_t mode) {
     if(core->qc_fail_reads + core->failed_calibration_reads + core->failed_alignment_reads > core->total_reads/2){
         WARNING("%ld out of %ld reads failed. Double check --pore and --rna options.",(long)core->qc_fail_reads + core->failed_calibration_reads + core->failed_alignment_reads,(long)core->total_reads);
     }
-
+    if(core->bad_fast5_file > core->total_reads/10.0){
+        WARNING("%ld out of %ld reads missing in FAST5/SLOW5.",(long)core->bad_fast5_file,(long)core->total_reads);
+    }
+    if(core->qc_fail_reads + core->failed_calibration_reads + core->failed_alignment_reads + core->bad_fast5_file >= core->total_reads){
+        ERROR("all %ld out of %ld reads failed. Check the input files.",(long)core->total_reads,(long)core->total_reads);
+        exit(EXIT_FAILURE);
+    }
+    if(core->total_reads==0){
+        ERROR("%s","0 reads processed. Check the input files.");
+        exit(EXIT_FAILURE);
+    }
     //free the core data structure
     free_core(core,opt);
 

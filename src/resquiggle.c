@@ -95,6 +95,7 @@ core_t* init_core_rsq(opt_t opt, const char *slow5file, double realtime0) {
         STDERR("Error in loading SLOW5 index for %s\n",slow5file);
         exit(EXIT_FAILURE);
     }
+    slow5_set_skip_rid();
     if(drna_detect(core->sf)) {
         core->opt.flag |= F5C_RNA;
         opt.flag |= F5C_RNA;
@@ -483,9 +484,10 @@ static void read_slow5_single(core_t* core, db_t* db, int i){
     MALLOC_CHK(db->sig[i]);
 
     if(record==NULL || len <0){ //todo : should we free if len<0
-        db->bad_fast5_file++;
+        __sync_fetch_and_add(&db->bad_fast5_file,1);
+        //db->bad_fast5_file++;
         if (core->opt.flag & F5C_SKIP_UNREADABLE) {
-            WARNING("Slow5 record for read [%s] is unavailable/unreadable and will be skipped", db->read_id[i]);
+            //WARNING("Slow5 record for read [%s] is unavailable/unreadable and will be skipped", db->read_id[i]);
             db->sig[i]->nsample = 0;
             db->sig[i]->rawptr = NULL;
         } else {
@@ -785,8 +787,20 @@ int resquiggle_main(int argc, char **argv) {
 
     fprintf(stderr,"\n");
 
+    //todo duplicate code from meth_main.c - can be modularised
     if(core->qc_fail_reads + core->failed_calibration_reads + core->failed_alignment_reads > core->total_reads/2){
         WARNING("%ld out of %ld reads failed. Double check --pore and --rna options.",(long)core->qc_fail_reads + core->failed_calibration_reads + core->failed_alignment_reads,(long)core->total_reads);
+    }
+    if(core->bad_fast5_file > core->total_reads/10.0){
+        WARNING("%ld out of %ld reads missing in SLOW5.",(long)core->bad_fast5_file,(long)core->total_reads);
+    }
+    if(core->qc_fail_reads + core->failed_calibration_reads + core->failed_alignment_reads + core->bad_fast5_file >= core->total_reads){
+        ERROR("all %ld out of %ld reads failed. Check the input files.",(long)core->total_reads,(long)core->total_reads);
+        exit(EXIT_FAILURE);
+    }
+    if(core->total_reads==0){
+        ERROR("%s","0 reads processed. Check the input files.");
+        exit(EXIT_FAILURE);
     }
 
     kseq_destroy(seq);
