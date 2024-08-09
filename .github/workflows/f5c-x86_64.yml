@@ -160,7 +160,7 @@ jobs:
     - name: install packages
       run: brew install hdf5 autoconf automake
     - name: build
-      run: autoreconf --install && ./scripts/install-hts.sh && ./configure && make -j8 disable_hdf5=1
+      run: autoreconf --install && ./scripts/install-hts.sh && ./configure --disable-hdf5
     - name: test
       run: test/test_slow5.sh
   ubuntu_arm:
