@@ -86,4 +86,4 @@ execute_test ${testdir}/result.txt ${testdir}/eventalign.sam 5
 
 ./f5c eventalign -b ${testdir}/PNXRXX240011_reads_1k.bam -g ${testdir}/gencode.v40.transcripts.fa -r ${testdir}/PNXRXX240011_reads_1k.fastq  \
  --slow5 ${testdir}/PNXRXX240011_reads_1k.blow5  --rna --m6anet > ${testdir}/result.txt || die "eventalign failed"
-diff ${testdir}/result.txt ${testdir}/m6anet.tsv || die "m6anet failed"
+execute_test ${testdir}/result.txt ${testdir}/m6anet.tsv 5
