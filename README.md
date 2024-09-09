@@ -17,7 +17,7 @@ First, the reads have to be indexed using `f5c index`. Then, invoke `f5c call-me
 [![GitHub Downloads](https://img.shields.io/github/downloads/hasindu2008/f5c/total?logo=GitHub)](https://github.com/hasindu2008/f5c/releases)
 [![BioConda Install](https://img.shields.io/conda/dn/bioconda/f5c?label=BioConda)](https://anaconda.org/bioconda/f5c)
 [![x86_64](https://github.com/hasindu2008/f5c/actions/workflows/f5c-x86_64.yml/badge.svg)](https://github.com/hasindu2008/f5c/actions/workflows/f5c-x86_64.yml)
-[![AARCH64](https://www.travis-ci.com/hasindu2008/f5c.svg?branch=master)](https://www.travis-ci.com/hasindu2008/f5c)
+[![AARCH64](https://www.travis-ci.com/hasindu2008/f5c.svg?branch=master)](https://app.travis-ci.com/hasindu2008/f5c)
 [![CodeFactor](https://www.codefactor.io/repository/github/hasindu2008/f5c/badge/master)](https://www.codefactor.io/repository/github/hasindu2008/f5c/overview/master)
 
 Please cite the following when using *f5c* in your publications:
