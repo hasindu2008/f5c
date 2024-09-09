@@ -244,7 +244,7 @@ Align nanopore events to reference k-mers (optimised nanopolish eventalign). Not
    Write the alignment output in SAM format instead of tsv.
 * `--sam-out-version INT`:  
    Sam output version (set 1 to revert to old nanopolish style format) [default: 2]. Introduced in f5c v1.3. New SAM output is explained in https://hasindu2008.github.io/f5c/docs/output.
-* ` --m6anet`:
+* `--m6anet`:  
    Write output in m6anet format. Introduced in f5c v1.5.
 *  `--print-read-names`:      
    Print read IDs instead of indexes.
