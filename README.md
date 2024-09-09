@@ -41,7 +41,7 @@ Please cite the following when using *f5c* in your publications:
 
 If you are a Linux user and want to quickly try out download the compiled binaries from the [latest release](https://github.com/hasindu2008/f5c/releases). For example:
 ```sh
-VERSION=v1.4
+VERSION=v1.5
 wget "https://github.com/hasindu2008/f5c/releases/download/$VERSION/f5c-$VERSION-binaries.tar.gz" && tar xvf f5c-$VERSION-binaries.tar.gz && cd f5c-$VERSION/
 ./f5c_x86_64_linux        # CPU version
 ./f5c_x86_64_linux_cuda   # cuda supported version
@@ -57,7 +57,7 @@ You can also use conda to install *f5c* as `conda install f5c -c bioconda -c con
 Users are recommended to build from the  [latest release](https://github.com/hasindu2008/f5c/releases) tar ball. You need a compiler that supports C++11. Quick example for Ubuntu :
 ```sh
 sudo apt-get install libhdf5-dev zlib1g-dev   #install HDF5 and zlib development libraries
-VERSION=v1.4
+VERSION=v1.5
 wget "https://github.com/hasindu2008/f5c/releases/download/$VERSION/f5c-$VERSION-release.tar.gz" && tar xvf f5c-$VERSION-release.tar.gz && cd f5c-$VERSION/
 scripts/install-hts.sh  # download and compile the htslib
 ./configure
