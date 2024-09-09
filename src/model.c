@@ -14,6 +14,8 @@
 #include "f5cmisc.h"
 #include "model.h"
 
+extern float r9_4_450bps_cpg_6mer_template_model_builtin_data[];
+extern float r10_4_400bps_cpg_9mer_template_model_builtin_data[];
 //#define DEBUG_MODEL_PRINT 1
 
 uint32_t eval_num_kmer(uint32_t kmer_size,uint32_t type){
