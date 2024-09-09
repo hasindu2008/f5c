@@ -150,7 +150,7 @@ test_suit1 () {
 	test/test_rsq.sh -z 2> rna004_uhr_resquiggle.log || die "failed"
 
 	echo "************************Doing eventalign paf tests*****************************"
-	test/test_eventalign_pafsam.sh 2> eventalign_paf.log || die "failed"
+	test/test_eventalign_paf_sam_m6a.sh 2> eventalign_paf.log || die "failed"
 	echo ""
 
 	echo ""
@@ -233,7 +233,7 @@ test_suit1_cuda () {
 	test/test_rsq.sh -z 2> rna004_uhr_resquiggle_cuda.log || die "failed"
 
 	echo "************************Doing eventalign paf tests*****************************"
-	test/test_eventalign_pafsam.sh 2> eventalign_paf_cuda.log || die "failed"
+	test/test_eventalign_paf_sam_m6a.sh 2> eventalign_paf_cuda.log || die "failed"
 	echo ""
 
 	echo ""
