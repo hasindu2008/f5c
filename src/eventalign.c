@@ -2034,17 +2034,134 @@ std::vector<float> get_scaled_samples_for_event(const event_table* events,scalin
     return out;
 }
 
+typedef struct {
+    int32_t capacity;
+    int32_t size;
+    int32_t *map;
+    int32_t ref_pos_start;
+} ref2read_t;
+
+static inline ref2read_t get_ref2read_map(bam1_t *record, int32_t read_len){
+
+    ref2read_t ref2read;
+    ref2read.capacity = read_len;
+    ref2read.size = 0;
+
+    ref2read.map = (int32_t*)malloc(sizeof(int32_t)*ref2read.capacity);
+    MALLOC_CHK(ref2read.map);
+    for(int i = 0; i < ref2read.capacity; i++){
+        ref2read.map[i] = -1;
+    }
+
+    // This code is derived from bam_fillmd1_core
+    uint32_t *cigar = bam_get_cigar(record);
+    const bam1_core_t *c = &record->core;
+
+    // read pos is an index into the original sequence that is present in the FASTQ
+    // on the strand matching the reference
+    int read_pos = 0;
+
+    int ref_pos = c->pos;
+    ref2read.ref_pos_start = ref_pos;
+
+    for (uint32_t ci = 0; ci < c->n_cigar; ++ci) {
+
+        int cigar_len = cigar[ci] >> 4;
+        int cigar_op = cigar[ci] & 0xf;
+
+        // Set the amount that the ref/read positions should be incremented
+        // based on the cigar operation
+        int read_inc = 0;
+        int ref_inc = 0;
+
+        // Process match between the read and the reference
+        bool is_aligned = false;
+        if(cigar_op == BAM_CMATCH || cigar_op == BAM_CEQUAL || cigar_op == BAM_CDIFF) {
+            is_aligned = true;
+            read_inc = 1;
+            ref_inc = 1;
+        } else if(cigar_op == BAM_CDEL) {
+            ref_inc = 1;
+        } else if(cigar_op == BAM_CREF_SKIP) {
+            ref_inc = 1;
+        } else if(cigar_op == BAM_CINS) {
+            read_inc = 1;
+        } else if(cigar_op == BAM_CSOFT_CLIP) {
+            read_inc = 1; // special case, do not use read_stride
+        } else if(cigar_op == BAM_CHARD_CLIP) {
+            read_inc = 0;
+        } else {
+            printf("Cigar: %d\n", cigar_op);
+            assert(false && "Unhandled cigar operation");
+        }
+
+        // Iterate over the pairs of aligned bases
+        for(int j = 0; j < cigar_len; ++j) {
+            if(is_aligned) {
+                ref2read.map[ref2read.size] = read_pos;
+            }
+
+            // increment
+            read_pos += read_inc;
+            ref_pos += ref_inc;
+            ref2read.size += ref_inc;
+
+            if(ref2read.size >= ref2read.capacity){
+                ref2read.capacity = ref2read.capacity*+1000;
+                ref2read.map = (int32_t*)realloc(ref2read.map, sizeof(int32_t)*ref2read.capacity);
+                MALLOC_CHK(ref2read.map);
+                for(int i = ref2read.size; i < ref2read.capacity; i++){
+                    ref2read.map[i] = -1;
+                }
+            }
+        }
+    }
+
+    // for(int i = 0; i < ref2read.size; i++){
+    //     fprintf(stderr, "ref2read_map[%d]=%d\n",i+ref2read.ref_pos_start, ref2read.map[i]);
+    // }
+
+    return ref2read;
+}
+
+static inline void sprintf_read_kmer(kstring_t *sp, ref2read_t ref2read, uint64_t ref_pos, char *read, uint32_t kmer_size){
+
+    int32_t map_idx = ref_pos - ref2read.ref_pos_start;
+    assert(map_idx >= 0 && map_idx < ref2read.size);
+    int32_t read_pos = ref2read.map[map_idx];
+
+    if(read_pos == -1){
+        sprintf_append(sp, "\t.\t.");
+        return;
+    } else {
+        char kmer[kmer_size+1];
+        for(uint32_t i = 0; i < kmer_size; i++){
+            int ref_base_idx = map_idx + i;
+            assert(ref_base_idx >= 0 && ref_base_idx < ref2read.size);
+            int read_base_idx=ref2read.map[ref_base_idx];
+            if(read_base_idx == -1){
+                kmer[i] = '.';
+            } else {
+                kmer[i] = read[read_base_idx];
+            }
+        }
+        kmer[kmer_size] = '\0';
+        sprintf_append(sp, "\t%d\t%s", read_pos, kmer);
+    }
+}
 
 char *emit_event_alignment_tsv(uint32_t strand_idx,
                               const event_table* et, model_t* model, uint32_t kmer_size, scalings_t scalings,
                               const std::vector<event_alignment_t>& alignments,
                               int8_t print_read_names, int8_t scale_events, int8_t write_samples, int8_t write_signal_index, int8_t collapse,
-                              int64_t read_index, char* read_name, char *ref_name,float sample_rate, float *rawptr)
+                              int64_t read_index, char* read_name, char *ref_name,float sample_rate, float *rawptr, int32_t read_len, char *read, bam1_t* bam_record)
 {
 
     kstring_t str;
     kstring_t *sp = &str;
     str_init(sp, sizeof(char)*alignments.size()*120);
+
+    ref2read_t ref2read = get_ref2read_map(bam_record, read_len);
 
     size_t n_collapse = 1;
     for(size_t i = 0; i < alignments.size(); i+=n_collapse) {
@@ -2167,9 +2284,11 @@ char *emit_event_alignment_tsv(uint32_t strand_idx,
             sample_str.resize(sample_str.size() - 1);
             sprintf_append(sp, "\t%s", sample_str.c_str());
         }
+        sprintf_read_kmer(sp, ref2read, ea.ref_position, read, kmer_size);
         sprintf_append(sp, "\n");
     }
 
+    free(ref2read.map);
 
     //str_free(sp); //freeing is later done in free_db_tmp()
     return sp->s;

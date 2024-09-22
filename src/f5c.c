@@ -879,7 +879,7 @@ void eventalign_single(core_t* core, db_t* db, int32_t i){
                    db->read_idx[i], qname, contig, db->sig[i]->sample_rate, db->sig[i]->rawptr);
     } else {
         db->event_alignment_result_str[i] = emit_event_alignment_tsv(0,&(db->et[i]),core->model,core->kmer_size, db->scalings[i],*event_alignment_result, print_read_names, scale_events, write_samples, write_signal_index, collapse_events,
-                   db->read_idx[i], qname, contig, db->sig[i]->sample_rate, db->sig[i]->rawptr);
+                   db->read_idx[i], qname, contig, db->sig[i]->sample_rate, db->sig[i]->rawptr, db->read_len[i], db->read[i], db->bam_rec[i]);
     }
 }
 
