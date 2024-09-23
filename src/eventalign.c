@@ -2130,24 +2130,28 @@ static inline void sprintf_read_kmer(kstring_t *sp, ref2read_t ref2read, uint64_
     assert(map_idx >= 0 && map_idx < ref2read.size);
     int32_t read_pos = ref2read.map[map_idx];
 
-    if(read_pos == -1){
-        sprintf_append(sp, "\t.\t.");
-        return;
-    } else {
-        char kmer[kmer_size+1];
-        for(uint32_t i = 0; i < kmer_size; i++){
-            int ref_base_idx = map_idx + i;
-            assert(ref_base_idx >= 0 && ref_base_idx < ref2read.size);
-            int read_base_idx=ref2read.map[ref_base_idx];
-            if(read_base_idx == -1){
-                kmer[i] = '.';
-            } else {
-                kmer[i] = read[read_base_idx];
-            }
+    // if(read_pos == -1){
+    //     sprintf_append(sp, "\t.\t.");
+    //     return;
+    // } else {
+    char kmer[kmer_size+1];
+    for(uint32_t i = 0; i < kmer_size; i++){
+        int ref_base_idx = map_idx + i;
+        assert(ref_base_idx >= 0 && ref_base_idx < ref2read.size);
+        int read_base_idx=ref2read.map[ref_base_idx];
+        if(read_base_idx == -1){
+            kmer[i] = '.';
+        } else {
+            kmer[i] = read[read_base_idx];
         }
-        kmer[kmer_size] = '\0';
-        sprintf_append(sp, "\t%d\t%s", read_pos, kmer);
     }
+    kmer[kmer_size] = '\0';
+    if(read_pos == -1){
+        sprintf_append(sp, "\t.\t%s", kmer);
+    } else {
+        sprintf_append(sp, "\t%d\t%s",read_pos, kmer);
+    }
+    // }
 }
 
 char *emit_event_alignment_tsv(uint32_t strand_idx,
