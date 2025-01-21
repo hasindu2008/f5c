@@ -103,10 +103,10 @@ If you compiled the binary yourself, see <https://docs.nvidia.com/deploy/cuda-co
 
 ## Cuda error: named symbol not found 
 
-If you get an error like `[gpu_assert::ERROR] Cuda error: named symbol not found`, this is likely to be that your GPU is old and it is deprecated in nvcc. First find the compute capability for your GPU from [here](https://developer.nvidia.com/cuda-gpus). For example, if my GPU is Quadro K620, compute capability is 5.0. Now compile f5c for your GPU architecture by passing the `CUDA_ARCH=-arch=sm_xy` to the make file. In our example, as the compute capability is 5.0. sm_xy is sm_50:
+If you get an error like `[gpu_assert::ERROR] Cuda error: named symbol not found`, this is likely to be that your GPU is old and it is deprecated in nvcc. First find the compute capability for your GPU from [here](https://developer.nvidia.com/cuda-gpus). For example, if your GPU is Quadro K620, compute capability is 5.0. Now compile f5c for your GPU architecture by passing the `CUDA_ARCH=-arch=sm_xy` to the make command. In our example, as the compute capability is 5.0, sm_xy is sm_50:
 
 ```
 make cuda=1 CUDA_ARCH=-arch=sm_50
 ```
-Remeber to change sm_50 to yours.
+Remember to change sm_50 to yours.
 
