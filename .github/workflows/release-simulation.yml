@@ -13,10 +13,19 @@ jobs:
   ubuntu_14:
     name: ubuntu_14
     runs-on: ubuntu-20.04
-    container: ubuntu:14.04
+    container:
+      image: ubuntu:14.04
+      volumes:
+        - /node20217:/node20217:rw,rshared
+        - /node20217:/__e/node20:ro,rshared
     steps:
     - name: install git
       run: sudo apt-get install -y software-properties-common && sudo add-apt-repository ppa:git-core/ppa && sudo apt-get update -y && sudo apt-get install git -y
+    - name: nodejs
+      run: |
+        apt-get install -y wget xz-utils
+        wget https://unofficial-builds.nodejs.org/download/release/v20.9.0/node-v20.9.0-linux-x64-glibc-217.tar.xz
+        tar -xf node-v20.9.0-linux-x64-glibc-217.tar.xz --strip-components 1 -C /node20217
     - uses: actions/checkout@v2
       with:
         submodules: recursive
