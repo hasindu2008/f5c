@@ -138,8 +138,17 @@ jobs:
   ubuntu_14_cuda_6_5:
     name: Ubuntu 14 cuda 6.5
     runs-on: ubuntu-20.04
-    container: ubuntu:14.04
+    container:
+      image: ubuntu:14.04
+      volumes:
+        - /node20217:/node20217:rw,rshared
+        - /node20217:/__e/node20:ro,rshared
     steps:
+    - name: nodejs
+      run: |
+        apt-get update && apt-get install -y wget xz-utils
+        wget https://unofficial-builds.nodejs.org/download/release/v20.9.0/node-v20.9.0-linux-x64-glibc-217.tar.xz
+        tar -xf node-v20.9.0-linux-x64-glibc-217.tar.xz --strip-components 1 -C /node20217
     - uses: actions/checkout@v2
     - name: install packages
       run: sudo apt-get update && sudo apt-get install -y zlib1g-dev  libhdf5-dev gcc g++ autoconf automake make wget
@@ -155,28 +164,6 @@ jobs:
       run: export PATH=/usr/local/cuda/bin:${PATH} && autoreconf && ./scripts/install-hts.sh && ./configure && make cuda=1 -j8
     - name: test
       run: make test || scripts/test.sh custom --disable-cuda=yes
-  os_x_12:
-    name: OSX 12
-    runs-on: macos-12
-    steps:
-    - uses: actions/checkout@v2
-    - name: install packages
-      run: brew install hdf5 autoconf automake
-    - name: build
-      run: autoreconf --install && ./scripts/install-hts.sh && ./configure && make -j8
-    - name: test
-      run: make test
-  os_x_12_2:
-    name: OSX 12 hdf5 install script
-    runs-on: macos-12
-    steps:
-    - uses: actions/checkout@v2
-    - name: install packages
-      run: brew install hdf5 autoconf automake
-    - name: build
-      run: autoreconf --install && CC=gcc CXX=g++ CFLAGS="-Wno-implicit-function-declaration" ./scripts/install-hdf5.sh  && ./scripts/install-hts.sh && ./configure --enable-localhdf5  && make -j8
-    - name: test
-      run: make test
   os_x_13:
     name: OSX 13
     runs-on: macos-13
@@ -186,6 +173,17 @@ jobs:
       run: brew install hdf5 autoconf automake
     - name: build
       run: autoreconf --install && ./scripts/install-hts.sh && ./configure && make -j8
+    - name: test
+      run: make test
+  os_x_13_2:
+    name: OSX 13 hdf5 install script
+    runs-on: macos-13
+    steps:
+    - uses: actions/checkout@v2
+    - name: install packages
+      run: brew install hdf5 autoconf automake
+    - name: build
+      run: autoreconf --install && CC=gcc CXX=g++ CFLAGS="-Wno-implicit-function-declaration" ./scripts/install-hdf5.sh  && ./scripts/install-hts.sh && ./configure --enable-localhdf5  && make -j8
     - name: test
       run: make test
   os_x_14:
