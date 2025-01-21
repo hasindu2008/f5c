@@ -100,3 +100,13 @@ $ nvidia-smi
 | NVIDIA-SMI 396.44                 Driver Version: 396.44                    |
 ```
 If you compiled the binary yourself, see <https://docs.nvidia.com/deploy/cuda-compatibility/index.html#binary-compatibility> to check if your toolkit version and driver version match.
+
+## Cuda error: named symbol not found 
+
+If you get an error like `[gpu_assert::ERROR] Cuda error: named symbol not found`, this is likely to be that your GPU is old and it is deprecated in nvcc. First find the compute capability for your GPU from [here](https://developer.nvidia.com/cuda-gpus). For example, if my GPU is Quadro K620, compute capability is 5.0. Now compile f5c for your GPU architecture by passing the `CUDA_ARCH=-arch=sm_xy` to the make file. In our example, as the compute capability is 5.0. sm_xy is sm_50:
+
+```
+make cuda=1 CUDA_ARCH=-arch=sm_50
+```
+Remeber to change sm_50 to yours.
+
