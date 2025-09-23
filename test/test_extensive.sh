@@ -494,7 +494,7 @@ test_suit_compile_extra_rocm () {
 	echo "**************************ROCM extra compilation tests**************"
 
 	echo "ROCM test : GPU only"
-	sed -i  's/\#define CPU\_GPU\_PROC.*//' src/f5cmisc.cuh
+	sed -i  's/\#define CPU\_GPU\_PROC.*//' src/f5cmisc.hip
 	make clean && make rocm=1
 	scripts/test.sh -K10 2> compile_gpu_only.log
 	git checkout src/f5cmisc_rocm.h
@@ -512,7 +512,7 @@ test_suit_compile_extra_rocm () {
 	echo "ROCM test : PRE MALLOC disabled"
 	sed -i  's/\#define CUDA\_PRE\_MALLOC.*//' src/f5c_gpuonly.hip
 	make clean && ROCM_CFLAGS+="-DCUDA_DYNAMIC_MALLOC=1" make rocm=1
-	scripts/test.sh 2> compile_premalloc_disabled.log
+	scripts/test.sh 2>
 	git checkout src/f5c_gpuonly.hip
 	echo ""
 	echo "____________________________________________________________________"
