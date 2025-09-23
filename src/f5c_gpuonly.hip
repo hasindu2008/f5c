@@ -25,7 +25,7 @@
    are preallocated at the beginning of the program, rather than repeatedly doing so inside a loop */
 #define CUDA_PRE_MALLOC 1
 
-void align_hip(core_t* core, db_t* db) {
+void align_cuda(core_t* core, db_t* db) {
     int32_t i;
     int32_t n_bam_rec = db->n_bam_rec;
     double realtime1;

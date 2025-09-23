@@ -20,7 +20,7 @@
 
 
 
-void init_hip(core_t* core){
+void init_cuda(core_t* core){
 
     hipError_t ret;
     hip_exists();
@@ -201,7 +201,7 @@ void init_hip(core_t* core){
     return;
 }
 
-void free_hip(core_t* core){
+void free_cuda(core_t* core){
     hipError_t ret;
     free(core->cuda->event_ptr_host);
     free(core->cuda->n_events_host);
@@ -657,7 +657,7 @@ void memory_balance(core_t *core, db_t *db, double cpu_process_time,double gpu_p
 }
 
 
-void align_hip(core_t* core, db_t* db) {
+void align_cuda(core_t* core, db_t* db) {
     hipError_t ret;
     int32_t i,j;
     int32_t n_bam_rec = db->n_bam_rec;
