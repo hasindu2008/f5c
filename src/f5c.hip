@@ -26,7 +26,7 @@ void init_hip(core_t* core){
     hip_exists();
     int32_t hip_device_num = core->opt.cuda_dev_id;
 
-    hipDeviceProp prop;
+    hipDeviceProp_t prop;
     ret = hipGetDeviceProperties(&prop, hip_device_num);
     HIP_CHK(); HIP_RET_CHK(ret);
     ret = hipSetDevice(hip_device_num);
@@ -41,7 +41,7 @@ void init_hip(core_t* core){
     //fprintf(stderr,"readfac %f\n",core->opt.cuda_max_readlen);
     assert(AVG_EVENTS_PER_KMER>0 && AVG_EVENTS_PER_KMER>0);
 
-    core->cuda = (hip_data_t*)malloc(sizeof(hip_data_t));
+    core->cuda = (cuda_data_t*)malloc(sizeof(cuda_data_t));
     MALLOC_CHK(core->cuda);
 
     core->align_kernel_time=0;
