@@ -56,7 +56,7 @@ and then the program will be aborted*/
     { gpu_assert(__FILE__, __LINE__); }
 
 
-#define HIP_RET_CHECK(error) { gpuRetAssert((error),__FILE__, __LINE__); }
+#define HIP_RET_CHK(error) { gpuRetAssert((error),__FILE__, __LINE__); }
 
 __global__ void
 //__launch_bounds__(MY_KERNEL_MAX_THREADS, MY_KERNEL_MIN_BLOCKS)
@@ -109,19 +109,19 @@ static inline void gpuRetAssert(hipError_t error, const char *file, int line) {
 static inline int32_t hip_exists() {
     //check hip devices
     int32_t nDevices=-1;
-    hipGetDeviceCount(&nDevices); //TODO ROCM check return value
+    hipError_t ret = hipGetDeviceCount(&nDevices);
     hipError_t code = hipGetLastError();
-    if (code != hipSuccess) {
+    if (code != hipSuccess || ret != hipSuccess) {
         fprintf(stderr, "[%s::ERROR]\033[1;31m Hip error: %s \n in file : %s line number : %d\033[0m\n",
                 __func__, hipGetErrorString(code), __FILE__, __LINE__);
     }
     if (nDevices <= 0) { //TODOROCM change the error message
-        fprintf(stderr, "[%s::ERROR]\033[1;31m Could not initialise a cuda capable device. Some troubleshooting tips in order:\n"
-                        "1. Do you have an NVIDIA GPU? [lspci | grep -i \"vga\\|3d\\|display\"]\n"
-                        "2. Have you installed the NVIDIA proprietary driver (not the open source nouveau driver)? [lspci -nnk | grep -iA2 \"vga\\|3d\\|display\"]\n"
-                        "3. If you GPU is tegra is the current user belongs to the [video] user group?\n"
-                        "4. Is your cuda driver too old? (the release binary compiled using cuda 6.5)\n"
-                        "Run with --disable-cuda=yes to run on the CPU\033[0m\n",__func__);
+        fprintf(stderr, "[%s::ERROR]\033[1;31m Could not initialise a rocm/hip capable device. Some troubleshooting tips in order:\n"
+                        "1. Do you have an AMD GPU? [lspci | grep -i \"vga\\|3d\\|display\"]\n"
+                        "2. Have you installed the AMD driver? [lspci -nnk | grep -iA2 \"vga\\|3d\\|display\"]\n"
+                        "3. If you GPU is iGPU is the current user belongs to the [video] user group?\n"
+                        "4. Is your hip driver too old? (the release binary compiled using rocm 5.x)\n"
+                        "Run with --disable-hip=yes to run on the CPU\033[0m\n",__func__);
         exit(1);
     }
     return nDevices;
@@ -131,7 +131,7 @@ static inline uint64_t hip_freemem(int32_t devicenum) {
 
     uint64_t freemem, total;
     hipError_t ret = hipMemGetInfo(&freemem, &total);
-    HIP_CHK(); HIP_RET_CHECK(ret);
+    HIP_CHK(); HIP_RET_CHK(ret);
     fprintf(stderr, "[%s] %.2f GB free of total %.2f GB GPU memory\n",__func__,
             freemem / double(1024 * 1024 * 1024),
             total / double(1024 * 1024 * 1024));
@@ -143,7 +143,7 @@ static inline uint64_t igpu_freemem(int32_t devicenum) {
 
     uint64_t freemem, total;
     hipError_t ret = hipMemGetInfo(&freemem, &total);
-    HIP_CHK(); HIP_RET_CHECK(ret);
+    HIP_CHK(); HIP_RET_CHK(ret);
 
     // RAM
     FILE* f = fopen("/proc/meminfo", "r");
