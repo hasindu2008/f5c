@@ -9,6 +9,7 @@
 #define F5CMISC_ROCM_H
 
 #include <stdint.h>
+#include <hip/hip_runtime.h>
 #include "error.h"
 
 /* if defined, perform ROCM_device_synchronise */
@@ -82,7 +83,7 @@ static inline void gpu_assert(const char* file, uint64_t line) {
     if (code != hipSuccess) {
         fprintf(stderr, "[%s::ERROR]\033[1;31m Hip error: %s \n in file : %s line number : %lu\033[0m\n",
                 __func__, hipGetErrorString(code), file, line);
-        if (code == hipErrorLaunchTimeout) { //TODOROCM is this a thing in ROCM?
+        if (code == hipErrorLaunchTimeOut) { //TODOROCM is this a thing in ROCM?
             ERROR("%s", "The kernel timed out. You have to first disable the hip "
                         "time out.");
             fprintf(
