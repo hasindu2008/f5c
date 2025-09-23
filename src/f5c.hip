@@ -111,7 +111,7 @@ void init_cuda(core_t* core){
     // //dynamic arrays
     //compute the maximum
     uint64_t free_mem = 0;
-    if(prop.integrated==1){ //in tegra free mem should be sought differently
+    if(prop.integrated==1){ //in igpu free mem should be sought differently
         free_mem=igpu_freemem(hip_device_num);
     }
     else{
@@ -130,8 +130,8 @@ void init_cuda(core_t* core){
 
     //if unset by user (or set to weird values by user)
     if(core->opt.cuda_mem_frac>=1.0f || core->opt.cuda_mem_frac<=0.0f){
-        if(prop.integrated==1){ //for tegra we have to reserve some space for RAM
-            sum_read_len= floor(free_mem*TEGRA_MEM_FACTOR/factor);
+        if(prop.integrated==1){ //for igpu we have to reserve some space for RAM
+            sum_read_len= floor(free_mem*IGPU_MEM_FACTOR/factor);
         }
         else{
             sum_read_len= floor(free_mem*MEM_FACTOR/factor);
