@@ -57,7 +57,7 @@ else ifdef rocm
 	ROCM_CFLAGS += -g -Wall $(ROCM_ARCH)
 	ROCM_LDFLAGS = -L$(ROCM_LIB) -lamdhip64 -lrt -ldl
 	OBJ += $(BUILD_DIR)/gpurocmcode.o $(ROCM_OBJ)
-	CPPFLAGS += -DHAVE_ROCM=1
+	CPPFLAGS += -DHAVE_CUDA=1
 endif
 
 ifdef asan
