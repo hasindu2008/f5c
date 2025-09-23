@@ -1,26 +1,26 @@
-/* @file f5cmisc.cuh
+/* @file f5cmisc_rocm.h
 **
 ** miscellaneous definitions and function prototypes to f5c GPU framework
 ** @author: Hasindu Gamaarachchi (hasindu@unsw.edu.au)
 ** @@
 ******************************************************************************/
 
-#ifndef F5CMISC_CUH
-#define F5CMISC_CUH
+#ifndef F5CMISC_ROCM_H
+#define F5CMISC_ROCM_H
 
 #include <stdint.h>
 #include "error.h"
 
-/* if defined, perform CUDA_device_synchronise */
-#define CUDA_DEBUG 1
+/* if defined, perform ROCM_device_synchronise */
+#define ROCM_DEBUG 1
 
 /* if defined, performs CPU-GPU heteregeneous processing for fast performance*/
 #define CPU_GPU_PROC 1
 
 /* if defined, big dynamic arrays (arrays that sizes are determined at the runtime such as bands array)
-   are dynamically allocated using cudaMalloc instead of using the efficient custom allocator.
+   are dynamically allocated using hipMalloc instead of using the efficient custom allocator.
    note: only effective if CPU_GPU_PROC is defined */
-//#define CUDA_DYNAMIC_MALLOC 1
+//#define ROCM_DYNAMIC_MALLOC 1
 
 /* if defined, the the post kernel in performed with a warp hack for fast performance*/
 #define WARP_HACK 1
@@ -49,11 +49,13 @@
 
 #define REVERSAL_ON_CPU 1 //reversal of the backtracked array is performed on the CPU instead of the GPU
 
-/* check whether the last CUDA function or CUDA kernel launch is erroneous and if yes an error message will be printed
+/* check whether the last HIP ` or HIP kernel launch is erroneous and if yes an error message will be printed
 and then the program will be aborted*/
-#define CUDA_CHK()                                                             \
+#define HIP_CHK()                                                             \
     { gpu_assert(__FILE__, __LINE__); }
 
+
+#define HIP_RET_CHECK(error) { gpuRetAssert((error),__FILE__, __LINE__); }
 
 __global__ void
 //__launch_bounds__(MY_KERNEL_MAX_THREADS, MY_KERNEL_MIN_BLOCKS)
@@ -76,12 +78,12 @@ __global__ void align_kernel_post(AlignedPair* event_align_pairs,
     float *bands1,uint8_t *trace1, EventKmerPair* band_lower_left1);
 
 static inline void gpu_assert(const char* file, uint64_t line) {
-    cudaError_t code = cudaGetLastError();
-    if (code != cudaSuccess) {
-        fprintf(stderr, "[%s::ERROR]\033[1;31m Cuda error: %s \n in file : %s line number : %lu\033[0m\n",
-                __func__, cudaGetErrorString(code), file, line);
-        if (code == cudaErrorLaunchTimeout) {
-            ERROR("%s", "The kernel timed out. You have to first disable the cuda "
+    hipError_t code = hipGetLastError();
+    if (code != hipSuccess) {
+        fprintf(stderr, "[%s::ERROR]\033[1;31m Hip error: %s \n in file : %s line number : %lu\033[0m\n",
+                __func__, hipGetErrorString(code), file, line);
+        if (code == hipErrorLaunchTimeout) { //TODOROCM is this a thing in ROCM?
+            ERROR("%s", "The kernel timed out. You have to first disable the hip "
                         "time out.");
             fprintf(
                 stderr,
@@ -96,16 +98,23 @@ static inline void gpu_assert(const char* file, uint64_t line) {
     }
 }
 
-static inline int32_t cuda_exists() {
-    //check cuda devices
+static inline void gpuRetAssert(hipError_t error, const char *file, int line) {
+    if (error != hipSuccess) { \
+    fprintf(stderr,"HIP error: %s, in file: %s, line number: %d\n", hipGetErrorString(error), file, line); \
+    exit(1); \
+    } \
+}
+
+static inline int32_t hip_exists() {
+    //check hip devices
     int32_t nDevices=-1;
-    cudaGetDeviceCount(&nDevices);
-    cudaError_t code = cudaGetLastError();
-    if (code != cudaSuccess) {
-        fprintf(stderr, "[%s::ERROR]\033[1;31m Cuda error: %s \n in file : %s line number : %d\033[0m\n",
-                __func__, cudaGetErrorString(code), __FILE__, __LINE__);
+    hipGetDeviceCount(&nDevices); //TODO ROCM check return value
+    hipError_t code = hipGetLastError();
+    if (code != hipSuccess) {
+        fprintf(stderr, "[%s::ERROR]\033[1;31m Hip error: %s \n in file : %s line number : %d\033[0m\n",
+                __func__, hipGetErrorString(code), __FILE__, __LINE__);
     }
-    if (nDevices <= 0) {
+    if (nDevices <= 0) { //TODOROCM change the error message
         fprintf(stderr, "[%s::ERROR]\033[1;31m Could not initialise a cuda capable device. Some troubleshooting tips in order:\n"
                         "1. Do you have an NVIDIA GPU? [lspci | grep -i \"vga\\|3d\\|display\"]\n"
                         "2. Have you installed the NVIDIA proprietary driver (not the open source nouveau driver)? [lspci -nnk | grep -iA2 \"vga\\|3d\\|display\"]\n"
@@ -117,27 +126,11 @@ static inline int32_t cuda_exists() {
     return nDevices;
 }
 
-// static inline uint64_t cuda_freemem(int32_t devicenum) {
-//     cudaDeviceProp prop;
-//     cudaGetDeviceProperties(&prop, devicenum);
-//     fprintf(stderr, "Device name: %s\n", prop.name);
-//     uint64_t golabalmem = prop.totalGlobalMem;
-//     fprintf(stderr, "Total global memory: %lf GB\n",
-//             (golabalmem / double(1024 * 1024 * 1024)));
-//     uint64_t freemem, total;
-//     cudaMemGetInfo(&freemem, &total);
-//     fprintf(stderr, "%lf GB free of total %lf GB\n",
-//             freemem / double(1024 * 1024 * 1024),
-//             total / double(1024 * 1024 * 1024));
-
-//     return freemem;
-// }
-
-static inline uint64_t cuda_freemem(int32_t devicenum) {
+static inline uint64_t hip_freemem(int32_t devicenum) {
 
     uint64_t freemem, total;
-    cudaMemGetInfo(&freemem, &total);
-    CUDA_CHK();
+    hipError_t ret = hipMemGetInfo(&freemem, &total);
+    HIP_CHK(); HIP_RET_CHECK(ret);
     fprintf(stderr, "[%s] %.2f GB free of total %.2f GB GPU memory\n",__func__,
             freemem / double(1024 * 1024 * 1024),
             total / double(1024 * 1024 * 1024));
@@ -145,13 +138,13 @@ static inline uint64_t cuda_freemem(int32_t devicenum) {
     return freemem;
 }
 
-static inline uint64_t tegra_freemem(int32_t devicenum) {
+static inline uint64_t igpu_freemem(int32_t devicenum) {
 
     uint64_t freemem, total;
-    cudaMemGetInfo(&freemem, &total);
-    CUDA_CHK();
+    hipError_t ret = hipMemGetInfo(&freemem, &total);
+    HIP_CHK(); HIP_RET_CHECK(ret);
 
-    // RAM //from tegrastats
+    // RAM
     FILE* f = fopen("/proc/meminfo", "r");
     int64_t totalRAMkB = -1, freeRAMkB = -1, memAvailablekB=-1, buffersRAMkB = -1, cachedRAMkB = -1;
 
