@@ -7,7 +7,7 @@
 
 #include "f5c.h"
 #include <assert.h>
-#include "f5cmisc.cuh"
+#include "f5cmisc_rocm.h"
 
 //#define DEBUG_ESTIMATED_SCALING 1
 //#define DEBUG_RECALIB_SCALING 1
@@ -502,8 +502,8 @@ __global__ void align_kernel_post(AlignedPair* event_align_pairs,
         if (i < n_bam_rec) {
     #else
         int tid = blockDim.x * blockIdx.x + threadIdx.x;
-        int i = tid/32;
-        if (i < n_bam_rec && tid%32==0) {
+        int i = tid/64;
+        if (i < n_bam_rec && tid%64==0) {
     #endif
         AlignedPair* out_2 = &event_align_pairs[event_ptr[i] * 2];
         int32_t sequence_len = read_len[i];

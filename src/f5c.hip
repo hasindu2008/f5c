@@ -104,7 +104,7 @@ void init_hip(core_t* core){
 
     //model
     ret = hipMemcpy(core->cuda->model, core->model, MAX_NUM_KMER * sizeof(model_t),
-    ret = hipMemcpyHostToDevice);
+        hipMemcpyHostToDevice);
     HIP_CHK(); HIP_RET_CHK(ret);
 
 #ifndef CUDA_DYNAMIC_MALLOC
@@ -112,7 +112,7 @@ void init_hip(core_t* core){
     //compute the maximum
     uint64_t free_mem = 0;
     if(prop.integrated==1){ //in tegra free mem should be sought differently
-        free_mem=tegra_freemem(hip_device_num);
+        free_mem=igpu_freemem(hip_device_num);
     }
     else{
         free_mem=hip_freemem(hip_device_num);
@@ -405,7 +405,6 @@ void* align_hidp(void* voidargs){
 }
 
 pthread_t align_hidp_async(pthread_arg_t **pt_args_ptr,core_t* core, db_t* db, int32_t* ultra_long_reads, int32_t  n_ultra_long_reads) {
-    hipError_t ret;
     assert(*pt_args_ptr==NULL);
     *pt_args_ptr = (pthread_arg_t *)malloc(sizeof(pthread_arg_t));
     pthread_arg_t *pt_args=*pt_args_ptr;
