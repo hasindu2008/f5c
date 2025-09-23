@@ -494,7 +494,7 @@ test_suit_compile_extra_rocm () {
 	echo "**************************ROCM extra compilation tests**************"
 
 	echo "ROCM test : GPU only"
-	sed -i  's/\#define CPU\_GPU\_PROC.*//' src/f5cmisc.cuh
+	sed -i  's/\#define CPU\_GPU\_PROC.*//' src/f5cmisc.hip
 	make clean && make rocm=1
 	scripts/test.sh -K10 2> compile_gpu_only.log
 	git checkout src/f5cmisc_rocm.h

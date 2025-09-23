@@ -13,7 +13,7 @@
 #include "error.h"
 
 /* if defined, perform ROCM_device_synchronise */
-#define ROCM_DEBUG 1
+#define CUDA_DEBUG 1
 
 /* if defined, performs CPU-GPU heteregeneous processing for fast performance*/
 #define CPU_GPU_PROC 1
@@ -21,7 +21,7 @@
 /* if defined, big dynamic arrays (arrays that sizes are determined at the runtime such as bands array)
    are dynamically allocated using hipMalloc instead of using the efficient custom allocator.
    note: only effective if CPU_GPU_PROC is defined */
-//#define ROCM_DYNAMIC_MALLOC 1
+//#define CUDA_DYNAMIC_MALLOC 1
 
 /* if defined, the the post kernel in performed with a warp hack for fast performance*/
 #define WARP_HACK 1
