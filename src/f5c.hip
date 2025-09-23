@@ -277,7 +277,7 @@ static inline int32_t steal_work(pthread_arg_t* all_args, int32_t n_threads)
 }
 #endif
 
-void* pthread_cusingle(void* voidargs) {
+void* pthread_hisingle(void* voidargs) {
 
     double realtime1 = realtime();
 
@@ -355,7 +355,7 @@ void pthread_hidp(core_t* core, db_t* db, int32_t* ultra_long_reads, int32_t  n_
 
     //create threads
     for(t = 0; t < core->opt.num_thread; t++){
-        ret = pthread_create(&tids[t], NULL, pthread_cusingle,
+        ret = pthread_create(&tids[t], NULL, pthread_hisingle,
                                 (void*)(&pt_args[t]));
         NEG_CHK(ret);
     }
