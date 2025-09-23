@@ -49,6 +49,15 @@ ifdef cuda
     CUDA_LDFLAGS = -L$(CUDA_LIB) -lcudart_static -lrt -ldl
     OBJ += $(BUILD_DIR)/gpucode.o $(CUDA_OBJ)
     CPPFLAGS += -DHAVE_CUDA=1
+else ifdef rocm
+	ROCM_ROOT ?= /opt/rocm
+	ROCM_LIB ?= $(ROCM_ROOT)/lib
+	ROCM_OBJ += $(BUILD_DIR)/f5c_rocm.o $(BUILD_DIR)/f5c_rocm_gpuonly.o $(BUILD_DIR)/align_rocm.o
+	HIPCC ?= $(ROCM_ROOT)/bin/hipcc
+	ROCM_CFLAGS += -g -Wall $(ROCM_ARCH)
+	ROCM_LDFLAGS = -L$(ROCM_LIB) -lamdhip64 -lrt -ldl
+	OBJ += $(BUILD_DIR)/gpurocmcode.o $(ROCM_OBJ)
+	CPPFLAGS += -DHAVE_ROCM=1
 endif
 
 ifdef asan
@@ -127,6 +136,19 @@ $(BUILD_DIR)/f5c_cuda_gpuonly.o: src/f5c_gpuonly.cu src/error.h src/f5c.h src/fa
 
 $(BUILD_DIR)/align_cuda.o: src/align.cu src/f5c.h src/fast5lite.h src/f5cmisc.cuh
 	$(NVCC) -x cu $(CUDA_CFLAGS) $(CPPFLAGS) -rdc=true -c $< -o $@
+
+# rocm stuff
+$(BUILD_DIR)/gpurocmcode.o: $(ROCM_OBJ)
+	$(HIPCC) $(ROCM_CFLAGS) -dlink $^ -o $@
+
+$(BUILD_DIR)/f5c_rocm.o: src/f5c.hip src/error.h src/f5c.h src/fast5lite.h src/f5cmisc_rocm.h src/f5cmisc.h
+	$(HIPCC) -x hip $(ROCM_CFLAGS) $(CPPFLAGS) -fgpu-rdc -fPIC -c $< -o $@
+
+$(BUILD_DIR)/f5c_rocm_gpuonly.o: src/f5c_gpuonly.hip src/error.h src/f5c.h src/fast5lite.h src/f5cmisc_rocm.h src/f5cmisc.h
+	$(HIPCC) -x hip $(ROCM_CFLAGS) $(CPPFLAGS) -fgpu-rdc -fPIC -c $< -o $@
+
+$(BUILD_DIR)/align_rocm.o: src/align.hip src/f5c.h src/fast5lite.h src/f5cmisc_rocm.h
+	$(HIPCC) -x hip $(ROCM_CFLAGS) $(CPPFLAGS) -fgpu-rdc -fPIC -c $< -o $@
 
 slow5lib/lib/libslow5.a:
 	$(MAKE) -C slow5lib zstd=$(zstd) no_simd=$(no_simd) zstd_local=$(zstd_local)  lib/libslow5.a
