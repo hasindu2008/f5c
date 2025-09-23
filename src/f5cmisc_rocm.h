@@ -42,11 +42,11 @@
 //if average events per base of a read < AVG_EVENTS_PER_KMER_GPU_THRESH process on GPU else go for the CPU
 #define AVG_EVENTS_PER_KMER_GPU_THRESH (core->opt.cuda_max_avg_events_per_kmer)
 
-#define TEGRA_MEM_FACTOR 0.7f //in tegra we cannot grab all  (can be overriden by user options)
+#define IGPU_MEM_FACTOR 0.6f //in igpu we cannot grab all  (can be overriden by user options)
 //the free memory as we have to reserve some space for RAM as well
-//TEGRA_MEM_FACTOR is the factor of the free memory allocated for the gpu
+//IGPU_MEM_FACTOR is the factor of the free memory allocated for the gpu
 
-#define MEM_FACTOR 0.9f //for non-tegra GPU. how much factor of the free memory to allocate (can be overriden by user options)
+#define MEM_FACTOR 0.9f //for non-igpu GPU. how much factor of the free memory to allocate (can be overriden by user options)
 
 #define REVERSAL_ON_CPU 1 //reversal of the backtracked array is performed on the CPU instead of the GPU
 
