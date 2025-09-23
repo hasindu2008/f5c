@@ -15,22 +15,23 @@
 
 #include "error.h"
 #include "f5c.h"
-#include "f5cmisc.cuh"
+#include "f5cmisc_rocm.h"
 #include "f5cmisc.h"
 
 
 #ifndef CPU_GPU_PROC
 
-/* if defined, static cuda/cpu arrays (model and arrays dependent on K)
+/* if defined, static hip/cpu arrays (model and arrays dependent on K)
    are preallocated at the beginning of the program, rather than repeatedly doing so inside a loop */
 #define CUDA_PRE_MALLOC 1
 
-void align_cuda(core_t* core, db_t* db) {
+void align_hip(core_t* core, db_t* db) {
     int32_t i;
     int32_t n_bam_rec = db->n_bam_rec;
     double realtime1;
+    hipError_t ret;
 
-    /**cuda pointers*/
+    /**hip pointers*/
     char* read;        //flattened reads sequences
     ptr_t* read_ptr; //index pointer for flattedned "reads"
     int32_t* read_len;
@@ -48,9 +49,9 @@ void align_cuda(core_t* core, db_t* db) {
 
 realtime1 = realtime();
 
-    int32_t cuda_device_num = core->opt.cuda_dev_id;
-    cudaSetDevice(cuda_device_num);
-    CUDA_CHK();
+    int32_t hip_device_num = core->opt.cuda_dev_id;
+    ret = hipSetDevice(hip_device_num);
+    HIP_CHK(); HIP_RET_CHK(ret);
 
 #ifdef CUDA_PRE_MALLOC
     ptr_t* read_ptr_host = core->cuda->read_ptr_host;
@@ -124,101 +125,101 @@ realtime1 = realtime();
 #else
 
     if(core->opt.verbosity>1) print_size("read_ptr array",n_bam_rec * sizeof(ptr_t));
-    cudaMalloc((void**)&read_ptr, n_bam_rec * sizeof(ptr_t));
-    CUDA_CHK();
+    ret = hipMalloc((void**)&read_ptr, n_bam_rec * sizeof(ptr_t));
+    HIP_CHK(); HIP_RET_CHK(ret);
 
     if(core->opt.verbosity>1) print_size("read_lens",n_bam_rec * sizeof(int32_t));
-    cudaMalloc((void**)&read_len, n_bam_rec * sizeof(int32_t));
-    CUDA_CHK();
+    ret = hipMalloc((void**)&read_len, n_bam_rec * sizeof(int32_t));
+    HIP_CHK(); HIP_RET_CHK(ret);
     //n_events
     if(core->opt.verbosity>1) print_size("n_events",n_bam_rec * sizeof(int32_t));
-    cudaMalloc((void**)&n_events, n_bam_rec * sizeof(int32_t));
-    CUDA_CHK();
+    ret = hipMalloc((void**)&n_events, n_bam_rec * sizeof(int32_t));
+    HIP_CHK(); HIP_RET_CHK(ret);
     //event ptr
     if(core->opt.verbosity>1) print_size("event ptr",n_bam_rec * sizeof(ptr_t));
-    cudaMalloc((void**)&event_ptr, n_bam_rec * sizeof(ptr_t));
-    CUDA_CHK();
+    ret = hipMalloc((void**)&event_ptr, n_bam_rec * sizeof(ptr_t));
+    HIP_CHK(); HIP_RET_CHK(ret);
     //scalings : already linear
     if(core->opt.verbosity>1) print_size("Scalings",n_bam_rec * sizeof(scalings_t));
-    cudaMalloc((void**)&scalings, n_bam_rec * sizeof(scalings_t));
-    CUDA_CHK();
+    ret = hipMalloc((void**)&scalings, n_bam_rec * sizeof(scalings_t));
+    HIP_CHK(); HIP_RET_CHK(ret);
     //model : already linear
     model_t* model;
-    cudaMalloc((void**)&model,
+    ret = hipMalloc((void**)&model,
             MAX_NUM_KMER * sizeof(model_t));
-    CUDA_CHK();
+    HIP_CHK(); HIP_RET_CHK(ret);
 #endif
 
 
     if(core->opt.verbosity>1) print_size("read array",sum_read_len * sizeof(char));
-    cudaMalloc((void**)&read, sum_read_len * sizeof(char)); //with null char
-    CUDA_CHK();
+    ret = hipMalloc((void**)&read, sum_read_len * sizeof(char)); //with null char
+    HIP_CHK(); HIP_RET_CHK(ret);
     if(core->opt.verbosity>1) print_size("event table",sum_n_events * sizeof(event_t));
-    cudaMalloc((void**)&event_table, sum_n_events * sizeof(event_t));
-    CUDA_CHK();
+    ret = hipMalloc((void**)&event_table, sum_n_events * sizeof(event_t));
+    HIP_CHK(); HIP_RET_CHK(ret);
     model_t* model_kmer_cache;
-    cudaMalloc((void**)&model_kmer_cache, sum_read_len * sizeof(model_t));
-    CUDA_CHK();
+    ret = hipMalloc((void**)&model_kmer_cache, sum_read_len * sizeof(model_t));
+    HIP_CHK(); HIP_RET_CHK(ret);
 
-    /**allocate output arrays for cuda**/
+    /**allocate output arrays for hip**/
     if(core->opt.verbosity>1) print_size("event align pairs",2 * sum_n_events *sizeof(AlignedPair));
-    cudaMalloc((void**)&event_align_pairs,
+    ret = hipMalloc((void**)&event_align_pairs,
             2 * sum_n_events *
                 sizeof(AlignedPair)); //todo : need better huristic
-    CUDA_CHK();
+    HIP_CHK(); HIP_RET_CHK(ret);
 #ifdef CUDA_PRE_MALLOC
     n_event_align_pairs=core->cuda->n_event_align_pairs;
 #else
     if(core->opt.verbosity>1) print_size("n_event_align_pairs",n_bam_rec * sizeof(int32_t));
-    cudaMalloc((void**)&n_event_align_pairs, n_bam_rec * sizeof(int32_t));
-    CUDA_CHK();
+    ret = hipMalloc((void**)&n_event_align_pairs, n_bam_rec * sizeof(int32_t));
+    HIP_CHK(); HIP_RET_CHK(ret);
 #endif
     //scratch arrays
     size_t sum_n_bands = sum_n_events + sum_read_len; //todo : can be optimised
     if(core->opt.verbosity>1) print_size("bands",sizeof(float) * sum_n_bands * ALN_BANDWIDTH);
-    cudaMalloc((void**)&bands,sizeof(float) * sum_n_bands * ALN_BANDWIDTH);
-    CUDA_CHK();
+    ret = hipMalloc((void**)&bands,sizeof(float) * sum_n_bands * ALN_BANDWIDTH);
+    HIP_CHK(); HIP_RET_CHK(ret);
     if(core->opt.verbosity>1) print_size("trace",sizeof(uint8_t) * sum_n_bands * ALN_BANDWIDTH);
-    cudaMalloc((void**)&trace, sizeof(uint8_t) * sum_n_bands * ALN_BANDWIDTH);
-    CUDA_CHK();
-    cudaMemset(trace,0,sizeof(uint8_t) * sum_n_bands * ALN_BANDWIDTH); //initialise the trace array to 0
+    ret = hipMalloc((void**)&trace, sizeof(uint8_t) * sum_n_bands * ALN_BANDWIDTH);
+    HIP_CHK(); HIP_RET_CHK(ret);
+    ret = hipMemset(trace,0,sizeof(uint8_t) * sum_n_bands * ALN_BANDWIDTH); //initialise the trace array to 0
     if(core->opt.verbosity>1) print_size("band_lower_left",sizeof(EventKmerPair)* sum_n_bands);
-    cudaMalloc((void**)&band_lower_left, sizeof(EventKmerPair)* sum_n_bands);
-    CUDA_CHK();
+    ret = hipMalloc((void**)&band_lower_left, sizeof(EventKmerPair)* sum_n_bands);
+    HIP_CHK(); HIP_RET_CHK(ret);
 core->align_cuda_malloc += (realtime() - realtime1);
 
-    /* cuda mem copys*/
+    /* hip mem copys*/
 realtime1 =realtime();
-    cudaMemcpy(read_ptr, read_ptr_host, n_bam_rec * sizeof(ptr_t),
-               cudaMemcpyHostToDevice);
-    CUDA_CHK();
-    cudaMemcpy(read, read_host, sum_read_len * sizeof(char),
-               cudaMemcpyHostToDevice);
-    CUDA_CHK();
+    ret = hipMemcpy(read_ptr, read_ptr_host, n_bam_rec * sizeof(ptr_t),
+               hipMemcpyHostToDevice);
+    HIP_CHK(); HIP_RET_CHK(ret);
+    ret = hipMemcpy(read, read_host, sum_read_len * sizeof(char),
+               hipMemcpyHostToDevice);
+    HIP_CHK(); HIP_RET_CHK(ret);
     //read length : already linear hence direct copy
-    cudaMemcpy(read_len, db->read_len, n_bam_rec * sizeof(int32_t),
-               cudaMemcpyHostToDevice);
-    CUDA_CHK();
-    cudaMemcpy(n_events, n_events_host, n_bam_rec * sizeof(int32_t),
-               cudaMemcpyHostToDevice);
-    CUDA_CHK();
-    cudaMemcpy(event_ptr, event_ptr_host, n_bam_rec * sizeof(ptr_t),
-               cudaMemcpyHostToDevice);
-    CUDA_CHK();
-    cudaMemcpy(event_table, event_table_host, sizeof(event_t) * sum_n_events,
-               cudaMemcpyHostToDevice);
-    CUDA_CHK();
+    ret = hipMemcpy(read_len, db->read_len, n_bam_rec * sizeof(int32_t),
+               hipMemcpyHostToDevice);
+    HIP_CHK(); HIP_RET_CHK(ret);
+    ret = hipMemcpy(n_events, n_events_host, n_bam_rec * sizeof(int32_t),
+               hipMemcpyHostToDevice);
+    HIP_CHK(); HIP_RET_CHK(ret);
+    ret = hipMemcpy(event_ptr, event_ptr_host, n_bam_rec * sizeof(ptr_t),
+               hipMemcpyHostToDevice);
+    HIP_CHK(); HIP_RET_CHK(ret);
+    ret = hipMemcpy(event_table, event_table_host, sizeof(event_t) * sum_n_events,
+               hipMemcpyHostToDevice);
+    HIP_CHK(); HIP_RET_CHK(ret);
 
 #ifndef CUDA_PRE_MALLOC
-//model : already linear //move to cuda_init
-    cudaMemcpy(model, core->model, MAX_NUM_KMER * sizeof(model_t),
-            cudaMemcpyHostToDevice);
-    CUDA_CHK();
+//model : already linear //move to hip_init
+    ret = hipMemcpy(model, core->model, MAX_NUM_KMER * sizeof(model_t),
+            hipMemcpyHostToDevice);
+    HIP_CHK(); HIP_RET_CHK(ret);
 #endif
     //can be interleaved
-    cudaMemcpy(scalings, db->scalings, sizeof(scalings_t) * n_bam_rec,
-               cudaMemcpyHostToDevice);
-    CUDA_CHK();
+    ret = hipMemcpy(scalings, db->scalings, sizeof(scalings_t) * n_bam_rec,
+               hipMemcpyHostToDevice);
+    HIP_CHK(); HIP_RET_CHK(ret);
 core->align_cuda_memcpy += (realtime() - realtime1);
 
     uint32_t kmer_size = core->kmer_size;
@@ -235,7 +236,7 @@ realtime1 = realtime();
         read_len, read_ptr, n_events,
         event_ptr, model, kmer_size, n_bam_rec, model_kmer_cache,bands,trace,band_lower_left);
 
-    cudaDeviceSynchronize();CUDA_CHK();
+    ret = hipDeviceSynchronize();HIP_CHK(); HIP_RET_CHK(ret);
     if(core->opt.verbosity>1) fprintf(stderr, "[%s::%.3f*%.2f] align-pre kernel done\n", __func__,
             realtime() - realtime1, cputime() / (realtime() - realtime1));
 core->align_kernel_time += (realtime() - realtime1);
@@ -250,7 +251,7 @@ realtime1 = realtime();
     align_kernel_core_2d_shm<<<grid1, block1>>>(read_len, read_ptr, event_table, n_events,
             event_ptr, scalings, n_bam_rec, model_kmer_cache, kmer_size, bands,trace,band_lower_left );
 
-    cudaDeviceSynchronize();CUDA_CHK();
+    ret = hipDeviceSynchronize();HIP_CHK(); HIP_RET_CHK(ret);
     if(core->opt.verbosity>1) fprintf(stderr, "[%s::%.3f*%.2f] align-core kernel done\n", __func__,
     realtime() - realtime1, cputime() / (realtime() - realtime1));
     core->align_kernel_time += (realtime() - realtime1);
@@ -275,7 +276,7 @@ realtime1 = realtime();
             read_len, read_ptr, event_table, n_events,
             event_ptr, scalings, n_bam_rec, model_kmer_cache, kmer_size, bands,trace,band_lower_left );
     #endif
-    cudaDeviceSynchronize();CUDA_CHK();
+    ret = hipDeviceSynchronize();HIP_CHK(); HIP_RET_CHK(ret);
     if(core->opt.verbosity>1) fprintf(stderr, "[%s::%.3f*%.2f] align-post kernel done\n", __func__,
             realtime() - realtime1, cputime() / (realtime() - realtime1));
     core->align_kernel_time += (realtime() - realtime1);
@@ -286,39 +287,53 @@ core->align_post_kernel_time += (realtime() - realtime1);
 
 #ifdef CUDA_DEBUG
 
-    cudaDeviceSynchronize();
-    CUDA_CHK();
+    ret = hipDeviceSynchronize();
+    HIP_CHK(); HIP_RET_CHK(ret);
 
 #endif
 
     /** copyback ans**/
 realtime1 =  realtime();
-    cudaMemcpy(db->n_event_align_pairs, n_event_align_pairs,
-               n_bam_rec * sizeof(int32_t), cudaMemcpyDeviceToHost);
-    CUDA_CHK();
+    ret = hipMemcpy(db->n_event_align_pairs, n_event_align_pairs,
+               n_bam_rec * sizeof(int32_t), hipMemcpyDeviceToHost);
+    HIP_CHK(); HIP_RET_CHK(ret);
 
-    cudaMemcpy(event_align_pairs_host, event_align_pairs,
-               2 * sum_n_events * sizeof(AlignedPair), cudaMemcpyDeviceToHost);
-    CUDA_CHK();
+    ret = hipMemcpy(event_align_pairs_host, event_align_pairs,
+               2 * sum_n_events * sizeof(AlignedPair), hipMemcpyDeviceToHost);
+    HIP_CHK(); HIP_RET_CHK(ret);
 core->align_cuda_memcpy += (realtime() - realtime1);
 
 realtime1 =  realtime();
 #ifndef CUDA_PRE_MALLOC
-    cudaFree(read_ptr);
-    cudaFree(read_len);
-    cudaFree(n_events);
-    cudaFree(event_ptr);
-    cudaFree(model); //constant memory
-    cudaFree(scalings);
-    cudaFree(n_event_align_pairs);
+    ret = hipFree(read_ptr);
+    HIP_CHK(); HIP_RET_CHK(ret);
+    ret = hipFree(read_len);
+    HIP_CHK(); HIP_RET_CHK(ret);
+    ret = hipFree(n_events);
+    HIP_CHK(); HIP_RET_CHK(ret);
+    ret = hipFree(event_ptr);
+    HIP_CHK(); HIP_RET_CHK(ret);
+    ret = hipFree(model); //constant memory
+    HIP_CHK(); HIP_RET_CHK(ret);
+    ret = hipFree(scalings);
+    HIP_CHK(); HIP_RET_CHK(ret);
+    ret = hipFree(n_event_align_pairs);
+    HIP_CHK(); HIP_RET_CHK(ret);
 #endif
-    cudaFree(read); //with null char
-    cudaFree(event_table);
-    cudaFree(event_align_pairs);
-    cudaFree(bands);
-    cudaFree(trace);
-    cudaFree(band_lower_left);
-    cudaFree(model_kmer_cache);
+    ret = hipFree(read); //with null char
+    HIP_CHK(); HIP_RET_CHK(ret);
+    ret = hipFree(event_table);
+    HIP_CHK(); HIP_RET_CHK(ret);
+    ret = hipFree(event_align_pairs);
+    HIP_CHK(); HIP_RET_CHK(ret);
+    ret = hipFree(bands);
+    HIP_CHK(); HIP_RET_CHK(ret);
+    ret = hipFree(trace);
+    HIP_CHK(); HIP_RET_CHK(ret);
+    ret = hipFree(band_lower_left);
+    HIP_CHK(); HIP_RET_CHK(ret);
+    ret = hipFree(model_kmer_cache);
+    HIP_CHK(); HIP_RET_CHK(ret);
 
 core->align_cuda_malloc += (realtime() - realtime1);
 
