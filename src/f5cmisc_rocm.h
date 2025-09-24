@@ -83,17 +83,9 @@ static inline void gpu_assert(const char* file, uint64_t line) {
     if (code != hipSuccess) {
         fprintf(stderr, "[%s::ERROR]\033[1;31m Hip error: %s \n in file : %s line number : %lu\033[0m\n",
                 __func__, hipGetErrorString(code), file, line);
-        if (code == hipErrorLaunchTimeOut) { //TODOROCM is this a thing in ROCM?
-            ERROR("%s", "The kernel timed out. You have to first disable the hip "
+        if (code == hipErrorLaunchTimeOut) {
+            ERROR("%s", "The kernel timed out. You may have to first disable the hip "
                         "time out.");
-            fprintf(
-                stderr,
-                "On Ubuntu do the following\nOpen the file /etc/X11/xorg.conf\nYou "
-                "will have a section about your NVIDIA device. Add the following "
-                "line to it.\nOption \"Interactive\" \"0\"\nIf you do not have a "
-                "section about your NVIDIA device in /etc/X11/xorg.conf or you do "
-                "not have a file named /etc/X11/xorg.conf, run the command sudo "
-                "nvidia-xconfig to generate a xorg.conf file and do as above.\n\n");
         }
         exit(-1);
     }
@@ -118,9 +110,9 @@ static inline int32_t hip_exists() {
     if (nDevices <= 0) { //TODOROCM change the error message
         fprintf(stderr, "[%s::ERROR]\033[1;31m Could not initialise a rocm/hip capable device. Some troubleshooting tips in order:\n"
                         "1. Do you have an AMD GPU? [lspci | grep -i \"vga\\|3d\\|display\"]\n"
-                        "2. Have you installed the AMD driver? [lspci -nnk | grep -iA2 \"vga\\|3d\\|display\"]\n"
+                        "2. Have you installed the AMD GPU driver? [lspci -nnk | grep -iA2 \"vga\\|3d\\|display\"]\n"
                         "3. If you GPU is iGPU is the current user belongs to the [video] user group?\n"
-                        "4. Is your hip driver too old? (the release binary compiled using rocm 5.x)\n"
+                        "4. Is your hip driver too old? (the release binary is compiled using rocm 5.x)\n"
                         "Run with --disable-hip=yes to run on the CPU\033[0m\n",__func__);
         exit(1);
     }
