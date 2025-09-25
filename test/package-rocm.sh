@@ -23,6 +23,10 @@ cp ~/slorado/thirdparty/torch/libtorch/lib/libelf.so lib/
 cp ~/slorado/thirdparty/torch/libtorch/lib/libdrm.so lib/
 cp ~/slorado/thirdparty/torch/libtorch/lib/libdrm_amdgpu.so lib/
 
+for f in lib/*.so*; do
+   patchelf --force-rpath  --set-rpath '$ORIGIN' $f
+done
+
 mkdir f5c-${VERSION}
 mv f5c f5c-${VERSION}/f5c_x86_64_linux_rocm
 mv lib f5c-${VERSION}/
