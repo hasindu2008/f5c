@@ -46,9 +46,11 @@ wget "https://github.com/hasindu2008/f5c/releases/download/$VERSION/f5c-$VERSION
 ./f5c_x86_64_linux        # CPU version
 ./f5c_x86_64_linux_cuda   # cuda supported version
 ```
-Binaries should work on most Linux distributions as the only dependency is `zlib` which is available by default on most distroibutions. For compiled binaries to work, your processor must support SSSE3 instructions or higher (processors after 2007 have these) and your operating system must have GLIBC 2.17 or higher (Linux distributions from 2014 onwards typically have this).
+Binaries should work on most Linux distributions as the only dependency is `zlib` which is available by default on most distributions. For compiled binaries to work, your processor must support SSSE3 instructions or higher (processors after 2007 have these) and your operating system must have GLIBC 2.17 or higher (Linux distributions from 2014 onwards typically have this).
 
 You can also use conda to install *f5c* as `conda install f5c -c bioconda -c conda-forge`.
+
+From f5c v1.6 onwards, experimental binaries for AMD GPUs are also provided under [releases](https://github.com/hasindu2008/f5c/releases).
 
 ## Building from source
 
@@ -89,7 +91,7 @@ On OS X : brew install hdf5
 
 ### NVIDIA CUDA support
 
-To build for the GPU, you need to have the CUDA toolkit installed. Make nvcc (NVIDIA C Compiler) is in your PATH.
+To build for the GPU, you need to have the CUDA toolkit installed. Make sure nvcc (NVIDIA C Compiler) is in your PATH.
 
 The building instructions are the same as above except that you should call make as :
 ```
@@ -104,6 +106,23 @@ If your CUDA library is not in the default location /usr/local/cuda/lib64, point
 make cuda=1 CUDA_LIB=/path/to/cuda/library/
 ```
 Visit [here](https://hasindu2008.github.io/f5c/docs/cuda-troubleshoot) for troubleshooting CUDA related problems.
+
+### AMD ROCM support
+
+From f5c v1.6, AMD GPUs are supported. To build for such GPUs, you need to have the ROCM toolkit installed.
+
+The building instructions are the same as above for the CPU, except that you should call make as :
+```
+make rocm=1
+```
+Optionally you can provide the ROCM architecture as :
+```
+make rocm=1 ROCM_ARCH=--offload-arch=gfxnnn
+```
+If your ROCM library is not in the default location /opt/rocm, point to the correct location as:
+```
+make rocm=1 ROCM_LIB=/path/to/rocm/library/
+```
 
 ## Usage
 

@@ -41,9 +41,6 @@ uint32_t read_model(model_t* model, const char* file, uint32_t type) {
     uint32_t kmer_size = MAX_KMER_SIZE;
     uint32_t num_kmer = eval_num_kmer(kmer_size,type);
 
-
-    WARNING("Reading the model from file %s. This is an experimental feature. Use with caution", file);
-
     FILE* fp = fopen(file, "r");
     F_CHK(fp, file);
 

@@ -189,7 +189,6 @@ core_t* init_core(const char* bamfilename, const char* fastafile,
         int region_str_len = strlen(opt.region_str);
         if(region_str_len>=4 && strcmp(&(opt.region_str[region_str_len-4]),".bed")==0 ){
             STDERR("Fetching the list of regions from file: %s", opt.region_str);
-            WARNING("%s", "Loading region windows from a bed file is an experimental option and not yet throughly tested.");
             WARNING("%s", "When loading windows from a bed file, output is based on reads that are unclipped. Also, there may be repeated entries when regions overlap.");
             int64_t count=0;
             char **reg_l = read_bed_regions(opt.region_str, &count);

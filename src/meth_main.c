@@ -417,13 +417,11 @@ int meth_main(int argc, char* argv[], int8_t mode) {
                 ERROR("Minimum number of events to rescale should be larger than 0. You entered %d", opt.min_num_events_to_rescale);
                 exit(EXIT_FAILURE);
             }
-            WARNING("%s","Option --min-recalib-events is experimental. Exercise caution.");
         } else if (c == 0 && longindex == 45){ //collapse events
             if(mode!=1){
                 ERROR("%s","Option --collapse-events is available only in eventalign");
                 exit(EXIT_FAILURE);
             }
-            WARNING("%s", "Option --collapse-events is experimental. Exercise caution.");
             yes_or_no(&opt, F5C_COLLAPSE_EVENTS, longindex, "yes", 1);
         } else if (c==0 && longindex == 46){ //pore
             opt.pore = optarg;
