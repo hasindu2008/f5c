@@ -243,6 +243,89 @@ test_suit1_cuda () {
 }
 
 
+test_suit1_rocm () {
+
+	echo "***************Doing ecoli based ROCM tests*************************"
+	make clean
+	make rocm=1 -j8
+	echo "Methylation calling"
+	scripts/test.sh 2> ecoli_methcalling_rocm.log || die "failed"
+	echo "____________________________________________________________________"
+	echo "event alignment"
+	test/test_eventalign.sh 2> ecoli_eventalign_rocm.log || die "failed"
+	echo "____________________________________________________________________"
+	# echo "methylation frequency"
+	# test/test_methfreq.sh 2> ecoli_methfreq_rocm.log || die "failed"
+	# echo "____________________________________________________________________"
+	echo "multi-fast5"
+	test/test_multifast5.sh 2> ecoli_multifast5_rocm.log  || die "failed"
+	echo "____________________________________________________________________"
+	echo "slow5"
+	test/test_slow5.sh 2> ecoli_slow5_rocm.log || die "failed"
+	echo "____________________________________________________________________"
+	echo "resquiggle"
+	test/test_rsq.sh 2> ecoli_resquiggle_rocm.log || die "failed"
+	echo "____________________________________________________________________"
+
+	echo ""
+	echo "*********************************************************************"
+	echo ""
+
+	echo "***************Doing NA12878 based ROCM tests************************"
+	echo "Methylation calling"
+	scripts/test.sh -c 2> na12878_methcalling_rocm.log || die "failed"
+	echo "____________________________________________________________________"
+	echo "event alignment"
+	test/test_eventalign.sh -c 2> na12878_eventalign_rocm.log || die "failed"
+	echo "____________________________________________________________________"
+	# echo "methylation frequency"
+	# test/test_methfreq.sh -c 2> na12878_methfreq_rocm.log || die "failed"
+	# echo "____________________________________________________________________"
+	echo "multi-fast5"
+	test/test_multifast5.sh -c 2> na12878_multifast5_rocm.log || die "failed"
+	echo "____________________________________________________________________"
+	echo "slow5"
+	test/test_slow5.sh -c 2> na12878_slow5_rocm.log || die "failed"
+	echo "____________________________________________________________________"
+	echo "resquiggle"
+	test/test_rsq.sh -c 2> na12878_resquiggle_rocm.log || die "failed"
+
+
+	echo "************************Doing RNA tests*****************************"
+	echo "event alignment"
+	test/test_eventalign.sh -e 2> rna_eventalign_rocm.log || echo "failure ignored until paste is implemented with join in full event align output"
+	echo "____________________________________________________________________"
+	echo "resquiggle"
+	test/test_rsq.sh -e 2> rna_resquiggle_rocm.log || die "failed"
+
+
+	echo "************************Doing R10 HG2 tests*****************************"
+	echo "Methylation calling"
+	scripts/test.sh -f 2> r10_hg2_methcalling_rocm.log || die "failed"
+	echo "____________________________________________________________________"
+	echo "event alignment"
+	test/test_eventalign.sh -f 2> r10_hg2_eventalign_rocm.log || echo "failure ignored for now until smaller diffs are accounted"
+	echo "____________________________________________________________________"
+	echo "resquiggle"
+	test/test_rsq.sh -f 2> r10_hg2_resquiggle_rocm.log || die "failed"
+
+	echo "************************Doing RNA004 UHR tests*****************************"
+	echo "event alignment"
+	test/test_eventalign.sh -z 2> rna004_uhr_eventalign_rocm.log || echo "failure ignored for now until smaller diffs are accounted"
+	echo "____________________________________________________________________"
+	echo "resquiggle"
+	test/test_rsq.sh -z 2> rna004_uhr_resquiggle_rocm.log || die "failed"
+
+	echo "************************Doing eventalign paf tests*****************************"
+	test/test_eventalign_paf_sam_m6a.sh 2> eventalign_paf_rocm.log || die "failed"
+	echo ""
+
+	echo ""
+	echo "*********************************************************************"
+	echo ""
+
+}
+
 test_suit2 () {
 
 	echo "***************Doing NA12878 based CPU tests part 2******************"
@@ -320,6 +403,38 @@ test_suit2_cuda () {
 	echo ""
 }
 
+
+test_suit2_rocm () {
+
+	echo "*****************Doing NA12878 based ROCM tests part 2**************"
+	echo "ROCM test"
+	make clean && make rocm=1
+	"${exepath}" index --iop "${NCPU}" -t "${NCPU}" "${reads}" -d ${testdir}/fast5_files
+	"${exepath}" call-methylation -b "${bamfile}" -g "${ref}" -r "${reads}" -t "${NCPU}"  -K256 -v5 --meth-out-version=1 > ${testdir}/result.txt 2> default_rocm.log
+	evaluate
+	echo ""
+	echo "____________________________________________________________________"
+
+
+	echo "ROCM test : rocm disabled"
+	make clean && make rocm=1
+	"${exepath}" call-methylation -b "${bamfile}" -g "${ref}" -r "${reads}" -t "${NCPU}"  -K256 -v5 --disable-cuda=yes --meth-out-version=1 > ${testdir}/result.txt 2> rocm_disabled.log
+	evaluate
+	echo ""
+	echo "____________________________________________________________________"
+
+	echo "ROCM test : dynamic malloc"
+	make clean && CUDA_CFLAGS+="-DCUDA_DYNAMIC_MALLOC=1" make rocm=1
+	"${exepath}" call-methylation -b "${bamfile}" -g "${ref}" -r "${reads}" -t "${NCPU}"  -K256 -v5 --meth-out-version=1 > ${testdir}/result.txt 2> rocm_malloc.log
+	evaluate
+	echo ""
+	echo "____________________________________________________________________"
+
+	echo ""
+	echo "*********************************************************************"
+	echo ""
+}
+
 #these are redundant for cuda
 test_suit_eventalign_extra () {
 
@@ -373,6 +488,40 @@ test_suit_compile_extra () {
 	echo ""
 }
 
+
+test_suit_compile_extra_rocm () {
+
+	echo "**************************ROCM extra compilation tests**************"
+
+	echo "ROCM test : GPU only"
+	sed -i  's/\#define CPU\_GPU\_PROC.*//' src/f5cmisc.hip
+	make clean && make rocm=1
+	scripts/test.sh -K10 2> compile_gpu_only.log
+	git checkout src/f5cmisc_rocm.h
+	echo ""
+	echo "____________________________________________________________________"
+
+	echo "ROCM test : WARP HACK disabled"
+	sed -i  's/\#define WARP\_HACK.*//' src/f5cmisc_rocm.h
+	make clean && make rocm=1
+	scripts/test.sh 2> compile_warphack_disabled.log
+	git checkout src/f5cmisc_rocm.h
+	echo ""
+	echo "____________________________________________________________________"
+
+	echo "ROCM test : PRE MALLOC disabled"
+	sed -i  's/\#define CUDA\_PRE\_MALLOC.*//' src/f5c_gpuonly.hip
+	make clean && ROCM_CFLAGS+="-DCUDA_DYNAMIC_MALLOC=1" make rocm=1
+	scripts/test.sh 2> compile_premalloc_disabled.log
+	git checkout src/f5c_gpuonly.hip
+	echo ""
+	echo "____________________________________________________________________"
+
+	echo ""
+	echo "*********************************************************************"
+	echo ""
+}
+
 help_msg() {
 	echo "Extensive test script for f5c."
 	echo "Usage: f5c_dir/script/extensive_test.sh mode"
@@ -406,7 +555,13 @@ if [ "$mode" = "gpu" -o  "$mode" = "all" ]; then
 	test_suit2_cuda
 	test_suit_compile_extra
 fi
-if ! [ "$mode" = "cpu" -o "$mode" = "gpu" -o "$mode" = "all" ]; then
+if [ "$mode" = "rocm" ]; then
+	test_suit1_rocm
+	test_suit2_rocm
+	test_suit_compile_extra_rocm
+fi
+
+if ! [ "$mode" = "cpu" -o "$mode" = "gpu" -o "$mode" = "rocm" -o  "$mode" = "all" ]; then
 	help_msg
 	exit 2;
 fi
