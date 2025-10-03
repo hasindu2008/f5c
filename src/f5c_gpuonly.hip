@@ -235,7 +235,7 @@ realtime1 = realtime();
     align_kernel_pre_2d<<<gridpre, blockpre>>>( read,
         read_len, read_ptr, n_events,
         event_ptr, model, kmer_size, n_bam_rec, model_kmer_cache,bands,trace,band_lower_left);
-
+    HIP_CHK();
     ret = hipDeviceSynchronize();HIP_CHK(); HIP_RET_CHK(ret);
     if(core->opt.verbosity>1) fprintf(stderr, "[%s::%.3f*%.2f] align-pre kernel done\n", __func__,
             realtime() - realtime1, cputime() / (realtime() - realtime1));
@@ -250,7 +250,7 @@ realtime1 = realtime();
     dim3 block1(BLOCK_LEN_BANDWIDTH,BLOCK_LEN_READS);
     align_kernel_core_2d_shm<<<grid1, block1>>>(read_len, read_ptr, event_table, n_events,
             event_ptr, scalings, n_bam_rec, model_kmer_cache, kmer_size, bands,trace,band_lower_left );
-
+    HIP_CHK();
     ret = hipDeviceSynchronize();HIP_CHK(); HIP_RET_CHK(ret);
     if(core->opt.verbosity>1) fprintf(stderr, "[%s::%.3f*%.2f] align-core kernel done\n", __func__,
     realtime() - realtime1, cputime() / (realtime() - realtime1));
@@ -276,6 +276,7 @@ realtime1 = realtime();
             read_len, read_ptr, event_table, n_events,
             event_ptr, scalings, n_bam_rec, model_kmer_cache, kmer_size, bands,trace,band_lower_left );
     #endif
+    HIP_CHK();
     ret = hipDeviceSynchronize();HIP_CHK(); HIP_RET_CHK(ret);
     if(core->opt.verbosity>1) fprintf(stderr, "[%s::%.3f*%.2f] align-post kernel done\n", __func__,
             realtime() - realtime1, cputime() / (realtime() - realtime1));
