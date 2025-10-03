@@ -409,7 +409,7 @@ void output_db_rsq(core_t* core, db_t* db, int8_t fmt) {
                         printf("%ld\t", (long)signal_start_point);
                     }
                     if(signal_end_point<0){
-                        printf(".\t");
+                        printf(".");
                     } else {
                         printf("%ld", (long)signal_end_point);
                     }
