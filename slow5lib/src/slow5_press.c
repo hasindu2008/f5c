@@ -13,6 +13,7 @@
 #ifdef SLOW5_USE_ZSTD
 #include <zstd.h>
 #endif /* SLOW5_USE_ZSTD */
+#include "slow5_extra.h"
 #include "slow5_misc.h"
 
 extern enum slow5_log_level_opt  slow5_log_level;
@@ -40,8 +41,13 @@ static void *ptr_compress_zstd(const void *ptr, size_t count, size_t *n);
 static void *ptr_depress_zstd(const void *ptr, size_t count, size_t *n);
 #endif /* SLOW5_USE_ZSTD */
 
+/* ex_zd */
+static uint8_t *ptr_compress_ex_zd(const int16_t *ptr, size_t count, size_t *n);
+static int16_t *ptr_depress_ex_zd(const uint8_t *ptr, size_t count, size_t *n);
+
 /* other */
 static int vfprintf_compress(struct __slow5_press *comp, FILE *fp, const char *format, va_list ap);
+static int round_to_power_of_2(int number, int number_of_bits);
 
 
 /* Convert the press method back an forth from the library format to spec format
@@ -107,6 +113,10 @@ uint8_t slow5_encode_signal_press(enum slow5_press_method method){
         case SLOW5_COMPRESS_SVB_ZD:
             ret = 1;
             break;
+        case SLOW5_COMPRESS_EX_ZD:
+            SLOW5_WARNING("Signal compression method %s is new. While it is stable, just keep an eye.","ex-zd");
+            ret = 2;
+            break;
         case SLOW5_COMPRESS_ZLIB: //hidden feature hack for devs
             SLOW5_WARNING("You are using a hidden dev features (signal compression in %s). Output files may be useless.", "zlib");
             ret = 250;
@@ -132,6 +142,9 @@ enum slow5_press_method slow5_decode_signal_press(uint8_t method){
             break;
         case 1:
             ret = SLOW5_COMPRESS_SVB_ZD;
+            break;
+        case 2:
+            ret = SLOW5_COMPRESS_EX_ZD;
             break;
         case 250: //hidden feature hack for devs
             ret = SLOW5_COMPRESS_ZLIB;
@@ -275,7 +288,7 @@ struct __slow5_press *__slow5_press_init(enum slow5_press_method method) {
             slow5_errno = SLOW5_ERR_ARG;
             return NULL;
 #endif /* SLOW5_USE_ZSTD */
-
+        case SLOW5_COMPRESS_EX_ZD: break;
         default:
             SLOW5_ERROR("Invalid or unsupported (de)compression method '%d'.", method);
             free(comp);
@@ -303,7 +316,7 @@ void __slow5_press_free(struct __slow5_press *comp) {
 #ifdef SLOW5_USE_ZSTD
             case SLOW5_COMPRESS_ZSTD: break;
 #endif /* SLOW5_USE_ZSTD */
-
+            case SLOW5_COMPRESS_EX_ZD: break;
             default:
                 SLOW5_ERROR("Invalid or unsupported (de)compression method '%d'.", comp->method);
                 slow5_errno = SLOW5_ERR_ARG;
@@ -348,7 +361,9 @@ void *slow5_ptr_compress_solo(enum slow5_press_method method, const void *ptr, s
                 out = ptr_compress_zstd(ptr, count, &n_tmp);
                 break;
 #endif /* SLOW5_USE_ZSTD */
-
+            case SLOW5_COMPRESS_EX_ZD:
+                out = ptr_compress_ex_zd(ptr, count, &n_tmp);
+                break;
             default:
                 SLOW5_ERROR("Invalid or unsupported (de)compression method '%d'.", method);
                 slow5_errno = SLOW5_ERR_ARG;
@@ -399,6 +414,10 @@ void *slow5_ptr_compress(struct __slow5_press *comp, const void *ptr, size_t cou
                 out = ptr_compress_zstd(ptr, count, &n_tmp);
                 break;
 #endif /* SLOW5_USE_ZSTD */
+
+            case SLOW5_COMPRESS_EX_ZD:
+                out = ptr_compress_ex_zd(ptr, count, &n_tmp);
+                break;
 
             default:
                 SLOW5_ERROR("Invalid or unsupported (de)compression method '%d'.", comp->method);
@@ -452,6 +471,10 @@ void *slow5_ptr_depress_solo(enum slow5_press_method method, const void *ptr, si
                 out = ptr_depress_zstd(ptr, count, &n_tmp);
                 break;
 #endif /* SLOW5_USE_ZSTD */
+
+            case SLOW5_COMPRESS_EX_ZD:
+                out = ptr_depress_ex_zd(ptr, count, &n_tmp);
+                break;
 
             default:
                 SLOW5_ERROR("Invalid or unsupported (de)compression method '%d'.", method);
@@ -528,6 +551,10 @@ void *slow5_ptr_depress(struct __slow5_press *comp, const void *ptr, size_t coun
                 out = ptr_depress_zstd(ptr, count, &n_tmp);
                 break;
 #endif /* SLOW5_USE_ZSTD */
+
+            case SLOW5_COMPRESS_EX_ZD:
+                out = ptr_depress_ex_zd(ptr, count, &n_tmp);
+                break;
 
             default:
                 SLOW5_ERROR("Invalid or unsupported (de)compression method '%d'.", comp->method);
@@ -1203,7 +1230,622 @@ static void *ptr_depress_zstd(const void *ptr, size_t count, size_t *n) {
 }
 #endif /* SLOW5_USE_ZSTD */
 
+/* EX_ZD */
 
+
+static uint32_t *delta_increasing_u32(const uint32_t *in, uint64_t nin)
+{
+	uint32_t prev;
+	uint32_t *out;
+	uint64_t i;
+
+	SLOW5_ASSERT(in);
+
+	out = (uint32_t *) malloc(nin * sizeof *out);
+    if (!out) {
+        SLOW5_MALLOC_ERROR();
+        slow5_errno = SLOW5_ERR_MEM;
+        return NULL;
+    }
+
+	out[0] = in[0];
+	prev = in[0];
+
+	for (i = 1; i < nin; i++) {
+		out[i] = in[i] - prev - 1;
+		prev = in[i];
+	}
+
+	return out;
+}
+
+
+static int ex_press(const uint16_t *in, uint32_t nin, uint8_t **out_ptr,
+		  uint64_t *cap_out_ptr, size_t *offset_ptr, uint64_t *nout)
+{
+	uint32_t nex;
+	uint32_t *ex;
+	uint8_t *ex_press;
+	uint32_t *ex_pos;
+	uint32_t *ex_pos_delta;
+	uint8_t *ex_pos_press;
+	uint64_t nr_press_tmp;
+	uint32_t nex_pos_press;
+	uint32_t nex_press;
+	uint32_t i;
+	uint32_t j;
+
+    uint64_t cap_out = *cap_out_ptr;
+    uint8_t *out = *out_ptr;
+    uint64_t offset = *offset_ptr;
+
+	nex = 0;
+    size_t ex_pos_buff_s = UINT16_MAX;
+	ex_pos = (uint32_t *) malloc(ex_pos_buff_s * sizeof *ex_pos);
+    if (!ex_pos) {
+        SLOW5_MALLOC_ERROR();
+        slow5_errno = SLOW5_ERR_MEM;
+        return -1;
+    }
+
+	ex = (uint32_t *) malloc(ex_pos_buff_s * sizeof *ex);
+    if (!ex) {
+        free(ex_pos);
+        SLOW5_MALLOC_ERROR();
+        slow5_errno = SLOW5_ERR_MEM;
+        return -1;
+    }
+
+	for (i = 0; i < nin; i++) {
+		if (in[i] > UINT8_MAX) {
+			ex_pos[nex] = i;
+			ex[nex] = in[i] - UINT8_MAX - 1;
+			nex++;
+			if (nex == 0){
+				SLOW5_ERROR("ex-zd failed: too many exceptions %d",nex);
+                slow5_errno = SLOW5_ERR_PRESS;
+                free(ex_pos);
+                free(ex);
+                return -1;
+            } else if (nex == ex_pos_buff_s) {
+                ex_pos_buff_s *= 2;
+                ex_pos = (uint32_t *) realloc(ex_pos, ex_pos_buff_s * sizeof *ex_pos);
+                if (!ex_pos) {
+                    SLOW5_MALLOC_ERROR();
+                    free(ex);
+                    slow5_errno = SLOW5_ERR_MEM;
+                    return -1;
+                }
+                ex = (uint32_t *) realloc(ex, ex_pos_buff_s * sizeof *ex);
+                if (!ex) {
+                    SLOW5_MALLOC_ERROR();
+                    free(ex_pos);
+                    slow5_errno = SLOW5_ERR_MEM;
+                    return -1;
+                }
+            }
+		}
+	}
+
+    if(nex > nin/5){
+        SLOW5_WARNING("ex-zd: %d exceptions out of %d samples. Compression may not be ideal.",nex,nin);
+    }
+
+    SLOW5_ASSERT(cap_out - offset >= sizeof nex);
+	(void) memcpy(out+offset, &nex, sizeof nex);
+	offset += sizeof nex;
+
+	if (nex > 1) {
+
+        //exception positions
+
+		ex_pos_delta = delta_increasing_u32(ex_pos, nex);
+        if(!ex_pos_delta){
+            free(ex_pos);
+            free(ex);
+            return -1;
+        }
+
+        nr_press_tmp = __slow5_streamvbyte_max_compressedbytes(nex);
+		ex_pos_press = (uint8_t *)malloc(nr_press_tmp);
+		if(!ex_pos_press){
+            free(ex_pos_delta);
+            free(ex_pos);
+            free(ex);
+            SLOW5_MALLOC_ERROR();
+            slow5_errno = SLOW5_ERR_MEM;
+            return -1;
+        }
+
+        nr_press_tmp=__slow5_streamvbyte_encode(ex_pos_delta, nex, ex_pos_press);
+		free(ex_pos_delta);
+		nex_pos_press = (uint32_t) nr_press_tmp;
+        SLOW5_ASSERT(nex_pos_press > 0);
+
+        SLOW5_ASSERT(cap_out - offset >= sizeof nex_pos_press);
+		(void) memcpy(out + offset, &nex_pos_press, sizeof nex_pos_press);
+		offset += sizeof nex_pos_press;
+
+        SLOW5_ASSERT(cap_out - offset >= nex_pos_press);
+		(void) memcpy(out + offset, ex_pos_press, nex_pos_press);
+		free(ex_pos_press);
+		offset += nex_pos_press;
+
+        //actual exceptions
+        nr_press_tmp = __slow5_streamvbyte_max_compressedbytes(nex);
+		ex_press = (uint8_t *)malloc(nr_press_tmp);
+        if(!ex_press){
+            free(ex_pos);
+            free(ex);
+            SLOW5_MALLOC_ERROR();
+            slow5_errno = SLOW5_ERR_MEM;
+            return -1;
+        }
+
+        nr_press_tmp=__slow5_streamvbyte_encode(ex, nex, ex_press);
+		nex_press = (uint32_t) nr_press_tmp;
+        SLOW5_ASSERT(nex_press > 0);
+
+        SLOW5_ASSERT(cap_out - offset >= sizeof nex_press);
+		(void) memcpy(out + offset, &nex_press, sizeof nex_press);
+		offset += sizeof nex_press;
+
+        SLOW5_ASSERT(cap_out - offset >= nex_press);
+		(void) memcpy(out + offset, ex_press, nex_press);
+		free(ex_press);
+		offset += nex_press;
+
+	} else if (nex == 1) {
+        SLOW5_ASSERT(cap_out - offset >= nex * sizeof *ex_pos);
+		(void) memcpy(out + offset, ex_pos, nex * sizeof *ex_pos);
+		offset += nex * sizeof *ex_pos;
+        SLOW5_ASSERT(cap_out - offset >= nex * sizeof *ex);
+		(void) memcpy(out + offset, ex, nex * sizeof *ex);
+		offset += nex * sizeof *ex;
+	}
+	free(ex);
+
+	j = 0;
+	for (i = 0; i < nin; i++) {
+		if (j < nex && i == ex_pos[j]) {
+			j++;
+		} else {
+            SLOW5_ASSERT(cap_out - offset >= 1);
+			(void) memcpy(out + offset, in + i, 1);
+			offset++;
+		}
+	}
+
+	free(ex_pos);
+
+	*nout = offset-*offset_ptr;
+    *offset_ptr = offset;
+    return 0;
+}
+
+
+static void undelta_inplace_increasing_u32(uint32_t *in, uint64_t nin)
+{
+	uint32_t prev;
+	uint64_t i;
+
+	prev = in[0];
+
+	for (i = 1; i < nin; i++) {
+		in[i] += prev + 1;
+		prev = in[i];
+	}
+}
+
+
+static int ex_depress(const uint8_t *in, uint64_t nin, uint16_t *out, uint64_t *nout)
+{
+	uint32_t nex;
+	uint32_t *ex;
+	uint32_t *ex_pos;
+	uint8_t *ex_pos_press;
+	uint8_t *ex_press;
+	uint32_t nex_press;
+	uint32_t nex_pos_press;
+	uint32_t i;
+	uint32_t j;
+	uint64_t offset;
+
+	(void) memcpy(&nex, in, sizeof nex);
+	offset = sizeof nex;
+	ex_pos = malloc(nex * sizeof *ex_pos);
+    if(!ex_pos){
+        SLOW5_MALLOC_ERROR();
+        slow5_errno = SLOW5_ERR_MEM;
+        return -1;
+    }
+
+	if (nex > 0) {
+		ex = malloc(nex * sizeof *ex);
+        if(!ex){
+            free(ex_pos);
+            SLOW5_MALLOC_ERROR();
+            slow5_errno = SLOW5_ERR_MEM;
+            return -1;
+        }
+
+		if (nex > 1) {
+
+			(void) memcpy(&nex_pos_press, in + offset, sizeof nex_pos_press);
+			offset += sizeof nex_pos_press;
+
+			ex_pos_press = malloc(nex_pos_press);
+            if(!ex_pos_press){
+                free(ex_pos);
+                free(ex);
+                SLOW5_MALLOC_ERROR();
+                slow5_errno = SLOW5_ERR_MEM;
+                return -1;
+            }
+
+			(void) memcpy(ex_pos_press, in + offset, nex_pos_press);
+			offset += nex_pos_press;
+
+            int ret = __slow5_streamvbyte_decode(ex_pos_press, ex_pos, nex);
+            if (ret !=nex_pos_press){
+                SLOW5_ERROR("Expected streamvbyte_decode to read '%d' bytes, instead read '%d' bytes.",
+                        nex_pos_press, ret);
+                slow5_errno = SLOW5_ERR_PRESS;
+                free(ex_pos_press);
+                free(ex_pos);
+                free(ex);
+                return -1;
+            }
+
+			free(ex_pos_press);
+			undelta_inplace_increasing_u32(ex_pos, nex);
+
+			(void) memcpy(&nex_press, in + offset, sizeof nex_press);
+			offset += sizeof nex_press;
+
+			ex_press = malloc(nex_press);
+            if(!ex_press){
+                free(ex_pos);
+                free(ex);
+                SLOW5_MALLOC_ERROR();
+                slow5_errno = SLOW5_ERR_MEM;
+                return -1;
+            }
+
+			(void) memcpy(ex_press, in + offset, nex_press);
+			offset += nex_press;
+
+
+            ret = __slow5_streamvbyte_decode(ex_press, ex, nex);
+            if (ret != nex_press){
+                SLOW5_ERROR("Expected streamvbyte_decode to read '%d' bytes, instead read '%d' bytes.",
+                        nex_press, ret);
+                slow5_errno = SLOW5_ERR_PRESS;
+                free(ex_press);
+                free(ex_pos);
+                free(ex);
+                return -1;
+            }
+			free(ex_press);
+		} else if (nex == 1) {
+			(void) memcpy(ex_pos, in + offset, nex * sizeof *ex_pos);
+			offset += nex * sizeof *ex_pos;
+			(void) memcpy(ex, in + offset, nex * sizeof *ex);
+			offset += nex * sizeof *ex;
+		}
+
+		for (i = 0; i < nex; i++) {
+			out[ex_pos[i]] = ex[i] + UINT8_MAX + 1;
+		}
+		free(ex);
+	}
+
+	i = 0;
+	j = 0;
+	while (offset < nin || j < nex) {
+		if (j < nex && i == ex_pos[j]) {
+			j++;
+		} else {
+			out[i] = in[offset];
+			offset++;
+		}
+
+		i++;
+	}
+
+	free(ex_pos);
+	*nout = i;
+
+    return 0;
+}
+
+/*
+ * delta | zigzag | ex
+ * store first signal at start before vb
+ */
+
+static inline uint16_t zigzag_one_16(int16_t x)
+{
+	return (x + x) ^ (x >> 15);
+}
+
+/* return zigzag delta of in with nin elements */
+static uint16_t *zigdelta_16_u16(const int16_t *in, uint64_t nin)
+{
+	int16_t prev;
+	uint16_t *out;
+	uint64_t i;
+
+	out = (uint16_t *) malloc(nin * sizeof *out);
+    if (!out) {
+        SLOW5_MALLOC_ERROR();
+        slow5_errno = SLOW5_ERR_MEM;
+        return NULL;
+    }
+
+	prev = 0;
+
+	for (i = 0; i < nin; i++) {
+		out[i] = zigzag_one_16(in[i] - prev);
+		prev = in[i];
+	}
+
+	return out;
+}
+
+static inline int ex_zd_press_16(const int16_t *in, uint32_t nin, uint8_t **out_ptr,
+			uint64_t *cap_out_ptr, size_t *offset_ptr, uint64_t *nout)
+{
+
+    uint8_t *out = *out_ptr;
+    uint64_t cap_out = *cap_out_ptr;
+    size_t offset = *offset_ptr;
+
+	uint16_t *in_zd;
+	uint64_t nout_tmp;
+
+	in_zd = zigdelta_16_u16(in, nin);
+    if(!in_zd){
+        return -1;
+    }
+
+    size_t sz = sizeof *in_zd;
+    SLOW5_ASSERT(cap_out - offset >= sz);
+	memcpy(out + offset, in_zd, sz);
+    offset += sz;
+
+	nout_tmp = cap_out - offset;
+	int ret = ex_press(in_zd + 1, nin - 1, &out, &cap_out, &offset, &nout_tmp);
+    if(ret<0){
+        free(in_zd);
+        return -1;
+    }
+
+	*nout = nout_tmp + sz;
+    *offset_ptr = offset;
+	free(in_zd);
+    return 0;
+}
+
+static inline int16_t unzigzag_one_16(uint16_t x)
+{
+	return (x >> 1) ^ -(x & 1);
+}
+
+static void unzigdelta_u16_16(const uint16_t *in, uint64_t nin, int16_t *out)
+{
+	int16_t prev;
+	uint64_t i;
+
+	prev = 0;
+	for (i = 0; i < nin; i++) {
+		out[i] = prev + unzigzag_one_16(in[i]);
+		prev = out[i];
+	}
+}
+static int  ex_zd_depress_16(const uint8_t *in, uint64_t nin, int16_t *out,
+			  uint64_t *nout)
+{
+	uint16_t *out_zd;
+	uint64_t nout_tmp;
+
+	out_zd = (uint16_t *) malloc(nin * sizeof *out_zd);
+    if(!out_zd){
+        SLOW5_MALLOC_ERROR();
+        slow5_errno = SLOW5_ERR_MEM;
+        return -1;
+    }
+	(void) memcpy(out_zd, in, sizeof *out_zd);
+
+	nout_tmp = nin - 1;
+	int ret = ex_depress(in + sizeof *out_zd, nin - sizeof *out_zd, out_zd + 1,
+		       &nout_tmp);
+    if(ret<0){
+        free(out_zd);
+        return -1;
+    }
+	*nout = nout_tmp + 1;
+
+	unzigdelta_u16_16(out_zd, *nout, out);
+	free(out_zd);
+
+    return 0;
+}
+
+static inline uint8_t find_qts_of_sample(int16_t s, uint8_t max){
+    uint8_t q = max;
+    while(q){
+        uint16_t mask = (1 << q) - 1;
+        if(!(s & mask)) {
+            break;
+        }
+        q--;
+    }
+    return q;
+}
+
+static inline uint8_t find_qts(const int16_t *s, uint64_t n, uint8_t max){
+    uint8_t q = max;
+    for(uint64_t i=0; i<n; i++){
+        q = find_qts_of_sample(s[i], q);
+        //fprintf(stderr,"Possible q=%d\n", q);
+        if(!q) {
+            //fprintf(stderr,"q foudn to %d st element %d\n", q,i);
+            break;
+        }
+    }
+    return q;
+}
+
+static inline int16_t *do_qts(const int16_t *s, uint64_t n, uint8_t q){
+    int16_t *out = (int16_t *) malloc(n * sizeof *out);
+    if(!out){
+        SLOW5_MALLOC_ERROR();
+        slow5_errno = SLOW5_ERR_MEM;
+        return NULL;
+    }
+    for(uint64_t i=0; i<n; i++){
+        out[i] = s[i] >> q;
+    }
+    return out;
+}
+
+static inline void do_rev_qts_inplace(int16_t *s, uint64_t n, uint8_t q){
+    for(uint64_t i=0; i<n; i++){
+        s[i] = s[i] << q;
+    }
+    return;
+}
+
+
+static inline uint8_t *ptr_compress_ex_zd_v0(const int16_t *ptr, size_t count, size_t *n) {
+
+    uint64_t nin = count / sizeof *ptr;
+    const int16_t *in = ptr;
+
+    uint8_t exzd_ver = 0;
+    uint8_t q;
+
+	uint64_t cap_out_vb = count + 1024; //heuristic
+    size_t offset = 0;
+    uint8_t *out_vb = (uint8_t *) malloc(cap_out_vb);
+    if (!out_vb) {
+        SLOW5_MALLOC_ERROR();
+        slow5_errno = SLOW5_ERR_MEM;
+        return NULL;
+    }
+
+    size_t sz = sizeof exzd_ver;
+    SLOW5_ASSERT(cap_out_vb - offset >= sz);
+    memcpy(out_vb, &exzd_ver, sz);
+    offset += sz;
+
+    sz = sizeof nin;
+    SLOW5_ASSERT(cap_out_vb - offset >= sz);
+    memcpy(out_vb+offset, &nin, sz);
+    offset += sz;
+
+    q = find_qts(in, nin, 5);
+    int16_t *q_in = NULL;
+    if(q){
+        q_in = do_qts(in, nin, q);
+        in = q_in;
+    }
+    sz = sizeof q;
+    SLOW5_ASSERT(cap_out_vb - offset >= sz);
+    memcpy(out_vb+offset, &q, sz);
+    offset += sz;
+    //fprintf(stderr,"here q=%d\n", q);
+
+    uint64_t nout_vb = 0;
+	int ret = ex_zd_press_16(in, nin, &out_vb, &cap_out_vb, &offset, &nout_vb);
+    if(ret < 0){
+        free(out_vb);
+        free(q_in);
+        return NULL;
+    }
+    free(q_in);
+
+    SLOW5_ASSERT(cap_out_vb >= offset);
+    SLOW5_ASSERT(offset == nout_vb + sizeof nin + sizeof q + sizeof exzd_ver); //nout_vb is redundant, can be removed
+
+    *n = offset;
+
+    return out_vb;
+
+}
+
+static uint8_t *ptr_compress_ex_zd(const int16_t *ptr, size_t count, size_t *n) {
+
+    if(slow5_bigend){
+        SLOW5_ERROR_EXIT("%s","Compression of EX-ZD on big-endian architectures is not supported yet.");
+    }
+
+    return ptr_compress_ex_zd_v0(ptr, count, n);
+}
+
+static inline int16_t *ptr_depress_ex_zd_v0(const uint8_t *ptr, size_t count, size_t *n){
+
+    uint64_t nout;
+    uint64_t offset = 0;
+    size_t sz = sizeof nout;
+    memcpy(&nout, ptr+offset, sz);
+    offset += sz;
+
+    int16_t *out = (int16_t *) malloc(nout*sizeof *out);
+    if(!out){
+        SLOW5_MALLOC_ERROR();
+        slow5_errno = SLOW5_ERR_MEM;
+        return NULL;
+    }
+
+    uint8_t q = 0;
+    sz = sizeof q;
+    memcpy(&q, ptr+offset, sz);
+    offset += sz;
+
+    SLOW5_ASSERT(q <= 5);
+
+    int ret = ex_zd_depress_16(ptr+offset, count-offset, out, &nout);
+    if(ret <0 ){
+        free(out);
+        return NULL;
+    }
+
+    if(q){
+        do_rev_qts_inplace(out, nout, q);
+    }
+
+    *n = nout * sizeof *out;
+    return out;
+}
+
+
+static int16_t *ptr_depress_ex_zd(const uint8_t *ptr, size_t count, size_t *n){
+
+    if(slow5_bigend){
+        SLOW5_ERROR_EXIT("%s","Decompression of EX-ZD on big-endian architectures is not supported yet.");
+    }
+
+    uint64_t offset = 0;
+    uint8_t exzd_ver = 0;
+    int16_t *out;
+
+    SLOW5_ASSERT(count >= sizeof exzd_ver);
+
+    size_t sz = sizeof exzd_ver;
+    memcpy(&exzd_ver, ptr, sz);
+    offset += sz;
+    if(exzd_ver == 0){
+        out = ptr_depress_ex_zd_v0(ptr+offset, count-sz, n);
+    } else {
+        SLOW5_ERROR("Unsupported exzd version %d. Try a new version of slow5lib/slow5tools", exzd_ver);
+        slow5_errno = SLOW5_ERR_PRESS;
+        return NULL;
+    }
+
+	return out;
+}
 
 /* Decompress a zlib-compressed string
  *
@@ -1316,3 +1958,62 @@ unsigned char *z_inflate_buf(const char *comp_str, size_t *n) {
     return written;
 }
 */
+
+/* Irreversible signal degradation (lossy compression) */
+
+/*
+ * Zero number_of_bits LSB of number by rounding it to the nearest power of 2.
+ * number_of_bits must be >= 1. Return the rounded number.
+ * Taken from https://github.com/hasindu2008/sigtk src/qts.c.
+ */
+static int round_to_power_of_2(int number, int number_of_bits) {
+    //create a binary mask with the specified number of bits
+    int bit_mask = (1 << number_of_bits) - 1;
+
+    //extract out the value of the LSBs considered
+    int lsb_bits = number & bit_mask;
+
+
+    int round_threshold = (1 << (number_of_bits - 1));
+
+    //check if the least significant bits are closer to 0 or 2^n
+    if (lsb_bits < round_threshold) {
+        return (number & ~bit_mask) + 0; //round down to the nearest power of 2
+    } else {
+        return (number & ~bit_mask) + (1 << number_of_bits); //round up to the nearest power of 2
+    }
+}
+
+/*
+ * For array a with length n, zero b LSB of each integer by rounding them to the
+ * nearest power of 2. Set slow5_errno on error.
+ */
+void slow5_arr_qts_round(int16_t *a, uint64_t n, uint8_t b)
+{
+    uint64_t i;
+
+    if (!b)
+        return;
+    if (!a) {
+        SLOW5_ERROR("Argument '%s' cannot be NULL.", SLOW5_TO_STR(a));
+        slow5_errno = SLOW5_ERR_ARG;
+        return;
+    }
+
+    for (i = 0; i < n; i++)
+        a[i] = round_to_power_of_2(a[i], (int) b);
+}
+
+/*
+ * For the signal array in a slow5 record, zero b LSB of each integer by
+ * rounding them to the nearest power of 2. Set slow5_errno on error.
+ */
+void slow5_rec_qts_round(struct slow5_rec *r, uint8_t b)
+{
+    if (!r) {
+        SLOW5_ERROR("Argument '%s' cannot be NULL.", SLOW5_TO_STR(r));
+        slow5_errno = SLOW5_ERR_ARG;
+    } else {
+        slow5_arr_qts_round(r->raw_signal, r->len_raw_signal, b);
+    }
+}

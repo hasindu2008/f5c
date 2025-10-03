@@ -53,7 +53,7 @@ $(SHAREDLIB): $(OBJ) $(SVBLIB)
 	$(CC) $(CFLAGS) -shared $^ -o $@ $(LDFLAGS)
 
 $(SVBLIB):
-	make -C $(SVB) no_simd=$(no_simd) libstreamvbyte.a
+	$(MAKE) -C $(SVB) no_simd=$(no_simd) libstreamvbyte.a
 
 $(BUILD_DIR)/slow5.o: src/slow5.c src/slow5_extra.h src/slow5_idx.h src/slow5_misc.h src/klib/ksort.h src/slow5_byte.h $(SLOW5_H)
 	$(CC) $(CFLAGS) $(CPPFLAGS) $< -c -fpic -o $@
@@ -72,7 +72,7 @@ $(BUILD_DIR)/slow5_mt.o: src/slow5_mt.c include/slow5/slow5_mt.h $(SLOW5_H)
 
 clean:
 	rm -rf $(OBJ) $(STATICLIB) $(SHAREDLIB) $(SHAREDLIBV)
-	make -C $(SVB) clean
+	$(MAKE) -C $(SVB) clean
 
 # Delete all gitignored files (but not directories)
 distclean: clean
@@ -80,12 +80,12 @@ distclean: clean
 	rm -rf $(BUILD_DIR)/* autom4te.cache
 
 test: slow5lib
-	make -C test clean
-	make -C test zstd=$(zstd)
+	$(MAKE) -C test clean
+	$(MAKE) -C test zstd=$(zstd)
 	./test/test.sh
 
 pyslow5:
-	make clean
+	$(MAKE) clean
 	rm -rf *.so python/pyslow5.cpp python/pyslow5.c build/lib.* build/temp.* build/bdist.* sdist pyslow5.egg-info dist
 	python3 setup.py build
 	cp build/lib.*/*.so  ./
@@ -99,7 +99,7 @@ test-prep: slow5lib
 	./test/bin/make_blow5
 
 valgrind: slow5lib
-	make -C test zstd=$(zstd)
+	$(MAKE) -C test zstd=$(zstd)
 	./test/test.sh mem
 
 examples: slow5lib

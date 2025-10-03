@@ -2,6 +2,7 @@
 #define SLOW5_EXTRA_H
 
 #include <dirent.h>
+#include <stdint.h>
 #include <slow5/slow5.h>
 
 #ifdef __cplusplus
@@ -141,6 +142,20 @@ const char *slow5_format_get_str(enum slow5_format format);
 // Get the slow5 version array from a version string
 //const uint8_t *str_get_slow5_version(const char *str);
 */
+
+/* Irreversible signal degradation (lossy compression) API */
+
+/*
+ * For array a with length n, zero b LSB of each integer by rounding them to the
+ * nearest power of 2. Set slow5_errno on error.
+ */
+void slow5_arr_qts_round(int16_t *a, uint64_t n, uint8_t b);
+
+/*
+ * For the signal array in a slow5 record, zero b LSB of each integer by
+ * rounding them to the nearest power of 2. Set slow5_errno on error.
+ */
+void slow5_rec_qts_round(struct slow5_rec *r, uint8_t b);
 
 #ifdef __cplusplus
 }

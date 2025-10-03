@@ -4720,13 +4720,19 @@ int slow5_version_sanity(struct slow5_hdr *hdr){
     return 0;
 }
 
-//bump the slow5 file version to a newer version if a compression method unavailable in the current file version was requested
+/*
+ * Bump the slow5 file version to a newer version if a compression method
+ * is unavailable in the current requested file version.
+ * 0.1.0 -> 0.2.0: Signal compression not none, or record compression neither
+ *                 none nor zlib.
+ */
 struct slow5_version slow5_press_version_bump(struct slow5_version current, slow5_press_method_t method){
 
     struct slow5_version signal_press_version = { .major = 0, .minor = 2, .patch = 0 };
     if(slow5_version_cmp(current,signal_press_version) < 0 &&
-        (method.record_method == SLOW5_COMPRESS_SVB_ZD || method.record_method == SLOW5_COMPRESS_ZSTD ||
-         method.signal_method == SLOW5_COMPRESS_SVB_ZD || method.signal_method == SLOW5_COMPRESS_ZSTD )
+        (method.signal_method != SLOW5_COMPRESS_NONE ||
+         (method.record_method != SLOW5_COMPRESS_NONE &&
+          method.record_method != SLOW5_COMPRESS_ZLIB))
     ){
         SLOW5_INFO("SLOW5 version updated to '" SLOW5_VERSION_STRING_FORMAT "' as the requested compression option is unavailable in the current fileversion '" SLOW5_VERSION_STRING_FORMAT "'",
             signal_press_version.major, signal_press_version.minor, signal_press_version.patch,
