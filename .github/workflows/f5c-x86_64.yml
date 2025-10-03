@@ -12,7 +12,7 @@ env:
 jobs:
   ubuntu_14_local_hts:
     name: ubuntu 14 local hts
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     container:
       image: ubuntu:14.04
       volumes:
@@ -35,7 +35,7 @@ jobs:
       run: make test
   ubuntu_16_install_scripts:
     name: Ubuntu 16 install scripts
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     container:
       image: ubuntu:16.04
       volumes:
@@ -58,7 +58,7 @@ jobs:
       run: valgrind --leak-check=full --error-exitcode=1 ./f5c call-methylation -b test/ecoli_2kb_region/reads.sorted.bam -g test/ecoli_2kb_region/draft.fa -r test/ecoli_2kb_region/reads.fasta -t 8 -K 256 -B 2M > /dev/null
   ubuntu_16_pure_make:
     name: Ubuntu 16 pure make
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     container:
       image: ubuntu:16.04
       volumes:
@@ -79,7 +79,7 @@ jobs:
       run: make test
   ubuntu_18:
     name: Ubuntu 18
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     container:
       image: ubuntu:18.04
       volumes:
@@ -100,11 +100,13 @@ jobs:
       run: make test
   ubuntu_20:
     name: Ubuntu 20
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
+    container:
+      image: ubuntu:20.04
     steps:
     - uses: actions/checkout@v2
     - name: install packages
-      run: sudo apt-get update && sudo apt-get install -y zlib1g-dev libhdf5-dev
+      run: apt-get update && apt-get install -y zlib1g-dev libhdf5-dev gcc g++ autoconf automake make wget bzip2
     - name: build
       run: autoreconf && ./scripts/install-hts.sh && ./configure && make -j8
     - name: test
@@ -122,6 +124,21 @@ jobs:
       run: autoreconf --install && ./scripts/install-hts.sh && ./configure --disable-hdf5 && make -j8 disable_hdf5=1
     - name: test
       run: test/test_slow5.sh
+  ubuntu_22_rocm:
+    name: Ubuntu 22 ROCM
+    runs-on: ubuntu-22.04
+    steps:
+    - uses: actions/checkout@v2
+    - name: rocm
+      run: |
+        sudo apt update
+        wget https://repo.radeon.com/amdgpu-install/5.7.1/ubuntu/jammy/amdgpu-install_5.7.50701-1_all.deb
+        sudo apt install ./amdgpu-install_5.7.50701-1_all.deb
+        sudo amdgpu-install --no-dkms --usecase=rocmdev
+    - name: install packages
+      run: sudo apt-get update && sudo apt-get install -y zlib1g-dev
+    - name: build
+      run: autoreconf --install && ./scripts/install-hts.sh && ./configure --disable-hdf5 && make -j8 disable_hdf5=1 rocm=1
   ubuntu_24:
     name: Ubuntu 24
     runs-on: ubuntu-24.04
@@ -137,7 +154,7 @@ jobs:
       run: test/test_slow5.sh
   ubuntu_14_cuda_6_5:
     name: Ubuntu 14 cuda 6.5
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     container:
       image: ubuntu:14.04
       volumes:
