@@ -9,7 +9,14 @@ rm -r f5c-*
 scripts/install-hdf5.sh && ./scripts/install-hts.sh && ./scripts/install-zstd.sh
 autoreconf --install
 ./configure --enable-localhdf5 --enable-localzstd
-make rocm=1 -j ROCM_ARCH='"--offload-arch=gfx1030 --offload-arch=gfx1100 --offload-arch=gfx900 --offload-arch=gfx906 --offload-arch=gfx908 --offload-arch=gfx90a --offload-arch=gfx942"'
+
+MI900="--offload-arch=gfx803 --offload-arch=gfx900 --offload-arch=gfx906 --offload-arch=gfx908 --offload-arch=gfx90a --offload-arch=gfx942 --offload-arch=gfx950"
+RAD10="--offload-arch=gfx1010 --offload-arch=gfx1011 --offload-arch=gfx1012 --offload-arch=gfx1030 --offload-arch=gfx1031 --offload-arch=gfx1032"
+RAD11="--offload-arch=gfx1100 --offload-arch=gfx1101 --offload-arch=gfx1102"
+RAD12="--offload-arch=gfx1200 --offload-arch=gfx1201"
+IGPU="--offload-arch=gfx1035 --offload-arch=gfx1103 --offload-arch=gfx1150"
+make rocm=1 -j ROCM_ARCH="$MI900 $RAD10 $RAD11 $RAD12 $IGPU"
+#make rocm=1 -j ROCM_ARCH='"--offload-arch=gfx1030 --offload-arch=gfx1100 --offload-arch=gfx900 --offload-arch=gfx906 --offload-arch=gfx908 --offload-arch=gfx90a --offload-arch=gfx942"'
 
 mkdir lib/
 patchelf --force-rpath  --set-rpath '$ORIGIN/lib' f5c
