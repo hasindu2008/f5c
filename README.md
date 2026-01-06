@@ -1,5 +1,5 @@
-![#f03c15](https://placehold.it/15/f03c15/000000?text=+)  *cuda_test_implementations_phase1* branch: 
-- contains various previous implementations (including inefficient ones) of Adaptive Banded Event Alignment for CUDA
+🟥 Do NOT delete this  *cuda_test_implementations_phase1* branch: 
+- contains various previous implementations (including inefficient ones) of Adaptive Banded Event Alignment for CUDA, potentially used in the paper
 
 # f5c
 
