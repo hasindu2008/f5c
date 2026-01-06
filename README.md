@@ -1,4 +1,4 @@
-![#f03c15](https://placehold.it/15/f03c15/000000?text=+)  *fast52tsv* branch: 
+🟥 Do NOT delete this *fast52tsv* branch which can potentially be referenced from somewhere: 
 - the very first fast5 to prototypical slow5 conversion
 
 # f5c
