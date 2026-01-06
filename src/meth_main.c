@@ -106,6 +106,7 @@ static struct option long_options[] = {
     {"paf",no_argument,0,'c'},                     //47 if print in paf format (only for eventalign)
     {"sam-out-version",required_argument,0,0},     //48 specify the version of the sam output for eventalign (eventalign only)
     {"m6anet",no_argument,0,0},                    //49 m6anet output (eventalign only)
+    {"read-kmer",no_argument,0,0},                 //50 read kmer (eventalign only)
     {0, 0, 0, 0}};
 
 
@@ -452,6 +453,13 @@ int meth_main(int argc, char* argv[], int8_t mode) {
                 exit(EXIT_FAILURE);
             }
             yes_or_no(&opt, F5C_M6ANET, longindex, "yes", 1);
+        } else if (c == 0 && longindex == 50){ //read kmer
+            if(mode!=1){
+                ERROR("%s","Option --read-kmer is available only in eventalign");
+                exit(EXIT_FAILURE);
+            }
+            WARNING("%s", "Option --read-kmer is experimental. Exercise caution.");
+            yes_or_no(&opt, F5C_READ_KMER, longindex, "yes", 1);
         }
     }
 
@@ -526,6 +534,7 @@ int meth_main(int argc, char* argv[], int8_t mode) {
         fprintf(fp_help,"   --signal-index             write the raw signal start and end index values for the event to the tsv output\n");
         fprintf(fp_help,"   --rna                      the dataset is direct RNA\n");
         fprintf(fp_help,"   --collapse-events          collapse events that stays on the same reference k-mer\n");
+        //fprintf(fp_help,"   --read-kmer                print the read k-mer\n");
     }
         fprintf(fp_help,"   --min-recalib-events INT   minimum number of events to recalbrate (decrease if your reads are very short and could not calibrate) [%d]\n",opt.min_num_events_to_rescale);
 
@@ -580,6 +589,7 @@ int meth_main(int argc, char* argv[], int8_t mode) {
         int8_t sam_output =  (core->opt.flag & F5C_SAM) ? 1 : 0 ;
         int8_t paf_output =  (core->opt.flag & F5C_PAF) ? 1 : 0 ;
         int8_t m6anet_output =  (core->opt.flag & F5C_M6ANET) ? 1 : 0 ;
+        int8_t write_read_kmer = (core->opt.flag & F5C_READ_KMER) ? 1 : 0 ;
 
         if(sam_output && paf_output){
             ERROR("%s","-c and --sam cannot be used together");
@@ -601,7 +611,7 @@ int meth_main(int argc, char* argv[], int8_t mode) {
         } else if (m6anet_output){
             emit_event_alignment_tsv_m6anet_header(stdout, print_read_names, write_signal_index);
         } else{
-            emit_event_alignment_tsv_header(stdout, print_read_names, write_samples, write_signal_index);
+            emit_event_alignment_tsv_header(stdout, print_read_names, write_samples, write_signal_index, write_read_kmer);
         }
 
     }
