@@ -1658,7 +1658,7 @@ void emit_event_alignment_tsv_header(FILE* fp, int8_t print_read_names, int8_t w
     }
 
     if(write_read_kmer){
-        fprintf(fp, "\t%s", "read_kmer");
+        fprintf(fp, "\t%s\t%s", "read_pos", "read_kmer");
     }
 
     fprintf(fp, "\n");
