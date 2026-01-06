@@ -1,4 +1,4 @@
-![#f03c15](https://placehold.it/15/f03c15/000000?text=+)  *fastt-ioprof* branch: 
+🟥 Do NOT delete this  *fastt-ioprof* branch: 
 - SLOW5 prototype implementation (thesis version)
   -  Used for converting FAST5 to SLOW5 prototype format `f5c fastt fast5_dir > a.fastt`
   -  Used for indexing SLOW5 prototype format `f5c fastt -i a.fastt`
@@ -27,7 +27,7 @@
       make -j8   
       ```
   -  Used for benchmarks in slow5 paper
-  -  
+    
 # f5c
 
 An optimised re-implementation of the call-methylation module in [Nanopolish](https://github.com/jts/nanopolish). Given a set of basecalled Nanopore reads and the raw signals, f5c detects the methylated cytosine bases. f5c can optionally utilise NVIDIA graphics cards for acceleration.
