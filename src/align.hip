@@ -13,6 +13,11 @@
 //#define DEBUG_RECALIB_SCALING 1
 //#define DEBUG_ADAPTIVE 1
 
+/* If an error like "Hip error: the operation cannot be performed in the present state
+  in file : src/f5c.hip line number : <line of an assert>" comes, try uncommenting this */
+//#define NO_PCIE_ATOMIC 1
+
+
 //todo : performing __sync_threads inside the loops is not ideal. Works for today's CUDA architectures.
 // If kernels hang in a future CUDA architecture, this may be the culprit
 
@@ -583,7 +588,9 @@ __global__ void align_kernel_post(AlignedPair* event_align_pairs,
             //>>>>>>>New  replacement begin
             /*assert(band_idx < bands.size());*/
 
+        #ifndef NO_PCIE_ATOMIC
             assert(band_idx < n_bands);
+        #endif
 
             //<<<<<<<<New Replacement over
             int offset = band_event_to_offset(band_idx, event_idx);
@@ -607,7 +614,9 @@ __global__ void align_kernel_post(AlignedPair* event_align_pairs,
         while (curr_kmer_idx >= 0 && curr_event_idx >= 0) {
             // emit alignment
             //>>>>>>>New Repalcement begin
+        #ifndef NO_PCIE_ATOMIC
             assert(outIndex < n_events * 2);
+        #endif
             out_2[outIndex].ref_pos = curr_kmer_idx;
             out_2[outIndex].read_pos = curr_event_idx;
             outIndex++;
@@ -662,7 +671,9 @@ __global__ void align_kernel_post(AlignedPair* event_align_pairs,
 
             int band_idx = event_kmer_to_band(curr_event_idx, curr_kmer_idx);
             int offset = band_event_to_offset(band_idx, curr_event_idx);
+        #ifndef NO_PCIE_ATOMIC
             assert(band_kmer_to_offset(band_idx, curr_kmer_idx) == offset);
+        #endif
 
             uint8_t from = TRACE_ARRAY(band_idx,offset);
             if (from == FROM_D) {
