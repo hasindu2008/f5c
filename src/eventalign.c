@@ -1642,7 +1642,7 @@ void emit_sam_header(samFile* fp, const bam_hdr_t* hdr)
 }
 
 
-void emit_event_alignment_tsv_header(FILE* fp, int8_t print_read_names, int8_t write_samples, int8_t write_signal_index)
+void emit_event_alignment_tsv_header(FILE* fp, int8_t print_read_names, int8_t write_samples, int8_t write_signal_index, int8_t write_read_kmer)
 {
     fprintf(fp, "%s\t%s\t%s\t%s\t%s\t", "contig", "position", "reference_kmer",
             (print_read_names? "read_name" : "read_index"), "strand");
@@ -1656,6 +1656,11 @@ void emit_event_alignment_tsv_header(FILE* fp, int8_t print_read_names, int8_t w
     if(write_samples) {
         fprintf(fp, "\t%s", "samples");
     }
+
+    if(write_read_kmer){
+        fprintf(fp, "\t%s", "read_kmer");
+    }
+
     fprintf(fp, "\n");
 }
 
@@ -2157,7 +2162,7 @@ static inline void sprintf_read_kmer(kstring_t *sp, ref2read_t ref2read, uint64_
 char *emit_event_alignment_tsv(uint32_t strand_idx,
                               const event_table* et, model_t* model, uint32_t kmer_size, scalings_t scalings,
                               const std::vector<event_alignment_t>& alignments,
-                              int8_t print_read_names, int8_t scale_events, int8_t write_samples, int8_t write_signal_index, int8_t collapse,
+                              int8_t print_read_names, int8_t scale_events, int8_t write_samples, int8_t write_signal_index, int8_t collapse, int8_t write_read_kmer,
                               int64_t read_index, char* read_name, char *ref_name,float sample_rate, float *rawptr, int32_t read_len, char *read, bam1_t* bam_record)
 {
 
@@ -2165,7 +2170,10 @@ char *emit_event_alignment_tsv(uint32_t strand_idx,
     kstring_t *sp = &str;
     str_init(sp, sizeof(char)*alignments.size()*120);
 
-    ref2read_t ref2read = get_ref2read_map(bam_record, read_len);
+    ref2read_t ref2read = {0};
+    if(write_read_kmer){
+        ref2read = get_ref2read_map(bam_record, read_len);
+    }
 
     size_t n_collapse = 1;
     for(size_t i = 0; i < alignments.size(); i+=n_collapse) {
@@ -2288,11 +2296,15 @@ char *emit_event_alignment_tsv(uint32_t strand_idx,
             sample_str.resize(sample_str.size() - 1);
             sprintf_append(sp, "\t%s", sample_str.c_str());
         }
-        sprintf_read_kmer(sp, ref2read, ea.ref_position, read, kmer_size);
+        if(write_read_kmer){
+            sprintf_read_kmer(sp, ref2read, ea.ref_position, read, kmer_size);
+        }
         sprintf_append(sp, "\n");
     }
 
-    free(ref2read.map);
+    if(write_read_kmer){
+        free(ref2read.map);
+    }
 
     //str_free(sp); //freeing is later done in free_db_tmp()
     return sp->s;
