@@ -1,4 +1,4 @@
-![#f03c15](https://placehold.it/15/f03c15/000000?text=+)  *slow5-ioprof* branch was used for benchmarks in slow5 paper
+🟥 *slow5-ioprof* branch was used for benchmarks in slow5 paper. Do NOT delete.
 
 # f5c
 
