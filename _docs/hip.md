@@ -1,7 +1,6 @@
 ---
 title: Enabling f5c on AMD GPUs
 author: Bonson Wong and Hasindu Gamaarachchi
-date: 29/01/2026
 ---
 
 # Enabling f5c on AMD GPUs
@@ -13,9 +12,9 @@ GPU acceleration in f5c for NVIDIA devices is enabled by compute kernels impleme
 
 ## Runtime Performance
 
-Now, let us examine how the GPU-accelerated component of f5c (the ABEA algorithm) performs on AMD GPUs. For this evaluation, we ran f5c v1.6 on a dataset consisting of approximately 200,000 nanopore reads (chr22 reads extracted from the PGXXXX230339 sample in https://gentechgp.github.io/gtgseq/docs/data.html).
+Now, let us examine how the GPU-accelerated component of f5c (the ABEA algorithm) performs on AMD GPUs. For this evaluation, we ran f5c v1.6 on a dataset consisting of approximately 200,000 nanopore reads (chr22 reads extracted from the PGXXXX230339 sample in [https://gentechgp.github.io/gtgseq/docs/data.html](https://gentechgp.github.io/gtgseq/docs/data.html).
 
-We conducted experiments on two NVIDIA GPUs (A100 and H200) and two AMD GPUs (MI250X and MI300X). Figure 1 shows the time spent on the ABEA algorithm on GPU, including CPU–GPU data transfer. The figure breaks down the timing for the three GPU kernels (align-pre, align-core, and align-post), which implement the ABEA algorithm, as well as the time required to copy data between CPU and GPU.
+We conducted experiments on two NVIDIA GPUs (A100 and H200) and two AMD GPUs (MI250X and MI300X). Figure below shows the time spent on the ABEA algorithm on GPU, including CPU–GPU data transfer. The figure breaks down the timing for the three GPU kernels (align-pre, align-core, and align-post), which implement the ABEA algorithm, as well as the time required to copy data between CPU and GPU.
 
 In all cases, we executed f5c using the maximum batch size (B) that fully utilised the available GPU DRAM. The DRAM available on those GPUs and the selected batch size used for each GPU are indicated in Figure below.
 
@@ -29,23 +28,20 @@ Next, we evaluated the performance of the f5c ABEA GPU implementation across a r
 
 # Accuracy
 
-Next, we validate the accuracy of the results. Due to factors such as floating-point approximations, we do not expect identical outputs across different hardware. Therefore, our evaluation approach is to run the f5c call-methylation program (which uses ABEA as one of its components) and then generate a correlation plot from its output. We first execute the program solely on the CPU, and then repeat the process on both an NVIDIA GPU and an AMD GPU. As shown in the methylation correlation plots in Figure below, the correlation between NVIDIA A100 and CPU is nearly the same as that between AMD MI250X and CPU. This demonstrates that the results produced by AMD GPUs are as accurate as those from NVIDIA GPUs. Correlation between the results output by the GPU-accelerated versions of f5c and the pure CPU version of f5c (the higher r is, the better). NVIDIA A100 vs CPU (left), AMD MI250X (right).
+Next, we validate the accuracy of the results. Due to factors such as floating-point approximations, we do not expect identical outputs across different hardware. Therefore, our evaluation approach is to run the f5c call-methylation program (which uses ABEA as one of its components) and then generate a correlation plot from its output. We first execute the program solely on the CPU, and then repeat the process on both an NVIDIA GPU and an AMD GPU. As shown in the methylation correlation plots in Figure below, the correlation between NVIDIA A100 and CPU (first panel) is nearly the same as that between AMD MI250X and CPU (second panel). This demonstrates that the results produced by AMD GPUs are as accurate as those from NVIDIA GPUs.
 
-<img width="750" alt="image" src="../img/hipc-acc-nvidia-vs-cpu.png">
-<img width="750" alt="image" src="../img/hipc-acc-amd-vs-cpu.png">
+<img width="350" alt="image" src="../img/hipc-acc-nvidia-vs-cpu.png">
+<img width="350" alt="image" src="../img/hipc-acc-amd-vs-cpu.png">
 
+We then generated a correlation plot comparing the results from the AMD MI250X and the NVIDIA A100 GPUs, as shown in the figure below. This correlation is even stronger than what we observe between either GPU and the CPU.
 
-We then generated a correlation plot comparing the results from the AMD MI250X and the NVIDIA A100 GPUs, as shown in Figure below. This correlation is even stronger than what we observe between either GPU and the CPU.
-Correlation between the results output by AMD MI250X and NVIDIA A100.
-
-
-<img width="750" alt="image" src="../img/hipc-acc-amd-vs-nvidia.png">
+<img width="350" alt="image" src="../img/hipc-acc-amd-vs-nvidia.png">
 
 ## Running f5c on AMD GPUs
 
-Now that we have confirmed both performance and accuracy, you might be wondering how to run f5c on your AMD GPUs. The simplest approach is to use the pre-compiled binary available under the https://github.com/hasindu2008/f5c/releases. At the time of writing, the latest version is f5c v1.6, which you can install and run a test by following the commands provided below.
+Now that we have confirmed both performance and accuracy, you might be wondering how to run f5c on your AMD GPUs. The simplest approach is to use the pre-compiled binary available under [releases](https://github.com/hasindu2008/f5c/releases). At the time of writing, the latest version is f5c v1.6, which you can install and run a test by following the commands provided below.
 
-```
+```bash
 wget https://github.com/hasindu2008/f5c/releases/download/v1.6/f5c-v1.6-rocm-binaries-experimental.tar.gz && tar xf f5c-v1.6-rocm-binaries-experimental.tar.gz
 cd f5c-v1.6 && mv f5c_x86_64_linux_rocm f5c
 scripts/test.sh
