@@ -1,6 +1,6 @@
 ---
 title: HDF5 (Fast5) Performance Issues
-author: Thomas Lam
+author: Thomas Lam, Hasindu Gamaarachchi
 ---
 
 Oxford Nanopore reads are stored in `.fast5` files, based on the [HDF5](https://www.hdfgroup.org/HDF5/) file format - one fast5 file for one read[^1]. The HDF5 file format is complicated and hence we have to rely on an HDF5 library to read those files. At the moment there is only one HDF5 implementation, which is the [official one](https://www.hdfgroup.org/downloads/hdf5) that includes libraries and utilities for handling HDF5 files.

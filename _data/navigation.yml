@@ -8,7 +8,7 @@ docs:
   - title:      Overview
     children:
       - title:  Overview
-        url:    /docs/overview      
+        url:    /docs/overview
   - title:      Installation
     children:
       - title:  Quick Start
@@ -24,28 +24,30 @@ docs:
       - title:  Examples
         url:    /docs/example-usage
       - title:  Output
-        url:    /docs/output        
+        url:    /docs/output
       - title:  Performance guidelines
-        url:    /docs/f5c-perf-hints      
+        url:    /docs/f5c-perf-hints
       - title:  Profiles
-        url:    /docs/profiles  
+        url:    /docs/profiles
   - title:      Troubleshooting
     children:
       - title:  General
-        url:    /docs/general-troubleshoot     
+        url:    /docs/general-troubleshoot
       - title:  CUDA
-        url:    /docs/cuda-troubleshoot        
+        url:    /docs/cuda-troubleshoot
   - title:      Miscellaneous
     children:
       - title:  F5C GPU performance
-        url:    /docs/f5c-gpu-perf        
+        url:    /docs/f5c-gpu-perf
       - title:  Portable binary
         url:    /docs/portable-binary
-      - title: R10 training  
+      - title: R10 training
         url: /docs/r10train
+      - title: HIP for AMD GPUs
+        url: /docs/hip
   - title:      Archived
     children:
       - title:  F5C CPU performance
-        url:    /docs/f5c-cpu-perf    
+        url:    /docs/f5c-cpu-perf
       - title:  HDF5 performance
         url:    /docs/hdf5-performance
