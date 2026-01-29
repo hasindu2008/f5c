@@ -5,7 +5,7 @@ author: Bonson Wong
 
 In 2020 we released f5c, an optimised tool for aligning raw nanopore data to reference kmers and detecting methylated cytosine modified bases. The main bottleneck of performing these computations lies in the computationally intensive step of aligning raw nanopore signal data to a biological reference sequence. In f5c, this is done with the Adaptive Banded Event Alignment (ABEA) algorithm, which aligns signal “events” (segments of signal) to k-mers of a read/reference in signal-space. f5c accelerates this step through a heterogenous CPU-GPU setup, [enabling ABEA to run 3–5× faster](https://bmcbioinformatics.biomedcentral.com/articles/10.1186/s12859-020-03697-x) compared to CPU-only execution.
 
-GPU acceleration in f5c for NVIDIA devices is enabled by compute kernels implemented using CUDA C. Now, as f5c has become a well-established component of many bioinformatics workflows, we are excited to announce AMD GPU support starting from version 1.6, implemented using HIP C.
+GPU acceleration in f5c for NVIDIA GPUs is enabled by compute kernels implemented using CUDA C. Now, as f5c has become a well-established component of many bioinformatics workflows, we are excited to announce AMD GPU support starting from version 1.6, implemented using HIP C.
 
 
 # Runtime Performance
@@ -45,8 +45,8 @@ cd f5c-v1.6 && mv f5c_x86_64_linux_rocm f5c
 scripts/test.sh
 ```
 
-These f5c v1.6 AMD binaries require GLIBC ≥ 2.27 and a GPU driver compatible with the included ROCm runtime (v5.7). We have embedded fat binaries for a range of AMD GPUs supported by the hipcc compiler included with ROCm 5.7. If your GPU is not amongst the embedded fat binaries, the precompiled f5c program may give a runtime error. In that case, you can build f5c with AMD GPU support from source, available at https://github.com/hasindu2008/f5c. Please refer to the README in the repository for detailed compilation instructions.
+These f5c v1.6 AMD binaries require GLIBC ≥ 2.27 and a GPU driver compatible with the included ROCm runtime (v5.7). We have embedded fat binaries for a range of AMD GPUs supported by the hipcc compiler included with ROCm 5.7. If your GPU is not amongst the embedded fat binaries, the precompiled f5c program may give a runtime error. In that case, you can build f5c with AMD GPU support from source, available at [https://github.com/hasindu2008/f5c](https://github.com/hasindu2008/f5c). Please refer to the README in the repository for detailed compilation instructions.
 
 # Acknowledgements
 
-The implementation that enabled AMD GPU support for f5c was initiated during the CSC/Pawsey Hackathon held in September 2025 in Finland. We would like to thank the event organisers (CSC and Pawsey Supercomputing Centres) as well as the mentors who provided invaluable support throughout the hackathon.
+The implementation that enabled AMD GPU support for f5c was initiated during the CSC/Pawsey Hackathon held in September 2025 in Finland. We would like to thank the event organisers (CSC and Pawsey Supercomputing Centres) as well as the mentors who provided invaluable support throughout the hackathon. We also thank AMD for providing access to MI300 GPUs via the AMD University Program.
