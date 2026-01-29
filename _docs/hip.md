@@ -14,19 +14,19 @@ Now, let us examine how the GPU-accelerated component of f5c (the ABEA algorithm
 
 We conducted experiments on two NVIDIA GPUs (A100 and H200) and two AMD GPUs (MI250X and MI300X). Figure below shows the time spent on the ABEA algorithm on GPU, including CPU–GPU data transfer. The figure breaks down the timing for the three GPU kernels (align-pre, align-core, and align-post), which implement the ABEA algorithm, as well as the time required to copy data between CPU and GPU.
 
-In all cases, we executed f5c using the maximum batch size (B) that fully utilised the available GPU DRAM. The DRAM available on those GPUs and the selected batch size used for each GPU are indicated in Figure below.
+In all cases, we executed f5c using the maximum batch size (B) that fully utilised the available GPU DRAM. The DRAM available on those GPUs and the selected batch size used for each GPU are indicated in the figure below.
 
 <img width="750" alt="image" src="../img/hip-perf-1.png">
 
 While GPUs are not directly comparable due to differences in hardware, here we see that performance on AMD GPUs is comparable  to equivalent NVIDIA GPUs.
 
-Next, we evaluated the performance of the f5c ABEA GPU implementation across a range of AMD GPUs. For this, we used systems available to us, which included five server-grade Instinct GPUs and one gaming-class Radeon GPU. The results are presented in Figure below. As before, we selected the batch size to fully utilise the available GPU memory; the specific batch size for each GPU is indicated in Figure below.
+Next, we evaluated the performance of the f5c ABEA GPU implementation across a range of AMD GPUs. For this, we used systems available to us, which included five server-grade Instinct GPUs and one gaming-class Radeon GPU. The results are presented in the figure below. As before, we selected the batch size to fully utilise the available GPU memory; the specific batch size for each GPU is indicated in the figure below.
 
 <img width="750" alt="image" src="../img/hip-perf-2.png">
 
 # Accuracy
 
-Next, we validate the accuracy of the results. Due to factors such as floating-point approximations, we do not expect identical outputs across different hardware. Therefore, our evaluation approach is to run the f5c call-methylation program (which uses ABEA as one of its components) and then generate a correlation plot from its output. We first execute the program solely on the CPU, and then repeat the process on both an NVIDIA GPU and an AMD GPU. As shown in the methylation correlation plots in Figure below, the correlation between NVIDIA A100 and CPU (first panel) is nearly the same as that between AMD MI250X and CPU (second panel). This demonstrates that the results produced by AMD GPUs are as accurate as those from NVIDIA GPUs.
+Next, we validate the accuracy of the results. Due to factors such as floating-point approximations, we do not expect identical outputs across different hardware. Therefore, our evaluation approach is to run the f5c call-methylation program (which uses ABEA as one of its components) and then generate a correlation plot from its output. We first execute the program solely on the CPU, and then repeat the process on both an NVIDIA GPU and an AMD GPU. As shown in the methylation correlation plots in the figure below, the correlation between NVIDIA A100 and CPU (first panel) is nearly the same as that between AMD MI250X and CPU (second panel). This demonstrates that the results produced by AMD GPUs are as accurate as those from NVIDIA GPUs.
 
 <img width="350" alt="image" src="../img/hipc-acc-nvidia-vs-cpu.png">
 <img width="350" alt="image" src="../img/hipc-acc-amd-vs-cpu.png">
@@ -49,4 +49,4 @@ These f5c v1.6 AMD binaries require GLIBC ≥ 2.27 and a GPU driver compatible w
 
 # Acknowledgements
 
-The implementation that enabled AMD GPU support for f5c was initiated during the CSC/Pawsey Hackathon held in September 2025 in Finland. We would like to thank the event organisers (CSC and Pawsey Supercomputing Centres) as well as the mentors who provided invaluable support throughout the hackathon. We also thank AMD for providing access to MI300 GPUs via the AMD University Program.
+The implementation that enabled AMD GPU support for f5c was initiated during the CSC/Pawsey Hackathon held in September 2025 in Finland. We would like to thank the event organisers (CSC and Pawsey Supercomputing Centres) as well as the mentors who provided invaluable support throughout the hackathon. We also thank AMD for providing access to various AMD GPUs via the AMD University Program.
