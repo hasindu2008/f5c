@@ -1,6 +1,6 @@
 ---
-title: Enabling f5c on AMD GPUs
-author: Bonson Wong and Hasindu Gamaarachchi
+title: Enabling f5c on AMD GPUs using HIP
+author: Bonson Wong
 ---
 
 # Enabling f5c on AMD GPUs
