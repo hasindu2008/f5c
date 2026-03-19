@@ -1385,6 +1385,11 @@ struct EventAlignmentParameters
             int s = curr_start_ref - ref_offset;
             int l = curr_end_ref - curr_start_ref + 1;
 
+            if(s < 0 || l <= 0 || ref_seq.length() - s - l < 0) {
+                ERROR("Invalid subsequence range: s = %d, l = %d. Read %s, ref %s, ref len %d\n", s, l, bam_get_qname(params.record), ref_seq.c_str(), (int)ref_seq.length());
+                exit(EXIT_FAILURE);
+            }
+
             std::string fwd_subseq = ref_seq.substr(s, l);
             std::string rc_subseq = rc_ref_seq.substr(ref_seq.length() - s - l, l);
             assert(fwd_subseq.length() == rc_subseq.length());
