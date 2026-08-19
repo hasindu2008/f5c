@@ -624,7 +624,12 @@ ret_status_t load_db1(core_t* core, db_t* db) { //no iop - used for slow5
         // Extract the reference sequence for this region
         int32_t fetched_len = 0;
         t = realtime();
-        char* refseq = faidx_fetch_seq(core->fai, ref_name, ref_start_pos, ref_end_pos, &fetched_len); // todo : error handle?
+        char* refseq = faidx_fetch_seq(core->fai, ref_name, ref_start_pos, ref_end_pos, &fetched_len);
+        if(refseq == NULL || fetched_len < 0){
+            ERROR("Failed to fetch reference sequence for %s:%d-%d", ref_name, ref_start_pos, ref_end_pos);
+            exit(EXIT_FAILURE);
+        }
+
         core->db_fasta_time += realtime() - t;
         db->fasta_cache[i] = refseq;
         // printf("seq : %s\n",db->fasta_cache[i]);
@@ -916,6 +921,8 @@ ret_status_t load_db2(core_t* core, db_t* db) { //separately load fast5 for mult
         int32_t fetched_len = 0;
         t = realtime();
         char* refseq = faidx_fetch_seq(core->fai, ref_name, ref_start_pos, ref_end_pos, &fetched_len); // todo : error handle?
+
+
         core->db_fasta_time += realtime() - t;
         db->fasta_cache[i] = refseq;
         // printf("seq : %s\n",db->fasta_cache[i]);
