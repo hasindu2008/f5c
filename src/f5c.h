@@ -21,7 +21,7 @@
 #include <string>
 #include <vector> //required for eventalign
 
-#define F5C_VERSION "1.6"
+#define F5C_VERSION "1.7"
 
 /*******************************
  * major hard coded parameters *
