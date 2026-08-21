@@ -92,7 +92,7 @@ if test "$enable_systemhts" = yes; then
 		MSG_ERROR([System wide HTS library development files not found!
 		  On Debian based systems such as Ubuntu you may use sudo apt-get install libhts-dev.
 		  You can also download and install the latest release of htslib from http://www.htslib.org/download/.
-		  Or else locally install through ./scripts/install-hts.sh and run ./configure without --enable_systemhts.
+		  Or else locally install through ./scripts/install-hts.sh and run ./configure without --enable-systemhts.
 		  ])
 	fi
 	libhtsnew=yes
@@ -100,7 +100,7 @@ if test "$enable_systemhts" = yes; then
 	if test $libhtsnew != yes; then
 		MSG_ERROR([System wide HTS library development files are old and does not support fai_load3!
 		  You can also download and install the latest release of htslib from http://www.htslib.org/download/.
-		  Or else locally install through ./scripts/install-hts.sh and run ./configure without --enable_systemhts.
+		  Or else locally install through ./scripts/install-hts.sh and run ./configure without --enable-systemhts.
 		  ])
 	fi
 

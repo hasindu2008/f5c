@@ -1,7 +1,7 @@
 .\" generated with Ronn/v0.7.3
 .\" http://github.com/rtomayko/ronn/tree/0.7.3
 .
-.TH "F5C" "1" "2024-02-18" "" ""
+.TH "F5C" "1" "2026-08-21" "" ""
 .
 .SH "NAME"
 \fBf5c\fR \- Ultra\-fast methylation calling and event alignment tool for nanopore sequencing data with optional GPU (CUDA) acceleration
@@ -134,7 +134,7 @@ Do not build the \.idx for the slow5 file (useful when a slow5 index is already 
 \fB\-\-verbose INT\fR:
 .
 .br
-Verbosity level for the log messages [default value: 0]\.
+Verbosity level for the log messages [default value: 1]\.
 .
 .IP "\(bu" 4
 \fB\-\-version\fR:
@@ -226,7 +226,7 @@ Parameter profile to be used for maximising the performance to a particular comp
 Number of I/O processes to read FAST5 files [default value: 1]\. Increase this value if reading FAST5 limits the overall performance\. A higher value (can be as high as 64) is always preferred for systems with multiple disks (RAID) and network file systems\.
 .
 .IP "\(bu" 4
-\fB\-\-pore STR\fR Set the pore chemistry\. Specify r9 for R9\.4 data, r10 for R10\.4 data (from v1.2) and RNA004 for new RNA004 data (from v1.4) [default value: r9 for FAST5, autodetected for SLOW5]\. Introduced in f5c v1\.2\.
+\fB\-\-pore STR\fR Set the pore chemistry\. Specify r9 for R9\.4 data, r10 for R10\.4 data (from v1.2) and rna004 for new RNA004 data (from v1.4) [default value: r9 for FAST5, autodetected for SLOW5]\. Introduced in f5c v1\.2\.
 .
 .IP "\(bu" 4
 \fB\-\-slow5 FILE\fR:
