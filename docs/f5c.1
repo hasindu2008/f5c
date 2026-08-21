@@ -169,7 +169,7 @@ The file containing the base\-called reads in FASTQ or FASTA format\. Can be gzi
 \fB\-b FILE\fR:
 .
 .br
-The file contaning the alignment records sorted based on genomic coordinates in BAM format\.
+The file containing the alignment records sorted based on genomic coordinates in BAM format\.
 .
 .IP "\(bu" 4
 \fB\-g FILE\fR:
@@ -297,7 +297,7 @@ advanced options:
 \fB\-\-skip\-ultra FILE\fR:
 .
 .br
-Skip ultra\-long reads and write those alignment entries to the bam file provided as the argument\. Ultra\-long reads refer to reads longer than 100 kbases by default, unless specified by \-\-ultra\-thresh option below\. Useful for tuning the CPU\-GPU load balance for datasets containing many ultra\-long reads\. Also useful to cap the peak RAM usage in systems with limited memory\. After the execution, ultra\-long reads cab be separately processed, i\.e\., f5c can be again invoked on the produced bam file as the input\. Refer to performance guidelines \fIhttps://hasindu2008\.github\.io/f5c/docs/f5c\-perf\-hints\fR for details\.
+Skip ultra\-long reads and write those alignment entries to the bam file provided as the argument\. Ultra\-long reads refer to reads longer than 100 kbases by default, unless specified by \-\-ultra\-thresh option below\. Useful for tuning the CPU\-GPU load balance for datasets containing many ultra\-long reads\. Also useful to cap the peak RAM usage in systems with limited memory\. After the execution, ultra\-long reads can be separately processed, i\.e\., f5c can be again invoked on the produced bam file as the input\. Refer to performance guidelines \fIhttps://hasindu2008\.github\.io/f5c/docs/f5c\-perf\-hints\fR for details\.
 .
 .IP "\(bu" 4
 \fB\-\-ultra\-thresh INT\fR:
