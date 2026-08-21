@@ -10,7 +10,7 @@ GPU acceleration in f5c for NVIDIA GPUs is enabled by compute kernels implemente
 
 # Runtime Performance
 
-Now, let us examine how the GPU-accelerated component of f5c (the ABEA algorithm) performs on AMD GPUs. For this evaluation, we ran f5c v1.6 on a dataset consisting of approximately 200,000 nanopore reads (chr22 reads extracted from the PGXXXX230339 sample in [https://gentechgp.github.io/gtgseq/docs/data.html](https://gentechgp.github.io/gtgseq/docs/data.html).
+Now, let us examine how the GPU-accelerated component of f5c (the ABEA algorithm) performs on AMD GPUs. For this evaluation, we ran f5c v1.6 on a dataset consisting of approximately 200,000 nanopore reads (chr22 reads extracted from the PGXXXX230339 sample in [https://gentechgp.github.io/gtgseq/docs/data.html](https://gentechgp.github.io/gtgseq/docs/data.html)).
 
 We conducted experiments on two NVIDIA GPUs (A100 and H200) and two AMD GPUs (MI250X and MI300X). Figure below shows the time spent on the ABEA algorithm on GPU, including CPU–GPU data transfer. The figure breaks down the timing for the three GPU kernels (align-pre, align-core, and align-post), which implement the ABEA algorithm, as well as the time required to copy data between CPU and GPU.
 

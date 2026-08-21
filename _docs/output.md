@@ -6,7 +6,7 @@ title: Output
 
 <img width="750" alt="image" src="../img/rsq.png">
 
-f5c resquiggle aligns raw signals to basecalled reads. f5c resquiggle output is explained below. 
+f5c resquiggle aligns raw signals to basecalled reads. f5c resquiggle output is explained below.
 
 ### resquiggle TSV output
 
@@ -53,7 +53,7 @@ Following optional tags are present, which are subsequently described in detail 
 |sh  |f   |Post alignment recalibrated shift parameter                      |
 |ss  |Z   |signal alignment string in format   |
 
-The `sh` and `sc` tag values can be used to scale the raw signal to the pore model. This can be done as: `scaled pA current values = (pA - sh) / sc` where `pA = (raw_signal + offset) * range / digitisation)`).  
+The `sh` and `sc` tag values can be used to scale the raw signal to the pore model. This can be done as: `scaled pA current values = (pA - sh) / sc` where `pA = (raw_signal + offset) * range / digitisation)`).
 
 #### *ss* tag
 
@@ -212,19 +212,19 @@ The default TSV output is as below:
 |7  |float   |event_level_mean|Mean level of the current values of the event                   |
 |8  |float   |event_stdv| Standard deviation of the current values of the event  |
 |9  |float   |event_length| Length of the event (in seconds)   |
-|10 |int   |model_kmer|The k-mer on the pore-model which this event matched                   |
-|11 |int   |model_mean|Scaled mean level on the pore-model for the matched k-mer *(scaling.scale * level_mean + scaling.shift)* where *level_mean* in the first column in the pore-model                   |
-|12 |int   |model_stdv|Scaled standard deviation on the pore-model for the matched k-mer *(level_stdv * scaling.var)* where *level_stdv* in the second column in the pore-model |
-|13 |int   |standardized_level|*(event_level_mean - model_mean) / (sqrt(scalings.var) * model_stdv)*  |
+|10 |string   |model_kmer|The k-mer on the pore-model which this event matched                   |
+|11 |float   |model_mean|Scaled mean level on the pore-model for the matched k-mer *(scaling.scale * level_mean + scaling.shift)* where *level_mean* in the first column in the pore-model                   |
+|12 |float   |model_stdv|Scaled standard deviation on the pore-model for the matched k-mer *(level_stdv * scaling.var)* where *level_stdv* in the second column in the pore-model |
+|13 |float   |standardized_level|*(event_level_mean - model_mean) / (sqrt(scalings.var) * model_stdv)*  |
 
 
-Command line options can be used to modify default columns or print additional columns. `--samples` will print two additional columns, namely start_idx and end_idx. 
+Command line options can be used to modify default columns or print additional columns. `--signal-index` will print two additional columns, namely start_idx and end_idx.
 
 Following optional columns are controlled via command line options:
 
 |Command_line_Option|Type  |Name |Description                               |
 |:----------|:----|:----|:-----------------------------------------|
-|`--print-read-name`|string|read_name|Column 4 will become read_name that prints the read ID|
+|`--print-read-names`|string|read_name|Column 4 will become read_name that prints the read ID|
 |`--signal-index`   |int   |start_idx|start_idx is the starting index on the raw signal which the corresponding k-mer maps to (0-based; BED-like; closed)|
 |`--signal-index`   |int   |end_idx  |end_idx is the ending index on the raw signal which the corresponding k-mer maps to (0-based; BED-like; open)|
 |`--scale-events`   |float |event_level_mean| Intead of scaling the model to the events, now events will be scaled to the model. column 7 becomes `(event_level_mean-scaling.shift)/scaling.scale`|
@@ -274,7 +274,7 @@ Assume we have a read signal named rid0 of 1000 signal samples, mapped to a refe
 <img width="900" alt="image" src="../img/eventalign-dna-1.png">
 
 
-The TSV output from resquiggle will look like below (assume `--print-read-name` and `--signal-index are provided`):
+The TSV output from eventalign will look like below (assume `--print-read-names` and `--signal-index are provided`):
 
 |contig	|position	|reference_kmer	|read_id	|strand	|event_index	|event_level_mean	|event_stdv	|event_length	|model_kmer	|model_mean	|model_stdv	|standardized_level	|start_idx	|end_idx|
 |:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----|
@@ -298,12 +298,12 @@ The PAF output from eventalign will look like below (the header is not present i
 |rid0   |1000            |265        |317     |+     |ctg0   | 30      |12         |19       | 6    |7      |255 |`ss:Z:16,1D13,7,5,7,4,` |
 
 <!--
-cmd: ./f5c eventalign -b test/chr22_meth_example/reads.sorted.bam -g test/chr22_meth_example/humangenome.fa -r test/chr22_meth_example/reads.fastq -t 16 -K 256 -B 2M --print-read-name --signal-index --slow5 test/chr22_meth_example/reads.blow5 | grep f81713d0-6ac4-41cf-947e-7fe12de2e863 
+cmd: ./f5c eventalign -b test/chr22_meth_example/reads.sorted.bam -g test/chr22_meth_example/humangenome.fa -r test/chr22_meth_example/reads.fastq -t 16 -K 256 -B 2M --print-read-name --signal-index --slow5 test/chr22_meth_example/reads.blow5 | grep f81713d0-6ac4-41cf-947e-7fe12de2e863
 !-->
 
 #### Negative strand
 
-Assume we have a read signal named rid1 of 1000 signal samples, mapped to a reference contig named ctg0 of 35 bases Assume a k-mer size of 6. We have a total of 30 k-mers in the reference. Assume the signal-reference alignment looks like in the figure below (note: indices in illustration denote the actual index in the + strand of the reference genome in 5’->3’ direction). 
+Assume we have a read signal named rid1 of 1000 signal samples, mapped to a reference contig named ctg0 of 35 bases Assume a k-mer size of 6. We have a total of 30 k-mers in the reference. Assume the signal-reference alignment looks like in the figure below (note: indices in illustration denote the actual index in the + strand of the reference genome in 5’->3’ direction).
 
 <img width="900" alt="image" src="../img/eventalign-dna-2.png">
 
@@ -317,9 +317,9 @@ Th negative strand is like:
 3' TAACTACCACCTT 5' - strand
 ```
 
-The Reverse complement is thus TTCCACCATCAAT. The 11th k-mer ATTGAT in the + strand relates to ATCAAT in the - strand,  12th k-mer TTGATG relates to CATCAA, 13th k-mer TGATGG relates to CCATC ,... , 17th k-mer GGTGGA relates to TCCACC  and 18th k-mer GTGGAA relates to TTCCAC.
+The Reverse complement is thus TTCCACCATCAAT. The 11th k-mer ATTGAT in the + strand relates to ATCAAT in the - strand,  12th k-mer TTGATG relates to CATCAA, 13th k-mer TGATGG relates to CCATCA,... , 17th k-mer GGTGGA relates to TCCACC  and 18th k-mer GTGGAA relates to TTCCAC.
 
-The TSV output from resquiggle will look like below (assume `--print-read-name` and `--signal-index are provided`):
+The TSV output from eventalign will look like below (assume `--print-read-names` and `--signal-index are provided`):
 
 |contig	|position	|reference_kmer	|read_id	|strand	|event_index	|event_level_mean	|event_stdv	|event_length	|model_kmer	|model_mean	|model_stdv	|standardized_level	|start_idx	|end_idx|
 |:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----|
@@ -353,9 +353,9 @@ The PAF output from eventalign will look like below (the header is not present i
 
 #### Positive strand
 
-Assume we have a read signal named rid0 of 3000 signal samples, mapped to a reference transcript (or can be a ctg in the reference genome) named trn0 of 65 bases. Assume a k-mer size of 5. We have a total of 61 k-mers in the reference. 
+Assume we have a read signal named rid0 of 3000 signal samples, mapped to a reference transcript (or can be a ctg in the reference genome) named trn0 of 65 bases. Assume a k-mer size of 5. We have a total of 61 k-mers in the reference.
 
-Assume the signal-reference alignment looks like in the figure below. Note that the RNA is sequenced 3'->5' end, so the raw signal is 3'->5' direction. However, as transcipts in the reference are in 5'->3' direction, the transcript is reversed to be 3'->5' in the illustration (note: indices in illustration denote the actual index in the transcriptd in 5'->3' direction). 
+Assume the signal-reference alignment looks like in the figure below. Note that the RNA is sequenced 3'->5' end, so the raw signal is 3'->5' direction. However, as transcipts in the reference are in 5'->3' direction, the transcript is reversed to be 3'->5' in the illustration (note: indices in illustration denote the actual index in the transcriptd in 5'->3' direction).
 
 Assume that the 45-56th bases (0-index; bed-like) in this transcript in 5'->3' direction is `GAGAGCCCTGA`. Then, 45th kmer is GAGAG, 46th k-mer is AGAGC, 47th k-mer is GAGCC, .. and the 51st k-mer is CCTGA.
 
@@ -363,7 +363,7 @@ Assume that the 45-56th bases (0-index; bed-like) in this transcript in 5'->3' d
 <img width="900" alt="image" src="../img/eventalign-rna-1.png">
 
 
-The TSV output from resquiggle will look like below (assume `--print-read-name` and `--signal-index are provided`):
+The TSV output from eventalign will look like below (assume `--print-read-names` and `--signal-index are provided`):
 
 |contig	|position	|reference_kmer	|read_id	|strand	|event_index	|event_level_mean	|event_stdv	|event_length	|model_kmer	|model_mean	|model_stdv	|standardized_level	|start_idx	|end_idx|
 |:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----|
@@ -395,7 +395,7 @@ Note that start_kmer and end_kmer are otherway round compared to DNA.
 
 #### Negative strand
 
-Assume we have a read signal named rid1 of 500 signal samples, mapped to a reference contig named ctg1 of 20 bases. Assume a k-mer size of 5. We have a total of 24 k-mers in the reference. Assume the signal-reference alignment looks like in the figure below (note: indices in illustration denote the actual index in the + strand of the reference genome in 5’->3’ direction). 
+Assume we have a read signal named rid1 of 500 signal samples, mapped to a reference contig named ctg1 of 20 bases. Assume a k-mer size of 5. We have a total of 16 k-mers in the reference. Assume the signal-reference alignment looks like in the figure below (note: indices in illustration denote the actual index in the + strand of the reference genome in 5’->3’ direction).
 
 <img width="900" alt="image" src="../img/eventalign-rna-2.png">
 
@@ -411,7 +411,7 @@ Th negative strand is like:
 
 The Reverse complement is thus TCAGCCATTT. The 4th k-mer AAATG in the + strand relates to CATTT in the - strand,  5th k-mer AATGG relates to CCATT ,... , 8th k-mer GGCTG relates to CAGCC and 9th k-mer GCTGA relates to TCAGC.
 
-The TSV output from resquiggle will look like below (assume `--print-read-name` and `--signal-index are provided`):
+The TSV output from eventalign will look like below (assume `--print-read-names` and `--signal-index are provided`):
 
 |contig	|position	|reference_kmer	|read_id	|strand	|event_index	|event_level_mean	|event_stdv	|event_length	|model_kmer	|model_mean	|model_stdv	|standardized_level	|start_idx	|end_idx|
 |:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----	|:----|
@@ -430,11 +430,11 @@ The PAF output from eventalign will look like below (the header is not present i
 
 |read_id|len_raw_signal|start_raw|end_raw|strand|ref_id|len_kmer|start_kmer|end_kmer|matches|len_block|mapq| |
 |--:|----:|----:|--------:|--:|----:|----:|--------:|--:|----:|----:|--------:|--:|
-|rid1   |500            |61        |198     |-     |ctg1   | 24      |10         |4       | 6    |6      |255 |`ss:Z:20,13,19,46,24,15,` |
+|rid1   |500            |61        |198     |-     |ctg1   | 16      |10         |4       | 6    |6      |255 |`ss:Z:20,13,19,46,24,15,` |
 
 <!--
 
-negative 
+negative
 ./f5c eventalign -b test/rna/reads.sorted.bam -g test/rna/gencode.v35.transcripts.fa -r test/rna/reads.fastq -t 16 -K 256 -B 2M --summary test/rna/f5c_event_align.summary.txt  --rna --signal-index --print-read-name | grep 29192917-7793-4f78-b079-c7aa3f24992e
 
 ctg1	4	AAATG	rid1	t	584	100.70	2.678	0.00664	CATTT	100.40	6.94	0.04	11061	11081
@@ -455,12 +455,14 @@ todo: in ctual output in PAF,, fix the reference contig len
 
 ### eventalign SAM output
 
-Specifying `-a` will generate the output in SAM format (much smaller than the TSV output, f5c v1.3 or higher). This output SAM file will contain the following two additional tags added to the S/BAM file given as the input to f5c:
+Specifying `-a` will generate the output in SAM format (much smaller than the TSV output, f5c v1.3 or higher). This output SAM file will contain the following additional tags added to the S/BAM file given as the input to f5c:
 
 |Tag|Type  |Description                               |
 |--:|:----:|:-----------------------------------------|
 |si  |Z   |coordinates associated with the ss tag below (explained below)                     |
 |ss  |Z   |signal alignment string in format described under [here](https://hasindu2008.github.io/f5c/docs/output#resquiggle-paf-output)   |
+|sc  |f | Post alignment recalibrated scale parameter                     |
+|sh  |f   |Post alignment recalibrated shift parameter                      |
 
 *si* tag contains four comma separated values *start_raw*, *end_raw*, *start_kmer* and *end_kmer*, respectively. Those values have the same  as the columns 3,4,8 and 9 in the PAF format explained [above](https://hasindu2008.github.io/f5c/docs/output#eventalign-paf) when specified along with -c.
 

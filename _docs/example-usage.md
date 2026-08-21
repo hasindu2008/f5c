@@ -2,12 +2,12 @@
 title: Example Usage
 ---
 
-## Simple example 
+## Simple example
 
 Follow the same steps as in [Nanopolish tutorial](https://nanopolish.readthedocs.io/en/latest/quickstart_call_methylation.html) while replacing `nanopolish` with `f5c` and `scripts/calculate_methylation_frequency.py` with `f5c meth-freq` in the commands. If you only want to perform a quick test of f5c without aligning reads :
 ```sh
 #download and extract the dataset including sorted alignments
-wget -O f5c_na12878_test.tgz "https://f5c.page.link/f5c_na12878_test"
+wget -O f5c_na12878_test.tgz "https://f5c.bioinf.science/f5c_na12878_test"
 tar xf f5c_na12878_test.tgz
 
 ###### Using S/BLOW5 as input (recommended) ######
@@ -43,14 +43,14 @@ samtools sort -@8 reads.sam > reads.bam
 samtools index reads.bam
 
 #index fast5s, call methylation and count frequencies
-f5c index --iop 8 -t 8 -d fast5/ reads.fq 
+f5c index --iop 8 -t 8 -d fast5/ reads.fq
 f5c call-methylation -t 8 -r reads.fq -g ref.fa -b reads.bam -K 512 -B 2M > meth.tsv
 f5c meth-freq -i meth.tsv -s > meth-freq.tsv
 ```
 
 ## Resource efficient methylation calling workflow for a dataset with many ultra-long reads
 
-In the following example, the system is assumed to have an 32-core CPU and a GPU with 16 GB memory. You can change the number of threads depending on your CPU. Set -K and -B depending on the available GPU memory. 
+In the following example, the system is assumed to have an 32-core CPU and a GPU with 16 GB memory. You can change the number of threads depending on your CPU. Set -K and -B depending on the available GPU memory.
 
 ```sh
 #align reads using minimap2 and sort using samtools
@@ -73,27 +73,28 @@ f5c meth-freq -i meth-ultra.tsv -s > meth-ultra-freq.tsv
 f5c freq-merge meth-freq.tsv meth-ultra-freq.tsv > meth-freq-combined.tsv
 ```
 
-Scripts that implement the above example for two HPC environments are available in the repository:  a [Sun Grid Engine (SGE) script](https://github.com/hasindu2008/f5c/blob/master/scripts/pipelines/methcall-ultra-pipeline.sge.sh) and a 
+Scripts that implement the above example for two HPC environments are available in the repository:  a [Sun Grid Engine (SGE) script](https://github.com/hasindu2008/f5c/blob/master/scripts/pipelines/methcall-ultra-pipeline.sge.sh) and a
 [Portable Batch System (PBS) script](https://github.com/hasindu2008/f5c/blob/master/scripts/pipelines/methcall-ultra-pipeline.pbs.sh).
 
 ## Methylation calling workflow for a dataset containing independent batches
 
-Assume the dataset is composed of several batches which is usually the case if real-time base-calling was performed. You can perform an individual workflow independently on each batch and finally combine the methylation frequency counts. 
+Assume the dataset is composed of several batches which is usually the case if real-time base-calling was performed. You can perform an individual workflow independently on each batch and finally combine the methylation frequency counts.
 
 
 ```bash
 #perform methylation calling on each batch (10 batches in this example)
 for i in {1..10}
 do
-  minimap2 -x map-ont -a -t8 --secondary=no ref.fa reads_i.fq > reads_i.sam
-  samtools sort -@8 reads_i.sam > reads_i.bam
-  samtools index reads_i.bam
-  f5c index --iop 8 -t 8 -d fast5_i/ reads_i.fq 
-  f5c call-methylation -t 8 -r reads_i.fq -g ref.fa -b reads_i.bam -K 512 -B 2M > meth_i.tsv
+  minimap2 -x map-ont -a -t8 --secondary=no ref.fa reads_$i.fq > reads_$i.sam
+  samtools sort -@8 reads_$i.sam > reads_$i.bam
+  samtools index reads_$i.bam
+  f5c index --iop 8 -t 8 -d fast5_$i/ reads_$i.fq
+  f5c call-methylation -t 8 -r reads_$i.fq -g ref.fa -b reads_$i.bam -K 512 -B 2M > meth_$i.tsv
+  f5c meth-freq -i meth_$i.tsv -s > meth-freq_$i.tsv
 done
 
 #merge the frequency counts
-f5c freq-merge reads_{1..10}.sam > meth-freq.tsv
+f5c freq-merge meth-freq_{1..10}.tsv > meth-freq.tsv
 ```
 
 Frequency count merging can also be useful to utilise a distributed system (e.g. array job in an HPC environment) or when performing real-time methylation calling.
@@ -112,5 +113,5 @@ f5c index -t 8 --slow5 signals.blow5 reads.fq
 #f5c methylation calling
 f5c call-methylation -t 8 -r reads.fq -g ref.fa -b reads.bam --slow5 signals.blow5 > meth.tsv
 #f5c eventalign
-f5c eventalign -t 8 -r reads.fq -g ref.fa -b reads.bam --slow5 signals.blow5 > meth.tsv
+f5c eventalign -t 8 -r reads.fq -g ref.fa -b reads.bam --slow5 signals.blow5 > eventalign.tsv
 ```
