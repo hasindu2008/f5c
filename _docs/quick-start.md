@@ -20,4 +20,4 @@ Binaries should work on most Linux distributions as the only dependency is `zlib
 
 You can also use conda to install *f5c* as `conda install f5c -c bioconda -c conda-forge`.
 
-From f5c v1.6 onwards, experimental binaries for AMD GPUs are also provided under [releases](https://github.com/hasindu2008/f5c/releases).
+For f5c v1.6, experimental binaries for AMD GPUs are provided under [releases](https://github.com/hasindu2008/f5c/releases/tag/v1.6). If you need such binaries for newer releases, please open an [issue](https://github.com/hasindu2008/f5c/issues).
