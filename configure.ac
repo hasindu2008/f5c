@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.69])
-AC_INIT([f5c], [1.0], [hasindu@unsw.edu.au])
+AC_INIT([f5c], [1.7], [hasindu@unsw.edu.au])
 #AM_INIT_AUTOMAKE([foreign])
 AC_CONFIG_SRCDIR([src/f5c.c])
 AC_CONFIG_HEADERS([src/config.h])

@@ -519,13 +519,13 @@ int meth_main(int argc, char* argv[], int8_t mode) {
         fprintf(fp_help,"   --kmer-model FILE          custom nucleotide k-mer model file (format similar to test/r9-models/r9.4_450bps.nucleotide.6mer.template.model)\n");
     if(mode==0){
         fprintf(fp_help,"   --meth-model FILE          custom methylation k-mer model file (format similar to test/r9-models/r9.4_450bps.cpg.6mer.template.model)\n");
-        fprintf(fp_help,"   --meth-out-version INT     methylation tsv output version (set 2 to print the strand column) [%d]\n",opt.meth_out_version);
+        fprintf(fp_help,"   --meth-out-version INT     methylation tsv output version (set 1 for the old format) [%d]\n",opt.meth_out_version);
     }
     if(mode==1){
         fprintf(fp_help,"   --summary FILE             summarise the alignment of each read/strand in FILE\n");
         fprintf(fp_help,"   --paf                      write output in PAF format\n");
         fprintf(fp_help,"   --sam                      write output in SAM format\n");
-        fprintf(fp_help,"   --sam-out-version INT      sam output version (set 1 to revert to old nanopolish style format) [%d]\n",opt.meth_out_version);
+        fprintf(fp_help,"   --sam-out-version INT      sam output version (set 1 to revert to old nanopolish style format) [%d]\n",opt.sam_out_version);
         fprintf(fp_help,"   --m6anet                   write output in m6anet format\n");
 
         fprintf(fp_help,"   --print-read-names         print read names instead of indexes\n");

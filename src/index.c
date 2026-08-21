@@ -258,7 +258,7 @@ static const char* shortopts = "Vhd:f:s:v:t:";
 static const struct option longopts[] = {
     { "help",                      no_argument,       NULL, 'h' },     //0
     { "version",                   no_argument,       NULL, 'V' },  //1
-    { "verbose",                   no_argument,       NULL, 'v' },          //2
+    { "verbose",                   required_argument, NULL, 'v' },          //2
     { "directory",                 required_argument, NULL, 'd' },          //3
     { "sequencing-summary-file",   required_argument, NULL, 's' },          //4
     { "summary-fofn",              required_argument, NULL, 'f' },          //5

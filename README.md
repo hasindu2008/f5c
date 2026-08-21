@@ -5,7 +5,7 @@ An optimised re-implementation of the *index*, *call-methylation* and *eventalig
 First, the reads have to be indexed using `f5c index`. Then, invoke `f5c call-methylation` to detect methylated cytosine bases. Finally, you may use `f5c meth-freq` to obtain methylation frequencies. Alternatively, invoke `f5c eventalign` to perform event alignment. The results are almost the same as from nanopolish except a few differences due to floating point approximations.
 
 - **f5c v1.2 onwards support nanopore R10.4.1 chemistry (must specify --pore r10 if FAST5 input, autodetected for S/BLOW5 input)**.
-- **f5c v1.4 onwards support nanopore RNA004 chemistry (make specify --pore rna004 if FAST5 input, autodetected for S/BLOW5 input)**.
+- **f5c v1.4 onwards support nanopore RNA004 chemistry (must specify --pore rna004 if FAST5 input, autodetected for S/BLOW5 input)**.
 
 *Full Documentation* : [https://hasindu2008.github.io/f5c/docs/overview](https://hasindu2008.github.io/f5c/docs/overview)<br/>
 *Latest release* : [https://github.com/hasindu2008/f5c/releases/latest](https://github.com/hasindu2008/f5c/releases/latest)<br/>
